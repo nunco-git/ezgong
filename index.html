@@ -29,16 +29,32 @@
     box-shadow: 0 1px 3px rgba(0,0,0,0.15);
   }
   #topBar .brand {
+    width: 200px;
     flex-shrink: 0;
     display: flex;
+    flex-direction: column;
+    justify-content: center;
     align-items: center;
-    padding: 0 14px;
-    font-size: 13px;
-    font-weight: 800;
-    color: #f8fafc;
-    letter-spacing: -0.2px;
-    border-right: 1px solid #1e293b;
+    text-align: center;
+    padding: 2px 10px;
+    line-height: 1.3;
+    gap: 1px;
+    background: linear-gradient(90deg, #1e3a8a 0%, #1e293b 85%);
+    border-right: 1px solid #334155;
     white-space: nowrap;
+    overflow: hidden;
+  }
+  #topBar .brand .brand-tagline {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: #93c5fd;
+    letter-spacing: -0.1px;
+  }
+  #topBar .brand .brand-main {
+    font-size: 12.5px;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.1px;
   }
   #tabList {
     flex: 1;
@@ -142,7 +158,10 @@
 
 <div id="shell">
   <div id="topBar">
-    <div class="brand">📂 업무 웹앱</div>
+    <div class="brand">
+      <span class="brand-tagline">슬기로운 직장생활을 위한</span>
+      <span class="brand-main">📂 스마트 업무앱</span>
+    </div>
     <div id="tabList"></div>
     <div class="top-actions">
       <button id="newTabBtn" onclick="openCurrentInNewTab()">새 탭에서 열기 ↗</button>
