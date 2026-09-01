@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>업무 웹앱 포털</title>
+
+<!-- Firebase SDK (좌측 광고 배너) -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+    background: #f1f5f9;
+    overflow: hidden;
+  }
+
+  /* ── 상단 탭 바 (세로 폭 약 1cm ≈ 40px) ── */
+  #topBar {
+    height: 40px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: stretch;
+    background: #0f172a;
+    border-bottom: 1px solid #1e293b;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  }
+  #topBar .brand {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    font-size: 13px;
+    font-weight: 800;
+    color: #f8fafc;
+    letter-spacing: -0.2px;
+    border-right: 1px solid #1e293b;
+    white-space: nowrap;
+  }
+  #tabList {
+    flex: 1;
+    display: flex;
+    align-items: stretch;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+  #tabList::-webkit-scrollbar { height: 4px; }
+  #tabList::-webkit-scrollbar-thumb { background: #334155; }
+
+  .tab-btn {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 16px;
+    border: none;
+    background: transparent;
+    color: #94a3b8;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    transition: background 0.15s, color 0.15s;
+  }
+  .tab-btn:hover { background: rgba(255,255,255,0.05); color: #e2e8f0; }
+  .tab-btn.active { color: #ffffff; border-bottom-color: #3b82f6; background: rgba(59,130,246,0.12); }
+
+  #topBar .top-actions {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    border-left: 1px solid #1e293b;
+  }
+  #newTabBtn {
+    border: 1px solid #334155;
+    background: transparent;
+    color: #cbd5e1;
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 4px 9px;
+    border-radius: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  #newTabBtn:hover { background: #1e293b; color: #fff; }
+
+  /* ── 전체 레이아웃 ── */
+  #shell { display: flex; flex-direction: column; height: 100vh; }
+  #body { flex: 1; display: flex; min-height: 0; }
+
+  /* ── 좌측 광고 사이드바 ── */
+  #adSidebar {
+    width: 200px;
+    flex-shrink: 0;
+    background: #ffffff;
+    border-right: 1px solid #e2e8f0;
+    padding: 14px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    overflow-y: auto;
+  }
+  .banner-card {
+    background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px;
+    display: flex; flex-direction: column; align-items: center; text-align: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+  }
+  .banner-card img { width: 100%; height: 110px; object-fit: cover; border-radius: 6px; margin-bottom: 8px; background: #f8fafc; }
+  .banner-card h4 { margin: 4px 0; font-size: 13px; color: #1e293b; word-break: keep-all; }
+  .banner-card p { font-size: 11.5px; color: #64748b; margin: 0 0 8px 0; line-height: 1.4; word-break: keep-all; }
+  .banner-card a { display: inline-block; width: 100%; padding: 6px 0; background: #f1f5f9; color: #2563eb; text-decoration: none; font-size: 11.5px; font-weight: bold; border-radius: 5px; }
+  .banner-card a:hover { background: #e2e8f0; }
+
+  /* ── 메인 iframe 영역 ── */
+  #mainArea { flex: 1; position: relative; min-width: 0; background: #fff; }
+  #appFrame { width: 100%; height: 100%; border: none; display: block; }
+
+  #frameHint {
+    position: absolute; bottom: 10px; right: 14px;
+    background: rgba(15,23,42,0.85);
+    color: #cbd5e1;
+    font-size: 11px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    display: none;
+    line-height: 1.4;
+  }
+  #frameHint a { color: #93c5fd; font-weight: 700; text-decoration: none; }
+  #frameHint a:hover { text-decoration: underline; }
+
+  @media (max-width: 900px) {
+    #adSidebar { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="shell">
+  <div id="topBar">
+    <div class="brand">📂 업무 웹앱</div>
+    <div id="tabList"></div>
+    <div class="top-actions">
+      <button id="newTabBtn" onclick="openCurrentInNewTab()">새 탭에서 열기 ↗</button>
+    </div>
+  </div>
+
+  <div id="body">
+    <div id="adSidebar">
+      <div class="banner-card" id="card-1"></div>
+      <div class="banner-card" id="card-2"></div>
+      <div class="banner-card" id="card-3"></div>
+      <div class="banner-card" id="card-4"></div>
+    </div>
+
+    <div id="mainArea">
+      <iframe id="appFrame" title="웹앱 화면"></iframe>
+      <div id="frameHint">이 화면이 정상적으로 안 보이면 해당 사이트가 다른 페이지 안에 넣는(iframe) 것을 막아둔 경우입니다.<br><a href="#" onclick="openCurrentInNewTab(); return false;">새 탭에서 직접 열기 →</a></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── 여기에 포털에 넣을 웹앱 목록을 정의합니다. 필요하면 자유롭게 추가/수정하세요. ──
+  const APPS = [
+    { title: '📄 PDF·이미지 병합기', url: 'https://pdf-frontend-sigma-one.vercel.app/' },
+    { title: '📊 엑셀 병합기', url: 'https://nunco-git.github.io/excelmerge/' },
+    { title: '📝 한글(HWPX) 병합기', url: 'https://nunco-git.github.io/hwpxmerge/' },
+  ];
+
+  let currentUrl = APPS.length > 0 ? APPS[0].url : '';
+
+  function renderTabs() {
+    const tabList = document.getElementById('tabList');
+    tabList.innerHTML = '';
+    APPS.forEach((app, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'tab-btn' + (app.url === currentUrl ? ' active' : '');
+      btn.textContent = app.title;
+      btn.onclick = () => switchApp(app.url);
+      tabList.appendChild(btn);
+    });
+  }
+
+  function switchApp(url) {
+    currentUrl = url;
+    document.getElementById('appFrame').src = url;
+    renderTabs();
+    // iframe 임베드가 막혀 있는 사이트인 경우를 대비한 안내(로드 실패를 100% 감지할
+    // 방법은 브라우저 보안 정책상 없어서, 일정 시간 뒤 안내를 살짝 보여주는 방식으로 처리)
+    const hint = document.getElementById('frameHint');
+    hint.style.display = 'none';
+    clearTimeout(window.__frameHintTimer);
+    window.__frameHintTimer = setTimeout(() => { hint.style.display = 'block'; }, 4000);
+  }
+
+  function openCurrentInNewTab() {
+    if (currentUrl) window.open(currentUrl, '_blank', 'noopener');
+  }
+
+  document.getElementById('appFrame').addEventListener('load', () => {
+    document.getElementById('frameHint').style.display = 'none';
+    clearTimeout(window.__frameHintTimer);
+  });
+
+  renderTabs();
+  if (currentUrl) document.getElementById('appFrame').src = currentUrl;
+
+  // ── 좌측 광고 배너 (PDF/엑셀/한글 병합기와 같은 Firebase 프로젝트 공유, 포털 전용 문서 사용) ──
+  const firebaseConfig = {
+    apiKey: "AIzaSyB1KB8TojybTREGiKJJukmgcGgtDTbZodA",
+    authDomain: "ezpdfmerger.firebaseapp.com",
+    projectId: "ezpdfmerger",
+    storageBucket: "ezpdfmerger.firebasestorage.app",
+    messagingSenderId: "613693021673",
+    appId: "1:613693021673:web:41982b69c1e70692e83f78",
+    measurementId: "G-P70QSP1WSV"
+  };
+
+  let db = null;
+  try {
+    if (typeof firebase !== 'undefined') {
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.firestore();
+    }
+  } catch (err) {
+    console.error('Firebase 초기화 오류(광고 배너 비활성화):', err);
+  }
+
+  const defaultCards = {};
+  for (let i = 1; i <= 4; i++) {
+    defaultCards[i] = { title: `알림 배너 ${i}`, desc: '클릭하면 해당 링크로 바로 연결됩니다.', img: '', link: '#', btnText: '자세히 보기' };
+  }
+
+  function sanitizeUrl(url) {
+    if (!url) return '';
+    const trimmed = String(url).trim();
+    return /^https?:\/\//i.test(trimmed) ? trimmed : '';
+  }
+
+  function applyCardsToDOM(cards) {
+    for (let i = 1; i <= 4; i++) {
+      const cardEl = document.getElementById(`card-${i}`);
+      if (!cardEl) continue;
+      const data = cards[i] || defaultCards[i];
+      cardEl.innerHTML = '';
+
+      const safeImg = sanitizeUrl(data.img);
+      if (safeImg) {
+        const img = document.createElement('img');
+        img.src = safeImg; img.alt = 'banner';
+        cardEl.appendChild(img);
+      }
+      const h4 = document.createElement('h4'); h4.textContent = data.title || ''; cardEl.appendChild(h4);
+      const p = document.createElement('p'); p.textContent = data.desc || ''; cardEl.appendChild(p);
+      const a = document.createElement('a');
+      a.href = sanitizeUrl(data.link) || '#';
+      a.target = '_blank'; a.rel = 'noopener noreferrer';
+      a.textContent = data.btnText || '';
+      cardEl.appendChild(a);
+    }
+  }
+
+  async function fetchAndRenderBanners() {
+    let cards = { ...defaultCards };
+    try {
+      if (db) {
+        const doc = await db.collection('settings').doc('portal_banners').get();
+        if (doc.exists && doc.data().cards) cards = { ...defaultCards, ...doc.data().cards };
+      }
+    } catch (error) {
+      console.error('배너 데이터 불러오기 오류:', error);
+    }
+    applyCardsToDOM(cards);
+  }
+  fetchAndRenderBanners();
+</script>
+</body>
+</html>
