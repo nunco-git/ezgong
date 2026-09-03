@@ -27,6 +27,7 @@
     background: #0f172a;
     border-bottom: 1px solid #1e293b;
     box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    position: relative;
   }
   #topBar .brand {
     width: 200px;
@@ -105,6 +106,44 @@
   }
   #newTabBtn:hover { background: #1e293b; color: #fff; }
 
+  /* ── 모바일 전용 메뉴(햄버거) ── */
+  #mobileMenuBtn {
+    display: none;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    background: transparent;
+    border: none;
+    border-left: 1px solid #1e293b;
+    color: #f8fafc;
+    font-size: 18px;
+    cursor: pointer;
+  }
+  #mobileMenuBtn:hover { background: rgba(255,255,255,0.08); }
+  #mobileMenuDropdown {
+    display: none;
+    position: absolute;
+    top: 40px;
+    left: 0;
+    right: 0;
+    background: #0f172a;
+    border-bottom: 1px solid #1e293b;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    z-index: 2000;
+    flex-direction: column;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  #mobileMenuDropdown.open { display: flex; }
+  #mobileMenuDropdown .tab-btn {
+    justify-content: flex-start;
+    padding: 13px 18px;
+    border-bottom: 1px solid #1e293b;
+    border-radius: 0;
+    font-size: 13.5px;
+  }
+
   /* ── 전체 레이아웃 ── */
   #shell { display: flex; flex-direction: column; height: 100vh; }
   #body { flex: 1; display: flex; min-height: 0; }
@@ -152,6 +191,13 @@
   @media (max-width: 900px) {
     #adSidebar { display: none; }
   }
+  @media (max-width: 640px) {
+    #tabList { display: none; }
+    #mobileMenuBtn { display: flex; }
+    #topBar .brand { width: auto; padding: 2px 12px; }
+    #topBar .top-actions { padding: 0 8px; }
+    #newTabBtn { font-size: 10.5px; padding: 4px 7px; }
+  }
 </style>
 </head>
 <body>
@@ -163,6 +209,8 @@
       <span class="brand-main">📂 스마트 업무앱</span>
     </div>
     <div id="tabList"></div>
+    <button id="mobileMenuBtn" onclick="toggleMobileMenu()" aria-label="앱 목록 열기">☰</button>
+    <div id="mobileMenuDropdown"></div>
     <div class="top-actions">
       <button id="newTabBtn" onclick="openCurrentInNewTab()">새 탭에서 열기 ↗</button>
     </div>
@@ -199,14 +247,30 @@
 
   function renderTabs() {
     const tabList = document.getElementById('tabList');
+    const mobileDropdown = document.getElementById('mobileMenuDropdown');
     tabList.innerHTML = '';
+    mobileDropdown.innerHTML = '';
     APPS.forEach((app, idx) => {
       const btn = document.createElement('button');
       btn.className = 'tab-btn' + (app.url === currentUrl ? ' active' : '');
       btn.textContent = app.title;
-      btn.onclick = () => switchApp(app.url);
+      btn.onclick = () => { switchApp(app.url); closeMobileMenu(); };
       tabList.appendChild(btn);
+
+      const mBtn = document.createElement('button');
+      mBtn.className = 'tab-btn' + (app.url === currentUrl ? ' active' : '');
+      mBtn.textContent = app.title;
+      mBtn.onclick = () => { switchApp(app.url); closeMobileMenu(); };
+      mobileDropdown.appendChild(mBtn);
     });
+  }
+
+  function toggleMobileMenu() {
+    document.getElementById('mobileMenuDropdown').classList.toggle('open');
+  }
+
+  function closeMobileMenu() {
+    document.getElementById('mobileMenuDropdown').classList.remove('open');
   }
 
   function switchApp(url) {
