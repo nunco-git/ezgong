@@ -86,26 +86,6 @@
   .tab-btn:hover { background: rgba(255,255,255,0.05); color: #e2e8f0; }
   .tab-btn.active { color: #ffffff; border-bottom-color: #3b82f6; background: rgba(59,130,246,0.12); }
 
-  #topBar .top-actions {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    padding: 0 12px;
-    border-left: 1px solid #1e293b;
-  }
-  #newTabBtn {
-    border: 1px solid #334155;
-    background: transparent;
-    color: #cbd5e1;
-    font-size: 11.5px;
-    font-weight: 700;
-    padding: 4px 9px;
-    border-radius: 6px;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-  #newTabBtn:hover { background: #1e293b; color: #fff; }
-
   /* ── 모바일 전용 메뉴(햄버거) ── */
   #mobileMenuBtn {
     display: none;
@@ -135,7 +115,7 @@
     max-height: 70vh;
     overflow-y: auto;
   }
-  #mobileMenuDropdown.open { display: flex; }
+  #mobileMenuDropdown.open { display: none; }
   #mobileMenuDropdown .tab-btn {
     justify-content: flex-start;
     padding: 13px 18px;
@@ -195,8 +175,7 @@
     #tabList { display: none; }
     #mobileMenuBtn { display: flex; }
     #topBar .brand { width: auto; padding: 2px 12px; }
-    #topBar .top-actions { padding: 0 8px; }
-    #newTabBtn { font-size: 10.5px; padding: 4px 7px; }
+    #mobileMenuDropdown.open { display: flex; }
   }
 </style>
 </head>
@@ -211,9 +190,6 @@
     <div id="tabList"></div>
     <button id="mobileMenuBtn" onclick="toggleMobileMenu()" aria-label="앱 목록 열기">☰</button>
     <div id="mobileMenuDropdown"></div>
-    <div class="top-actions">
-      <button id="newTabBtn" onclick="openCurrentInNewTab()">새 탭에서 열기 ↗</button>
-    </div>
   </div>
 
   <div id="body">
@@ -240,6 +216,7 @@
     { title: '🧮 스마트 엑셀 함수 변환기', url: 'https://nunco-git.github.io/excelfuntion/' },
     { title: '🗺️ 스마트 맵마커(엑셀주소→네이버 지도표시)', url: 'https://nunco-git.github.io/multipointmap/' },
     { title: '🖼️ 스마트 이미지 편집기', url: 'https://nunco-git.github.io/picadjust/' },
+    { title: '🏷️ 스마트 파일명 관리자', url: 'https://nunco-git.github.io/filerename/' },
     { title: '📋 스마트 자료 취합 시스템', url: 'https://nunco-git.github.io/data-compile/' },
   ];
 
@@ -272,6 +249,13 @@
   function closeMobileMenu() {
     document.getElementById('mobileMenuDropdown').classList.remove('open');
   }
+
+  // 모바일 메뉴를 연 채로 화면을 넓히면(회전, 창 크기 조절 등) 데스크톱용 가로
+  // 탭 목록과 모바일 드롭다운이 동시에 보이는 "중복 표시" 현상이 생길 수 있어,
+  // 화면이 넓어지면 열려있던 모바일 메뉴를 자동으로 닫는다.
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 640) closeMobileMenu();
+  });
 
   function switchApp(url) {
     currentUrl = url;
