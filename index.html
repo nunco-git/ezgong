@@ -175,54 +175,73 @@
     width: 100%; height: 100%;
     overflow-x: auto;
     overflow-y: auto;
-    padding: 28px 32px;
+    padding: 36px 40px;
     background: #f8fafc;
   }
   #homeScreen.active { display: block; }
-  #homeScreen .home-title {
-    font-size: 20px; font-weight: 800; color: #0f172a; margin: 0 0 4px;
-  }
-  #homeScreen .home-sub {
-    font-size: 13px; color: #64748b; margin: 0 0 22px;
-  }
   .home-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    grid-template-rows: repeat(2, auto);
-    gap: 16px;
-    max-width: 1400px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    width: 100%;
   }
   .home-card {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 18px 20px;
+    background: linear-gradient(160deg, #fff7ed 0%, #ffedd5 100%);
+    border: 1px solid #fed7aa;
+    border-radius: 14px;
+    padding: 22px 24px;
     cursor: pointer;
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s;
+    gap: 10px;
+    box-shadow: 0 1px 3px rgba(194,65,12,0.06);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
   }
   .home-card:hover {
-    box-shadow: 0 4px 14px rgba(15,23,42,0.09);
-    border-color: #93c5fd;
+    border-color: #fdba74;
+    box-shadow: 0 6px 16px rgba(194,65,12,0.12);
     transform: translateY(-2px);
   }
+  .home-card-head {
+    display: flex;
+    align-items: baseline;
+    gap: 9px;
+  }
   .home-card .home-card-num {
-    font-size: 11px; font-weight: 800; color: #93c5fd; letter-spacing: 0.5px;
+    font-size: 16px; font-weight: 800; color: #c2410c;
   }
   .home-card h3 {
-    margin: 0; font-size: 19px; font-weight: 400; color: #0f172a; word-break: keep-all;
+    margin: 0; font-size: 20px; font-weight: 400; color: #9a3412; word-break: keep-all;
     font-family: 'Jua', 'Pretendard Variable', sans-serif;
   }
   .home-card ul {
-    margin: 2px 0 0; padding-left: 16px; font-size: 12px; color: #64748b; line-height: 1.6;
+    margin: 4px 0 0; padding-left: 18px; font-size: 13.5px; color: #78350f; line-height: 2;
   }
   .home-card ul li {
-    margin: 0;
+    margin: 6px 0;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .home-card ul li strong { color: #334155; }
+  .home-card ul li strong { color: #9a3412; }
+  #siteFooter {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  #siteFooter .footer-title {
+    font-family: 'Jua', 'Pretendard Variable', sans-serif;
+    font-size: 22px;
+    font-weight: 400;
+    color: #1e293b;
+  }
+  #siteFooter .footer-links {
+    font-size: 12.5px;
+    color: #94a3b8;
+    white-space: nowrap;
+  }
   @media (max-width: 1100px) {
     .home-grid { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(4, auto); }
   }
@@ -267,9 +286,11 @@
 
     <div id="mainArea">
       <div id="homeScreen">
-        <p class="home-title">📂 스마트 업무앱 모음</p>
-        <p class="home-sub">아래에서 원하는 앱을 선택하세요.</p>
         <div class="home-grid" id="homeGrid"></div>
+        <div id="siteFooter">
+          <span class="footer-title">스마트공</span>
+          <span class="footer-links">스마트공 시리즈&nbsp;&nbsp;|&nbsp;&nbsp;개인정보처리방침&nbsp;&nbsp;|&nbsp;&nbsp;저작권정책</span>
+        </div>
       </div>
       <iframe id="appFrame" title="웹앱 화면"></iframe>
       <div id="frameHint">이 화면이 정상적으로 안 보이면 해당 사이트가 다른 페이지 안에 넣는(iframe) 것을 막아둔 경우입니다.<br><a href="#" onclick="openCurrentInNewTab(); return false;">새 탭에서 직접 열기 →</a></div>
@@ -281,18 +302,18 @@
   // ── 여기에 포털에 넣을 웹앱 목록을 정의합니다. 필요하면 자유롭게 추가/수정하세요. ──
   const APPS = [
     { title: '📄 스마트 PDF·이미지 병합기', url: 'https://pdf-frontend-sigma-one.vercel.app/', feats: [
-      '<strong>외부 서버 전송 ZERO</strong>: 브라우저에서만 처리',
+      '<strong>외부 서버 전송 ZERO</strong>: 브라우저 안에서만 처리',
       '<strong>미리보기 지원</strong>: 순서 확인·조정 후 병합',
       '<strong>PDF → 이미지 변환</strong> 기능 포함',
     ] },
     { title: '📊 스마트 엑셀 병합기', url: 'https://nunco-git.github.io/excelmerge/', feats: [
-      '<strong>시트별 일괄 병합</strong>: 여러 파일 한 번에',
+      '<strong>시트별 일괄 병합</strong>: 여러 파일 한 번에 병합',
       '<strong>비밀번호 해독</strong>: 잠긴 엑셀도 바로 해제',
-      '<strong>서버 전송 없음</strong>: 안전하게 로컬 처리',
+      '<strong>서버 전송 없음</strong>: 안전한 로컬 처리',
     ] },
     { title: '📝 스마트 한글(HWPX) 병합기', url: 'https://nunco-git.github.io/hwpxmerge/', feats: [
       '<strong>순서대로 병합</strong>: 여러 문서를 하나로',
-      '<strong>서식 유지</strong>: 폰트·테두리 안 깨짐',
+      '<strong>서식 유지</strong>: 폰트·테두리 깨짐 없음',
       '<strong>빈 템플릿 채우기</strong> 기능 지원',
     ] },
     { title: '🧮 스마트 엑셀 함수 변환기', url: 'https://nunco-git.github.io/excelfuntion/', feats: [
@@ -301,7 +322,7 @@
       '<strong>인쇄·사진삽입·동적목록</strong>도 지원',
     ] },
     { title: '🗺️ 스마트 맵마커', url: 'https://nunco-git.github.io/multipointmap/', feats: [
-      '<strong>주소 지도 표시</strong>: 엑셀 목록 자동 반영',
+      '<strong>주소 지도 표시</strong>: 목록 자동 반영',
       '<strong>경로 계산</strong>: 방문 순서 최적화',
       '<strong>지도 내보내기</strong>: HTML로 공유',
     ] },
@@ -312,7 +333,7 @@
     ] },
     { title: '🏷️ 스마트 파일명 관리자', url: 'https://nunco-git.github.io/filerename/', feats: [
       '<strong>내용 자동 인식</strong>: PDF·HWPX 추출',
-      '<strong>파일명 자동 생성</strong>: 규칙 조합',
+      '<strong>파일명 자동 생성</strong>: 규칙대로 조합',
       '<strong>규칙 프리셋 저장</strong> 재사용 가능',
     ] },
     { title: '📋 스마트 자료 취합 시스템', url: 'https://nunco-git.github.io/data-compile/', feats: [
@@ -355,15 +376,18 @@
       const card = document.createElement('div');
       card.className = 'home-card';
       card.onclick = () => switchApp(app.url);
+      const head = document.createElement('div');
+      head.className = 'home-card-head';
       const num = document.createElement('span');
       num.className = 'home-card-num';
-      num.textContent = String(idx + 1).padStart(2, '0');
+      num.textContent = String(idx + 1);
       const h3 = document.createElement('h3');
       h3.textContent = app.title;
+      head.appendChild(num);
+      head.appendChild(h3);
       const ul = document.createElement('ul');
       ul.innerHTML = (app.feats || []).map(f => `<li>${f}</li>`).join('');
-      card.appendChild(num);
-      card.appendChild(h3);
+      card.appendChild(head);
       card.appendChild(ul);
       grid.appendChild(card);
     });
