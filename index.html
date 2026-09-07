@@ -88,6 +88,23 @@
   .tab-btn:hover { background: rgba(255,255,255,0.05); color: #e2e8f0; }
   .tab-btn.active { color: #ffffff; border-bottom-color: #3b82f6; background: rgba(59,130,246,0.12); }
 
+  /* ── 바로가기 링크(개인정보 마스킹) — 탭 목록과 함께 가로 스크롤됨(고정 아님) ── */
+  #privacyLink {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 16px;
+    color: #93c5fd;
+    font-size: 12.5px;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+    border-left: 1px solid #1e293b;
+    transition: background 0.15s, color 0.15s;
+  }
+  #privacyLink:hover { background: rgba(255,255,255,0.08); color: #ffffff; }
+
   /* ── 모바일 전용 메뉴(햄버거) ── */
   #mobileMenuBtn {
     display: none;
@@ -356,6 +373,15 @@
       mBtn.onclick = () => { switchApp(app.url); closeMobileMenu(); };
       mobileDropdown.appendChild(mBtn);
     });
+
+    // 개인정보 마스킹 바로가기: 탭 목록 맨 끝에 함께 배치되어 가로 스크롤을 따라 이동함(고정 아님, 화면 밖으로 벗어나 안 보여도 무방)
+    const privacyLink = document.createElement('a');
+    privacyLink.id = 'privacyLink';
+    privacyLink.href = 'https://nunco-git.github.io/pdfblack/';
+    privacyLink.target = '_blank';
+    privacyLink.rel = 'noopener noreferrer';
+    privacyLink.textContent = '🔒 개인정보 마스킹';
+    tabList.appendChild(privacyLink);
   }
 
   function renderHomeGrid() {
@@ -428,8 +454,8 @@
 
   renderTabs();
   renderHomeGrid();
-  const DEFAULT_HOME_URL = 'https://nunco-git.github.io/excelfuntion/';
-  switchApp(DEFAULT_HOME_URL); // 처음 열었을 때 오른쪽 화면에 스마트 엑셀함수 변환기를 표시
+  const DEFAULT_HOME_URL = 'https://pdf-frontend-sigma-one.vercel.app/';
+  switchApp(DEFAULT_HOME_URL); // 처음 열었을 때 오른쪽 화면에 스마트 PDF·이미지 병합기를 표시
 
   // ── 좌측 광고 배너 (정적 이미지 4개, 지정한 링크로 연결) ──
   const BANNERS = [
