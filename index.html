@@ -88,23 +88,6 @@
   .tab-btn:hover { background: rgba(255,255,255,0.05); color: #e2e8f0; }
   .tab-btn.active { color: #ffffff; border-bottom-color: #3b82f6; background: rgba(59,130,246,0.12); }
 
-  /* ── 바로가기 링크(개인정보 마스킹) — 탭 목록과 함께 가로 스크롤됨(고정 아님) ── */
-  #privacyLink {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 0 16px;
-    color: #93c5fd;
-    font-size: 12.5px;
-    font-weight: 700;
-    text-decoration: none;
-    white-space: nowrap;
-    border-left: 1px solid #1e293b;
-    transition: background 0.15s, color 0.15s;
-  }
-  #privacyLink:hover { background: rgba(255,255,255,0.08); color: #ffffff; }
-
   /* ── 모바일 전용 메뉴(햄버거) ── */
   #mobileMenuBtn {
     display: none;
@@ -218,7 +201,7 @@
   .home-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    grid-template-rows: repeat(2, auto);
+    grid-auto-rows: auto;
     gap: 16px;
     max-width: 1400px;
   }
@@ -254,10 +237,10 @@
   }
   .home-card ul li strong { color: #334155; }
   @media (max-width: 1100px) {
-    .home-grid { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(4, auto); }
+    .home-grid { grid-template-columns: repeat(2, 1fr); }
   }
   @media (max-width: 700px) {
-    .home-grid { grid-template-columns: 1fr; grid-template-rows: repeat(8, auto); }
+    .home-grid { grid-template-columns: 1fr; }
     #homeScreen { padding: 20px 18px; }
   }
 
@@ -347,6 +330,11 @@
       '<strong>응답 자동 취합</strong>: 한 곳에서 정리',
       '<strong>회차별 관리</strong> 및 첨부 다운로드',
     ] },
+    { title: '🔒 스마트 개인정보 마스킹', url: 'https://nunco-git.github.io/pdfblack/', feats: [
+      '<strong>PDF·이미지·HWPX 지원</strong>: 스캔본(OCR)·한글 파일까지 처리',
+      '<strong>4가지 마스킹 방식</strong>: 검은색·회색·초성·일련번호',
+      '<strong>자동 탐지 + 수동 보정</strong>: 놓친 부분 추가, 오탐 복귀 가능',
+    ] },
   ];
 
   let currentUrl = null; // null이면 초기화면(홈)을 의미
@@ -373,21 +361,6 @@
       mBtn.onclick = () => { switchApp(app.url); closeMobileMenu(); };
       mobileDropdown.appendChild(mBtn);
     });
-
-    // 개인정보 마스킹 바로가기: 탭 목록 맨 끝에 함께 배치되어 가로 스크롤을 따라 이동함(고정 아님, 화면 밖으로 벗어나 안 보여도 무방)
-    // 다른 탭들과 동일하게 하단 iframe(switchApp)으로 열리도록 처리 (새 창으로 열지 않음)
-    const PRIVACY_URL = 'https://nunco-git.github.io/pdfblack/';
-    const privacyLink = document.createElement('a');
-    privacyLink.id = 'privacyLink';
-    privacyLink.href = PRIVACY_URL;
-    privacyLink.classList.toggle('active', currentUrl === PRIVACY_URL);
-    privacyLink.textContent = '🔒 개인정보 마스킹';
-    privacyLink.onclick = (e) => {
-      e.preventDefault();
-      switchApp(PRIVACY_URL);
-      closeMobileMenu();
-    };
-    tabList.appendChild(privacyLink);
   }
 
   function renderHomeGrid() {
