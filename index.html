@@ -375,12 +375,18 @@
     });
 
     // 개인정보 마스킹 바로가기: 탭 목록 맨 끝에 함께 배치되어 가로 스크롤을 따라 이동함(고정 아님, 화면 밖으로 벗어나 안 보여도 무방)
+    // 다른 탭들과 동일하게 하단 iframe(switchApp)으로 열리도록 처리 (새 창으로 열지 않음)
+    const PRIVACY_URL = 'https://nunco-git.github.io/pdfblack/';
     const privacyLink = document.createElement('a');
     privacyLink.id = 'privacyLink';
-    privacyLink.href = 'https://nunco-git.github.io/pdfblack/';
-    privacyLink.target = '_blank';
-    privacyLink.rel = 'noopener noreferrer';
+    privacyLink.href = PRIVACY_URL;
+    privacyLink.classList.toggle('active', currentUrl === PRIVACY_URL);
     privacyLink.textContent = '🔒 개인정보 마스킹';
+    privacyLink.onclick = (e) => {
+      e.preventDefault();
+      switchApp(PRIVACY_URL);
+      closeMobileMenu();
+    };
     tabList.appendChild(privacyLink);
   }
 
