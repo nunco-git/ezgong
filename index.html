@@ -287,6 +287,7 @@
 #pdfEmbedScreen .security-banner:hover { border-color: #86efac; box-shadow: 0 6px 16px rgba(22,163,74,0.12); transform: translateY(-1px); }
 #pdfEmbedScreen .security-banner-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
 #pdfEmbedScreen .security-banner-header strong { margin-bottom: 0; }
+#pdfEmbedScreen .security-banner-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 #pdfEmbedScreen .security-banner strong { font-size: 16px; display: block; margin-bottom: 6px; color: #15803d; letter-spacing: -0.2px; }
 #pdfEmbedScreen .security-features { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 #pdfEmbedScreen .security-features li {
@@ -719,10 +720,11 @@
 #pdfEmbedScreen .btn-main:hover:not(:disabled) { background-color: #1d4ed8; transform: translateY(-2px); box-shadow: 0 6px 14px rgba(0,0,0,0.18); }
 #pdfEmbedScreen .btn-main:disabled { background-color: #cbd5e1; cursor: not-allowed; }
 #pdfEmbedScreen .action-btn-group { display: flex; flex-direction: column; gap: 10px; }
-#pdfEmbedScreen .output-name-row { display: flex; align-items: center; gap: 8px; }
+#pdfEmbedScreen .output-name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 #pdfEmbedScreen .output-name-row label { font-size: 13px; font-weight: bold; color: #475569; white-space: nowrap; flex-shrink: 0; }
 #pdfEmbedScreen .output-name-row input {
-      flex: 1;
+      flex: 0 0 30%;
+      min-width: 120px;
       padding: 8px 10px;
       border: 1.5px solid #cbd5e1;
       border-radius: 8px;
@@ -743,7 +745,16 @@
 }
 #pdfEmbedScreen .folder-select-btn:hover { background: #eff6ff; }
 #pdfEmbedScreen .folder-select-btn:disabled { color: #94a3b8; border-color: #cbd5e1; cursor: not-allowed; background: #f8fafc; }
-#pdfEmbedScreen .folder-status-row { font-size: 12px; color: #64748b; margin-top: -4px; margin-bottom: 4px; line-height: 1.5; }
+#pdfEmbedScreen .folder-status-text {
+  flex: 1;
+  min-width: 80px;
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 #pdfEmbedScreen .main-btn-row { display: flex; gap: 10px; align-items: stretch; }
 #pdfEmbedScreen .main-btn-row .btn-main { flex: 5; width: auto; }
 #pdfEmbedScreen .main-btn-row .btn-secondary { flex: 3; width: auto; }
@@ -759,6 +770,20 @@
 #pdfEmbedScreen .btn-reset { padding: 5px 14px; background: white; border: 1.5px solid #ef4444; color: #ef4444; border-radius: 20px; font-size: 0.78rem; font-weight: 700; cursor: pointer; white-space: nowrap; flex-shrink: 0; transition: background 0.15s, color 0.15s; }
 #pdfEmbedScreen .btn-reset:hover { background: #ef4444; color: white; }
 #pdfEmbedScreen .btn-reset:disabled { border-color: #cbd5e1; color: #94a3b8; cursor: not-allowed; background: white; }
+#pdfEmbedScreen .btn-list-mode {
+  padding: 5px 14px;
+  background: white;
+  border: 1.5px solid #2563eb;
+  color: #2563eb;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+#pdfEmbedScreen .btn-list-mode:hover { background: #eff6ff; }
 #pdfEmbedScreen #status { margin-top: 18px; text-align: center; font-size: 16px; font-weight: bold; }
 #pdfEmbedScreen .empty-msg { color: #94a3b8; text-align: center; margin-top: 120px; font-size: 15px; }
 @media (max-width: 1180px) {
@@ -841,7 +866,10 @@
           <div class="security-banner">
             <div class="security-banner-header">
               <strong>🔒 개인정보 유출 걱정 없음</strong>
-              <button class="btn-reset" id="reset-btn" onclick="resetAll()" disabled>🗑️ 초기화</button>
+              <div class="security-banner-actions">
+                <button type="button" class="btn-list-mode" id="list-mode-btn" onclick="toggleListPersistMode()">📌 목록 유지</button>
+                <button class="btn-reset" id="reset-btn" onclick="resetAll()" disabled>🗑️ 초기화</button>
+              </div>
             </div>
             <ul class="security-features">
               <li><span class="feat-icon">🌐</span><span><strong>외부 서버 전송 ZERO</strong> <span class="feat-desc">: 오프라인으로 브라우저 안에서만 처리</span></span></li>
@@ -890,9 +918,7 @@
           <label for="outputNameInput">병합파일 이름</label>
           <input type="text" id="outputNameInput" placeholder="미입력 시 자동 생성 (예: 1번파일명_병합파일.pdf)" />
           <button type="button" class="folder-select-btn" id="folder-select-btn">📁 저장 폴더 설정</button>
-        </div>
-        <div class="folder-status-row" id="folder-status-row">
-          <span id="folder-status-text">저장 폴더: 설정 안 됨 (기본 다운로드 폴더 사용)</span>
+          <span class="folder-status-text" id="folder-status-text">저장 폴더: 설정 안 됨 (기본 다운로드 폴더 사용)</span>
         </div>
         <div class="main-btn-row">
           <button class="btn-main" id="merge-btn" onclick="mergeFiles()" disabled>PDF 변환 및 병합하여 다운로드</button>
@@ -1888,7 +1914,40 @@ function _0x17fb(){const _0x1453ef=['DxrMlte2Bgu','uergrg9JDw1LBNq','yxjYyxLcDwz
     if (window.innerWidth > 640) closeMobileMenu();
   });
 
+  // ============================================================
+  // "초기화" 버튼 왼쪽의 목록 유지/자동비우기 토글 버튼
+  // - 목록 유지(기본값): 다른 앱 탭으로 이동했다가 PDF 병합기로 돌아와도
+  //   작업하던 파일 목록이 그대로 남아있음(내장 화면이라 원래 이런 동작).
+  // - 목록 자동비우기: 다른 앱 탭으로 이동하는 순간 병합기의 목록을
+  //   자동으로 비움(resetAll 호출). PDF 병합기 탭 안에서 머무는 동안은
+  //   영향이 없고, "다른 화면으로 나갈 때"만 작동한다.
+  // ============================================================
+  let keepFileListOnSwitch = true; // 기본값: 목록 유지
+
+  function updateListModeButton() {
+    const btn = document.getElementById('list-mode-btn');
+    if (!btn) return;
+    if (keepFileListOnSwitch) {
+      btn.textContent = '📌 목록 유지';
+      btn.title = '다른 앱으로 이동해도 지금 목록을 그대로 둡니다. (누르면 자동비우기로 전환)';
+    } else {
+      btn.textContent = '🧹 목록 자동비우기';
+      btn.title = '다른 앱으로 이동하면 목록을 자동으로 비웁니다. (누르면 목록 유지로 전환)';
+    }
+  }
+
+  function toggleListPersistMode() {
+    keepFileListOnSwitch = !keepFileListOnSwitch;
+    updateListModeButton();
+  }
+
   function switchApp(url) {
+    const wasOnPdfEmbed = currentUrl === null || currentUrl === PDF_APP_URL;
+    const goingToOtherApp = url !== null && url !== PDF_APP_URL;
+    if (wasOnPdfEmbed && goingToOtherApp && !keepFileListOnSwitch && typeof window.resetAll === 'function') {
+      window.resetAll(); // 목록 자동비우기 모드: 다른 앱으로 나갈 때 병합기 목록을 비움
+    }
+
     currentUrl = url;
     const pdfEmbed = document.getElementById('pdfEmbedScreen');
     const frame = document.getElementById('appFrame');
@@ -1923,6 +1982,7 @@ function _0x17fb(){const _0x1453ef=['DxrMlte2Bgu','uergrg9JDw1LBNq','yxjYyxLcDwz
 
   renderTabs();
   switchApp(null); // 기본 화면: 스마트 PDF·이미지 병합기(내장)
+  updateListModeButton();
 
   // ── 좌측 광고 배너 (정적 이미지 4개, 지정한 링크로 연결) ──
   const BANNERS = [
