@@ -88,6 +88,9 @@
   .tab-btn:hover { background: rgba(255,255,255,0.05); color: #e2e8f0; }
   .tab-btn.active { color: #ffffff; border-bottom-color: #3b82f6; background: rgba(59,130,246,0.12); }
 
+  /* ── 바로가기 링크(개인정보 마스킹) — 다른 탭과 동일하게 동작, 구분용 좌측 경계선만 추가 ── */
+  #privacyLink { border-left: 1px solid #1e293b; }
+
   /* ── 모바일 전용 메뉴(햄버거) ── */
   #mobileMenuBtn {
     display: none;
@@ -361,6 +364,15 @@
       mBtn.onclick = () => { switchApp(app.url); closeMobileMenu(); };
       mobileDropdown.appendChild(mBtn);
     });
+
+    // 개인정보 마스킹 바로가기: 다른 앱들과 똑같이 iframe으로 전환되어 열림 (새 탭 아님)
+    const PRIVACY_URL = 'https://nunco-git.github.io/pdfblack/';
+    const privacyLink = document.createElement('button');
+    privacyLink.id = 'privacyLink';
+    privacyLink.className = 'tab-btn' + (PRIVACY_URL === currentUrl ? ' active' : '');
+    privacyLink.textContent = '🔒 개인정보 마스킹';
+    privacyLink.onclick = () => { switchApp(PRIVACY_URL); closeMobileMenu(); };
+    tabList.appendChild(privacyLink);
   }
 
   function renderHomeGrid() {
