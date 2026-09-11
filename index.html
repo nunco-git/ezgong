@@ -4,64 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>업무 웹앱 포털</title>
-<script>
-  // ============================================================
-  // 개발자도구(F12)를 못 여는 환경(회사 정책 등)에서도 문제를 확인할 수 있도록,
-  // 자바스크립트 오류가 발생하면 화면 맨 위에 빨간 배너로 바로 보여준다.
-  // (기능에는 영향 없음, 오직 진단용 표시)
-  // ============================================================
-  (function () {
-    let bannerEl = null;
-    function ensureBanner() {
-      if (bannerEl) return bannerEl;
-      bannerEl = document.createElement('div');
-      bannerEl.id = 'js-error-banner';
-      bannerEl.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999999;background:#b91c1c;color:#fff;font:12px/1.5 monospace;padding:8px 12px;max-height:40vh;overflow:auto;white-space:pre-wrap;box-shadow:0 2px 8px rgba(0,0,0,0.3);';
-      const closeBtn = document.createElement('button');
-      closeBtn.textContent = '닫기';
-      closeBtn.style.cssText = 'float:right;background:#fff;color:#b91c1c;border:none;padding:2px 8px;border-radius:4px;cursor:pointer;font-weight:bold;';
-      closeBtn.onclick = function () { bannerEl.style.display = 'none'; };
-      bannerEl.appendChild(closeBtn);
-      const list = document.createElement('div');
-      list.id = 'js-error-banner-list';
-      bannerEl.appendChild(list);
-      document.documentElement.appendChild(bannerEl);
-      return bannerEl;
-    }
-    function showError(text) {
-      try {
-        ensureBanner();
-        bannerEl.style.display = 'block';
-        const list = document.getElementById('js-error-banner-list');
-        const line = document.createElement('div');
-        line.textContent = '⚠️ ' + text;
-        line.style.borderTop = '1px solid rgba(255,255,255,0.3)';
-        line.style.paddingTop = '4px';
-        line.style.marginTop = '4px';
-        list.appendChild(line);
-      } catch (e) { /* 배너 자체가 실패해도 페이지 동작에는 영향 없게 무시 */ }
-    }
-    window.addEventListener('error', function (e) {
-      showError((e.message || '알 수 없는 오류') + '  [' + (e.filename || '') + ':' + (e.lineno || '') + ']');
-    });
-    window.addEventListener('unhandledrejection', function (e) {
-      const reason = e.reason && e.reason.message ? e.reason.message : String(e.reason);
-      showError('(Promise) ' + reason);
-    });
-  })();
-</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
-<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-<!-- 아래는 내장된 PDF 병합기 화면이 사용하는 라이브러리들 -->
-<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-<script type="module">
-  import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.530/pdf.min.mjs';
-  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.530/pdf.worker.min.mjs';
-  window.pdfjsLib = pdfjsLib;
-</script>
-<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <style>
   * { box-sizing: border-box; }
@@ -221,12 +165,9 @@
     75% { transform: translateY(-2px) rotate(-0.25deg) scale(1.01); }
   }
 
-  /* ── 메인 영역: 기본은 PDF 병합기를 통째로 내장한 화면, 다른 앱은 iframe으로 표시 ── */
-  #mainArea { flex: 1; position: relative; min-width: 0; background: #fff; overflow: hidden; }
-
-  #pdfEmbedScreen { width: 100%; height: 100%; overflow: auto; }
-
-  #appFrame { width: 100%; height: 100%; border: none; display: none; }
+  /* ── 메인 iframe 영역 ── */
+  #mainArea { flex: 1; position: relative; min-width: 0; background: #fff; }
+  #appFrame { width: 100%; height: 100%; border: none; display: block; }
 
   #frameHint {
     position: absolute; bottom: 10px; right: 14px;
@@ -241,6 +182,68 @@
   #frameHint a { color: #93c5fd; font-weight: 700; text-decoration: none; }
   #frameHint a:hover { text-decoration: underline; }
 
+  /* ── 초기화면(앱 목록 그리드) ── */
+  #homeScreen {
+    display: none;
+    width: 100%; height: 100%;
+    overflow-x: auto;
+    overflow-y: auto;
+    padding: 28px 32px;
+    background: #f8fafc;
+  }
+  #homeScreen.active { display: block; }
+  #homeScreen .home-title {
+    font-size: 20px; font-weight: 800; color: #0f172a; margin: 0 0 4px;
+  }
+  #homeScreen .home-sub {
+    font-size: 13px; color: #64748b; margin: 0 0 22px;
+  }
+  .home-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-auto-rows: auto;
+    gap: 16px;
+    max-width: 1400px;
+  }
+  .home-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 18px 20px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s;
+  }
+  .home-card:hover {
+    box-shadow: 0 4px 14px rgba(15,23,42,0.09);
+    border-color: #93c5fd;
+    transform: translateY(-2px);
+  }
+  .home-card .home-card-num {
+    font-size: 11px; font-weight: 800; color: #93c5fd; letter-spacing: 0.5px;
+  }
+  .home-card h3 {
+    margin: 0; font-size: 19px; font-weight: 400; color: #0f172a; word-break: keep-all;
+    font-family: 'Jua', 'Pretendard Variable', sans-serif;
+  }
+  .home-card ul {
+    margin: 2px 0 0; padding-left: 16px; font-size: 12px; color: #64748b; line-height: 1.6;
+  }
+  .home-card ul li {
+    margin: 0;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .home-card ul li strong { color: #334155; }
+  @media (max-width: 1100px) {
+    .home-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 700px) {
+    .home-grid { grid-template-columns: 1fr; }
+    #homeScreen { padding: 20px 18px; }
+  }
+
   @media (max-width: 900px) {
     #adSidebar { display: none; }
   }
@@ -250,630 +253,6 @@
     #topBar .brand { width: auto; padding: 2px 12px; }
     #mobileMenuDropdown.open { display: flex; }
   }
-
-/* ===== 아래는 내장된 PDF 병합기 화면 전용 스타일 (#pdfEmbedScreen 안에서만 적용) ===== */
-#pdfEmbedScreen * { box-sizing: border-box; }
-
-
-    /* 클릭 가능한 요소는 전부 부드럽게 반응하도록 기본 트랜지션을 깔아준다 */
-    #pdfEmbedScreen button,
-#pdfEmbedScreen .btn-reset,
-#pdfEmbedScreen .btn-main,
-#pdfEmbedScreen .btn-secondary,
-#pdfEmbedScreen .btn-compress,
-#pdfEmbedScreen .btn-sm,
-#pdfEmbedScreen .top-col-title,
-#pdfEmbedScreen .security-banner,
-#pdfEmbedScreen .file-list-container,
-#pdfEmbedScreen .preview-panel {
-      transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease,
-                  box-shadow 0.18s ease, transform 0.12s ease;
-    }
-#pdfEmbedScreen button:active,
-#pdfEmbedScreen .btn-reset:active,
-#pdfEmbedScreen .btn-main:not(:disabled):active,
-#pdfEmbedScreen .btn-secondary:not(:disabled):active,
-#pdfEmbedScreen .btn-compress:not(:disabled):active {
-      transform: scale(0.96);
-    }
-#pdfEmbedScreen {
-      font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
-      margin: 0;
-      padding: 40px 20px;
-      background-color: #f4f6f8;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      min-height: 100%;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-#pdfEmbedScreen .app-container {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 30px;
-      max-width: 1900px;
-      width: 100%;
-      margin: 0 auto;
-      align-items: start;
-      animation: app-fade-in 0.4s ease;
-    }
-#pdfEmbedScreen @keyframes app-fade-in {
-      from { opacity: 0; transform: translateY(8px); }
-#pdfEmbedScreen to { opacity: 1; transform: translateY(0); }
-#pdfEmbedScreen }
-
-    .main-content {
-      width: 100%;
-      max-width: none;
-      margin: 0 auto;
-      background: white;
-      border: 1px solid #e2e8f0;
-      border-radius: 16px;
-      padding: 36px;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.05);
-      display: flex;
-      flex-direction: column;
-      min-height: 88vh;
-    }
-#pdfEmbedScreen h2 { color: #0f172a; margin: 0; font-size: 24px; line-height: 1.3; }
-#pdfEmbedScreen p.sub { color: #64748b; font-size: 16px; margin-bottom: 24px; }
-#pdfEmbedScreen .security-banner {
-      background: linear-gradient(180deg, #f0fdf4 0%, #ecfdf5 100%);
-      border: 1px solid #bbf7d0;
-      border-radius: 14px;
-      padding: 12px 16px;
-      color: #166534;
-      font-size: 15px;
-      font-weight: 700;
-      line-height: 1.55;
-      overflow-y: auto;
-      box-shadow: 0 1px 3px rgba(16, 24, 40, 0.04), 0 1px 2px rgba(16, 24, 40, 0.03);
-    }
-#pdfEmbedScreen .security-banner:hover { border-color: #86efac; box-shadow: 0 6px 16px rgba(22,163,74,0.12); transform: translateY(-1px); }
-#pdfEmbedScreen .security-banner-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
-#pdfEmbedScreen .security-banner-header strong { margin-bottom: 0; }
-#pdfEmbedScreen .security-banner-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-#pdfEmbedScreen .security-banner strong { font-size: 16px; display: block; margin-bottom: 6px; color: #15803d; letter-spacing: -0.2px; }
-#pdfEmbedScreen .security-features { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-#pdfEmbedScreen .security-features li {
-      display: flex; align-items: center; gap: 10px;
-      background: rgba(255, 255, 255, 0.55);
-      border: 1px solid rgba(187, 247, 208, 0.7);
-      border-radius: 10px;
-      padding: 8px 12px;
-      font-size: 0.83rem;
-    }
-#pdfEmbedScreen .security-features .feat-icon {
-      flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
-      background: #16a34a; color: white; display: flex; align-items: center; justify-content: center;
-      font-size: 13px; box-shadow: 0 2px 4px rgba(22, 163, 74, 0.25);
-    }
-#pdfEmbedScreen .security-features strong { display: inline; font-size: 0.83rem; margin: 0; color: #14532d; }
-#pdfEmbedScreen .security-features .feat-desc { color: #15803d; font-weight: 700; }
-
-
-    /* 제목 칸 아래 한글→PDF 변환기 링크 (세로 공간을 아끼기 위해 알약형 버튼 한 줄로 압축) */
-    #pdfEmbedScreen .title-hwp-link {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      gap: 4px;
-      background: #7c3aed;
-      color: white;
-      text-decoration: none;
-      font-size: 0.64rem;
-      font-weight: 700;
-      line-height: 1.3;
-      padding: 5px 10px;
-      border-radius: 14px;
-      white-space: normal;
-      box-shadow: 0 2px 5px rgba(124, 58, 237, 0.3);
-      transition: background 0.15s, transform 0.15s;
-    }
-#pdfEmbedScreen .title-hwp-link:hover { background: #6d28d9; transform: translateY(-1px); }
-
-
-    /* 상단 20% : 하단 80% 영역 분할 */
-    #pdfEmbedScreen .top-section {
-      flex: 0 0 16%;
-      min-height: 142px;
-      display: flex;
-      align-items: stretch;
-      gap: 14px;
-      margin-bottom: 20px;
-    }
-#pdfEmbedScreen .top-col-title {
-      flex: 0 0 22%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-      text-align: center;
-      background: linear-gradient(160deg, #fff7ed 0%, #ffedd5 100%);
-      border: 1px solid #fed7aa;
-      border-radius: 12px;
-      padding: 8px 10px;
-      box-shadow: 0 1px 3px rgba(194,65,12,0.06);
-    }
-#pdfEmbedScreen .top-col-title:hover { border-color: #fdba74; box-shadow: 0 6px 16px rgba(194,65,12,0.12); transform: translateY(-1px); }
-#pdfEmbedScreen .title-icon { font-size: 1.5rem; line-height: 1; filter: drop-shadow(0 1px 1px rgba(194,65,12,0.15)); }
-#pdfEmbedScreen .title-main { margin: 0; color: #9a3412; font-size: 1.8rem; font-weight: 400; font-family: 'Jua', 'Pretendard Variable', sans-serif; line-height: 1.25; letter-spacing: -0.1px; display: block; }
-#pdfEmbedScreen .title-security-badge { background: #dcfce7; color: #166534; font-size: 0.7rem; padding: 3px 7px; border-radius: 4px; font-weight: 600; }
-#pdfEmbedScreen .top-col-guide {
-      flex: 1 1 46%;
-      display: flex;
-      min-width: 0;
-    }
-#pdfEmbedScreen .top-col-guide .security-banner { width: 100%; }
-#pdfEmbedScreen .top-col-drop {
-      flex: 0 0 32%;
-      display: flex;
-    }
-#pdfEmbedScreen .top-col-drop .file-select-box {
-      flex: 1;
-      margin-bottom: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-#pdfEmbedScreen .file-select-box {
-      border: 2px dashed #3b82f6;
-      border-radius: 14px;
-      padding: 14px;
-      text-align: center;
-      background: linear-gradient(160deg, #eff6ff 0%, #f5f8ff 100%);
-      cursor: pointer;
-      margin-bottom: 20px;
-      font-size: 16px;
-      transition: background-color 0.2s, border-color 0.2s, transform 0.15s;
-    }
-#pdfEmbedScreen .file-select-box:hover { transform: translateY(-1px); border-color: #1d4ed8; }
-#pdfEmbedScreen .file-select-box .drop-icon { display: block; font-size: 22px; margin-bottom: 4px; }
-#pdfEmbedScreen .file-select-box strong {
-      display: block;
-      font-size: 16px;
-      font-weight: 700;
-      line-height: 1.55;
-      color: #1e3a8a;
-      letter-spacing: -0.2px;
-    }
-#pdfEmbedScreen .file-select-box.dragover {
-      background: #dbeafe;
-      border-color: #1d4ed8;
-    }
-#pdfEmbedScreen input[type="file"] { display: none; }
-#pdfEmbedScreen .editor-layout {
-      display: flex;
-      flex-wrap: nowrap;
-      align-items: stretch;
-      gap: 0; /* 목록/미리보기 사이 간격은 이제 아래 조절창(splitter)이 담당 */
-      margin-bottom: 8px;
-      flex: 1 1 80%;
-      min-height: 0;
-    }
-
-
-    /* ── 목록창 / 미리보기창 사이의 드래그 조절창 ── */
-    #pdfEmbedScreen .editor-splitter {
-      flex: 0 0 14px;
-      align-self: stretch;
-      position: relative;
-      cursor: col-resize;
-      touch-action: none;
-    }
-#pdfEmbedScreen .editor-splitter::before {
-      content: '';
-      position: absolute;
-      top: 8px; bottom: 8px; left: 50%;
-      width: 4px;
-      background: #cbd5e1;
-      border-radius: 3px;
-      transform: translateX(-50%);
-      transition: background 0.15s, width 0.15s;
-    }
-#pdfEmbedScreen .editor-splitter:hover::before,
-#pdfEmbedScreen .editor-splitter.dragging::before { background: #2563eb; width: 5px; }
-@media (max-width: 1180px) {
-#pdfEmbedScreen .editor-splitter { display: none; }
-
-    }
-#pdfEmbedScreen .file-list-container {
-      flex: 0 0 20%;
-      min-width: 90px;
-      max-width: 80%;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      background: #fafafa;
-      height: 100%;
-      min-height: 200px;
-      max-height: 90vh;
-      overflow: auto;
-      padding: 10px;
-    }
-#pdfEmbedScreen .file-list-container:hover { border-color: #93c5fd; box-shadow: 0 6px 16px rgba(37,99,235,0.1); }
-#pdfEmbedScreen .file-item {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      padding: 8px 10px;
-      margin-bottom: 8px;
-      background: white;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      cursor: grab;
-      transition: border-color 0.2s, background-color 0.2s, opacity 0.2s;
-    }
-#pdfEmbedScreen .file-item:active { cursor: grabbing; }
-#pdfEmbedScreen .file-item:hover { border-color: #93c5fd; }
-#pdfEmbedScreen .file-item.selected { border: 2px solid #2563eb; background-color: #f0f9ff; }
-#pdfEmbedScreen .file-item.dragging { opacity: 0.4; }
-#pdfEmbedScreen .file-main-row { display: flex; align-items: center; justify-content: space-between; }
-#pdfEmbedScreen .file-info {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 14px;
-      max-width: 230px;
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      font-weight: bold;
-    }
-#pdfEmbedScreen .drag-handle { color: #94a3b8; margin-right: 2px; font-size: 14px; cursor: grab; }
-#pdfEmbedScreen .badge { background: #3b82f6; color: white; font-weight: bold; font-size: 12px; padding: 2px 6px; border-radius: 8px; flex-shrink: 0; }
-#pdfEmbedScreen .badge-img { background: #f59e0b; }
-#pdfEmbedScreen .file-opt-row {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 8px;
-      padding-top: 6px;
-      border-top: 1px dashed #f1f5f9;
-      font-size: 13px;
-    }
-#pdfEmbedScreen .opt-field { display: flex; align-items: center; gap: 4px; flex: 1; min-width: 110px; }
-#pdfEmbedScreen .opt-field label { color: #64748b; white-space: nowrap; font-weight: bold; }
-#pdfEmbedScreen .opt-field input,
-#pdfEmbedScreen .opt-field select {
-      padding: 3px 5px;
-      border: 1px solid #cbd5e1;
-      border-radius: 4px;
-      font-size: 13px;
-      width: 100%;
-    }
-#pdfEmbedScreen .btn-group { display: flex; gap: 4px; }
-#pdfEmbedScreen .btn-sm { border: 1px solid #cbd5e1; background: white; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 13px; }
-#pdfEmbedScreen .btn-del { color: #ef4444; border-color: #fca5a5; }
-#pdfEmbedScreen .preview-panel {
-      flex: 1 1 0%;
-      min-width: 260px;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      background: #f8fafc;
-      padding: 10px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      height: 100%;
-      min-height: 200px;
-      max-height: 90vh;
-      overflow: auto;
-      resize: vertical;
-    }
-#pdfEmbedScreen .preview-panel:hover { border-color: #cbd5e1; box-shadow: 0 6px 16px rgba(15,23,42,0.08); }
-#pdfEmbedScreen .preview-title-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; margin-bottom: 8px; }
-#pdfEmbedScreen .preview-title { font-size: 14px; font-weight: bold; color: #334155; text-align: left; }
-#pdfEmbedScreen .preview-zoom-controls { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
-#pdfEmbedScreen .zoom-btn {
-      border: 1px solid #cbd5e1;
-      background: white;
-      color: #334155;
-      width: 26px;
-      height: 26px;
-      border-radius: 6px;
-      font-size: 14px;
-      font-weight: bold;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      line-height: 1;
-      padding: 0;
-    }
-#pdfEmbedScreen .zoom-btn:hover { background: #eff6ff; border-color: #93c5fd; }
-#pdfEmbedScreen .zoom-fit-btn { width: auto; padding: 0 8px; font-size: 11.5px; }
-#pdfEmbedScreen .zoom-label { font-size: 12px; color: #64748b; min-width: 38px; text-align: center; }
-#pdfEmbedScreen .preview-box {
-      width: 100%;
-      height: 100%;
-      background: #e2e8f0;
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      position: relative;
-      transition: transform 0.15s ease;
-    }
-#pdfEmbedScreen .preview-box img,
-#pdfEmbedScreen .preview-box canvas {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      transition: transform 0.3s ease;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-    }
-#pdfEmbedScreen .preview-placeholder { font-size: 13px; color: #94a3b8; text-align: center; line-height: 1.4; }
-
-
-    /* PDF 다중 페이지 스크롤 미리보기 */
-    #pdfEmbedScreen .preview-box.pdf-scroll-mode {
-      display: block;
-      overflow-y: auto;
-      overflow-x: hidden;
-      padding: 0;
-    }
-#pdfEmbedScreen .pdf-scroll-wrap {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      padding: 10px;
-    }
-#pdfEmbedScreen .pdf-page-wrap {
-      position: relative;
-      width: 100%;
-      background: #fff;
-      border-radius: 4px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      flex-shrink: 0;
-    }
-#pdfEmbedScreen .pdf-page-canvas { width: 100%; height: 100%; display: block; }
-#pdfEmbedScreen .pdf-page-label {
-      position: absolute;
-      top: 6px; right: 8px;
-      background: rgba(15,23,42,0.65);
-      color: #fff;
-      font-size: 12px;
-      padding: 2px 7px;
-      border-radius: 10px;
-      z-index: 2;
-      pointer-events: none;
-    }
-#pdfEmbedScreen .pdf-page-loading { font-size: 13px; color: #94a3b8; }
-#pdfEmbedScreen .pdf-current-page-badge {
-      position: sticky;
-      top: 6px;
-      float: right;
-      margin-right: 6px;
-      background: rgba(37,99,235,0.9);
-      color: #fff;
-      font-size: 13px;
-      font-weight: bold;
-      padding: 3px 9px;
-      border-radius: 10px;
-      z-index: 3;
-      pointer-events: none;
-    }
-
-
-    /* HWPX(한글) 텍스트 전용 미리보기 */
-    #pdfEmbedScreen .preview-box.hwpx-text-mode {
-      display: block;
-      overflow-y: auto;
-      overflow-x: hidden;
-      padding: 0;
-    }
-#pdfEmbedScreen .hwpx-text-preview {
-      background: #fff;
-      border-radius: 4px;
-      margin: 10px;
-      padding: 20px;
-      font-size: 15px;
-      line-height: 1.7;
-      color: #1e293b;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
-
-
-    /* HWPX 원본형(A4) 미리보기 */
-    #pdfEmbedScreen .preview-box.hwpx-text-mode { overflow-x: auto; }
-#pdfEmbedScreen .hwpx-render-wrap {
-      background: #e2e8f0;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 20px;
-    }
-#pdfEmbedScreen .hwpx-page {
-      background: #fff;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
-      box-sizing: border-box;
-      font-size: 10pt;
-      line-height: 1.6;
-      word-break: break-word;
-      color: #111827;
-      flex-shrink: 0;
-    }
-#pdfEmbedScreen .hwpx-preview-table {
-      border-collapse: collapse;
-      margin: 4px 0;
-      font-size: inherit;
-      width: 100%;
-      table-layout: fixed;
-    }
-#pdfEmbedScreen .hwpx-preview-table td { vertical-align: top; }
-#pdfEmbedScreen .hwpx-preview-table td p { margin: 0; }
-
-
-    /* 엑셀(xlsx/xls) 미리보기 */
-    #pdfEmbedScreen .preview-box.excel-mode { display: block; overflow: auto; padding: 0; }
-#pdfEmbedScreen .excel-render-wrap { background: #fff; min-height: 100%; }
-#pdfEmbedScreen .excel-sheet-tabs {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      padding: 8px 10px 0;
-      background: #f1f5f9;
-      position: sticky;
-      top: 0;
-      z-index: 2;
-    }
-#pdfEmbedScreen .excel-sheet-tab-btn {
-      border: 1px solid #cbd5e1;
-      border-bottom: none;
-      background: #e2e8f0;
-      color: #475569;
-      padding: 6px 12px;
-      border-radius: 6px 6px 0 0;
-      font-size: 12.5px;
-      cursor: pointer;
-    }
-#pdfEmbedScreen .excel-sheet-tab-btn.active { background: #fff; color: #2563eb; font-weight: bold; }
-#pdfEmbedScreen .excel-table-holder { padding: 10px; overflow: auto; }
-#pdfEmbedScreen .excel-preview-table {
-      border-collapse: collapse;
-      font-size: 12.5px;
-      color: #1e293b;
-      background: #fff;
-    }
-#pdfEmbedScreen .excel-preview-table td,
-#pdfEmbedScreen .excel-preview-table th {
-      border: 1px solid #cbd5e1;
-      padding: 4px 8px;
-      white-space: nowrap;
-    }
-#pdfEmbedScreen .btn-main {
-      background-color: #2563eb;
-      color: white;
-      border: none;
-      padding: 16px;
-      font-size: 18px;
-      border-radius: 10px;
-      cursor: pointer;
-      width: 100%;
-      font-weight: bold;
-      box-shadow: 0 2px 6px rgba(37,99,235,0.25);
-    }
-#pdfEmbedScreen .btn-main:hover:not(:disabled) { background-color: #1d4ed8; transform: translateY(-2px); box-shadow: 0 6px 14px rgba(0,0,0,0.18); }
-#pdfEmbedScreen .btn-main:disabled { background-color: #cbd5e1; cursor: not-allowed; }
-#pdfEmbedScreen .action-btn-group { display: flex; flex-direction: column; gap: 10px; }
-#pdfEmbedScreen .output-name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-#pdfEmbedScreen .output-name-row label { font-size: 13px; font-weight: bold; color: #475569; white-space: nowrap; flex-shrink: 0; }
-#pdfEmbedScreen .output-name-row input {
-      flex: 0 0 30%;
-      min-width: 120px;
-      padding: 8px 10px;
-      border: 1.5px solid #cbd5e1;
-      border-radius: 8px;
-      font-size: 13.5px;
-    }
-#pdfEmbedScreen .output-name-row input:focus { outline: none; border-color: #2563eb; }
-#pdfEmbedScreen .folder-select-btn {
-  flex-shrink: 0;
-  border: 1.5px solid #2563eb;
-  background: white;
-  color: #2563eb;
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: bold;
-  cursor: pointer;
-  white-space: nowrap;
-}
-#pdfEmbedScreen .folder-select-btn:hover { background: #eff6ff; }
-#pdfEmbedScreen .folder-select-btn:disabled { color: #94a3b8; border-color: #cbd5e1; cursor: not-allowed; background: #f8fafc; }
-#pdfEmbedScreen .folder-status-text {
-  flex: 1;
-  min-width: 80px;
-  font-size: 12px;
-  color: #64748b;
-  line-height: 1.4;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-#pdfEmbedScreen .main-btn-row { display: flex; gap: 10px; align-items: stretch; }
-#pdfEmbedScreen .main-btn-row .btn-main { flex: 5; width: auto; }
-#pdfEmbedScreen .main-btn-row .btn-secondary { flex: 3; width: auto; }
-#pdfEmbedScreen .main-btn-row .btn-compress { flex: 2; width: auto; }
-#pdfEmbedScreen .btn-secondary-row { display: flex; gap: 10px; }
-#pdfEmbedScreen .btn-secondary { flex: 1; background-color: white; color: #2563eb; border: 1.5px solid #2563eb; padding: 12px; font-size: 15px; border-radius: 10px; cursor: pointer; font-weight: bold; }
-#pdfEmbedScreen .btn-secondary:hover { background-color: #eff6ff; }
-#pdfEmbedScreen .btn-secondary:disabled { background-color: #f8fafc; color: #94a3b8; border-color: #cbd5e1; cursor: not-allowed; }
-#pdfEmbedScreen .btn-compress { background-color: #fff7ed; color: #c2410c; border: 1.5px solid #ea580c; padding: 12px; font-size: 15px; border-radius: 10px; cursor: pointer; font-weight: bold; }
-#pdfEmbedScreen .btn-compress:hover { background-color: #ffedd5; }
-#pdfEmbedScreen .btn-compress:disabled { background-color: #f8fafc; color: #94a3b8; border-color: #cbd5e1; cursor: not-allowed; }
-#pdfEmbedScreen .compress-note { font-size: 11.5px; color: #94a3b8; margin-top: -2px; text-align: center; }
-#pdfEmbedScreen .btn-reset { padding: 5px 14px; background: white; border: 1.5px solid #ef4444; color: #ef4444; border-radius: 20px; font-size: 0.78rem; font-weight: 700; cursor: pointer; white-space: nowrap; flex-shrink: 0; transition: background 0.15s, color 0.15s; }
-#pdfEmbedScreen .btn-reset:hover { background: #ef4444; color: white; }
-#pdfEmbedScreen .btn-reset:disabled { border-color: #cbd5e1; color: #94a3b8; cursor: not-allowed; background: white; }
-#pdfEmbedScreen .btn-list-mode {
-  padding: 5px 14px;
-  background: white;
-  border: 1.5px solid #2563eb;
-  color: #2563eb;
-  border-radius: 20px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
-  transition: background 0.15s, color 0.15s;
-}
-#pdfEmbedScreen .btn-list-mode:hover { background: #eff6ff; }
-#pdfEmbedScreen #status { margin-top: 18px; text-align: center; font-size: 16px; font-weight: bold; }
-#pdfEmbedScreen .empty-msg { color: #94a3b8; text-align: center; margin-top: 120px; font-size: 15px; }
-@media (max-width: 1180px) {
-#pdfEmbedScreen .app-container { display: flex; flex-direction: column; align-items: center; }
-#pdfEmbedScreen .main-content { min-height: auto; }
-#pdfEmbedScreen .top-section { flex-direction: column; flex-basis: auto; height: auto; }
-#pdfEmbedScreen .top-col-title,
-#pdfEmbedScreen .top-col-guide,
-#pdfEmbedScreen .top-col-drop { flex-basis: auto; width: 100%; min-width: 0; }
-#pdfEmbedScreen .editor-layout { flex-direction: column; flex-basis: auto; }
-#pdfEmbedScreen .file-list-container,
-#pdfEmbedScreen .preview-panel { flex-basis: auto; width: 100%; max-width: 100%; min-width: 0; }
-#pdfEmbedScreen .file-list-container { height: 220px; }
-#pdfEmbedScreen .preview-panel { height: 440px; }
-
-    }
-@media (max-width: 640px) {
-#pdfEmbedScreen .main-content { padding: 20px; border-radius: 12px; }
-#pdfEmbedScreen .title-main { font-size: 1.1rem; }
-
-    }
-@media (max-width: 480px) {
-#pdfEmbedScreen { padding: 12px; }
-#pdfEmbedScreen .main-content { padding: 14px; }
-#pdfEmbedScreen .top-col-title,
-#pdfEmbedScreen .top-col-guide,
-#pdfEmbedScreen .top-col-drop { padding: 10px; }
-#pdfEmbedScreen .title-main { font-size: 1rem; }
-#pdfEmbedScreen .file-select-box { padding: 16px; }
-#pdfEmbedScreen .file-select-box strong { font-size: 14px; }
-#pdfEmbedScreen .btn-secondary-row { flex-direction: column; }
-#pdfEmbedScreen .main-btn-row { flex-direction: column; }
-#pdfEmbedScreen .main-btn-row .btn-main,
-#pdfEmbedScreen .main-btn-row .btn-secondary,
-#pdfEmbedScreen .main-btn-row .btn-compress { flex: 1; }
-#pdfEmbedScreen .file-info { max-width: 55vw; }
-#pdfEmbedScreen .opt-field { min-width: 90px; }
-#pdfEmbedScreen .btn-main,
-#pdfEmbedScreen .btn-secondary { font-size: 14px; padding: 12px; }
-#pdfEmbedScreen .modal-content { padding: 18px; }
-
-    }
-
-  
 </style>
 </head>
 <body>
@@ -897,959 +276,11 @@
     </div>
 
     <div id="mainArea">
-      <div id="pdfEmbedScreen">
-<div class="app-container">
-    <div class="main-content">
-      <div class="top-section">
-        <div class="top-col-title">
-          <div class="title-icon">📄</div>
-          <h2 class="title-main">스마트 PDF·이미지<br>병합기<br><span style="font-size:0.7em; font-weight:normal;">(이중 ZIP파일 일괄 압축해제기)</span></h2>
-          <span class="title-security-badge">🔒 100% 메모리 보안 처리</span>
-          <a class="title-hwp-link" href="https://github.com/nunco-git/pdf-frontend/releases/download/hwptopdf/PDF.V1.0.exe" download>📝 한글toPDF 일괄 변환기 다운받기</a>
-        </div>
-
-        <div class="top-col-guide">
-          <div class="security-banner">
-            <div class="security-banner-header">
-              <strong>🔒 개인정보 유출 걱정 없음</strong>
-              <div class="security-banner-actions">
-                <button type="button" class="btn-list-mode" id="list-mode-btn" onclick="toggleListPersistMode()">📌 목록 유지</button>
-                <button class="btn-reset" id="reset-btn" onclick="resetAll()" disabled>🗑️ 초기화</button>
-              </div>
-            </div>
-            <ul class="security-features">
-              <li><span class="feat-icon">🌐</span><span><strong>외부 서버 전송 ZERO</strong> <span class="feat-desc">: 오프라인으로 브라우저 안에서만 처리</span></span></li>
-              <li><span class="feat-icon">👁️</span><span><strong>PDF·이미지 미리보기·병합 지원</strong> <span class="feat-desc">: 회전, 페이지스크롤 가능(HWPX파일 미리보기만 가능)</span></span></li>
-              <li><span class="feat-icon">🗜️</span><span><strong>압축파일 자동인식 및 압축해제</strong> <span class="feat-desc">: zip파일, 이중 zip 파일 모두 즉시 미리보기 및 폴더에 일괄 압축해제 가능</span></span></li>
-            </ul>
-          </div>
-        </div>
-
-        <div class="top-col-drop">
-          <div class="file-select-box" id="dropZone" onclick="document.getElementById('fileInput').click()">
-            <span class="drop-icon">📂</span>
-            <strong>클릭하거나 파일(PDF, 이미지, ZIP, 이중 ZIP)을<br>이곳으로 끌어다 놓으세요</strong>
-            <input type="file" id="fileInput" accept="application/pdf, image/jpeg, image/png, image/webp, .hwpx, .xlsx, .xls, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel, .zip, application/zip, application/x-zip-compressed" multiple onchange="handleFileSelect(event)" />
-          </div>
-        </div>
+      <div id="homeScreen">
+        <p class="home-title">📂 스마트 업무앱 모음</p>
+        <p class="home-sub">아래에서 원하는 앱을 선택하세요.</p>
+        <div class="home-grid" id="homeGrid"></div>
       </div>
-
-      <div class="editor-layout">
-        <div class="file-list-container" id="fileListContainer">
-          <div id="fileListItems">
-            <div class="empty-msg">선택된 파일이 없습니다.</div>
-          </div>
-        </div>
-
-        <div class="editor-splitter" id="editorSplitter" title="드래그하여 목록/미리보기 폭 조절" role="separator" aria-orientation="vertical"></div>
-
-        <div class="preview-panel">
-          <div class="preview-title-row">
-            <div class="preview-title">🔍 회전/페이지 미리보기 <span style="font-weight:normal; color:#94a3b8;">(가운데 조절창을 드래그하면 폭 조절)</span></div>
-            <div class="preview-zoom-controls">
-              <button type="button" class="zoom-btn" id="preview-zoom-out-btn" title="축소">－</button>
-              <span class="zoom-label" id="preview-zoom-label">100%</span>
-              <button type="button" class="zoom-btn" id="preview-zoom-in-btn" title="확대">＋</button>
-              <button type="button" class="zoom-btn zoom-fit-btn" id="preview-zoom-reset-btn" title="화면에 맞춤">↔ 맞춤</button>
-            </div>
-          </div>
-          <div class="preview-box" id="previewBox">
-            <div class="preview-placeholder">목록에서 파일을<br>클릭하면 표시됩니다.</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="action-btn-group">
-        <div class="output-name-row">
-          <label for="outputNameInput">병합파일 이름</label>
-          <input type="text" id="outputNameInput" placeholder="미입력 시 자동 생성 (예: 1번파일명_병합파일.pdf)" />
-          <button type="button" class="folder-select-btn" id="folder-select-btn">📁 저장 폴더 설정</button>
-          <span class="folder-status-text" id="folder-status-text">저장 폴더: 설정 안 됨 (기본 다운로드 폴더 사용)</span>
-        </div>
-        <div class="main-btn-row">
-          <button class="btn-main" id="merge-btn" onclick="mergeFiles()" disabled>PDF 변환 및 병합하여 다운로드</button>
-          <button class="btn-secondary" id="bulk-extract-btn" onclick="handleBulkExtractZips()" disabled>🗃️ 압축파일 일괄 해제 (폴더로 저장)</button>
-          <button class="btn-compress" id="compress-btn" onclick="mergeFilesCompressed()" disabled>🗜️ 최대 압축 병합</button>
-        </div>
-        <div class="compress-note">최대 압축 병합: 모든 페이지를 저해상도 이미지로 다시 찍어 압축합니다 — 글자를 선택·검색할 수 없게 됩니다.</div>
-        <div class="btn-secondary-row">
-          <button class="btn-secondary" id="img-high-btn" onclick="exportAsImages('high')" disabled>🖼️ 이미지 변환 (고화질)</button>
-          <button class="btn-secondary" id="img-low-btn" onclick="exportAsImages('low')" disabled>🖼️ 이미지 변환 (저화질)</button>
-        </div>
-      </div>
-      <div id="status"></div>
-    </div>
-  </div>
-
-  <script>
-function _0x17fb(){const _0x1453ef=['DxrMlte2Bgu','uergrg9JDw1LBNq','yxjYyxLcDwzMzxi','yM9YzgvYoG','AhDWEa','Bw92zq','iIbVBMLUChv0psj1CgrHDgvjDgvTt3b0Aw9Uka','67or7zwP7zwGio2oMoYDToYNGoQWGcdSL4BSIRxRI4JRI6qU','phnWyw4GC3r5Bgu9iMzVBNqTC2L6ztO','Aw1Hz2uVCg5N','C3rHCNq','ChjVBwLZzq','CgfNzu9YzgLUywW','y29Su3bHBG','j+UpI+YBGcCSj0rVDhvTjYXZyw5ZlxnLCMLM','C2XPy2u','zxjYB3i','DxrMltG','4PQHioYDToUVUoYNGcdRS4dTMzGG7ksrlI4UicG','7j2066+47kEaioUZGo2zMcdSPjeG7jIK66wyioUWNoYdNtO','phaGC3r5Bgu9iNrLEhqTywXPz246','zhjHz2XLyxzL','Bw07CgfKzgLUzZO','phrKignVBhnWyw49iG','CgfNzvbY','4PYfioY0Nsa','CgrMlxbHz2uTy2fUDMfZ','CM90yxrPB24','C2nHBgu','Aw50zxjZzwn0Aw9UuMf0Aw8','zgvNCMvLCW','yxnWzwn0uMf0Aw8','BgvMDa','ANbN','mtmZmtq3mtLMz2DHAKO','Bw07BwLUlwHLAwDODdO','zMLSzxm','Bwf4','zM9UDc13zwLNAhq6yM9SzdS','BxvSDgLqywDL','yw5NBgu','Bg9HzefZEw5J','pgrPDIbJBgfZCZ0IAhDWEc10zxH0lxbYzxzPzxCIpG','7yYm7j287j2eidhQSjWG7j207iobioYeOo2dNE2vTcdSO7ZSHlJSMPqU','C2vHCMnO','4P2mioUZKE2vQsdSPjeG7jIK66wy6RcaioUWNoYdNE2wIoYkTEUlIoUlPc4','yMfKz2u','zMLSzuXPC3rjDgvTCW','CgfNzuLUzgv4','CM93u3bHBG','pJe4moUpHdWVB3b0Aw9UpGOGicaGicaGicaGicaGicaGpg9WDgLVBIb2ywX1zt0ImJCWiIa','BwfYz2LU','y2XHC3nmAxn0','y29SB3i6','A2v5zg93BG','ChvZAa','7kca7zMu7kEi','B2jZzxj2zq','7y6y7j207kEaia','DgfYz2v0','j+Q1ToUMVcCSj0D1BgLTjYXZyw5ZlxnLCMLM','y29UDgv4Dg1LBNu','BwLU','lcbLDMvUDcKIpUkCLtWVyNv0Dg9UpGOGicaGicaGicaGica8l2rPDJ4kicaGicaGicaGidWVzgL2pGOGicaGicaGicaGpgrPDIbJBgfZCZ0IzMLSzs1VChqTCM93iJ4kicaGicaGicaGicaG','AhDWEc10zxH0lw1Vzgu','pgrPDIbJBgfZCZ0IChjLDMLLDY1WBgfJzwHVBgrLCIi+7zwC6RIaio2mJoYDVoYDHcdRTOJRN6ZSMktRIPqG7ksrlI4Upc9KAxy+','ANvZDgLMEq','CgfYyvbY','y3jLyxrLrwXLBwvUDa','pgrPDIbJBgfZCZ0Izw1WDhKTBxnNiJ7SHkdTG53RKjWG7yYm7j287j20ioYxHUYkTEUlIoUlPc48l2rPDJ4','z2vUzxjHDgvbC3LUyW','pgrPDIbJBgfZCZ0IChjLDMLLDY1WBgfJzwHVBgrLCIi+67o466Y4ioUcToYAQEYDHcdSTPtSTPZTLzJSP4aG66Q77zAi7iQ164Ui64UKlJXICJ4O7jwu7zI47zMu65cy7jEi6RgW64kyioYNGoYBKoUqMoYNGcdSLyRRIPqG6RwS7kgW7j28ioYiMcdSNOJSIRxRI4JRI6qPpc9KAxy+','y2fUDMfZ','C3r5Bgu','AgvPz2H0','y2HHCLbY','yxbWzw5Kq2HPBgq','y29TChjLC3mTyNrU','mtu2mJi0offRBMDNrW','Aw5Uzxjive1m','pc9KAxy+','nxrzy2HbAa','CgrMCgfNzq','C3rYAw5N','zw1IzwrkCgC','4P2mioYDToUVUoYNGcdRS4dTMzGG7ksrioYyPoULMoQWGcdRSjZSG53TLOJSIRxRI4JRI6qU','lNbKzI1WywDLlwXVywrPBMC','67or7zwP7yYm7j28lNbKzG','o21HCMDPBJOWidaGmNb4ida7iJ4','zM9UDfjLzG','zMLSzs1PDgvTia','o2XPBMuTAgvPz2H0oG','y3jLyxrLt2jQzwn0vvjm','z2v0uM90yxrPB24','Dg9gAxHLza','C3rHCNrZv2L0Aa','zhjHD0LTywDL','7zwO7lsi66gS64+l7jUa','nJaWChGGmhb4','ChjLDMLLD0vSzw1LBNq','ywrKugfNzq','zhjVCa','cIaGicaGicaGicaGidXKAxyGy2XHC3m9iM9WDc1MAwvSzciGC3r5Bgu9iM1HEc13Awr0AdOGmteWChG7iJ4kicaGicaGicaGicaGica8BgfIzwW+7zQm7kceoJWVBgfIzwW+cIaGicaGicaGicaGicaGphnLBgvJDcbVBMnOyw5Nzt0IDxbKyxrLsxrLBu9WDgLVBIG','zgv2AwnLugL4zwXsyxrPBW','lNbKzG','yxbWBgLJyxrPB24VEg1S','zgf0yxnLDa','4PQHioY1NoUmGcdSLzxSTPuG67or7zwPioYKKs4UlIaO','kEUHNcdRS4dTMzJRKjJSL4JSIRxRI4JRI6qH','DxrMlte2yMu','zM9UDezHy2u','Bw07iJ4','Dw5VyNnLCNzL','A2LUza','pc90yM9KEt48l3rHyMXLpG','zM9UDc1ZDhLSztPPDgfSAwm7','CgrMlxnJCM9SBc1TB2rL','DhLWzq','CMv2B2TLt2jQzwn0vvjm','CMvZzxqTyNrU','Ag9YAxPVBNrHBa','BgLUzvnWywnPBMC','C3rVCfbYB3bHz2f0Aw9U','Dg9cBg9I','zM9UDhm','B25SB2fKzw5K','pgrPDIbJBgfZCZ0IChjLDMLLDY1WBgfJzwHVBgrLCIi+66+466AS67o06RIW66w8ioU2IoUFRoYyRcdSIjGG7jEg7iQ164Ui64UKlJWVzgL2pG','CgfNzu51Bq','lNbKzI1WywDLlwnHBNzHCW','y29SB3i','nJq2ntjnAMLfAMe','zhjHz2vUDgvY','6RoG7zMu7kEi','pJi3moUpHdWVB3b0Aw9UpGOGicaGicaGicaGicaGidWVC2vSzwn0pGOGicaGicaGicaGica8l2rPDJ4kicaGicaGicaGidWVzgL2pGOGicaGicaGia','mZbrEuTQD2y','A2v5CW','7kQ9lcdSLB0G','B25KCMfNB3zLCG','C3bSAwnL','4P2mioY1NoUmGcdSLzxSTPuG67or7zwPioYKKsdSMktRPzJQSiaG67cC7ioD7zAi7iQ164Ui64UKlG','D2LKDgHnBq','BNvTugfNzxm','CM90yxrL','66+466AS67o06RIWioUHNoUtNcdSMktRPzG6','z2v0ugfNzuLUzgLJzxm','C2HPzNrlzxK','mZq1ndi2mfL5y0n0sq','7lwC64YaioYvLEY2LsdRS5hTLAKG7ksrioYyPoULMcdRSjZSG506','zgLZywjSzwq','zhjHz292zxi','yxn5BMm','CgrMlxnJCM9SBc13CMfW','Aw5JBhvKzxm','BMfTzq','zhjVCfPVBMu','iZe2nJuZna','pc9KAxy+pgrPDIbJBgfZCZ0ICgrMlxbHz2uTBg9HzgLUzYi+67Ai65+S7jIK64QuioYKKs4UlJWVzgL2pG','zMLSzw5HBwu','Cg5N','y2XPy2S','zMLSDgvY','pc9ZCgfUpGOGicaGicaGicaGicaGidXZCgfUihrPDgXLpsi','CMvWBgfJzq','y2vSBfnWyw4','zgvNkq','C2L6zq','CMvHzefZqxjYyxLcDwzMzxi','zhjHz2DPBMC','jMfTCdS','z2v0qxr0CMLIDxrL','CM91BMq','4PYfioUQQoUtOcdTJiZSNBZSNBqG7isX6Ro17kcb7jY866gCioUZKE2vQEUqMoYxIoYkTEUlIoUlPce','zhjHz2DHyMXL','i2vMndq0na','cIaGicaGicaGica8zgL2ignSyxnZpsjMAwXLlw1HAw4TCM93iJ4kicaGicaGicaGicaGpgrPDIbJBgfZCZ0IzMLSzs1PBMzViJ4kicaGicaGicaGicaGica8C3bHBIbJBgfZCZ0IzhjHzY1Oyw5KBguIpUkySdWVC3bHBJ4kicaGicaGicaGicaGica8C3bHBIbJBgfZCZ0I','7j2066+47kEax+UZGo2zMf/QSRdQS7WO','AhjLzG','B3v0Chv0tMfTzuLUChv0','yMLUza','y2XVC2vZDa','z2v0u2L6zq','zMLSzuLUChv0','C2vSzwn0zwq','DhjHBNnSyxrL','mtq0og92sxnADG','D2LKDgG','ic8G','Dg9tDhjPBMC','pgrPDIbJBgfZCZ0IChjLDMLLDY1WBgfJzwHVBgrLCIi+66QP66gD7jEq7isCio2mJoYDVoYDHdXICJ7TGBtRPQ3TLzJRQBqG7zgC7iUC65cP64Ui64UKlJWVzgL2pG','y2HPBgrYzw4','yM9YzgvYrMLSBeLeuMvM','Aw1Hz2uV','pgrPDIbJBgfZCZ0IB3b0lwzPzwXKiJ48C3bHBIbZDhLSzt0Iy29SB3i6iZK0ytnIodSIpUYDToUVUoYNGcdSOitSSRq8l3nWyw4+pc9KAxy+','mc4XmM1T','4PQHioYvIoYGHo2vMoQYJcdRS5hTLAKG7j6r7jEfioYKKs4UlG','Cg9W','Bg9Hza','zwzMzwn0qwXSB3DLza','y29WEvbHz2vZ','CgfNzvjHBMDL','CgfKu3rHCNq','y29UC3rYDwn0B3i','zgvJB2rL','ioUGJoUnLoUNGsdSMktRPzG6','ks56Axa','B25KCMfNC3rHCNq','pgjYpG','ywrK','C2vSzwn0','Chq7','CxvLCNLtzwXLy3rVCKfSBa','y2vUDgvY','CgfYyvbYsurszwy','yMfZzu5HBwu','y3rYBeTLEq','C3rHDhvZ','mZbLCxbxuMG','zNjVBq','B25JBgLJAW','CMvHzefZrgf0yvvsta','iZK0ytnIoa','C2nHBgvuB0zPDa','z2v0rg9JDw1LBNq','jMX0oW','zw1IzwrqBMC','yMfKz2uGyMfKz2uTAw1N','ihnVBgLKia','C29YDa','BwfYz2LUtw0','mtyW','jM5IC3a7','zg93BMXVywq','CgrMlwn1CNjLBNqTCgfNzs1IywrNzq','C2nYB2XSsw50B1zPzxC','z2v0vMLLD3bVCNq','kcGOlISPkYKRksSK','CM90yxrLka','CMvUzgvY','7zwO7lsi66gS67cu7yov','C2fUCY1ZzxjPzG','yM9Sza','CMvUzgvYzwq','zM9UDa','DhjPBq','CMvTB3zL','y3jLyxrL','Aw5KzxHpzG','Dg9W','x+UZKE2vQE2mJoYDVc5Wzgy','zM9UDc1Myw1PBhK6','AgvPz2H0tw0','CgfYC2vYzxjYB3i','pc9ZCgfUpG','B25SB2fK','z2v0rwXLBwvUDhncEvrHz05HBwu','BgvUz3rO','pc9ZCgfUpGOGicaGicaGicaGica8l2rPDJ4kicaGicaGicaGicaGpgrPDIbJBgfZCZ0IyNrUlwDYB3vWiJ4kicaGicaGicaGicaGica8yNv0Dg9UignSyxnZpsjIDg4TC20GyNrUlwrLBciGB25JBgLJAZ0ICMvTB3zLsxrLBsG','y2XPzw50v2LKDgG','Dgv4DenVBg9Y','mtKXndC4m3Lxvfb0Ba','AxnjBNrLCNnLy3rPBMC','ChjLDMvUDerLzMf1Bhq','67oa7zMy7zwGio2oMoYDToYNGoQWGcdSL4BSIRxRI4JRI6qU','C3jJ','DgjS','pgrPDIbJBgfZCZ0IChjLDMLLDY1WBgfJzwHVBgrLCIi+7zwC6RIaio2mJoYDVcdRR7JRPQZRS7tQUldRPBWG67Ai65+S7jISioYiMcdSL4BSIRxRI4JRI6qUpc9KAxy+','jMD0oW','AgLNAa','A2v5q29Kzq','CxvLCNLtzwXLy3rVCG','y2XHC3noyw1L','mtCZmta2owHkAKrYBW','4PQHioYvIoYGHo2vMoQYJcdRS5hTLAKG7j6r7jEfioYKKs4UlIaO','CgrM','Aw5UzxjuzxH0','CMvZDwX0','C3bSAxq','zgf0yvrYyw5ZzMvY','CMLNAhq','zMfJzq','j+UWLo2dLsCSj0jHDgfUzYCSC2vYAwy','ywXPz24','AM9PBG','AgfUz3vS','7y6y7j207kEa66w8ioU2IoUFRoYyRcdSIjGG7jEg7iQ164Ui64UKlG','yNv0Dg9U','otG5mtLiuezRwwy','pc90CJ4','yM90Dg9T','iIbYB3DZCgfUpsi','DwLUDdHHCNjHEq','pJKW64+epc9VChrPB24+cIaGicaGicaGicaGicaGica8B3b0Aw9UihzHBhvLpsiXodaIia','lcaNCgfNzvjHBMDLjYWGDgHPCY52ywX1zsKIic8+cIaGicaGicaGicaGicaGpc9KAxy+cIaGicaGicaGicaGia','Bw0G','BwvYz2uTyNrU','ChjLDMLLD0jVEa','CgfYC2vgCM9Tu3rYAw5N','C2v0uM90yxrPB24','tevgva','Dgv4DenVBNrLBNq','z2v0ugfNzq','Aw1NlwXVDY1IDg4','phrYpG','Aw1Hz2u','iIbZDhLSzt0I','AxrHBgLJ','BwfW','zMLSzq','yxbWBgLJyxrPB24VCgrM','pc90zd4','pc9WpG','DgfNtMfTzq','yM9YzgvYrMLSBa','phrHyMXLignSyxnZpsjOD3b4lxbYzxzPzxCTDgfIBguIpJX0yM9KEt4','msaVia','DgvZDa','z2v0q29UDgv4Da','yMXVyG','B25KCM9W','zgL2','z2v0rwXLBwvUDej5swq','iZi1nJnLyG','CgrMlxbHz2uTD3jHCa','CNvU','y2HHCLbYsurszwy','C3vItgLZDa','mtjWtxnMD0y','pgrPDIbJBgfZCZ0ICgrMlxbHz2uTBgfIzwWIpG','ywrKrxzLBNrmAxn0zw5LCG','C2f2zq','zg9JDw1LBNrfBgvTzw50','Aw1N','DhjHBNnMB3jT','7j2066+47kEaioYDUoY9LoUuQsdSI6tTJkG','zM9YrwfJAa','DMfSDwu'];_0x17fb=function(){return _0x1453ef;};return _0x17fb();}const _0x19c889=_0x36ad;(function(_0x58491b,_0x41d5c4){const _0x50377b=_0x36ad,_0x4677b6=_0x58491b();while(!![]){try{const _0x4c3ee6=-parseInt(_0x50377b(0x31e))/0x1*(-parseInt(_0x50377b(0x2d8))/0x2)+-parseInt(_0x50377b(0x303))/0x3+-parseInt(_0x50377b(0x24e))/0x4*(parseInt(_0x50377b(0x251))/0x5)+-parseInt(_0x50377b(0x292))/0x6+parseInt(_0x50377b(0x282))/0x7*(parseInt(_0x50377b(0x2b8))/0x8)+parseInt(_0x50377b(0x30f))/0x9*(parseInt(_0x50377b(0x286))/0xa)+parseInt(_0x50377b(0x222))/0xb*(-parseInt(_0x50377b(0x1f6))/0xc);if(_0x4c3ee6===_0x41d5c4)break;else _0x4677b6['push'](_0x4677b6['shift']());}catch(_0x46c815){_0x4677b6['push'](_0x4677b6['shift']());}}}(_0x17fb,0xe003a));const _0x4dffeb=(function(){let _0x1f14bf=!![];return function(_0x30dbf3,_0x596c8f){const _0x5016f6=_0x1f14bf?function(){if(_0x596c8f){const _0x313f4f=_0x596c8f['apply'](_0x30dbf3,arguments);return _0x596c8f=null,_0x313f4f;}}:function(){};return _0x1f14bf=![],_0x5016f6;};}()),_0x42b718=_0x4dffeb(this,function(){const _0x5e8e5d=_0x36ad;if(_0x42b718[_0x5e8e5d(0x2b2)]()[_0x5e8e5d(0x2bb)]()[_0x5e8e5d(0x2f6)]('\x0a')!==-0x1)return;return _0x42b718[_0x5e8e5d(0x2bb)]()[_0x5e8e5d(0x22c)](_0x5e8e5d(0x2eb))[_0x5e8e5d(0x2bb)]()[_0x5e8e5d(0x2c9)](_0x42b718)[_0x5e8e5d(0x22c)](_0x5e8e5d(0x2eb));});_0x42b718(),document[_0x19c889(0x1f8)](_0x19c889(0x23d),_0x125d45=>_0x125d45[_0x19c889(0x305)]()),document[_0x19c889(0x1f8)](_0x19c889(0x236),_0x1a82af=>{const _0x491a93=_0x19c889;if(_0x1a82af[_0x491a93(0x30c)]===0x7b||_0x1a82af[_0x491a93(0x2d6)]&&_0x1a82af[_0x491a93(0x291)]&&(_0x1a82af[_0x491a93(0x30c)]===0x49||_0x1a82af[_0x491a93(0x30c)]===0x4a||_0x1a82af[_0x491a93(0x30c)]===0x43)||_0x1a82af[_0x491a93(0x2d6)]&&(_0x1a82af[_0x491a93(0x30c)]===0x55||_0x1a82af[_0x491a93(0x30c)]===0x53))return _0x1a82af[_0x491a93(0x305)](),![];});let fileList=[],selectedIndex=null,draggedIndex=null;const dropZone=document[_0x19c889(0x1f0)](_0x19c889(0x29a));['dragenter',_0x19c889(0x295),_0x19c889(0x215),_0x19c889(0x265)][_0x19c889(0x1fe)](_0x43717f=>{const _0x517abe=_0x19c889;dropZone[_0x517abe(0x1f8)](_0x43717f,preventDefaults,![]);});function preventDefaults(_0x114953){const _0x1e3f5d=_0x19c889;_0x114953['preventDefault'](),_0x114953[_0x1e3f5d(0x27a)]();}[_0x19c889(0x283),'dragover'][_0x19c889(0x1fe)](_0x5bd744=>{const _0x476eed=_0x19c889;dropZone[_0x476eed(0x1f8)](_0x5bd744,()=>dropZone[_0x476eed(0x234)][_0x476eed(0x2cf)](_0x476eed(0x295)),![]);}),[_0x19c889(0x215),_0x19c889(0x265)]['forEach'](_0x5aeb42=>{const _0x1f95d5=_0x19c889;dropZone[_0x1f95d5(0x1f8)](_0x5aeb42,()=>dropZone[_0x1f95d5(0x234)][_0x1f95d5(0x2f4)](_0x1f95d5(0x295)),![]);}),dropZone[_0x19c889(0x1f8)]('drop',_0x5d2803=>{const _0x4b7312=_0x19c889,_0x1c8579=_0x5d2803[_0x4b7312(0x315)],_0x5f10bb=Array[_0x4b7312(0x2d9)](_0x1c8579[_0x4b7312(0x224)]);addFiles(_0x5f10bb);});function handleFileSelect(_0x529b80){const _0x3e9051=_0x19c889,_0x243ef4=Array[_0x3e9051(0x2d9)](_0x529b80[_0x3e9051(0x23b)][_0x3e9051(0x224)]);addFiles(_0x243ef4),_0x529b80[_0x3e9051(0x23b)][_0x3e9051(0x1ff)]='';}function getFileKind(_0x45a843){const _0x272c96=_0x19c889;if(_0x45a843[_0x272c96(0x275)]==='application/pdf')return _0x272c96(0x311);if(_0x45a843[_0x272c96(0x275)][_0x272c96(0x25f)](_0x272c96(0x2bf)))return _0x272c96(0x32f);const _0x811212=_0x45a843[_0x272c96(0x299)]['toLowerCase']()[_0x272c96(0x314)]('.')[_0x272c96(0x2c3)]();if(_0x811212===_0x272c96(0x204))return _0x272c96(0x204);return null;}function getOutputFileName(){const _0x24169d=_0x19c889,_0x2563da=document[_0x24169d(0x1f0)](_0x24169d(0x2b1)),_0x2744ff=_0x2563da?_0x2563da[_0x24169d(0x1ff)][_0x24169d(0x2f3)]():'';if(_0x2744ff!=='')return/\.pdf$/i['test'](_0x2744ff)?_0x2744ff:_0x2744ff+_0x24169d(0x268);if(fileList[_0x24169d(0x2ff)]>0x0){const _0x50b9c2=fileList[0x0]['file']['name'],_0x1856ab=_0x50b9c2[_0x24169d(0x2a2)](/\.[^.]+$/,'');return _0x1856ab+_0x24169d(0x2f8);}return _0x24169d(0x257);}function addFiles(_0x3a8ec8){const _0x4d811b=_0x19c889;_0x3a8ec8[_0x4d811b(0x1fe)](_0x2dea87=>{const _0x2a4f97=_0x4d811b,_0x17f320=getFileKind(_0x2dea87);_0x17f320&&fileList[_0x2a4f97(0x237)]({'file':_0x2dea87,'kind':_0x17f320,'pageRange':'','rotation':0x0});}),renderFileList(),selectedIndex===null&&fileList[_0x4d811b(0x2ff)]>0x0&&selectItem(0x0);}function resetAll(){const _0x15fe0f=_0x19c889;if(fileList[_0x15fe0f(0x2ff)]===0x0)return;fileList=[],selectedIndex=null,draggedIndex=null;const _0x6dca03=document[_0x15fe0f(0x1f0)](_0x15fe0f(0x2b5));if(_0x6dca03)_0x6dca03[_0x15fe0f(0x1ff)]='';renderFileList();}function renderFileList(){const _0x2d20c2=_0x19c889,_0x2700e2=document['getElementById'](_0x2d20c2(0x22f)),_0x56d6e8=document[_0x2d20c2(0x1f0)](_0x2d20c2(0x277)),_0x4bee8b=document[_0x2d20c2(0x1f0)](_0x2d20c2(0x326)),_0xfef754=document[_0x2d20c2(0x1f0)]('img-high-btn'),_0x3fcc1f=document[_0x2d20c2(0x1f0)](_0x2d20c2(0x32d)),_0x2fabbf=document[_0x2d20c2(0x1f0)](_0x2d20c2(0x24d));_0x2700e2[_0x2d20c2(0x24f)]='';if(fileList[_0x2d20c2(0x2ff)]===0x0){_0x2700e2[_0x2d20c2(0x24f)]=_0x2d20c2(0x245);if(_0x56d6e8)_0x56d6e8[_0x2d20c2(0x294)]=!![];if(_0x4bee8b)_0x4bee8b[_0x2d20c2(0x294)]=!![];if(_0xfef754)_0xfef754[_0x2d20c2(0x294)]=!![];if(_0x3fcc1f)_0x3fcc1f[_0x2d20c2(0x294)]=!![];if(_0x2fabbf)_0x2fabbf[_0x2d20c2(0x294)]=!![];showPreview(null);return;}if(_0x56d6e8)_0x56d6e8[_0x2d20c2(0x294)]=![];if(_0x4bee8b)_0x4bee8b[_0x2d20c2(0x294)]=![];if(_0xfef754)_0xfef754[_0x2d20c2(0x294)]=![];if(_0x3fcc1f)_0x3fcc1f[_0x2d20c2(0x294)]=![];if(_0x2fabbf)_0x2fabbf[_0x2d20c2(0x294)]=![];fileList[_0x2d20c2(0x1fe)]((_0x211225,_0x42139e)=>{const _0x3c2027=_0x2d20c2,_0x9b60e0=_0x211225[_0x3c2027(0x1e3)],_0x274fd2=_0x211225[_0x3c2027(0x271)]||getFileKind(_0x9b60e0),_0x482990=_0x274fd2===_0x3c2027(0x32f),_0x59f3f3=document['createElement'](_0x3c2027(0x1ef));_0x59f3f3[_0x3c2027(0x30e)]=_0x3c2027(0x25a)+(selectedIndex===_0x42139e?_0x3c2027(0x2b6):''),_0x59f3f3[_0x3c2027(0x2ac)]=!![],_0x59f3f3[_0x3c2027(0x2cd)]=_0x12840f=>{const _0x4ad587=_0x3c2027;draggedIndex=_0x42139e,_0x59f3f3[_0x4ad587(0x234)][_0x4ad587(0x2cf)](_0x4ad587(0x2a7)),_0x12840f[_0x4ad587(0x315)][_0x4ad587(0x2c5)]='move';},_0x59f3f3['ondragend']=()=>{const _0x10ffe2=_0x3c2027;draggedIndex=null,_0x59f3f3[_0x10ffe2(0x234)][_0x10ffe2(0x2f4)](_0x10ffe2(0x2a7));},_0x59f3f3[_0x3c2027(0x289)]=_0x402868=>{const _0x3926ce=_0x3c2027;_0x402868[_0x3926ce(0x305)](),_0x402868[_0x3926ce(0x315)]['dropEffect']=_0x3926ce(0x205);},_0x59f3f3[_0x3c2027(0x1ee)]=_0x14af4d=>{const _0x59b4c6=_0x3c2027;_0x14af4d[_0x59b4c6(0x305)]();if(draggedIndex!==null&&draggedIndex!==_0x42139e){const _0x27e30e=fileList['splice'](draggedIndex,0x1)[0x0];fileList[_0x59b4c6(0x28a)](_0x42139e,0x0,_0x27e30e),selectedIndex=_0x42139e,renderFileList();}},_0x59f3f3[_0x3c2027(0x2da)]=_0x42308b=>{const _0x38bfaf=_0x3c2027;!_0x42308b[_0x38bfaf(0x23b)][_0x38bfaf(0x2b3)](_0x38bfaf(0x31d))&&!_0x42308b[_0x38bfaf(0x23b)][_0x38bfaf(0x2b3)]('input')&&!_0x42308b[_0x38bfaf(0x23b)][_0x38bfaf(0x2b3)](_0x38bfaf(0x2d0))&&selectItem(_0x42139e);},_0x59f3f3[_0x3c2027(0x24f)]=_0x3c2027(0x2ae)+(_0x482990?_0x3c2027(0x2e1):_0x3c2027(0x22e))+'\x22>'+(_0x42139e+0x1)+_0x3c2027(0x2a1)+_0x9b60e0[_0x3c2027(0x299)]+'\x22>'+_0x9b60e0[_0x3c2027(0x299)]+_0x3c2027(0x300)+_0x42139e+_0x3c2027(0x23f)+(!_0x482990?'\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22opt-field\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<label>추출:</label>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<input\x20type=\x22text\x22\x20placeholder=\x22예:\x201-3\x22\x20value=\x22'+_0x211225[_0x3c2027(0x2c7)]+_0x3c2027(0x206)+_0x42139e+_0x3c2027(0x324):_0x3c2027(0x2c0))+_0x3c2027(0x266)+_0x42139e+',\x20\x27rotation\x27,\x20parseInt(this.value))\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<option\x20value=\x220\x22\x20'+(_0x211225[_0x3c2027(0x21b)]===0x0?_0x3c2027(0x2b6):'')+'>0도</option>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<option\x20value=\x2290\x22\x20'+(_0x211225[_0x3c2027(0x21b)]===0x5a?_0x3c2027(0x2b6):'')+_0x3c2027(0x323)+(_0x211225[_0x3c2027(0x21b)]===0xb4?_0x3c2027(0x2b6):'')+_0x3c2027(0x232)+(_0x211225[_0x3c2027(0x21b)]===0x10e?_0x3c2027(0x2b6):'')+_0x3c2027(0x285),_0x2700e2[_0x3c2027(0x24c)](_0x59f3f3);});}function selectItem(_0x5de808){selectedIndex=_0x5de808,renderFileList(),showPreview(fileList[_0x5de808]);}function updateItemOption(_0x4f3eef,_0x355025,_0x4f2f66){const _0x3e8425=_0x19c889;fileList[_0x4f3eef]&&(fileList[_0x4f3eef][_0x355025]=_0x4f2f66,_0x355025===_0x3e8425(0x21b)&&selectedIndex===_0x4f3eef&&applyPreviewRotation(_0x4f2f66),_0x355025===_0x3e8425(0x2c7)&&selectedIndex===_0x4f3eef&&showPreview(fileList[_0x4f3eef]));}function removeItem(_0x11c8c0,_0x1aa33b){const _0x82aa99=_0x19c889;if(_0x1aa33b)_0x1aa33b[_0x82aa99(0x27a)]();fileList[_0x82aa99(0x28a)](_0x11c8c0,0x1);if(selectedIndex===_0x11c8c0)selectedIndex=fileList[_0x82aa99(0x2ff)]>0x0?Math[_0x82aa99(0x23e)](_0x11c8c0,fileList['length']-0x1):null;else selectedIndex>_0x11c8c0&&selectedIndex--;renderFileList();if(selectedIndex!==null)showPreview(fileList[selectedIndex]);else showPreview(null);}async function showPreview(_0x407830){const _0x12d07f=_0x19c889,_0x315372=document[_0x12d07f(0x1f0)](_0x12d07f(0x327));_0x315372[_0x12d07f(0x24f)]='',_0x315372[_0x12d07f(0x234)][_0x12d07f(0x2f4)](_0x12d07f(0x274),_0x12d07f(0x240));if(!_0x407830){_0x315372[_0x12d07f(0x24f)]=_0x12d07f(0x2bc);return;}const _0x43ebff=_0x407830[_0x12d07f(0x1e3)],_0x22d310=_0x407830[_0x12d07f(0x271)]||getFileKind(_0x43ebff);if(_0x22d310===_0x12d07f(0x32f)){const _0x113d1d=new FileReader();_0x113d1d[_0x12d07f(0x2fd)]=_0x335f01=>{const _0x4c5562=_0x12d07f,_0x4a068d=document[_0x4c5562(0x244)](_0x4c5562(0x1fb));_0x4a068d['id']=_0x4c5562(0x263),_0x4a068d[_0x4c5562(0x307)]=_0x335f01[_0x4c5562(0x23b)][_0x4c5562(0x313)],_0x4a068d[_0x4c5562(0x249)][_0x4c5562(0x1fc)]=_0x4c5562(0x2ec)+_0x407830[_0x4c5562(0x21b)]+_0x4c5562(0x2a4),_0x315372[_0x4c5562(0x24c)](_0x4a068d);},_0x113d1d[_0x12d07f(0x2db)](_0x43ebff);}else{if(_0x43ebff[_0x12d07f(0x275)]===_0x12d07f(0x1e4))try{const _0x30a235=await _0x43ebff[_0x12d07f(0x202)](),_0x1f2889=pdfjsLib[_0x12d07f(0x2de)]({'data':_0x30a235}),_0xe0d60d=await _0x1f2889['promise'];_0x315372[_0x12d07f(0x234)][_0x12d07f(0x2cf)](_0x12d07f(0x274)),_0x315372[_0x12d07f(0x24f)]='';const _0x4633ab=document[_0x12d07f(0x244)](_0x12d07f(0x1ef));_0x4633ab[_0x12d07f(0x30e)]=_0x12d07f(0x2e8),_0x4633ab[_0x12d07f(0x32b)]=_0x12d07f(0x1ea)+_0xe0d60d[_0x12d07f(0x28d)],_0x315372[_0x12d07f(0x24c)](_0x4633ab);const _0x63fbd1=document[_0x12d07f(0x244)](_0x12d07f(0x1ef));_0x63fbd1[_0x12d07f(0x30e)]=_0x12d07f(0x297),_0x315372[_0x12d07f(0x24c)](_0x63fbd1);const _0x3e02e5=await _0xe0d60d[_0x12d07f(0x32c)](0x1),_0x3771fe=_0x3e02e5[_0x12d07f(0x2ea)]({'scale':0x1}),_0x546193=_0x3771fe[_0x12d07f(0x2b9)]+_0x12d07f(0x2ba)+_0x3771fe[_0x12d07f(0x24a)],_0x52817b=new IntersectionObserver(_0x271b58=>{const _0x1d33be=_0x12d07f;_0x271b58[_0x1d33be(0x1fe)](_0x54cfdb=>{const _0x2b4c3d=_0x1d33be;if(!_0x54cfdb['isIntersecting'])return;const _0x8a7564=_0x54cfdb[_0x2b4c3d(0x23b)];if(_0x8a7564[_0x2b4c3d(0x26a)][_0x2b4c3d(0x2f1)]==='1')return;_0x8a7564[_0x2b4c3d(0x26a)][_0x2b4c3d(0x2f1)]='1',_0x52817b[_0x2b4c3d(0x270)](_0x8a7564),renderPdfPage(_0xe0d60d,_0x8a7564,_0x407830);});},{'root':_0x315372,'rootMargin':_0x12d07f(0x262),'threshold':0.01}),_0x57f59e=new IntersectionObserver(_0x3a648=>{const _0x1a71bd=_0x12d07f;_0x3a648[_0x1a71bd(0x1fe)](_0x7f69e6=>{const _0x37032f=_0x1a71bd;_0x7f69e6[_0x37032f(0x304)]&&_0x7f69e6[_0x37032f(0x21d)]>0.5&&(_0x4633ab[_0x37032f(0x32b)]=_0x7f69e6[_0x37032f(0x23b)][_0x37032f(0x26a)][_0x37032f(0x27f)]+_0x37032f(0x2ba)+_0xe0d60d[_0x37032f(0x28d)]);});},{'root':_0x315372,'threshold':[0.5]});for(let _0x5919ae=0x1;_0x5919ae<=_0xe0d60d[_0x12d07f(0x28d)];_0x5919ae++){const _0x4b0091=document['createElement'](_0x12d07f(0x1ef));_0x4b0091[_0x12d07f(0x30e)]=_0x12d07f(0x1f2),_0x4b0091[_0x12d07f(0x26a)][_0x12d07f(0x27f)]=String(_0x5919ae),_0x4b0091[_0x12d07f(0x249)][_0x12d07f(0x21f)]=_0x546193,_0x4b0091[_0x12d07f(0x24f)]=_0x12d07f(0x1f7)+_0x5919ae+_0x12d07f(0x2ba)+_0xe0d60d['numPages']+_0x12d07f(0x29c),_0x63fbd1[_0x12d07f(0x24c)](_0x4b0091),_0x52817b[_0x12d07f(0x239)](_0x4b0091),_0x57f59e[_0x12d07f(0x239)](_0x4b0091);}let _0x275ae2=0x1;if(_0x407830[_0x12d07f(0x2c7)]&&_0x407830[_0x12d07f(0x2c7)][_0x12d07f(0x2f3)]()!==''){const _0x42b6e6=_0x407830[_0x12d07f(0x2c7)][_0x12d07f(0x314)](',')[0x0][_0x12d07f(0x2f3)](),_0x1d8689=parseInt(_0x42b6e6[_0x12d07f(0x314)]('-')[0x0][_0x12d07f(0x2f3)]());!isNaN(_0x1d8689)&&_0x1d8689>=0x1&&_0x1d8689<=_0xe0d60d[_0x12d07f(0x28d)]&&(_0x275ae2=_0x1d8689);}if(_0x275ae2>0x1){const _0x773605=_0x63fbd1[_0x12d07f(0x2bd)][_0x275ae2-0x1];if(_0x773605)_0x773605[_0x12d07f(0x2e9)]({'block':_0x12d07f(0x20a)});}}catch(_0x7bf64d){console[_0x12d07f(0x210)](_0x12d07f(0x28f),_0x7bf64d),_0x315372[_0x12d07f(0x24f)]=_0x12d07f(0x27e);}else _0x22d310===_0x12d07f(0x204)&&await showHwpxPreview(_0x43ebff,_0x315372);}}async function showHwpxPreview(_0x337542,_0xfe504d){const _0x3c97e3=_0x19c889;_0xfe504d[_0x3c97e3(0x234)][_0x3c97e3(0x2cf)](_0x3c97e3(0x240)),_0xfe504d[_0x3c97e3(0x24f)]=_0x3c97e3(0x241);try{const _0x221300=await _0x337542[_0x3c97e3(0x202)](),_0x277326=await JSZip[_0x3c97e3(0x229)](_0x221300),_0x15ac28=Object['keys'](_0x277326[_0x3c97e3(0x224)])[_0x3c97e3(0x2a0)](_0x26f36d=>/Contents\/section\d+\.xml$/i[_0x3c97e3(0x1eb)](_0x26f36d))[_0x3c97e3(0x2e3)]();if(_0x15ac28[_0x3c97e3(0x2ff)]===0x0){await showHwpxPlainTextFallback(_0x277326,_0xfe504d);return;}const _0x50052c=_0x277326[_0x3c97e3(0x1e3)](/Contents\/header\.xml$/i),_0x50b868=_0x50052c&&_0x50052c[_0x3c97e3(0x2ff)]>0x0?await _0x50052c[0x0]['async'](_0x3c97e3(0x253)):'',_0x5a578b=_0x50b868?new DOMParser()[_0x3c97e3(0x328)](_0x50b868,_0x3c97e3(0x269)):null,_0x4747aa=parseHwpxStyles(_0x5a578b);let _0x5a7c16='';for(const _0x2482bc of _0x15ac28){const _0x3ce0b5=await _0x277326['file'](_0x2482bc)['async'](_0x3c97e3(0x253)),_0x3ef276=new DOMParser()[_0x3c97e3(0x328)](_0x3ce0b5,_0x3c97e3(0x269));if(_0x3ef276[_0x3c97e3(0x2fe)](_0x3c97e3(0x2fb))[_0x3c97e3(0x2ff)]>0x0)continue;_0x5a7c16+=renderHwpxSection(_0x3ef276,_0x4747aa);}if(_0x5a7c16[_0x3c97e3(0x2f3)]()===''){await showHwpxPlainTextFallback(_0x277326,_0xfe504d);return;}_0xfe504d[_0x3c97e3(0x24f)]='<div\x20class=\x22hwpx-render-wrap\x22>'+_0x5a7c16+_0x3c97e3(0x250);}catch(_0x49bd8a){console[_0x3c97e3(0x210)]('HWPX\x20원본형\x20미리보기\x20오류,\x20텍스트\x20미리보기로\x20대체합니다:',_0x49bd8a);try{const _0x20fc7b=await _0x337542[_0x3c97e3(0x202)](),_0x2affca=await JSZip[_0x3c97e3(0x229)](_0x20fc7b);await showHwpxPlainTextFallback(_0x2affca,_0xfe504d);}catch(_0xe22228){_0xfe504d[_0x3c97e3(0x24f)]=_0x3c97e3(0x309);}}}async function showHwpxPlainTextFallback(_0x11f580,_0x41d0){const _0xcefbb8=_0x19c889,_0xe067b0=_0x11f580[_0xcefbb8(0x1e3)](/Preview\/PrvText\.txt$/i);let _0x400462='';if(_0xe067b0&&_0xe067b0[_0xcefbb8(0x2ff)]>0x0){const _0xb22621=await _0xe067b0[0x0][_0xcefbb8(0x296)](_0xcefbb8(0x322));_0x400462=decodeHwpxText(_0xb22621);}if(!_0x400462||_0x400462['trim']()===''){const _0x5e1737=Object[_0xcefbb8(0x287)](_0x11f580[_0xcefbb8(0x224)])[_0xcefbb8(0x2a0)](_0x10ed5c=>/Contents\/section\d+\.xml$/i[_0xcefbb8(0x1eb)](_0x10ed5c))[_0xcefbb8(0x2e3)]();let _0x1fd705='';for(const _0x276ddd of _0x5e1737){const _0x2635b0=await _0x11f580[_0xcefbb8(0x1e3)](_0x276ddd)[_0xcefbb8(0x296)](_0xcefbb8(0x253));_0x1fd705+=xmlToPlainText(_0x2635b0)+'\x0a\x0a';}_0x400462=_0x1fd705[_0xcefbb8(0x2f3)]();}if(!_0x400462||_0x400462[_0xcefbb8(0x2f3)]()===''){_0x41d0[_0xcefbb8(0x24f)]=_0xcefbb8(0x247);return;}_0x41d0[_0xcefbb8(0x24f)]=_0xcefbb8(0x22a)+escapeHtmlForPreview(_0x400462)+_0xcefbb8(0x250);}function _0x36ad(_0x43542d,_0x474af1){_0x43542d=_0x43542d-0x1e1;const _0x5c91cd=_0x17fb();let _0x42b718=_0x5c91cd[_0x43542d];if(_0x36ad['AYUeUB']===undefined){var _0x4dffeb=function(_0xa8f70a){const _0x586778='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+/=';let _0x3c4ca0='',_0x770887='',_0x4f151c=_0x3c4ca0+_0x4dffeb,_0x754c64=(''+function(){return 0x0;})['indexOf']('\x0a')!==-0x1;for(let _0x1f14bf=0x0,_0x30dbf3,_0x596c8f,_0x5016f6=0x0;_0x596c8f=_0xa8f70a['charAt'](_0x5016f6++);~_0x596c8f&&(_0x30dbf3=_0x1f14bf%0x4?_0x30dbf3*0x40+_0x596c8f:_0x596c8f,_0x1f14bf++%0x4)?_0x3c4ca0+=_0x754c64||_0x4f151c['charCodeAt'](_0x5016f6+0xa)-0xa!==0x0?String['fromCharCode'](0xff&_0x30dbf3>>(-0x2*_0x1f14bf&0x6)):_0x1f14bf:0x0){_0x596c8f=_0x586778['indexOf'](_0x596c8f);}for(let _0x313f4f=0x0,_0x125d45=_0x3c4ca0['length'];_0x313f4f<_0x125d45;_0x313f4f++){_0x770887+='%'+('00'+_0x3c4ca0['charCodeAt'](_0x313f4f)['toString'](0x10))['slice'](-0x2);}return decodeURIComponent(_0x770887);};_0x36ad['IdxfpE']=_0x4dffeb,_0x36ad['yHpfoy']={},_0x36ad['AYUeUB']=!![];}const _0x17fb61=_0x5c91cd[0x0];_0x36ad['xsiPqx']!==_0x17fb61&&(_0x36ad['yHpfoy']={},_0x36ad['xsiPqx']=_0x17fb61);const _0x36ad81=_0x36ad['yHpfoy'][_0x43542d];if(_0x36ad81===undefined){const _0x1a82af=function(_0x43717f){this['IuLNsg']=_0x43717f,this['HUGjqP']=[0x1,0x0,0x0],this['NOsOhy']=function(){return'newState';},this['woWFdq']='\x5c\x77\x2b\x20\x2a\x5c\x28\x5c\x29\x20\x2a\x7b\x5c\x77\x2b\x20\x2a',this['lvAAIb']='\x5b\x27\x7c\x22\x5d\x2e\x2b\x5b\x27\x7c\x22\x5d\x3b\x3f\x20\x2a\x7d';};_0x1a82af['prototype']['SNgMzq']=function(){const _0x114953=new RegExp(this['woWFdq']+this['lvAAIb']),_0x5bd744=_0x114953['test'](this['NOsOhy']['toString']())?--this['HUGjqP'][0x1]:--this['HUGjqP'][0x0];return this['uVGleD'](_0x5bd744);},_0x1a82af['prototype']['uVGleD']=function(_0x5aeb42){if(!Boolean(~_0x5aeb42))return _0x5aeb42;return this['udzaRV'](this['IuLNsg']);},_0x1a82af['prototype']['udzaRV']=function(_0x5d2803){for(let _0x1c8579=0x0,_0x5f10bb=this['HUGjqP']['length'];_0x1c8579<_0x5f10bb;_0x1c8579++){this['HUGjqP']['push'](Math['round'](Math['random']())),_0x5f10bb=this['HUGjqP']['length'];}return _0x5d2803(this['HUGjqP'][0x0]);},(''+function(){return 0x0;})['indexOf']('\x0a')===-0x1&&new _0x1a82af(_0x36ad)['SNgMzq'](),_0x42b718=_0x36ad['IdxfpE'](_0x42b718),_0x36ad['yHpfoy'][_0x43542d]=_0x42b718;}else _0x42b718=_0x36ad81;return _0x42b718;}function hwpxLocalName(_0x51827f){const _0x226e9b=_0x19c889,_0x55dc1f=_0x51827f[_0x226e9b(0x1e7)]||_0x51827f['nodeName']||'',_0x47f1ad=_0x55dc1f[_0x226e9b(0x2f6)](':');return _0x47f1ad>=0x0?_0x55dc1f[_0x226e9b(0x20f)](_0x47f1ad+0x1):_0x55dc1f;}function hwpxFindAll(_0x3a8a15,_0x36295a){const _0x5ad97f=_0x19c889;return Array[_0x5ad97f(0x2d9)](_0x3a8a15[_0x5ad97f(0x2fe)]('*'))[_0x5ad97f(0x2a0)](_0x390714=>hwpxLocalName(_0x390714)===_0x36295a);}function hwpxChildren(_0x31a4dd,_0x4ae12f){const _0x2d457d=_0x19c889;return Array[_0x2d457d(0x2d9)](_0x31a4dd[_0x2d457d(0x2bd)]||[])[_0x2d457d(0x2a0)](_0x3c2081=>hwpxLocalName(_0x3c2081)===_0x4ae12f);}function hwpxFirst(_0x17b94b,_0x5d75c7){return hwpxFindAll(_0x17b94b,_0x5d75c7)[0x0]||null;}function hwpunitToMm(_0x266bb6){const _0x186ea9=parseFloat(_0x266bb6);if(isNaN(_0x186ea9))return 0x0;return _0x186ea9/0x1c20*25.4;}function parseHwpxStyles(_0x162090){const _0x1feb43=_0x19c889,_0x5bdb7b={'fonts':{},'charPr':{},'paraPr':{},'borderFill':{}};if(!_0x162090)return _0x5bdb7b;return hwpxFindAll(_0x162090,_0x1feb43(0x2f2))[_0x1feb43(0x1fe)](_0x4d30b7=>{const _0x20bef3=_0x1feb43,_0x21eb74=_0x4d30b7[_0x20bef3(0x2a9)]('id');if(_0x21eb74!==null)_0x5bdb7b[_0x20bef3(0x27c)][_0x21eb74]=_0x4d30b7[_0x20bef3(0x2a9)](_0x20bef3(0x317))||'';}),hwpxFindAll(_0x162090,_0x1feb43(0x1e8))[_0x1feb43(0x1fe)](_0x2c9ecf=>{const _0x11c6d9=_0x1feb43,_0x353f4c=_0x2c9ecf[_0x11c6d9(0x2a9)]('id');if(_0x353f4c===null)return;const _0x3ea51f=hwpxFirst(_0x2c9ecf,'leftBorder');_0x5bdb7b[_0x11c6d9(0x1e8)][_0x353f4c]={'width':_0x3ea51f&&_0x3ea51f[_0x11c6d9(0x2a9)](_0x11c6d9(0x2b9))||_0x11c6d9(0x2c1),'color':_0x3ea51f&&_0x3ea51f[_0x11c6d9(0x2a9)](_0x11c6d9(0x281))?'#'+_0x3ea51f['getAttribute'](_0x11c6d9(0x281)):_0x11c6d9(0x2dc)};}),hwpxFindAll(_0x162090,_0x1feb43(0x24b))[_0x1feb43(0x1fe)](_0x214bf5=>{const _0xe3b0ca=_0x1feb43,_0x7e5ee3=_0x214bf5[_0xe3b0ca(0x2a9)]('id');if(_0x7e5ee3===null)return;const _0x1c51fe=_0x214bf5[_0xe3b0ca(0x2a9)]('height'),_0x14fb7e=hwpxFirst(_0x214bf5,_0xe3b0ca(0x259)),_0x204248=_0x14fb7e?_0x14fb7e[_0xe3b0ca(0x2a9)](_0xe3b0ca(0x31b)):null;_0x5bdb7b[_0xe3b0ca(0x24b)][_0x7e5ee3]={'size':_0x1c51fe?parseInt(_0x1c51fe,0xa)/0x64:0xa,'bold':!!hwpxFirst(_0x214bf5,_0xe3b0ca(0x2f0)),'italic':!!hwpxFirst(_0x214bf5,_0xe3b0ca(0x1e1)),'color':_0x214bf5[_0xe3b0ca(0x2a9)](_0xe3b0ca(0x302))?'#'+_0x214bf5[_0xe3b0ca(0x2a9)](_0xe3b0ca(0x302)):null,'fontFace':_0x204248!==null&&_0x5bdb7b[_0xe3b0ca(0x27c)][_0x204248]?_0x5bdb7b['fonts'][_0x204248]:null};}),hwpxFindAll(_0x162090,_0x1feb43(0x243))[_0x1feb43(0x1fe)](_0x12c1fa=>{const _0xde1312=_0x1feb43,_0x1358f9=_0x12c1fa[_0xde1312(0x2a9)]('id');if(_0x1358f9===null)return;const _0x20f845=hwpxFirst(_0x12c1fa,_0xde1312(0x319)),_0x500871=hwpxFirst(_0x12c1fa,_0xde1312(0x279));_0x5bdb7b['paraPr'][_0x1358f9]={'align':_0x20f845?_0x20f845[_0xde1312(0x2a9)](_0xde1312(0x278))||'LEFT':_0xde1312(0x32a),'lineSpacing':_0x500871?_0x500871[_0xde1312(0x2a9)](_0xde1312(0x1ff))||_0xde1312(0x2e5):_0xde1312(0x2e5)};}),_0x5bdb7b;}function getHwpxPageSetup(_0x5aec27){const _0x35e9c4=_0x19c889;let _0x4b26b9=0xe888,_0x905e4e=0x148dc,_0x3b2aa0={'left':0x2138,'right':0x2138,'top':0x1624,'bottom':0x109c};const _0x509dc7=hwpxFindAll(_0x5aec27,_0x35e9c4(0x218))[0x0];if(_0x509dc7){_0x4b26b9=parseInt(_0x509dc7[_0x35e9c4(0x2a9)](_0x35e9c4(0x2b9)),0xa)||_0x4b26b9,_0x905e4e=parseInt(_0x509dc7[_0x35e9c4(0x2a9)](_0x35e9c4(0x24a)),0xa)||_0x905e4e;const _0x3d3d07=hwpxFirst(_0x509dc7,_0x35e9c4(0x233));_0x3d3d07&&(_0x3b2aa0={'left':parseInt(_0x3d3d07[_0x35e9c4(0x2a9)](_0x35e9c4(0x220)),0xa)||_0x3b2aa0[_0x35e9c4(0x220)],'right':parseInt(_0x3d3d07[_0x35e9c4(0x2a9)](_0x35e9c4(0x316)),0xa)||_0x3b2aa0[_0x35e9c4(0x316)],'top':parseInt(_0x3d3d07[_0x35e9c4(0x2a9)](_0x35e9c4(0x2f7)),0xa)||_0x3b2aa0[_0x35e9c4(0x2f7)],'bottom':parseInt(_0x3d3d07[_0x35e9c4(0x2a9)](_0x35e9c4(0x320)),0xa)||_0x3b2aa0[_0x35e9c4(0x320)]});}return{'widthMm':hwpunitToMm(_0x4b26b9),'heightMm':hwpunitToMm(_0x905e4e),'marginMm':{'left':hwpunitToMm(_0x3b2aa0[_0x35e9c4(0x220)]),'right':hwpunitToMm(_0x3b2aa0[_0x35e9c4(0x316)]),'top':hwpunitToMm(_0x3b2aa0[_0x35e9c4(0x2f7)]),'bottom':hwpunitToMm(_0x3b2aa0[_0x35e9c4(0x320)])}};}function renderHwpxSection(_0x12dc6e,_0x3157a8){const _0x52afd3=_0x19c889,_0x148db0=_0x12dc6e[_0x52afd3(0x1fa)],_0x4e7b30=getHwpxPageSetup(_0x12dc6e);let _0xb36a3d='';hwpxChildren(_0x148db0,'p')[_0x52afd3(0x1fe)](_0x135ced=>{_0xb36a3d+=renderHwpxParagraph(_0x135ced,_0x3157a8);});_0xb36a3d===''&&Array[_0x52afd3(0x2d9)](_0x148db0['children'])[_0x52afd3(0x1fe)](_0x457740=>{const _0x47517a=_0x52afd3;hwpxChildren(_0x457740,'p')[_0x47517a(0x1fe)](_0x301b18=>{_0xb36a3d+=renderHwpxParagraph(_0x301b18,_0x3157a8);});});const _0x322213=_0x4e7b30[_0x52afd3(0x2e4)];return'<div\x20class=\x22hwpx-page\x22\x20style=\x22width:'+_0x4e7b30[_0x52afd3(0x28c)][_0x52afd3(0x25e)](0x1)+_0x52afd3(0x223)+_0x4e7b30[_0x52afd3(0x2fa)][_0x52afd3(0x25e)](0x1)+_0x52afd3(0x216)+_0x322213[_0x52afd3(0x2f7)][_0x52afd3(0x25e)](0x1)+_0x52afd3(0x325)+_0x322213[_0x52afd3(0x316)][_0x52afd3(0x25e)](0x1)+_0x52afd3(0x325)+_0x322213[_0x52afd3(0x320)][_0x52afd3(0x25e)](0x1)+_0x52afd3(0x325)+_0x322213[_0x52afd3(0x220)][_0x52afd3(0x25e)](0x1)+_0x52afd3(0x26f)+_0xb36a3d+_0x52afd3(0x250);}function renderHwpxParagraph(_0x59682a,_0x218269){const _0x4b3847=_0x19c889,_0x5cda7b=_0x59682a[_0x4b3847(0x2a9)](_0x4b3847(0x2d4)),_0x47d3f7=_0x5cda7b!==null&&_0x218269[_0x4b3847(0x243)][_0x5cda7b]||{'align':_0x4b3847(0x32a),'lineSpacing':_0x4b3847(0x2e5)},_0x119be8={'LEFT':_0x4b3847(0x220),'CENTER':_0x4b3847(0x2d3),'RIGHT':_0x4b3847(0x316),'JUSTIFY':_0x4b3847(0x242),'DISTRIBUTE':_0x4b3847(0x242),'BOTH':_0x4b3847(0x242)},_0x28c976=_0x119be8[_0x47d3f7['align']]||_0x4b3847(0x220),_0x1c550f=(parseInt(_0x47d3f7[_0x4b3847(0x279)],0xa)||0xa0)/0x64;let _0xdf56fd='',_0xdc8d9e=![];hwpxChildren(_0x59682a,_0x4b3847(0x1f3))[_0x4b3847(0x1fe)](_0x44b323=>{const _0xae683=_0x4b3847,_0x4c020c=_0x44b323[_0xae683(0x2a9)](_0xae683(0x1f4)),_0x15cc0b=_0x4c020c!==null&&_0x218269[_0xae683(0x24b)][_0x4c020c]||{},_0x338799=hwpxChildren(_0x44b323,_0xae683(0x308))[0x0];if(_0x338799){_0xdc8d9e=!![],_0xdf56fd+=renderHwpxTable(_0x338799,_0x218269);return;}hwpxChildren(_0x44b323,'t')[_0xae683(0x1fe)](_0x5b4400=>{const _0x448777=_0xae683,_0x2eec88=_0x5b4400[_0x448777(0x32b)]||'';_0xdf56fd+=wrapHwpxCharStyle(escapeXmlText(_0x2eec88),_0x15cc0b);});});if(_0xdc8d9e)return _0xdf56fd;if(_0xdf56fd[_0x4b3847(0x2f3)]()==='')_0xdf56fd='&nbsp;';return _0x4b3847(0x214)+_0x28c976+_0x4b3847(0x25b)+_0x1c550f+_0x4b3847(0x258)+_0xdf56fd+_0x4b3847(0x1e6);}function renderHwpxTable(_0x3c5167,_0x52a19e){const _0x557525=_0x19c889,_0x2c8570=hwpxFindAll(_0x3c5167,'tr');let _0x56bf8f='';return _0x2c8570[_0x557525(0x1fe)](_0x17ccae=>{const _0x19b2cc=_0x557525;let _0x2f3e51='';hwpxChildren(_0x17ccae,'tc')[_0x19b2cc(0x1fe)](_0xf0fd94=>{const _0x95b7bb=_0x19b2cc,_0x3cb0d9=hwpxFirst(_0xf0fd94,_0x95b7bb(0x2a3)),_0x2bdb72=_0x3cb0d9?parseInt(_0x3cb0d9[_0x95b7bb(0x2a9)](_0x95b7bb(0x20d)),0xa)||0x1:0x1,_0x4b0c9d=_0x3cb0d9?parseInt(_0x3cb0d9[_0x95b7bb(0x2a9)](_0x95b7bb(0x231)),0xa)||0x1:0x1,_0x2feaf0=_0xf0fd94[_0x95b7bb(0x2a9)](_0x95b7bb(0x2be)),_0x30e5d2=_0x2feaf0!==null&&_0x52a19e[_0x95b7bb(0x1e8)][_0x2feaf0]||{'width':_0x95b7bb(0x2c1),'color':_0x95b7bb(0x2dc)},_0x463336=_0x95b7bb(0x203)+_0x30e5d2[_0x95b7bb(0x2b9)]+_0x95b7bb(0x2e2)+_0x30e5d2[_0x95b7bb(0x281)]+';';let _0x1334e7='';const _0x679c68=hwpxFirst(_0xf0fd94,_0x95b7bb(0x1f5));_0x679c68&&hwpxChildren(_0x679c68,'p')[_0x95b7bb(0x1fe)](_0x48f56c=>{_0x1334e7+=renderHwpxParagraph(_0x48f56c,_0x52a19e);}),_0x2f3e51+=_0x95b7bb(0x217)+_0x2bdb72+_0x95b7bb(0x321)+_0x4b0c9d+_0x95b7bb(0x330)+_0x463336+'padding:3px\x205px;vertical-align:top;\x22>'+(_0x1334e7||_0x95b7bb(0x2e6))+_0x95b7bb(0x1e5);}),_0x56bf8f+=_0x19b2cc(0x32e)+_0x2f3e51+_0x19b2cc(0x31f);}),_0x557525(0x1e9)+_0x56bf8f+_0x557525(0x272);}function wrapHwpxCharStyle(_0x3816df,_0x1ae246){const _0x52914e=_0x19c889,_0x39b9a0=_0x1ae246[_0x52914e(0x2a5)]||0xa,_0x13e7b7=_0x1ae246[_0x52914e(0x2f0)]?_0x52914e(0x226):'',_0xd4943a=_0x1ae246['italic']?_0x52914e(0x273):'',_0x44134f=_0x1ae246[_0x52914e(0x281)]?_0x52914e(0x235)+_0x1ae246[_0x52914e(0x281)]+';':'',_0x50bbef=_0x1ae246[_0x52914e(0x26e)]?_0x52914e(0x2f9)+mapHwpxFont(_0x1ae246[_0x52914e(0x26e)])+';':'';return _0x52914e(0x208)+_0x39b9a0+_0x52914e(0x2d1)+_0x13e7b7+_0xd4943a+_0x44134f+_0x50bbef+'\x22>'+_0x3816df+_0x52914e(0x2fc);}function mapHwpxFont(_0x8fa623){const _0x550b1b=_0x19c889,_0x44c262=[[_0x550b1b(0x2ee),_0x550b1b(0x318)],[_0x550b1b(0x261),_0x550b1b(0x20e)],['신명조',_0x550b1b(0x318)],['명조',_0x550b1b(0x318)],['고딕',_0x550b1b(0x20e)],['굴림',_0x550b1b(0x23c)]];for(const [_0x5e7119,_0x3a144c]of _0x44c262){if(_0x8fa623&&_0x8fa623['includes'](_0x5e7119))return _0x3a144c;}return _0x550b1b(0x2ef);}function escapeXmlText(_0x550795){const _0x392ed7=_0x19c889;return String(_0x550795)[_0x392ed7(0x2a2)](/&/g,_0x392ed7(0x2a8))[_0x392ed7(0x2a2)](/</g,_0x392ed7(0x2df))[_0x392ed7(0x2a2)](/>/g,_0x392ed7(0x30a));}function decodeHwpxText(_0x34bf3b){const _0x2cebf0=_0x19c889;try{if(_0x34bf3b[_0x2cebf0(0x2ff)]>=0x2&&_0x34bf3b[0x0]===0xff&&_0x34bf3b[0x1]===0xfe)return new TextDecoder(_0x2cebf0(0x200))[_0x2cebf0(0x2ca)](_0x34bf3b[_0x2cebf0(0x20f)](0x2));if(_0x34bf3b[_0x2cebf0(0x2ff)]>=0x2&&_0x34bf3b[0x0]===0xfe&&_0x34bf3b[0x1]===0xff)return new TextDecoder(_0x2cebf0(0x26d))[_0x2cebf0(0x2ca)](_0x34bf3b[_0x2cebf0(0x20f)](0x2));const _0x127a8c=new TextDecoder(_0x2cebf0(0x200))[_0x2cebf0(0x2ca)](_0x34bf3b);if(/\uFFFD/[_0x2cebf0(0x1eb)](_0x127a8c))return new TextDecoder('utf-8')[_0x2cebf0(0x2ca)](_0x34bf3b);return _0x127a8c;}catch(_0x50c5c2){return new TextDecoder(_0x2cebf0(0x211))[_0x2cebf0(0x2ca)](_0x34bf3b);}}function xmlToPlainText(_0x54096f){const _0x10b004=_0x19c889;return _0x54096f[_0x10b004(0x2a2)](/<[^>]+>/g,'\x0a')[_0x10b004(0x2a2)](/\n{2,}/g,'\x0a')[_0x10b004(0x314)]('\x0a')[_0x10b004(0x1e2)](_0xfd0304=>_0xfd0304[_0x10b004(0x2f3)]())[_0x10b004(0x2a0)](Boolean)[_0x10b004(0x31a)]('\x0a');}function escapeHtmlForPreview(_0x4cff73){const _0x5630d2=_0x19c889;return _0x4cff73[_0x5630d2(0x2a2)](/&/g,_0x5630d2(0x2a8))[_0x5630d2(0x2a2)](/</g,_0x5630d2(0x2df))[_0x5630d2(0x2a2)](/>/g,_0x5630d2(0x30a))[_0x5630d2(0x2a2)](/\n/g,_0x5630d2(0x2ce));}async function renderPdfPage(_0x427e95,_0x533020,_0x1060d6){const _0x16ed9c=_0x19c889;try{const _0x583e6b=parseInt(_0x533020[_0x16ed9c(0x26a)][_0x16ed9c(0x27f)],0xa),_0x586dd6=await _0x427e95[_0x16ed9c(0x32c)](_0x583e6b),_0x16fe8b=Math[_0x16ed9c(0x225)](_0x533020[_0x16ed9c(0x301)],0xc8),_0x37495f=_0x586dd6[_0x16ed9c(0x2ea)]({'scale':0x1}),_0x457ea0=window[_0x16ed9c(0x267)]||0x1,_0x4933b8=_0x16fe8b/_0x37495f['width']*_0x457ea0,_0x3819da=_0x586dd6[_0x16ed9c(0x2ea)]({'scale':_0x4933b8});_0x533020[_0x16ed9c(0x249)][_0x16ed9c(0x21f)]=_0x3819da[_0x16ed9c(0x2b9)]+_0x16ed9c(0x2ba)+_0x3819da[_0x16ed9c(0x24a)];const _0xb68b67=document[_0x16ed9c(0x244)](_0x16ed9c(0x248));_0xb68b67['className']=_0x16ed9c(0x21a),_0xb68b67[_0x16ed9c(0x2b9)]=_0x3819da[_0x16ed9c(0x2b9)],_0xb68b67[_0x16ed9c(0x24a)]=_0x3819da[_0x16ed9c(0x24a)];if(_0x1060d6[_0x16ed9c(0x21b)])_0xb68b67[_0x16ed9c(0x249)][_0x16ed9c(0x1fc)]=_0x16ed9c(0x2ec)+_0x1060d6[_0x16ed9c(0x21b)]+_0x16ed9c(0x2a4);const _0x17ac3b=_0xb68b67[_0x16ed9c(0x1ec)]('2d');await _0x586dd6[_0x16ed9c(0x2ed)]({'canvasContext':_0x17ac3b,'viewport':_0x3819da})['promise'];const _0x4b5508=_0x533020[_0x16ed9c(0x30d)](_0x16ed9c(0x256));if(_0x4b5508)_0x4b5508[_0x16ed9c(0x2f4)]();_0x533020[_0x16ed9c(0x24c)](_0xb68b67);}catch(_0x12a1ba){console[_0x16ed9c(0x210)](_0x16ed9c(0x23a)+_0x533020[_0x16ed9c(0x26a)][_0x16ed9c(0x27f)]+_0x16ed9c(0x2cb),_0x12a1ba);const _0x40e7f4=_0x533020[_0x16ed9c(0x30d)](_0x16ed9c(0x256));if(_0x40e7f4)_0x40e7f4[_0x16ed9c(0x32b)]=_0x16ed9c(0x31c);}}function applyPreviewRotation(_0x40abbb){const _0x35c81d=_0x19c889,_0x4b218f=document[_0x35c81d(0x1f0)](_0x35c81d(0x263));if(_0x4b218f){_0x4b218f[_0x35c81d(0x249)][_0x35c81d(0x1fc)]=_0x35c81d(0x2ec)+_0x40abbb+'deg)';return;}const _0x3b11ff=document[_0x35c81d(0x1f0)](_0x35c81d(0x327));_0x3b11ff&&_0x3b11ff[_0x35c81d(0x2d2)](_0x35c81d(0x280))[_0x35c81d(0x1fe)](_0x38dfff=>{const _0x20e334=_0x35c81d;_0x38dfff[_0x20e334(0x249)][_0x20e334(0x1fc)]=_0x40abbb?_0x20e334(0x2ec)+_0x40abbb+_0x20e334(0x2a4):'';});}async function convertImageToPngBytes(_0xa40388){return new Promise(_0x58842e=>{const _0x15bf7b=_0x36ad,_0x45c936=new FileReader();_0x45c936[_0x15bf7b(0x2fd)]=_0x62712c=>{const _0x3c10f3=_0x15bf7b,_0x1371fc=new Image();_0x1371fc[_0x3c10f3(0x2fd)]=()=>{const _0x3cb8fe=_0x3c10f3,_0x165500=document[_0x3cb8fe(0x244)](_0x3cb8fe(0x248));_0x165500[_0x3cb8fe(0x2b9)]=_0x1371fc[_0x3cb8fe(0x2b9)],_0x165500[_0x3cb8fe(0x24a)]=_0x1371fc[_0x3cb8fe(0x24a)];const _0x2cafba=_0x165500[_0x3cb8fe(0x1ec)]('2d');_0x2cafba[_0x3cb8fe(0x260)](_0x1371fc,0x0,0x0),_0x165500[_0x3cb8fe(0x27b)](_0x23b02f=>{const _0x25a88a=_0x3cb8fe,_0x89c2c5=new FileReader();_0x89c2c5[_0x25a88a(0x27d)]=()=>_0x58842e(_0x89c2c5[_0x25a88a(0x313)]),_0x89c2c5[_0x25a88a(0x2a6)](_0x23b02f);},_0x3cb8fe(0x209));},_0x1371fc[_0x3c10f3(0x307)]=_0x62712c[_0x3c10f3(0x23b)][_0x3c10f3(0x313)];},_0x45c936['readAsDataURL'](_0xa40388);});}async function mergeFiles(){const _0x4ef2c0=_0x19c889,_0x59b201=document[_0x4ef2c0(0x1f0)]('status');if(fileList[_0x4ef2c0(0x2ff)]===0x0){alert(_0x4ef2c0(0x22b));return;}_0x59b201[_0x4ef2c0(0x312)]=_0x4ef2c0(0x2c2),_0x59b201[_0x4ef2c0(0x249)][_0x4ef2c0(0x281)]=_0x4ef2c0(0x1f1);try{const _0x19cc36=await PDFLib[_0x4ef2c0(0x201)][_0x4ef2c0(0x2f5)]();for(let _0x25de99=0x0;_0x25de99<fileList[_0x4ef2c0(0x2ff)];_0x25de99++){const _0x131733=fileList[_0x25de99],_0x308641=_0x131733[_0x4ef2c0(0x1e3)],_0x50ff46=_0x131733['kind']||getFileKind(_0x308641);_0x59b201[_0x4ef2c0(0x312)]=_0x4ef2c0(0x310)+(_0x25de99+0x1)+'/'+fileList[_0x4ef2c0(0x2ff)]+')';if(_0x50ff46==='pdf'){const _0x3ce483=await _0x308641[_0x4ef2c0(0x202)](),_0x5aaa69=await PDFLib[_0x4ef2c0(0x201)][_0x4ef2c0(0x2c4)](_0x3ce483),_0x10f479=_0x5aaa69['getPageCount']();let _0x2fe5f1=[];if(_0x131733[_0x4ef2c0(0x2c7)]&&_0x131733[_0x4ef2c0(0x2c7)][_0x4ef2c0(0x2f3)]()!==''){const _0x1a7d75=_0x131733[_0x4ef2c0(0x2c7)][_0x4ef2c0(0x314)](',');_0x1a7d75[_0x4ef2c0(0x1fe)](_0x5b8006=>{const _0x5470cf=_0x4ef2c0;if(_0x5b8006[_0x5470cf(0x298)]('-')){const [_0x5850b6,_0x4c3640]=_0x5b8006['split']('-')[_0x5470cf(0x1e2)](_0x75bb69=>parseInt(_0x75bb69[_0x5470cf(0x2f3)]())-0x1);for(let _0x29aefd=_0x5850b6;_0x29aefd<=_0x4c3640;_0x29aefd++){if(_0x29aefd>=0x0&&_0x29aefd<_0x10f479)_0x2fe5f1[_0x5470cf(0x237)](_0x29aefd);}}else{const _0x549ebf=parseInt(_0x5b8006[_0x5470cf(0x2f3)]())-0x1;if(_0x549ebf>=0x0&&_0x549ebf<_0x10f479)_0x2fe5f1[_0x5470cf(0x237)](_0x549ebf);}});}else _0x2fe5f1=_0x5aaa69[_0x4ef2c0(0x290)]();const _0x2aefda=await _0x19cc36[_0x4ef2c0(0x2c6)](_0x5aaa69,_0x2fe5f1);_0x2aefda[_0x4ef2c0(0x1fe)](_0x58ed9d=>{const _0x54b245=_0x4ef2c0;_0x131733[_0x54b245(0x21b)]!==0x0&&_0x58ed9d['setRotation'](PDFLib[_0x54b245(0x21e)](_0x58ed9d[_0x54b245(0x25d)]()[_0x54b245(0x228)]+_0x131733[_0x54b245(0x21b)])),_0x19cc36[_0x54b245(0x264)](_0x58ed9d);});}else{if(_0x50ff46===_0x4ef2c0(0x32f)){const _0x4241ab=await convertImageToPngBytes(_0x308641),_0x1b6cf3=await _0x19cc36[_0x4ef2c0(0x2e0)](_0x4241ab),_0x43f90e=_0x19cc36[_0x4ef2c0(0x264)]([595.28,841.89]),{width:_0x22d301,height:_0x102cc1}=_0x43f90e[_0x4ef2c0(0x2b4)](),_0x627a12=_0x1b6cf3[_0x4ef2c0(0x2dd)](_0x22d301-0x28,_0x102cc1-0x28);_0x131733[_0x4ef2c0(0x21b)]!==0x0&&_0x43f90e[_0x4ef2c0(0x329)](PDFLib['degrees'](_0x131733[_0x4ef2c0(0x21b)])),_0x43f90e[_0x4ef2c0(0x260)](_0x1b6cf3,{'x':(_0x22d301-_0x627a12['width'])/0x2,'y':(_0x102cc1-_0x627a12[_0x4ef2c0(0x24a)])/0x2,'width':_0x627a12[_0x4ef2c0(0x2b9)],'height':_0x627a12[_0x4ef2c0(0x24a)]});}}}const _0x1a07ff=await _0x19cc36[_0x4ef2c0(0x1f9)](),_0x392631=new Blob([_0x1a07ff],{'type':_0x4ef2c0(0x1e4)}),_0x214b49=URL[_0x4ef2c0(0x25c)](_0x392631),_0x11b25f=document[_0x4ef2c0(0x244)]('a');_0x11b25f[_0x4ef2c0(0x2b0)]=_0x214b49,_0x11b25f[_0x4ef2c0(0x2e7)]=getOutputFileName(),_0x11b25f[_0x4ef2c0(0x29f)](),_0x59b201[_0x4ef2c0(0x312)]=_0x4ef2c0(0x2ab),_0x59b201[_0x4ef2c0(0x249)][_0x4ef2c0(0x281)]='#166534';}catch(_0x5e4fac){console[_0x4ef2c0(0x210)]('병합\x20중\x20오류\x20발생:',_0x5e4fac),_0x59b201['innerText']=_0x4ef2c0(0x22d),_0x59b201[_0x4ef2c0(0x249)][_0x4ef2c0(0x281)]=_0x4ef2c0(0x2ad);}}async function exportAsImages(_0xf20d33){const _0x43be01=_0x19c889,_0x4a3b3d=document[_0x43be01(0x1f0)](_0x43be01(0x2d7));if(fileList[_0x43be01(0x2ff)]===0x0){alert(_0x43be01(0x22b));return;}const _0x23d106=_0xf20d33===_0x43be01(0x30b),_0xd2d6ce=_0x23d106?2.5:0x1,_0x828da7=_0x23d106?_0x43be01(0x209):'image/jpeg',_0x28499f=_0x23d106?_0x43be01(0x29e):_0x43be01(0x221),_0x1f5585=0.6,_0xf7e6b6=[document[_0x43be01(0x1f0)](_0x43be01(0x326)),document[_0x43be01(0x1f0)]('img-high-btn'),document[_0x43be01(0x1f0)]('img-low-btn'),document[_0x43be01(0x1f0)](_0x43be01(0x24d))];_0xf7e6b6['forEach'](_0x517b1d=>{const _0x583f5d=_0x43be01;if(_0x517b1d)_0x517b1d[_0x583f5d(0x294)]=!![];}),_0x4a3b3d[_0x43be01(0x249)]['color']=_0x43be01(0x1f1);function _0x3b9b0f(_0x217bd9){return new Promise(_0x51e5d6=>{const _0x1cb9d8=_0x36ad;if(_0x23d106)_0x217bd9[_0x1cb9d8(0x27b)](_0x51e5d6,_0x828da7);else _0x217bd9[_0x1cb9d8(0x27b)](_0x51e5d6,_0x828da7,_0x1f5585);});}async function _0x4c5af4(_0x9343d3,_0x594634){const _0x151170=_0x43be01,_0x42cd46=await new Promise(_0x4a177f=>{const _0x134b5c=_0x36ad,_0x472e14=new FileReader();_0x472e14[_0x134b5c(0x2fd)]=_0x2e506b=>_0x4a177f(_0x2e506b[_0x134b5c(0x23b)]['result']),_0x472e14[_0x134b5c(0x2db)](_0x9343d3);}),_0x5c2332=await new Promise(_0x15d58a=>{const _0x42b364=_0x36ad,_0xcdbeb7=new Image();_0xcdbeb7[_0x42b364(0x2fd)]=()=>_0x15d58a(_0xcdbeb7),_0xcdbeb7['src']=_0x42cd46;}),_0x2abe0b=_0x594634===0x5a||_0x594634===0x10e,_0x2bcf6c=document[_0x151170(0x244)](_0x151170(0x248));_0x2bcf6c[_0x151170(0x2b9)]=_0x2abe0b?_0x5c2332['height']:_0x5c2332[_0x151170(0x2b9)],_0x2bcf6c[_0x151170(0x24a)]=_0x2abe0b?_0x5c2332[_0x151170(0x2b9)]:_0x5c2332[_0x151170(0x24a)];const _0x2d0d19=_0x2bcf6c[_0x151170(0x1ec)]('2d');return _0x2d0d19[_0x151170(0x2b7)](_0x2bcf6c[_0x151170(0x2b9)]/0x2,_0x2bcf6c[_0x151170(0x24a)]/0x2),_0x2d0d19['rotate']((_0x594634||0x0)*Math['PI']/0xb4),_0x2d0d19[_0x151170(0x260)](_0x5c2332,-_0x5c2332[_0x151170(0x2b9)]/0x2,-_0x5c2332[_0x151170(0x24a)]/0x2),_0x2bcf6c;}try{const _0x3efa0f=[];for(const _0x23fd18 of fileList){const _0x1833a1=_0x23fd18[_0x43be01(0x1e3)],_0x4e893e=_0x23fd18[_0x43be01(0x271)]||getFileKind(_0x1833a1),_0x41b54d=_0x1833a1[_0x43be01(0x299)][_0x43be01(0x2a2)](/\.[^.]+$/,'');if(_0x4e893e===_0x43be01(0x32f))_0x3efa0f[_0x43be01(0x237)]({'type':_0x43be01(0x32f),'file':_0x1833a1,'rotation':_0x23fd18[_0x43be01(0x21b)]||0x0,'baseName':_0x41b54d});else{if(_0x4e893e==='pdf'){const _0x52827a=await _0x1833a1[_0x43be01(0x202)](),_0x729ef9=await pdfjsLib[_0x43be01(0x2de)]({'data':_0x52827a})[_0x43be01(0x20b)],_0x4724be=_0x729ef9[_0x43be01(0x28d)];let _0x1a8661=[];_0x23fd18[_0x43be01(0x2c7)]&&_0x23fd18[_0x43be01(0x2c7)][_0x43be01(0x2f3)]()!==''?_0x23fd18[_0x43be01(0x2c7)][_0x43be01(0x314)](',')[_0x43be01(0x1fe)](_0x512453=>{const _0x270b43=_0x43be01;if(_0x512453[_0x270b43(0x298)]('-')){const [_0xadd803,_0x3df824]=_0x512453[_0x270b43(0x314)]('-')[_0x270b43(0x1e2)](_0x5ebdaa=>parseInt(_0x5ebdaa[_0x270b43(0x2f3)](),0xa));for(let _0x486b23=_0xadd803;_0x486b23<=_0x3df824;_0x486b23++)if(_0x486b23>=0x1&&_0x486b23<=_0x4724be)_0x1a8661['push'](_0x486b23);}else{const _0xca0e38=parseInt(_0x512453['trim'](),0xa);if(_0xca0e38>=0x1&&_0xca0e38<=_0x4724be)_0x1a8661[_0x270b43(0x237)](_0xca0e38);}}):_0x1a8661=Array[_0x43be01(0x2d9)]({'length':_0x4724be},(_0xaba4f3,_0xabe483)=>_0xabe483+0x1),_0x1a8661['forEach']((_0x402add,_0x2ffa46)=>{const _0x220545=_0x43be01;_0x3efa0f[_0x220545(0x237)]({'type':_0x220545(0x252),'pdf':_0x729ef9,'pageIndex':_0x402add,'rotation':_0x23fd18[_0x220545(0x21b)]||0x0,'baseName':_0x41b54d,'multiPage':_0x1a8661[_0x220545(0x2ff)]>0x1,'pageOrdinal':_0x2ffa46+0x1});});}}}if(_0x3efa0f[_0x43be01(0x2ff)]===0x0){alert(_0x43be01(0x306));return;}const _0x56ba70=[];for(let _0x339e86=0x0;_0x339e86<_0x3efa0f['length'];_0x339e86++){const _0x51a3e0=_0x3efa0f[_0x339e86];_0x4a3b3d['innerText']=_0x43be01(0x212)+(_0x339e86+0x1)+'/'+_0x3efa0f[_0x43be01(0x2ff)]+')';let _0x57d2a4;if(_0x51a3e0[_0x43be01(0x275)]===_0x43be01(0x32f))_0x57d2a4=await _0x4c5af4(_0x51a3e0[_0x43be01(0x1e3)],_0x51a3e0[_0x43be01(0x21b)]);else{const _0x15fe5e=await _0x51a3e0[_0x43be01(0x311)][_0x43be01(0x32c)](_0x51a3e0[_0x43be01(0x230)]),_0x568f61=_0x15fe5e[_0x43be01(0x2ea)]({'scale':_0xd2d6ce,'rotation':_0x51a3e0[_0x43be01(0x21b)]});_0x57d2a4=document['createElement'](_0x43be01(0x248)),_0x57d2a4[_0x43be01(0x2b9)]=_0x568f61[_0x43be01(0x2b9)],_0x57d2a4[_0x43be01(0x24a)]=_0x568f61[_0x43be01(0x24a)];const _0x490641=_0x57d2a4[_0x43be01(0x1ec)]('2d');await _0x15fe5e[_0x43be01(0x2ed)]({'canvasContext':_0x490641,'viewport':_0x568f61})[_0x43be01(0x20b)];}const _0x41bba5=await _0x3b9b0f(_0x57d2a4),_0x3ef672=_0x51a3e0[_0x43be01(0x275)]===_0x43be01(0x252)&&_0x51a3e0[_0x43be01(0x227)]?'_p'+String(_0x51a3e0[_0x43be01(0x20c)])['padStart'](0x2,'0'):'',_0x22ca32=String(_0x339e86+0x1)[_0x43be01(0x2c8)](0x3,'0');_0x56ba70[_0x43be01(0x237)]({'filename':_0x22ca32+'_'+_0x51a3e0[_0x43be01(0x2d5)]+_0x3ef672+'.'+_0x28499f,'blob':_0x41bba5});}const _0x3315ea=_0x23d106?_0x43be01(0x284):_0x43be01(0x238);if(_0x56ba70['length']===0x1){const _0x5d860b=URL[_0x43be01(0x25c)](_0x56ba70[0x0][_0x43be01(0x1ed)]),_0x328c7c=document[_0x43be01(0x244)]('a');_0x328c7c[_0x43be01(0x2b0)]=_0x5d860b,_0x328c7c[_0x43be01(0x2e7)]=_0x56ba70[0x0][_0x43be01(0x29d)],_0x328c7c[_0x43be01(0x29f)](),URL[_0x43be01(0x276)](_0x5d860b);}else{const _0x3364d9=new JSZip();_0x56ba70['forEach'](_0x2569b8=>_0x3364d9[_0x43be01(0x1e3)](_0x2569b8[_0x43be01(0x29d)],_0x2569b8[_0x43be01(0x1ed)]));const _0x1a1fbb=await _0x3364d9[_0x43be01(0x246)]({'type':_0x43be01(0x1ed)}),_0x30f9fe=URL[_0x43be01(0x25c)](_0x1a1fbb),_0x5ae6fe=document[_0x43be01(0x244)]('a');_0x5ae6fe[_0x43be01(0x2b0)]=_0x30f9fe,_0x5ae6fe[_0x43be01(0x2e7)]=_0x43be01(0x2af)+_0x3315ea+_0x43be01(0x2cc),_0x5ae6fe[_0x43be01(0x29f)](),URL[_0x43be01(0x276)](_0x30f9fe);}_0x4a3b3d['innerText']=_0x43be01(0x219)+_0x56ba70[_0x43be01(0x2ff)]+'장의\x20이미지('+_0x3315ea+_0x43be01(0x26c),_0x4a3b3d[_0x43be01(0x249)][_0x43be01(0x281)]=_0x43be01(0x29b);}catch(_0x5ebabb){console[_0x43be01(0x210)](_0x43be01(0x213),_0x5ebabb),_0x4a3b3d[_0x43be01(0x312)]=_0x43be01(0x255),_0x4a3b3d['style']['color']=_0x43be01(0x2ad);}finally{_0xf7e6b6[_0x43be01(0x1fe)](_0x349bdc=>{const _0x5d995d=_0x43be01;if(_0x349bdc)_0x349bdc[_0x5d995d(0x294)]=![];});}}async function mergeFilesCompressed(){const _0x31cac8=_0x19c889,_0x3ffc94=document[_0x31cac8(0x1f0)](_0x31cac8(0x2d7));if(fileList[_0x31cac8(0x2ff)]===0x0){alert('파일을\x201개\x20이상\x20선택해\x20주세요.');return;}const _0x43ec53=0x1,_0x3b75df=0.35,_0x635892=0x4b0,_0x39e0da=[document[_0x31cac8(0x1f0)](_0x31cac8(0x326)),document[_0x31cac8(0x1f0)]('img-high-btn'),document[_0x31cac8(0x1f0)](_0x31cac8(0x32d)),document[_0x31cac8(0x1f0)](_0x31cac8(0x24d))];_0x39e0da[_0x31cac8(0x1fe)](_0x2e9fa0=>{const _0x20b9fb=_0x31cac8;if(_0x2e9fa0)_0x2e9fa0[_0x20b9fb(0x294)]=!![];}),_0x3ffc94[_0x31cac8(0x249)][_0x31cac8(0x281)]=_0x31cac8(0x1f1);function _0x17a7fe(_0x4481b6){return new Promise((_0x3ff9c5,_0x571281)=>{const _0x46e958=_0x36ad;_0x4481b6[_0x46e958(0x27b)](async _0x3298a3=>{const _0x1a88ec=_0x46e958;if(!_0x3298a3){_0x571281(new Error(_0x1a88ec(0x1fd)));return;}_0x3ff9c5(new Uint8Array(await _0x3298a3[_0x1a88ec(0x202)]()));},'image/jpeg',_0x3b75df);});}try{const _0x549750=[];for(const _0x59a849 of fileList){const _0x5c7374=_0x59a849[_0x31cac8(0x1e3)],_0x33d4ca=_0x59a849[_0x31cac8(0x271)]||getFileKind(_0x5c7374);if(_0x33d4ca===_0x31cac8(0x32f))_0x549750[_0x31cac8(0x237)]({'type':_0x31cac8(0x32f),'file':_0x5c7374,'rotation':_0x59a849[_0x31cac8(0x21b)]||0x0});else{if(_0x33d4ca===_0x31cac8(0x311)){const _0x9f0d8e=await _0x5c7374[_0x31cac8(0x202)](),_0x48e7aa=await pdfjsLib[_0x31cac8(0x2de)]({'data':_0x9f0d8e})[_0x31cac8(0x20b)],_0x4fd42d=_0x48e7aa[_0x31cac8(0x28d)];let _0x543009=[];_0x59a849[_0x31cac8(0x2c7)]&&_0x59a849['pageRange'][_0x31cac8(0x2f3)]()!==''?_0x59a849[_0x31cac8(0x2c7)][_0x31cac8(0x314)](',')[_0x31cac8(0x1fe)](_0xfb27f5=>{const _0x4b8cca=_0x31cac8;if(_0xfb27f5[_0x4b8cca(0x298)]('-')){const [_0x2cf6ab,_0x1cf618]=_0xfb27f5[_0x4b8cca(0x314)]('-')[_0x4b8cca(0x1e2)](_0x3ec125=>parseInt(_0x3ec125[_0x4b8cca(0x2f3)](),0xa));for(let _0xba77cb=_0x2cf6ab;_0xba77cb<=_0x1cf618;_0xba77cb++)if(_0xba77cb>=0x1&&_0xba77cb<=_0x4fd42d)_0x543009[_0x4b8cca(0x237)](_0xba77cb);}else{const _0x47e284=parseInt(_0xfb27f5[_0x4b8cca(0x2f3)](),0xa);if(_0x47e284>=0x1&&_0x47e284<=_0x4fd42d)_0x543009[_0x4b8cca(0x237)](_0x47e284);}}):_0x543009=Array[_0x31cac8(0x2d9)]({'length':_0x4fd42d},(_0x523a3b,_0x299003)=>_0x299003+0x1),_0x543009[_0x31cac8(0x1fe)](_0x11306d=>_0x549750[_0x31cac8(0x237)]({'type':_0x31cac8(0x252),'pdf':_0x48e7aa,'pageIndex':_0x11306d,'rotation':_0x59a849[_0x31cac8(0x21b)]||0x0}));}}}if(_0x549750[_0x31cac8(0x2ff)]===0x0){alert(_0x31cac8(0x207));return;}const _0x5ca85d=await PDFLib[_0x31cac8(0x201)][_0x31cac8(0x2f5)]();for(let _0xbb8284=0x0;_0xbb8284<_0x549750[_0x31cac8(0x2ff)];_0xbb8284++){const _0x330504=_0x549750[_0xbb8284];_0x3ffc94[_0x31cac8(0x312)]=_0x31cac8(0x26b)+(_0xbb8284+0x1)+'/'+_0x549750[_0x31cac8(0x2ff)]+')';if(_0x330504[_0x31cac8(0x275)]===_0x31cac8(0x252)){const _0x10abbc=await _0x330504[_0x31cac8(0x311)][_0x31cac8(0x32c)](_0x330504[_0x31cac8(0x230)]),_0x38afd6=_0x10abbc[_0x31cac8(0x2ea)]({'scale':_0x43ec53,'rotation':_0x330504[_0x31cac8(0x21b)]}),_0x16f8e2=document[_0x31cac8(0x244)](_0x31cac8(0x248));_0x16f8e2[_0x31cac8(0x2b9)]=_0x38afd6[_0x31cac8(0x2b9)],_0x16f8e2[_0x31cac8(0x24a)]=_0x38afd6[_0x31cac8(0x24a)];const _0x398a79=_0x16f8e2[_0x31cac8(0x1ec)]('2d');await _0x10abbc[_0x31cac8(0x2ed)]({'canvasContext':_0x398a79,'viewport':_0x38afd6})[_0x31cac8(0x20b)];const _0x30b5e6=await _0x17a7fe(_0x16f8e2),_0x325573=await _0x5ca85d[_0x31cac8(0x254)](_0x30b5e6),_0x4cdc55=_0x38afd6['width']/_0x43ec53,_0x4f0779=_0x38afd6[_0x31cac8(0x24a)]/_0x43ec53,_0x490f96=_0x5ca85d[_0x31cac8(0x264)]([_0x4cdc55,_0x4f0779]);_0x490f96[_0x31cac8(0x260)](_0x325573,{'x':0x0,'y':0x0,'width':_0x4cdc55,'height':_0x4f0779});}else{const _0x44a702=await new Promise(_0x18d650=>{const _0x203b71=_0x31cac8,_0x5bb817=new FileReader();_0x5bb817[_0x203b71(0x2fd)]=_0x1cbbd2=>_0x18d650(_0x1cbbd2[_0x203b71(0x23b)][_0x203b71(0x313)]),_0x5bb817[_0x203b71(0x2db)](_0x330504[_0x203b71(0x1e3)]);}),_0x22cbe5=await new Promise(_0x2c40d5=>{const _0x49c644=_0x31cac8,_0x300a6e=new Image();_0x300a6e[_0x49c644(0x2fd)]=()=>_0x2c40d5(_0x300a6e),_0x300a6e[_0x49c644(0x307)]=_0x44a702;}),_0x1ff962=_0x330504[_0x31cac8(0x21b)]===0x5a||_0x330504[_0x31cac8(0x21b)]===0x10e,_0x584fe2=_0x1ff962?_0x22cbe5[_0x31cac8(0x24a)]:_0x22cbe5['width'],_0x131a53=_0x1ff962?_0x22cbe5[_0x31cac8(0x2b9)]:_0x22cbe5[_0x31cac8(0x24a)],_0x3003c1=Math[_0x31cac8(0x23e)](0x1,_0x635892/Math[_0x31cac8(0x225)](_0x584fe2,_0x131a53)),_0x5bdcaf=Math[_0x31cac8(0x225)](0x1,Math[_0x31cac8(0x2aa)](_0x584fe2*_0x3003c1)),_0x3ca639=Math[_0x31cac8(0x225)](0x1,Math[_0x31cac8(0x2aa)](_0x131a53*_0x3003c1)),_0xfe6e11=document['createElement'](_0x31cac8(0x248));_0xfe6e11['width']=_0x5bdcaf,_0xfe6e11[_0x31cac8(0x24a)]=_0x3ca639;const _0x1f3f44=_0xfe6e11[_0x31cac8(0x1ec)]('2d');_0x1f3f44[_0x31cac8(0x2b7)](_0xfe6e11[_0x31cac8(0x2b9)]/0x2,_0xfe6e11[_0x31cac8(0x24a)]/0x2),_0x1f3f44[_0x31cac8(0x28e)]((_0x330504[_0x31cac8(0x21b)]||0x0)*Math['PI']/0xb4),_0x1f3f44[_0x31cac8(0x21c)](_0x3003c1,_0x3003c1),_0x1f3f44[_0x31cac8(0x260)](_0x22cbe5,-_0x22cbe5[_0x31cac8(0x2b9)]/0x2,-_0x22cbe5[_0x31cac8(0x24a)]/0x2);const _0x4054a7=await _0x17a7fe(_0xfe6e11),_0x564f1e=await _0x5ca85d[_0x31cac8(0x254)](_0x4054a7),_0x503da0=_0x5ca85d[_0x31cac8(0x264)]([595.28,841.89]),{width:_0x95b01b,height:_0xe1e417}=_0x503da0[_0x31cac8(0x2b4)](),_0x60d714=_0x564f1e[_0x31cac8(0x2dd)](_0x95b01b-0x28,_0xe1e417-0x28);_0x503da0[_0x31cac8(0x260)](_0x564f1e,{'x':(_0x95b01b-_0x60d714[_0x31cac8(0x2b9)])/0x2,'y':(_0xe1e417-_0x60d714[_0x31cac8(0x24a)])/0x2,'width':_0x60d714[_0x31cac8(0x2b9)],'height':_0x60d714[_0x31cac8(0x24a)]});}}const _0x5e436c=await _0x5ca85d[_0x31cac8(0x1f9)]({'useObjectStreams':!![]}),_0x2d3674=new Blob([_0x5e436c],{'type':_0x31cac8(0x1e4)}),_0x2fcdcb=URL[_0x31cac8(0x25c)](_0x2d3674),_0x5f1265=document[_0x31cac8(0x244)]('a');_0x5f1265['href']=_0x2fcdcb,_0x5f1265['download']=getOutputFileName(),_0x5f1265[_0x31cac8(0x29f)](),URL[_0x31cac8(0x276)](_0x2fcdcb);const _0x56285e=(_0x5e436c[_0x31cac8(0x2ff)]/0x400)[_0x31cac8(0x25e)](0x0);_0x3ffc94[_0x31cac8(0x312)]='✅\x20최대\x20압축\x20병합\x20완료!\x20(총\x20'+_0x549750[_0x31cac8(0x2ff)]+_0x31cac8(0x288)+_0x56285e+'KB)',_0x3ffc94[_0x31cac8(0x249)][_0x31cac8(0x281)]=_0x31cac8(0x29b);}catch(_0x1689ca){console[_0x31cac8(0x210)](_0x31cac8(0x293),_0x1689ca),_0x3ffc94[_0x31cac8(0x312)]=_0x31cac8(0x28b),_0x3ffc94[_0x31cac8(0x249)][_0x31cac8(0x281)]=_0x31cac8(0x2ad);}finally{_0x39e0da[_0x31cac8(0x1fe)](_0x1edda4=>{const _0x49a989=_0x31cac8;if(_0x1edda4)_0x1edda4[_0x49a989(0x294)]=![];});}}
-</script>
-
-<!-- ============================================================
-     ZIP 자동 압축 해제 기능 (추가 스크립트, 진단 로그 포함 버전)
-     - 기존 코드는 건드리지 않고, dropZone/fileInput에 리스너를 추가로 붙여서
-       zip 파일이 들어오면 JSZip으로 메모리에서 압축을 풀고
-       그 안의 pdf/이미지/hwpx 파일만 골라 기존 addFiles()로 넘겨준다.
-     - 기존 drop/change 핸들러는 zip을 만나면 getFileKind()가 null을 반환해
-       그냥 무시하므로 서로 충돌하지 않는다.
-     - 문제 진단을 위해, 드롭/선택 이벤트가 발생하면 무조건(zip이 아니어도)
-       상태 표시줄과 콘솔에 "무엇이 감지됐는지" 남기도록 되어 있다.
-     ============================================================ -->
-<script>
-(function () {
-  const SUPPORTED_EXTS = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'hwpx'];
-  const LOG_PREFIX = '[ZIP확장]';
-
-  // ============================================================
-  // 엑셀(xlsx/xls) 파일 미리보기
-  // - 병합 대상 파일 종류를 판별하는 getFileKind()와, 미리보기를 그리는
-  //   showPreview()는 이미 전역 함수로 노출되어 있어서(window.getFileKind 등),
-  //   원본 코드를 직접 건드리지 않고 감싸서(monkey-patch) 확장한다.
-  // - 엑셀 파일은 "미리보기"만 지원한다. PDF 병합/압축 병합/이미지 변환에는
-  //   포함되지 않고(원본 로직이 pdf/이미지 종류가 아니면 조용히 건너뜀) 자동으로
-  //   제외된다.
-  // ============================================================
-  const EXCEL_LOG_PREFIX = '[엑셀미리보기]';
-  const EXCEL_EXTS = ['xlsx', 'xls'];
-
-  if (typeof window.getFileKind === 'function') {
-    const originalGetFileKind = window.getFileKind;
-    window.getFileKind = function (file) {
-      const kind = originalGetFileKind(file);
-      if (kind) return kind;
-      const ext = (file.name || '').toLowerCase().split('.').pop();
-      if (EXCEL_EXTS.includes(ext)) return 'excel';
-      return null;
-    };
-  } else {
-    console.error(EXCEL_LOG_PREFIX, 'getFileKind 함수를 찾지 못해 엑셀 인식을 추가하지 못했습니다.');
-  }
-
-  async function showExcelPreview(file, box) {
-    box.classList.add('excel-mode');
-    box.innerHTML = '<div class="preview-placeholder">엑셀 파일을 불러오는 중...</div>';
-    try {
-      if (typeof XLSX === 'undefined') throw new Error('엑셀 미리보기 라이브러리를 불러오지 못했습니다.');
-      const buf = await file.arrayBuffer();
-      const workbook = XLSX.read(buf, { type: 'array' });
-      const sheetNames = workbook.SheetNames;
-      if (!sheetNames || sheetNames.length === 0) throw new Error('시트를 찾을 수 없습니다.');
-
-      box.innerHTML = '';
-      const wrap = document.createElement('div');
-      wrap.className = 'excel-render-wrap';
-
-      let tabsEl = null;
-      if (sheetNames.length > 1) {
-        tabsEl = document.createElement('div');
-        tabsEl.className = 'excel-sheet-tabs';
-        wrap.appendChild(tabsEl);
-      }
-      const tableHolder = document.createElement('div');
-      tableHolder.className = 'excel-table-holder';
-      wrap.appendChild(tableHolder);
-
-      function renderSheet(name) {
-        const sheet = workbook.Sheets[name];
-        tableHolder.innerHTML = XLSX.utils.sheet_to_html(sheet, { editable: false });
-        const table = tableHolder.querySelector('table');
-        if (table) table.classList.add('excel-preview-table');
-        if (tabsEl) {
-          Array.prototype.forEach.call(tabsEl.children, (btn) => {
-            btn.classList.toggle('active', btn.textContent === name);
-          });
-        }
-      }
-
-      if (tabsEl) {
-        sheetNames.forEach((name) => {
-          const btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'excel-sheet-tab-btn';
-          btn.textContent = name;
-          btn.onclick = () => renderSheet(name);
-          tabsEl.appendChild(btn);
-        });
-      }
-      renderSheet(sheetNames[0]);
-      box.appendChild(wrap);
-    } catch (err) {
-      console.error(EXCEL_LOG_PREFIX, '엑셀 미리보기 오류:', err);
-      box.innerHTML = '<div class="preview-placeholder">엑셀 파일을 미리 볼 수 없습니다.<br>' + (err && err.message ? err.message : '') + '</div>';
-    }
-  }
-
-  if (typeof window.showPreview === 'function') {
-    const originalShowPreview = window.showPreview;
-    window.showPreview = async function (item) {
-      const box = document.getElementById('previewBox');
-      if (box) box.classList.remove('excel-mode');
-      if (item) {
-        const kind = item.kind || window.getFileKind(item.file);
-        if (kind === 'excel') {
-          box.innerHTML = '';
-          box.classList.remove('pdf-scroll-mode', 'hwpx-text-mode');
-          await showExcelPreview(item.file, box);
-          return;
-        }
-      }
-      return originalShowPreview.apply(this, arguments);
-    };
-  } else {
-    console.error(EXCEL_LOG_PREFIX, 'showPreview 함수를 찾지 못해 엑셀 미리보기를 추가하지 못했습니다.');
-  }
-
-  function extToMime(ext) {
-    switch (ext) {
-      case 'pdf': return 'application/pdf';
-      case 'jpg':
-      case 'jpeg': return 'image/jpeg';
-      case 'png': return 'image/png';
-      case 'webp': return 'image/webp';
-      default: return 'application/octet-stream'; // hwpx 등
-    }
-  }
-
-  function getExt(name) {
-    name = String(name || '').trim();
-    const idx = name.lastIndexOf('.');
-    return idx >= 0 ? name.slice(idx + 1).toLowerCase() : '';
-  }
-
-  function isZipFile(file) {
-    const ext = getExt(file.name);
-    const type = (file.type || '').toLowerCase();
-    return ext === 'zip' || type.indexOf('zip') !== -1;
-  }
-
-  function setStatus(msg, isError) {
-    const statusEl = document.getElementById('status');
-    console.log(LOG_PREFIX, msg);
-    if (!statusEl) return;
-    statusEl.innerText = msg;
-    statusEl.style.color = isError ? '#dc2626' : '#166534';
-  }
-
-  // ============================================================
-  // 다운로드 폴더 기억 기능 ("병합파일 이름" 입력창 옆 "저장 폴더 설정" 버튼)
-  // - 폴더를 한 번 선택해두면 IndexedDB에 폴더 핸들을 저장해서,
-  //   같은 컴퓨터의 같은 브라우저라면 다음에 다시 접속해도 그 폴더를 기억한다.
-  // - 폴더가 설정되어 있으면 병합/최대압축병합/이미지변환/압축파일 일괄해제
-  //   결과가 전부 그 폴더로 자동 저장되고, 그때마다 폴더를 다시 묻지 않는다.
-  // - "저장 폴더 설정(변경)" 버튼을 다시 누르면 언제든 다른 폴더로 바꿀 수 있다.
-  // - Chrome/Edge 등 File System Access API 지원 브라우저에서만 동작한다.
-  // - 이 화면은 이제 iframe이 아니라 포털에 직접 내장되어 최상위 문서로 실행되므로,
-  //   예전과 달리 폴더 저장 기능이 항상 정상적으로 동작한다.
-  // ============================================================
-  const FOLDER_LOG_PREFIX = '[폴더설정]';
-  const FOLDER_DB_NAME = 'pdfMergerFolderDB';
-  const FOLDER_DB_VERSION = 1;
-  const FOLDER_STORE_NAME = 'settings';
-  const FOLDER_HANDLE_KEY = 'downloadDirHandle';
-
-  let savedDirHandle = null;       // 권한 확인까지 끝나서 바로 쓸 수 있는 폴더 핸들
-  let pendingFolderHandle = null;  // 예전에 저장해뒀지만 권한 재확인이 필요한 폴더 핸들
-
-  function openFolderDb() {
-    return new Promise((resolve, reject) => {
-      const req = indexedDB.open(FOLDER_DB_NAME, FOLDER_DB_VERSION);
-      req.onupgradeneeded = () => { req.result.createObjectStore(FOLDER_STORE_NAME); };
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
-    });
-  }
-  async function folderDbGet(key) {
-    const db = await openFolderDb();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(FOLDER_STORE_NAME, 'readonly');
-      const req = tx.objectStore(FOLDER_STORE_NAME).get(key);
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
-    });
-  }
-  async function folderDbSet(key, value) {
-    const db = await openFolderDb();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(FOLDER_STORE_NAME, 'readwrite');
-      tx.objectStore(FOLDER_STORE_NAME).put(value, key);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-  }
-
-  function supportsFolderMemory() {
-    return typeof window.showDirectoryPicker === 'function' && 'indexedDB' in window;
-  }
-
-  async function verifyFolderPermission(handle, readWrite) {
-    const opts = readWrite ? { mode: 'readwrite' } : {};
-    try {
-      if ((await handle.queryPermission(opts)) === 'granted') return true;
-      if ((await handle.requestPermission(opts)) === 'granted') return true;
-    } catch (e) {
-      console.error(FOLDER_LOG_PREFIX, '권한 확인 중 오류:', e);
-    }
-    return false;
-  }
-
-  function setFolderStatusText(text, isWarn) {
-    const el = document.getElementById('folder-status-text');
-    if (!el) return;
-    el.textContent = text;
-    el.style.color = isWarn ? '#c2410c' : '#64748b';
-  }
-
-  function updateFolderUi() {
-    const btn = document.getElementById('folder-select-btn');
-    if (savedDirHandle) {
-      setFolderStatusText('📁 저장 폴더: "' + savedDirHandle.name + '" — 병합·압축해제 결과가 자동으로 이 폴더에 저장됩니다.', false);
-      if (btn) btn.textContent = '📁 폴더 변경';
-    } else {
-      setFolderStatusText('저장 폴더: 설정 안 됨 (기본 다운로드 폴더 사용). 버튼을 누르면 폴더를 지정할 수 있고, 다음 접속 때도 이 컴퓨터에서 기억합니다.', false);
-      if (btn) btn.textContent = '📁 저장 폴더 설정';
-    }
-  }
-
-  // 페이지를 열 때, 예전에 저장해둔 폴더가 있으면 조용히(사용자 클릭 없이) 권한만 확인해본다.
-  async function restoreSavedFolderOnLoad() {
-    const btn = document.getElementById('folder-select-btn');
-    if (!supportsFolderMemory()) {
-      setFolderStatusText('이 브라우저는 폴더 자동 저장을 지원하지 않습니다 (Chrome/Edge 권장). 평소처럼 다운로드 폴더에 저장됩니다.', true);
-      if (btn) btn.disabled = true;
-      return;
-    }
-    try {
-      const handle = await folderDbGet(FOLDER_HANDLE_KEY);
-      if (!handle) { updateFolderUi(); return; }
-      const granted = await handle.queryPermission({ mode: 'readwrite' });
-      if (granted === 'granted') {
-        savedDirHandle = handle;
-        updateFolderUi();
-      } else {
-        pendingFolderHandle = handle;
-        setFolderStatusText('📁 이전에 설정한 폴더 "' + handle.name + '"에 다시 접근하려면 버튼을 눌러주세요.', true);
-        if (btn) btn.textContent = '🔓 폴더 접근 허용 ("' + handle.name + '")';
-      }
-    } catch (e) {
-      console.error(FOLDER_LOG_PREFIX, '저장된 폴더 정보를 불러오지 못했습니다:', e);
-      updateFolderUi();
-    }
-  }
-
-  async function chooseSaveFolder() {
-    if (!supportsFolderMemory()) {
-      alert('이 브라우저는 폴더 자동 저장 기능을 지원하지 않습니다. Chrome 또는 Edge를 이용해주세요.');
-      return;
-    }
-
-    // 예전에 저장해둔 폴더가 있고 권한만 다시 확인하면 되는 경우
-    if (pendingFolderHandle) {
-      const ok = await verifyFolderPermission(pendingFolderHandle, true);
-      if (ok) {
-        savedDirHandle = pendingFolderHandle;
-        pendingFolderHandle = null;
-        updateFolderUi();
-        return;
-      }
-      // 재확인에 실패하면 아래에서 새 폴더를 선택하게 둔다.
-    }
-
-    let handle;
-    try {
-      handle = await window.showDirectoryPicker({ mode: 'readwrite' });
-    } catch (err) {
-      if (err && err.name === 'AbortError') return; // 사용자가 취소함
-      console.error(FOLDER_LOG_PREFIX, '폴더 선택 오류:', err);
-      alert('폴더 선택 중 오류가 발생했습니다: ' + err.message);
-      return;
-    }
-    savedDirHandle = handle;
-    pendingFolderHandle = null;
-    try {
-      await folderDbSet(FOLDER_HANDLE_KEY, handle);
-    } catch (e) {
-      console.error(FOLDER_LOG_PREFIX, '폴더 정보를 기억해두지 못했습니다 (다음 접속 시 다시 선택해야 할 수 있습니다):', e);
-    }
-    updateFolderUi();
-  }
-
-  const folderSelectBtnEl = document.getElementById('folder-select-btn');
-  if (folderSelectBtnEl) {
-    folderSelectBtnEl.addEventListener('click', chooseSaveFolder);
-  } else {
-    console.error(FOLDER_LOG_PREFIX, 'folder-select-btn 요소를 찾지 못했습니다.');
-  }
-  restoreSavedFolderOnLoad();
-
-  // 병합/최대압축병합/이미지변환 결과는 전부 <a download> + blob URL을 만들어
-  // click()으로 다운로드를 일으킨다. 저장 폴더가 설정되어 있으면 그 click()을
-  // 가로채서, 브라우저 기본 다운로드 대신 설정된 폴더에 바로 저장한다.
-  // (병합 로직 자체는 건드리지 않고, click() 호출만 가로챈다)
-  const originalAnchorClick = HTMLAnchorElement.prototype.click;
-  HTMLAnchorElement.prototype.click = function () {
-    if (
-      savedDirHandle &&
-      this.hasAttribute('download') &&
-      typeof this.href === 'string' &&
-      this.href.indexOf('blob:') === 0
-    ) {
-      saveBlobUrlToFolder(this.href, this.getAttribute('download') || 'download');
-      return;
-    }
-    return originalAnchorClick.call(this);
-  };
-
-  async function saveBlobUrlToFolder(blobUrl, fileName) {
-    try {
-      const resp = await fetch(blobUrl);
-      const blob = await resp.blob();
-      const fileHandle = await savedDirHandle.getFileHandle(fileName, { create: true });
-      const writable = await fileHandle.createWritable();
-      await writable.write(blob);
-      await writable.close();
-      setStatus('✅ "' + fileName + '" 파일을 "' + savedDirHandle.name + '" 폴더에 저장했습니다.', false);
-    } catch (err) {
-      console.error(FOLDER_LOG_PREFIX, '폴더에 저장하는 중 오류:', err);
-      setStatus('❌ "' + fileName + '"을(를) 폴더에 저장하지 못했습니다: ' + err.message, true);
-    }
-  }
-
-  // ============================================================
-  // 파일 목록에서 더블클릭하면 "연결된 기본 프로그램으로 실행"하고 싶지만,
-  // 브라우저 보안 정책상 웹페이지가 OS의 기본 프로그램을 직접 실행시킬 수는 없다.
-  // 대신 가장 비슷하게: PDF/이미지는 새 탭에서 바로 열어 보여주고(브라우저 내장 뷰어),
-  // 그 외 형식(HWPX 등 브라우저가 못 여는 형식)은 다운로드를 일으켜서
-  // 사용자가 받은 파일을 자신의 기본 프로그램으로 직접 열 수 있게 한다.
-  // ============================================================
-  function openFileForDoubleClick(file) {
-    const url = URL.createObjectURL(file);
-    const opened = window.open(url, '_blank');
-    if (!opened) {
-      setStatus('❌ 새 탭을 열지 못했습니다. 브라우저의 팝업 차단을 해제한 뒤 다시 시도해주세요.', true);
-    }
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
-  }
-
-  const dblClickListEl = document.getElementById('fileListItems');
-  if (dblClickListEl) {
-    dblClickListEl.addEventListener('dblclick', (e) => {
-      // 페이지범위/회전 입력창, 삭제 버튼 등 안의 요소를 더블클릭한 경우는 무시
-      if (e.target.closest('input, select, button')) return;
-      // 더블클릭된 요소에서 목록의 직계 자식(파일 아이템 하나)까지 거슬러 올라간다
-      let itemEl = e.target;
-      while (itemEl && itemEl.parentElement !== dblClickListEl) {
-        itemEl = itemEl.parentElement;
-      }
-      if (!itemEl || itemEl.parentElement !== dblClickListEl) return;
-      // 목록이 비어있을 때 표시되는 안내 문구(.empty-msg)를 더블클릭한 경우는 무시
-      if (itemEl.classList && itemEl.classList.contains('empty-msg')) return;
-      const index = Array.prototype.indexOf.call(dblClickListEl.children, itemEl);
-      if (index < 0 || typeof fileList === 'undefined' || !fileList[index]) return;
-      openFileForDoubleClick(fileList[index].file);
-    });
-  } else {
-    console.error(LOG_PREFIX, 'fileListItems 요소를 찾지 못해 더블클릭 열기를 등록하지 못했습니다.');
-  }
-
-  // ============================================================
-  // 미리보기 확대/축소 ("－" / "＋" / "↔ 맞춤" 버튼)
-  // - 미리보기 렌더링 코드(이미지/PDF/HWPX) 자체는 건드리지 않고,
-  //   #previewBox 전체에 CSS transform: scale()을 씌워서 확대/축소한다.
-  //   (확대해서 넘치는 부분은 .preview-panel의 overflow:auto로 스크롤해서 볼 수 있음)
-  // - 다른 파일을 선택하거나 회전 등으로 미리보기 내용 자체가 새로 그려지면
-  //   MutationObserver가 이를 감지해서 배율을 자동으로 100%(맞춤)로 되돌린다.
-  // ============================================================
-  const PREVIEW_ZOOM_MIN = 0.25;
-  const PREVIEW_ZOOM_MAX = 4;
-  const PREVIEW_ZOOM_STEP = 0.25;
-  let previewZoom = 1;
-
-  function applyPreviewZoom() {
-    const box = document.getElementById('previewBox');
-    const label = document.getElementById('preview-zoom-label');
-    if (box) {
-      box.style.transformOrigin = 'top center';
-      box.style.transform = previewZoom === 1 ? '' : 'scale(' + previewZoom + ')';
-    }
-    if (label) label.textContent = Math.round(previewZoom * 100) + '%';
-  }
-
-  function setPreviewZoom(nextZoom) {
-    previewZoom = Math.min(PREVIEW_ZOOM_MAX, Math.max(PREVIEW_ZOOM_MIN, nextZoom));
-    applyPreviewZoom();
-  }
-
-  const previewZoomInBtn = document.getElementById('preview-zoom-in-btn');
-  const previewZoomOutBtn = document.getElementById('preview-zoom-out-btn');
-  const previewZoomResetBtn = document.getElementById('preview-zoom-reset-btn');
-  if (previewZoomInBtn) previewZoomInBtn.addEventListener('click', () => setPreviewZoom(previewZoom + PREVIEW_ZOOM_STEP));
-  if (previewZoomOutBtn) previewZoomOutBtn.addEventListener('click', () => setPreviewZoom(previewZoom - PREVIEW_ZOOM_STEP));
-  if (previewZoomResetBtn) previewZoomResetBtn.addEventListener('click', () => setPreviewZoom(1));
-
-  const previewBoxForZoomEl = document.getElementById('previewBox');
-  if (previewBoxForZoomEl) {
-    // 새 파일 선택 등으로 미리보기 내용이 통째로 다시 그려질 때(자식 요소 변경)만 감지되고,
-    // 같은 파일 안에서의 회전(기존 요소의 style만 바뀜)에는 반응하지 않는다.
-    const previewZoomResetObserver = new MutationObserver(() => setPreviewZoom(1));
-    previewZoomResetObserver.observe(previewBoxForZoomEl, { childList: true });
-  }
-
-  // zip 하나를 열어서 지원되는 확장자의 파일만 File 객체 배열로 반환
-  // 내부에 또 zip이 있으면 재귀적으로 풀어서 폴더 경로를 파일명에 포함시킨다.
-  const MAX_ZIP_DEPTH = 6; // 압축폭탄/자기참조 방지용 재귀 깊이 제한
-  async function extractSupportedFilesFromZip(zipFile, folderPath, depth) {
-    folderPath = folderPath || '';
-    depth = depth || 1;
-
-    if (typeof JSZip === 'undefined') {
-      throw new Error('JSZip 라이브러리가 로드되지 않았습니다 (인터넷 연결/광고차단 프로그램을 확인해주세요).');
-    }
-    if (depth > MAX_ZIP_DEPTH) {
-      console.warn(LOG_PREFIX, '재귀 깊이 제한(' + MAX_ZIP_DEPTH + ') 초과로 건너뜀:', folderPath);
-      setStatus('⚠️ 압축파일 중첩이 너무 깊어 일부를 건너뛰었습니다 (' + MAX_ZIP_DEPTH + '단계 제한).', true);
-      return [];
-    }
-
-    const buffer = await zipFile.arrayBuffer();
-    const zip = await JSZip.loadAsync(buffer);
-
-    const entries = Object.keys(zip.files)
-      .map((name) => zip.files[name])
-      .filter((entry) => !entry.dir)
-      // macOS에서 압축한 zip에 흔히 들어가는 __MACOSX 리소스 포크/메타데이터 폴더 제외
-      .filter((entry) => !/(^|\/)__MACOSX(\/|$)/.test(entry.name))
-      .sort((a, b) => a.name.localeCompare(b.name, 'ko'));
-
-    console.log(LOG_PREFIX, '(depth ' + depth + ') zip 내부 항목:', entries.map((e) => e.name));
-
-    const extracted = [];
-    for (const entry of entries) {
-      // 압축파일 내부 경로(폴더)는 파일명 앞에 붙여서 표시 (평면 목록이라 경로로 구분)
-      const baseName = entry.name.split('/').pop();
-      // 숨김 파일(.DS_Store, 리소스 포크 등 "."으로 시작하는 파일)은 제외
-      if (!baseName || baseName.startsWith('.')) continue;
-      const ext = getExt(baseName);
-
-      if (ext === 'zip') {
-        // 중첩된 압축파일: 재귀적으로 자동 압축 해제
-        try {
-          const nestedBlob = await entry.async('blob');
-          const nestedFile = new File([nestedBlob], baseName, { type: 'application/zip' });
-          const nestedFolderPath = folderPath + baseName.replace(/\.zip$/i, '') + '/';
-          setStatus('📦 중첩 압축파일 "' + nestedFolderPath + '" 압축 해제 중...', false);
-          const nestedExtracted = await extractSupportedFilesFromZip(nestedFile, nestedFolderPath, depth + 1);
-          extracted.push(...nestedExtracted);
-        } catch (nestedErr) {
-          console.error(LOG_PREFIX, '중첩 zip 처리 오류:', entry.name, nestedErr);
-          setStatus('❌ 중첩 압축파일 "' + entry.name + '" 처리 중 오류: ' + nestedErr.message, true);
-        }
-        continue;
-      }
-
-      if (!SUPPORTED_EXTS.includes(ext)) continue; // 원하는 파일만 통과
-
-      const blob = await entry.async('blob');
-      // 폴더 경로 + (zip 내부 자체 하위폴더 경로 포함) 파일명을 그대로 표시명으로 사용
-      const displayName = folderPath + entry.name;
-      const file = new File([blob], displayName, { type: extToMime(ext) });
-      extracted.push(file);
-    }
-    return extracted;
-  }
-
-  // 드롭/선택으로 들어온 zip 원본 파일들을 기억해둠 (일괄 해제 버튼에서 재사용)
-  const pendingZipFiles = [];
-
-  // 드롭/선택된 파일들을 검사해서, zip이면 압축 해제 후 addFiles()로 전달
-  // (진단을 위해 zip이 없어도 무엇이 감지됐는지 항상 상태창에 표시함)
-  async function processIncomingFilesForZip(rawFiles) {
-    const allFiles = Array.from(rawFiles);
-    console.log(LOG_PREFIX, '이벤트 감지, 파일 목록:', allFiles.map((f) => f.name + ' / type=' + f.type));
-
-    const zipFiles = allFiles.filter(isZipFile);
-
-    if (zipFiles.length === 0) {
-      if (allFiles.length > 0) {
-        setStatus('ℹ️ zip으로 인식된 파일이 없습니다. (감지된 파일: ' + allFiles.map((f) => f.name).join(', ') + ')', false);
-      }
-      return;
-    }
-
-    for (const zipFile of zipFiles) {
-      try {
-        setStatus('📦 "' + zipFile.name + '" 압축 해제 중...', false);
-        const extracted = await extractSupportedFilesFromZip(zipFile);
-
-        // 미리보기용 추출 결과와 무관하게, 드롭된 zip 원본은 "일괄 해제" 버튼에서
-        // 다시 사용할 수 있도록 항상 기억해둔다 (미리보기 가능한 파일이 없었어도 마찬가지).
-        pendingZipFiles.push(zipFile);
-
-        if (extracted.length === 0) {
-          setStatus('⚠️ "' + zipFile.name + '" 안에 PDF/이미지/HWPX 파일이 없습니다. (압축 해제 버튼으로는 여전히 사용 가능)', true);
-          continue;
-        }
-
-        if (typeof addFiles === 'function') {
-          addFiles(extracted); // 기존 전역 함수: 목록에 추가 + 미리보기 갱신
-        } else {
-          setStatus('❌ 내부 오류: addFiles 함수를 찾을 수 없습니다.', true);
-          continue;
-        }
-        setStatus('✅ "' + zipFile.name + '"에서 ' + extracted.length + '개 파일을 불러왔습니다.', false);
-      } catch (err) {
-        console.error(LOG_PREFIX, 'ZIP 처리 중 오류:', err);
-        setStatus('❌ "' + zipFile.name + '" 압축 해제 중 오류: ' + err.message, true);
-      }
-    }
-  }
-
-  const bulkExtractHintMode = new URLSearchParams(location.search).get('bulkExtractHint') === '1';
-
-  const dropZoneEl = document.getElementById('dropZone');
-  if (dropZoneEl) {
-    console.log(LOG_PREFIX, 'dropZone 리스너 등록됨');
-    // 기존 preventDefaults 리스너와 별개로 추가되는 리스너 (충돌 없음)
-    dropZoneEl.addEventListener('drop', (e) => {
-      console.log(LOG_PREFIX, 'drop 이벤트 발생');
-      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-        const files = e.dataTransfer.files;
-        processIncomingFilesForZip(files);
-        if (bulkExtractHintMode) {
-          // 이미 "일괄 해제" 버튼을 눌러서 열린 창이므로, 드롭하자마자 바로 폴더 선택으로 진행
-          // (드롭 이벤트 자체가 사용자 제스처이므로 여기서 바로 호출해야 폴더 선택창이 정상적으로 열림)
-          const zips = Array.from(files).filter(isZipFile);
-          if (zips.length > 0) {
-            handleBulkExtractZips(zips);
-          }
-        }
-      } else {
-        console.log(LOG_PREFIX, 'drop 이벤트는 발생했지만 dataTransfer.files가 비어있음');
-      }
-    }, false);
-  } else {
-    console.error(LOG_PREFIX, 'dropZone 요소를 찾지 못했습니다.');
-  }
-
-  // ⚠️ 중요: 원본 코드의 handleFileSelect()는 처리 후 input.value=''로 초기화한다
-  // (같은 파일을 다시 선택해도 change 이벤트가 또 뜨게 하기 위함).
-  // 만약 이 리스너를 input 자체에 addEventListener로 등록하면, 원본의 inline
-  // onchange(핸들러 등록이 더 먼저 됨)가 먼저 실행되어 value를 비운 "이후"에
-  // 이 리스너가 실행되므로 e.target.files가 이미 빈 배열이 되어버린다.
-  // 이를 피하기 위해 document에서 캡처링 단계(capture:true)로 등록해
-  // 이벤트가 input에 도달하기 "전에" 파일 목록을 먼저 확보한다.
-  document.addEventListener('change', (e) => {
-    if (!e.target || e.target.id !== 'fileInput') return;
-    console.log(LOG_PREFIX, 'fileInput change 이벤트 발생(캡처 단계)');
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      processIncomingFilesForZip(files);
-      if (bulkExtractHintMode) {
-        const zips = Array.from(files).filter(isZipFile);
-        if (zips.length > 0) {
-          handleBulkExtractZips(zips);
-        }
-      }
-    } else {
-      console.log(LOG_PREFIX, 'fileInput files가 비어있음 (선택 취소 등)');
-    }
-  }, true); // true = 캡처 단계에서 실행 → 원본 onchange보다 먼저 실행됨
-
-  const fileInputEl = document.getElementById('fileInput');
-  if (!fileInputEl) {
-    console.error(LOG_PREFIX, 'fileInput 요소를 찾지 못했습니다.');
-  }
-
-  // 이 스크립트 안에서 발생하는 예외/거부를 상태창에도 표시 (조용히 실패하는 것 방지)
-  window.addEventListener('error', (e) => {
-    console.error(LOG_PREFIX, '전역 오류:', e.error || e.message);
-  });
-  window.addEventListener('unhandledrejection', (e) => {
-    console.error(LOG_PREFIX, '처리되지 않은 Promise 거부:', e.reason);
-    setStatus('❌ 처리되지 않은 오류: ' + (e.reason && e.reason.message ? e.reason.message : e.reason), true);
-  });
-
-  // ============================================================
-  // 압축파일 일괄 해제 (실제 폴더에 저장) - File System Access API 사용
-  // 일반 압축 프로그램처럼 모든 파일 형식을 그대로 추출하고,
-  // 중첩된 zip도 실제 하위 폴더를 만들어 재귀적으로 풀어준다.
-  // ⚠️ Chrome/Edge 등 Chromium 계열 브라우저에서만 동작 (Firefox/Safari 미지원)
-  // ============================================================
-  function supportsFileSystemAccess() {
-    return typeof window.showDirectoryPicker === 'function' && typeof window.showOpenFilePicker === 'function';
-  }
-
-  // 현재 창이 iframe(미리보기 등) 안에 있는지 확인.
-  // cross-origin 부모일 경우 window.top 접근 자체가 막혀 예외가 나므로, 그것도 iframe으로 간주.
-  function isInsideIframe() {
-    try {
-      return window.self !== window.top;
-    } catch (e) {
-      return true; // cross-origin으로 인해 접근 불가 = iframe 안에 있다고 판단
-    }
-  }
-
-  // iframe(미리보기) 안이라 File System Access API를 쓸 수 없을 때,
-  // 같은 페이지를 원래 창과 같은 크기의 새 창으로 띄움
-  function openInNewTabForBulkExtract() {
-    const url = new URL(location.href);
-    url.searchParams.set('bulkExtractHint', '1');
-
-    // 원래 창(브라우저 창)과 같은 크기/위치로 새 창을 띄움
-    const w = window.outerWidth || screen.availWidth;
-    const h = window.outerHeight || screen.availHeight;
-    const left = window.screenX || 0;
-    const top = window.screenY || 0;
-    const features = 'width=' + w + ',height=' + h + ',left=' + left + ',top=' + top + ',resizable=yes,scrollbars=yes';
-
-    const newWin = window.open(url.toString(), '_blank', features);
-    if (!newWin) {
-      setStatus('❌ 새 창을 열지 못했습니다. 브라우저의 팝업 차단을 해제한 뒤 다시 시도해주세요.', true);
-      return;
-    }
-    setStatus('📤 새 창을 열었습니다. 새 창에서 압축파일을 드래그앤드롭 한 뒤 "압축파일 일괄 해제" 버튼을 다시 눌러주세요. (미리보기 화면에서는 폴더 저장 기능을 사용할 수 없습니다.)', false);
-  }
-
-  // 새 창이 ?bulkExtractHint=1 로 열렸으면, 안내 팝업(alert)을 띄움
-  function showBulkExtractHintIfNeeded() {
-    try {
-      const params = new URLSearchParams(location.search);
-      if (params.get('bulkExtractHint') !== '1') return;
-      alert('압축파일 해제하려면 이 창으로 끌어다 놓으세요.\n압축파일 안의 압축파일도 한번에 압축해제됩니다.');
-    } catch (e) {
-      console.error(LOG_PREFIX, 'bulkExtractHint 팝업 표시 오류:', e);
-    }
-  }
-  showBulkExtractHintIfNeeded();
-
-  // 파일 목록(fileListItems)의 변화(추가/삭제)를 감지해서
-  // "압축파일 일괄 해제" 버튼을 최대 압축 병합 버튼처럼 목록이 비어있으면 비활성화(무채색),
-  // 목록에 뭔가 있으면 활성화(색상 표시)되도록 자동으로 맞춰줌
-  function updateBulkExtractButtonState() {
-    const btn = document.getElementById('bulk-extract-btn');
-    const listEl = document.getElementById('fileListItems');
-    if (!btn || !listEl) return;
-    // fileListItems는 비어있을 때 항상 ".empty-msg" 안내 문구를 자식으로 갖고 있으므로
-    // 자식 개수가 아니라 이 안내 문구의 존재 여부로 "비어있음"을 판단해야 정확하다.
-    const isEmpty = !!listEl.querySelector('.empty-msg');
-    btn.disabled = isEmpty;
-  }
-
-  const fileListItemsEl = document.getElementById('fileListItems');
-  if (fileListItemsEl) {
-    const bulkExtractBtnObserver = new MutationObserver(updateBulkExtractButtonState);
-    bulkExtractBtnObserver.observe(fileListItemsEl, { childList: true });
-  } else {
-    console.error(LOG_PREFIX, 'fileListItems 요소를 찾지 못해 버튼 상태 자동 감지를 등록하지 못했습니다.');
-  }
-  updateBulkExtractButtonState(); // 초기 상태 반영
-
-  // zip 파일 하나를 실제 디렉토리 핸들 안에 재귀적으로 압축 해제
-  // (미리보기 목록과 달리 파일 형식 제한 없이 전부 그대로 추출함)
-  async function extractZipIntoDirHandle(zipFile, dirHandle, depth) {
-    depth = depth || 1;
-    if (depth > MAX_ZIP_DEPTH) {
-      console.warn(LOG_PREFIX, '재귀 깊이 제한 초과, 건너뜀:', zipFile.name);
-      setStatus('⚠️ 압축파일 중첩이 너무 깊어 일부를 건너뛰었습니다 (' + MAX_ZIP_DEPTH + '단계 제한).', true);
-      return { fileCount: 0 };
-    }
-
-    const buffer = await zipFile.arrayBuffer();
-    const zip = await JSZip.loadAsync(buffer);
-
-    const entries = Object.keys(zip.files)
-      .map((name) => zip.files[name])
-      .filter((entry) => !entry.dir)
-      .filter((entry) => !/(^|\/)__MACOSX(\/|$)/.test(entry.name));
-
-    let fileCount = 0;
-
-    for (const entry of entries) {
-      const parts = entry.name.split('/').filter(Boolean);
-      const baseName = parts.pop();
-      if (!baseName || baseName.startsWith('.')) continue; // 숨김파일/리소스포크 제외
-
-      // zip 내부의 하위 폴더 경로를 실제 폴더로 그대로 생성
-      let currentDir = dirHandle;
-      for (const folderPart of parts) {
-        currentDir = await currentDir.getDirectoryHandle(folderPart, { create: true });
-      }
-
-      const ext = getExt(baseName);
-
-      if (ext === 'zip') {
-        // 중첩 압축파일: 같은 이름의 실제 폴더를 만들어 그 안에 재귀적으로 압축 해제
-        const nestedBlob = await entry.async('blob');
-        const nestedFile = new File([nestedBlob], baseName, { type: 'application/zip' });
-        const nestedDirName = baseName.replace(/\.zip$/i, '');
-        const nestedDirHandle = await currentDir.getDirectoryHandle(nestedDirName, { create: true });
-        setStatus('📦 중첩 압축파일 "' + baseName + '" 폴더에 압축 해제 중...', false);
-        const nestedResult = await extractZipIntoDirHandle(nestedFile, nestedDirHandle, depth + 1);
-        fileCount += nestedResult.fileCount;
-        continue;
-      }
-
-      // 일반 파일: 형식 제한 없이 모두 추출 (일반 압축 해제 프로그램과 동일)
-      const blob = await entry.async('blob');
-      const fileHandle = await currentDir.getFileHandle(baseName, { create: true });
-      const writable = await fileHandle.createWritable();
-      await writable.write(blob);
-      await writable.close();
-      fileCount++;
-    }
-
-    return { fileCount };
-  }
-
-  async function handleBulkExtractZips(providedZipFiles) {
-    if (isInsideIframe()) {
-      openInNewTabForBulkExtract();
-      return;
-    }
-
-    if (!supportsFileSystemAccess()) {
-      setStatus('❌ 이 브라우저는 폴더에 직접 저장하는 기능을 지원하지 않습니다. Chrome 또는 Edge를 이용해주세요.', true);
-      return;
-    }
-
-    let zipFilesToExtract;
-    let sourceDescription;
-
-    if (providedZipFiles && providedZipFiles.length > 0) {
-      // 방금 드롭/선택한 zip을 곧바로 사용 (힌트 모드: 사용자 제스처를 최대한 살리기 위해
-      // 미리보기 추출을 기다리지 않고 바로 폴더 선택으로 진행)
-      zipFilesToExtract = providedZipFiles;
-      sourceDescription = '드롭한 압축파일 ' + zipFilesToExtract.length + '개';
-    } else if (pendingZipFiles.length > 0) {
-      // 드롭존/파일선택으로 이미 들어와 있던 zip을 그대로 사용 (파일 선택 창을 다시 띄우지 않음)
-      zipFilesToExtract = pendingZipFiles.slice();
-      sourceDescription = '드롭한 압축파일 ' + zipFilesToExtract.length + '개';
-    } else {
-      // 기억해둔 zip이 없으면 새로 압축파일을 선택하는 창을 띄움
-      let fileHandles;
-      try {
-        fileHandles = await window.showOpenFilePicker({
-          multiple: true,
-          excludeAcceptAllOption: false,
-          types: [{ description: 'ZIP 파일', accept: { 'application/zip': ['.zip'] } }],
-        });
-      } catch (err) {
-        if (err && err.name === 'AbortError') return; // 사용자가 선택 취소함
-        console.error(LOG_PREFIX, '파일 선택 오류:', err);
-        setStatus('❌ 압축파일 선택 중 오류: [' + (err && err.name) + '] ' + (err && err.message), true);
-        return;
-      }
-      zipFilesToExtract = [];
-      for (const handle of fileHandles) {
-        zipFilesToExtract.push(await handle.getFile());
-      }
-      sourceDescription = '새로 선택한 압축파일 ' + zipFilesToExtract.length + '개';
-    }
-
-    let dirHandle;
-    if (savedDirHandle) {
-      // 저장 폴더가 이미 설정/기억되어 있으면 폴더 선택 절차를 생략하고 바로 그 폴더를 사용
-      dirHandle = savedDirHandle;
-    } else {
-      try {
-        dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-      } catch (err) {
-        if (err && err.name === 'AbortError') return; // 사용자가 선택 취소함
-        console.error(LOG_PREFIX, '폴더 선택 오류:', err);
-        setStatus('❌ 저장할 폴더 선택 중 오류: [' + (err && err.name) + '] ' + (err && err.message), true);
-        return;
-      }
-    }
-
-    let totalFiles = 0;
-    for (const file of zipFilesToExtract) {
-      try {
-        setStatus('📦 "' + file.name + '" 압축 해제 중...', false);
-        // zip 파일마다 이름을 딴 실제 하위 폴더를 만들어 그 안에 풀어줌 (여러 zip 간 파일명 충돌 방지)
-        const zipBaseDirName = file.name.replace(/\.zip$/i, '');
-        const zipOutputDir = await dirHandle.getDirectoryHandle(zipBaseDirName, { create: true });
-        const result = await extractZipIntoDirHandle(file, zipOutputDir, 1);
-        totalFiles += result.fileCount;
-      } catch (err) {
-        console.error(LOG_PREFIX, '"' + file.name + '" 처리 중 오류:', err);
-        setStatus('❌ "' + file.name + '" 압축 해제 중 오류: ' + err.message, true);
-      }
-    }
-
-    setStatus('✅ ' + sourceDescription + '에서 총 ' + totalFiles + '개 파일을 "' + dirHandle.name + '" 폴더에 저장했습니다.', false);
-  }
-
-  window.handleBulkExtractZips = handleBulkExtractZips;
-
-  // "초기화" 버튼을 누르면 기억해둔 드롭 zip 목록도 함께 비움
-  if (typeof window.resetAll === 'function') {
-    const originalResetAll = window.resetAll;
-    window.resetAll = function () {
-      pendingZipFiles.length = 0;
-      return originalResetAll.apply(this, arguments);
-    };
-  }
-
-  console.log(LOG_PREFIX, '스크립트 초기화 완료');
-})();
-</script>
-<script>
-(function () {
-  const splitter = document.getElementById('editorSplitter');
-  const fileListEl = document.getElementById('fileListContainer');
-  if (!splitter || !fileListEl) return;
-  const layoutEl = fileListEl.parentElement; // .editor-layout
-
-  const MIN_WIDTH = 90; // .file-list-container의 min-width와 맞춤
-  let dragging = false;
-
-  function clampWidth(px) {
-    const maxWidth = layoutEl.getBoundingClientRect().width * 0.8; // .file-list-container의 max-width: 80%와 맞춤
-    return Math.min(maxWidth, Math.max(MIN_WIDTH, px));
-  }
-
-  function onPointerMove(e) {
-    if (!dragging) return;
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const layoutRect = layoutEl.getBoundingClientRect();
-    const newWidth = clampWidth(clientX - layoutRect.left);
-    fileListEl.style.flex = '0 0 ' + newWidth + 'px';
-  }
-
-  function startDragging(e) {
-    dragging = true;
-    splitter.classList.add('dragging');
-    if (e.cancelable) e.preventDefault();
-  }
-
-  function stopDragging() {
-    if (!dragging) return;
-    dragging = false;
-    splitter.classList.remove('dragging');
-  }
-
-  splitter.addEventListener('mousedown', startDragging);
-  splitter.addEventListener('touchstart', startDragging, { passive: false });
-  document.addEventListener('mousemove', onPointerMove);
-  document.addEventListener('touchmove', onPointerMove, { passive: true });
-  document.addEventListener('mouseup', stopDragging);
-  document.addEventListener('touchend', stopDragging);
-  document.addEventListener('touchcancel', stopDragging);
-
-  // 모바일 레이아웃(세로로 쌓임)으로 바뀌면, 데스크톱에서 드래그로 정해둔
-  // 픽셀 폭이 그대로 남아 있으면 세로 배치에서 높이로 잘못 적용될 수 있어
-  // 폭 지정을 초기화해서 원래 스타일시트 기본값(모바일용 height 등)을 따르게 한다.
-  const stackedLayoutQuery = window.matchMedia('(max-width: 1180px)');
-  function handleLayoutModeChange(mq) {
-    if (mq.matches) fileListEl.style.flex = '';
-  }
-  handleLayoutModeChange(stackedLayoutQuery);
-  if (stackedLayoutQuery.addEventListener) {
-    stackedLayoutQuery.addEventListener('change', handleLayoutModeChange);
-  } else if (stackedLayoutQuery.addListener) {
-    stackedLayoutQuery.addListener(handleLayoutModeChange); // 구형 브라우저 호환
-  }
-})();
-</script>
       <iframe id="appFrame" title="웹앱 화면"></iframe>
       <div id="frameHint">이 화면이 정상적으로 안 보이면 해당 사이트가 다른 페이지 안에 넣는(iframe) 것을 막아둔 경우입니다.<br><a href="#" onclick="openCurrentInNewTab(); return false;">새 탭에서 직접 열기 →</a></div>
     </div>
@@ -1906,8 +337,7 @@ function _0x17fb(){const _0x1453ef=['DxrMlte2Bgu','uergrg9JDw1LBNq','yxjYyxLcDwz
     ] },
   ];
 
-  const PDF_APP_URL = APPS[0].url; // 스마트 PDF·이미지 병합기: iframe 없이 내장된 화면을 그대로 사용
-  let currentUrl = null; // null 또는 PDF_APP_URL이면 내장 화면을 의미
+  let currentUrl = null; // null이면 초기화면(홈)을 의미
 
   function renderTabs() {
     const tabList = document.getElementById('tabList');
@@ -1916,33 +346,42 @@ function _0x17fb(){const _0x1453ef=['DxrMlte2Bgu','uergrg9JDw1LBNq','yxjYyxLcDwz
     mobileDropdown.innerHTML = '';
 
     const brandHome = document.getElementById('brandHome');
-    const isEmbeddedActive = currentUrl === null || currentUrl === PDF_APP_URL;
-    if (brandHome) brandHome.classList.toggle('active', isEmbeddedActive);
+    if (brandHome) brandHome.classList.toggle('active', currentUrl === null);
 
     APPS.forEach((app, idx) => {
-      const isActive = app.url === PDF_APP_URL ? isEmbeddedActive : app.url === currentUrl;
-
       const btn = document.createElement('button');
-      btn.className = 'tab-btn' + (isActive ? ' active' : '');
+      btn.className = 'tab-btn' + (app.url === currentUrl ? ' active' : '');
       btn.textContent = app.title;
       btn.onclick = () => { switchApp(app.url); closeMobileMenu(); };
       tabList.appendChild(btn);
 
       const mBtn = document.createElement('button');
-      mBtn.className = 'tab-btn' + (isActive ? ' active' : '');
+      mBtn.className = 'tab-btn' + (app.url === currentUrl ? ' active' : '');
       mBtn.textContent = app.title;
       mBtn.onclick = () => { switchApp(app.url); closeMobileMenu(); };
       mobileDropdown.appendChild(mBtn);
     });
+  }
 
-    // 개인정보 마스킹 바로가기: 탭 목록 맨 끝에 함께 배치되어 가로 스크롤을 따라 이동함(고정 아님, 화면 밖으로 벗어나 안 보여도 무방)
-    const privacyLink = document.createElement('a');
-    privacyLink.id = 'privacyLink';
-    privacyLink.href = 'https://nunco-git.github.io/pdfblack/';
-    privacyLink.target = '_blank';
-    privacyLink.rel = 'noopener noreferrer';
-    privacyLink.textContent = '🔒 개인정보 마스킹';
-    tabList.appendChild(privacyLink);
+  function renderHomeGrid() {
+    const grid = document.getElementById('homeGrid');
+    grid.innerHTML = '';
+    APPS.forEach((app, idx) => {
+      const card = document.createElement('div');
+      card.className = 'home-card';
+      card.onclick = () => switchApp(app.url);
+      const num = document.createElement('span');
+      num.className = 'home-card-num';
+      num.textContent = String(idx + 1).padStart(2, '0');
+      const h3 = document.createElement('h3');
+      h3.textContent = app.title;
+      const ul = document.createElement('ul');
+      ul.innerHTML = (app.feats || []).map(f => `<li>${f}</li>`).join('');
+      card.appendChild(num);
+      card.appendChild(h3);
+      card.appendChild(ul);
+      grid.appendChild(card);
+    });
   }
 
   function toggleMobileMenu() {
@@ -1960,54 +399,20 @@ function _0x17fb(){const _0x1453ef=['DxrMlte2Bgu','uergrg9JDw1LBNq','yxjYyxLcDwz
     if (window.innerWidth > 640) closeMobileMenu();
   });
 
-  // ============================================================
-  // "초기화" 버튼 왼쪽의 목록 유지/자동비우기 토글 버튼
-  // - 목록 유지(기본값): 다른 앱 탭으로 이동했다가 PDF 병합기로 돌아와도
-  //   작업하던 파일 목록이 그대로 남아있음(내장 화면이라 원래 이런 동작).
-  // - 목록 자동비우기: 다른 앱 탭으로 이동하는 순간 병합기의 목록을
-  //   자동으로 비움(resetAll 호출). PDF 병합기 탭 안에서 머무는 동안은
-  //   영향이 없고, "다른 화면으로 나갈 때"만 작동한다.
-  // ============================================================
-  let keepFileListOnSwitch = true; // 기본값: 목록 유지
-
-  function updateListModeButton() {
-    const btn = document.getElementById('list-mode-btn');
-    if (!btn) return;
-    if (keepFileListOnSwitch) {
-      btn.textContent = '📌 목록 유지';
-      btn.title = '다른 앱으로 이동해도 지금 목록을 그대로 둡니다. (누르면 자동비우기로 전환)';
-    } else {
-      btn.textContent = '🧹 목록 자동비우기';
-      btn.title = '다른 앱으로 이동하면 목록을 자동으로 비웁니다. (누르면 목록 유지로 전환)';
-    }
-  }
-
-  function toggleListPersistMode() {
-    keepFileListOnSwitch = !keepFileListOnSwitch;
-    updateListModeButton();
-  }
-
   function switchApp(url) {
-    const wasOnPdfEmbed = currentUrl === null || currentUrl === PDF_APP_URL;
-    const goingToOtherApp = url !== null && url !== PDF_APP_URL;
-    if (wasOnPdfEmbed && goingToOtherApp && !keepFileListOnSwitch && typeof window.resetAll === 'function') {
-      window.resetAll(); // 목록 자동비우기 모드: 다른 앱으로 나갈 때 병합기 목록을 비움
-    }
-
     currentUrl = url;
-    const pdfEmbed = document.getElementById('pdfEmbedScreen');
+    const homeScreen = document.getElementById('homeScreen');
     const frame = document.getElementById('appFrame');
     const hint = document.getElementById('frameHint');
     clearTimeout(window.__frameHintTimer);
     hint.style.display = 'none';
 
-    if (url === null || url === PDF_APP_URL) {
-      // 스마트 PDF·이미지 병합기: iframe 없이 이 페이지에 그대로 내장된 화면을 보여준다
-      pdfEmbed.style.display = 'block';
+    if (url === null) {
+      homeScreen.classList.add('active');
       frame.style.display = 'none';
       frame.src = 'about:blank';
     } else {
-      pdfEmbed.style.display = 'none';
+      homeScreen.classList.remove('active');
       frame.style.display = 'block';
       frame.src = url;
       // iframe 임베드가 막혀 있는 사이트인 경우를 대비한 안내(로드 실패를 100% 감지할
@@ -2018,7 +423,7 @@ function _0x17fb(){const _0x1453ef=['DxrMlte2Bgu','uergrg9JDw1LBNq','yxjYyxLcDwz
   }
 
   function openCurrentInNewTab() {
-    if (currentUrl && currentUrl !== PDF_APP_URL) window.open(currentUrl, '_blank', 'noopener');
+    if (currentUrl) window.open(currentUrl, '_blank', 'noopener');
   }
 
   document.getElementById('appFrame').addEventListener('load', () => {
@@ -2027,8 +432,9 @@ function _0x17fb(){const _0x1453ef=['DxrMlte2Bgu','uergrg9JDw1LBNq','yxjYyxLcDwz
   });
 
   renderTabs();
-  switchApp(null); // 기본 화면: 스마트 PDF·이미지 병합기(내장)
-  updateListModeButton();
+  renderHomeGrid();
+  const DEFAULT_HOME_URL = 'https://pdf-frontend-sigma-one.vercel.app/';
+  switchApp(DEFAULT_HOME_URL); // 처음 열었을 때 오른쪽 화면에 스마트 PDF·이미지 병합기를 표시
 
   // ── 좌측 광고 배너 (정적 이미지 4개, 지정한 링크로 연결) ──
   const BANNERS = [
@@ -2105,24 +511,6 @@ function _0x17fb(){const _0x1453ef=['DxrMlte2Bgu','uergrg9JDw1LBNq','yxjYyxLcDwz
     }, 5000);
   }
   renderBanners();
-</script>
-
-<script>
-  // 위 오류 배너와 별개로, 아무 오류 없이 "조용히" 상단 탭이 안 그려지는 경우까지
-  // 잡아내기 위한 마지막 안전장치 (개발자도구 없이도 원인 힌트를 보여줌)
-  setTimeout(function () {
-    try {
-      const tabList = document.getElementById('tabList');
-      const appsOk = typeof APPS !== 'undefined' && Array.isArray(APPS) && APPS.length > 0;
-      const tabsOk = tabList && tabList.querySelectorAll('button').length > 0;
-      if (!appsOk || !tabsOk) {
-        const el = document.createElement('div');
-        el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999998;background:#b45309;color:#fff;font:12px/1.5 monospace;padding:8px 12px;white-space:pre-wrap;';
-        el.textContent = '⚠️ 상단 탭이 정상적으로 그려지지 않았습니다. (APPS 정의됨: ' + appsOk + ', 탭 버튼 개수: ' + (tabList ? tabList.querySelectorAll('button').length : 'tabList 없음') + ')';
-        document.documentElement.appendChild(el);
-      }
-    } catch (e) { /* 진단 코드 자체 오류는 무시 */ }
-  }, 1500);
 </script>
 </body>
 </html>
