@@ -31,19 +31,30 @@
     width: 300px;
     flex-shrink: 0;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     justify-content: center;
     align-items: center;
-    text-align: center;
+    text-align: left;
     padding: 2px 10px;
     line-height: 1.3;
-    gap: 1px;
+    gap: 8px;
     background: linear-gradient(90deg, #1e3a8a 0%, #1e293b 85%);
     border-right: 1px solid #334155;
     white-space: nowrap;
     overflow: hidden;
     cursor: pointer;
     transition: background 0.15s;
+  }
+  #topBar .brand .brand-logo {
+    height: 26px;
+    width: auto;
+    flex-shrink: 0;
+  }
+  #topBar .brand .brand-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    overflow: hidden;
   }
   #topBar .brand:hover { background: linear-gradient(90deg, #234690 0%, #253347 85%); }
   #topBar .brand.active { background: linear-gradient(90deg, #2563eb 0%, #1e3a8a 85%); }
@@ -262,8 +273,11 @@
 <div id="shell">
   <div id="topBar">
     <div class="brand" id="brandHome" onclick="switchApp(null); closeMobileMenu();">
-      <span class="brand-tagline">슬기로운 직장생활을 위한</span>
-      <span class="brand-main">📂 스마트 업무앱(스마트 공)</span>
+      <img src="smartgong_logo_icon.png" alt="스마트공" class="brand-logo">
+      <div class="brand-text">
+        <span class="brand-tagline">슬기로운 직장생활을 위한</span>
+        <span class="brand-main">📂 스마트 업무앱(스마트 공)</span>
+      </div>
     </div>
     <div id="tabList"></div>
     <button id="mobileMenuBtn" onclick="toggleMobileMenu()" aria-label="앱 목록 열기">☰</button>
