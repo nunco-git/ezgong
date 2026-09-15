@@ -261,12 +261,12 @@
   .home-card ul li strong { color: #334155; }
   .home-card-usecase {
     position: absolute;
-    top: -10px;
-    left: -10px;
-    right: -10px;
+    top: 0;
+    left: calc(100% + 14px);
+    right: auto;
     height: auto;
     box-sizing: border-box;
-    width: auto;
+    width: 280px;
     background: #FFF2E3;
     border: 1px solid rgba(194,65,12,0.18);
     color: #7c2d12;
@@ -277,14 +277,63 @@
     flex-direction: column;
     gap: 6px;
     opacity: 0;
-    transform: translateY(6px) scale(0.98);
+    transform: translateX(6px) scale(0.98);
+    transform-origin: left center;
     transition: opacity 0.18s ease, transform 0.18s ease;
     pointer-events: none;
+    z-index: 60;
   }
   .home-card:hover .home-card-usecase {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateX(0) scale(1);
     pointer-events: auto;
+  }
+  /* 맨 우측 칸(4열 기준 4의 배수번째 카드)은 오른쪽에 표시할 공간이 없으므로 왼쪽으로 표시 */
+  .home-card:nth-child(4n) .home-card-usecase {
+    left: auto;
+    right: calc(100% + 14px);
+    transform: translateX(-6px) scale(0.98);
+    transform-origin: right center;
+  }
+  .home-card:nth-child(4n):hover .home-card-usecase {
+    transform: translateX(0) scale(1);
+  }
+  /* 2열 레이아웃(<=1100px)에서는 짝수번째 카드가 맨 우측이 됨 */
+  @media (max-width: 1100px) {
+    .home-card:nth-child(4n) .home-card-usecase {
+      left: calc(100% + 14px);
+      right: auto;
+      transform: translateX(6px) scale(0.98);
+      transform-origin: left center;
+    }
+    .home-card:nth-child(4n):hover .home-card-usecase {
+      transform: translateX(0) scale(1);
+    }
+    .home-card:nth-child(2n) .home-card-usecase {
+      left: auto;
+      right: calc(100% + 14px);
+      transform: translateX(-6px) scale(0.98);
+      transform-origin: right center;
+    }
+    .home-card:nth-child(2n):hover .home-card-usecase {
+      transform: translateX(0) scale(1);
+    }
+  }
+  /* 1열 레이아웃(<=700px)에서는 좌우 공간이 없으므로 카드 위쪽에 표시 */
+  @media (max-width: 700px) {
+    .home-card:nth-child(4n) .home-card-usecase,
+    .home-card:nth-child(2n) .home-card-usecase,
+    .home-card-usecase {
+      top: -10px;
+      left: -10px;
+      right: -10px;
+      width: auto;
+      transform: translateY(6px) scale(0.98);
+      transform-origin: center;
+    }
+    .home-card:hover .home-card-usecase {
+      transform: translateY(0) scale(1);
+    }
   }
   .home-card-usecase .uc-label {
     font-size: 12px; font-weight: 800; letter-spacing: 0.5px; color: #c2410c;
