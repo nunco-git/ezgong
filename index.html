@@ -604,10 +604,10 @@
 </div>
 
 <div id="appFinderWidget">
-  <button id="appFinderToggle" onclick="toggleAppFinder()" aria-label="기능 찾기 챗봇 열기"><span class="af-toggle-icon">🔍</span>기능 찾기 챗봇</button>
+  <button id="appFinderToggle" onclick="toggleAppFinder()" aria-label="스마트공 기능찾기 열기"><span class="af-toggle-icon">🔍</span>스마트공 기능찾기</button>
   <div id="appFinderPanel">
     <div id="appFinderHeader">
-      <span>🔍 기능 찾기 챗봇</span>
+      <span>🔍 스마트공 기능찾기</span>
       <button onclick="toggleAppFinder()" aria-label="닫기">✕</button>
     </div>
     <div id="appFinderMessages"></div>
@@ -1057,20 +1057,55 @@
     return scored.length ? scored[0] : null;
   }
 
+  // ── 채팅 기록을 새로고침해도 유지: 브라우저 localStorage에 저장 ──
+  const FINDER_HISTORY_KEY = 'smartgong_finder_chat_history';
+
+  function loadFinderHistory() {
+    try {
+      const raw = localStorage.getItem(FINDER_HISTORY_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveFinderHistory(history) {
+    try {
+      localStorage.setItem(FINDER_HISTORY_KEY, JSON.stringify(history));
+    } catch (e) {
+      // 저장 공간이 없거나 실패해도 대화 자체는 계속 이어지도록 조용히 무시
+    }
+  }
+
+  let finderHistory = loadFinderHistory();
+
+  function restoreFinderHistoryToDOM() {
+    if (!finderHistory.length) return;
+    finderHistory.forEach(entry => {
+      if (entry.type === 'msg') {
+        renderFinderMessage(entry.who, entry.text);
+      } else if (entry.type === 'suggest') {
+        renderFinderSuggestions(entry.items);
+      }
+    });
+    document.getElementById('appFinderMessages').dataset.greeted = '1';
+  }
+
   function toggleAppFinder() {
     const widget = document.getElementById('appFinderWidget');
     widget.classList.toggle('open');
     if (widget.classList.contains('open')) {
       const msgs = document.getElementById('appFinderMessages');
       if (!msgs.dataset.greeted) {
-        addFinderMessage('bot', '안녕하세요! 찾으시는 업무를 자연어로 입력해주세요.\n예) "여러 부서 엑셀 파일 하나로 합치고 싶어"');
+        addFinderMessage('bot', '안녕하세요! 스마트한 직장생활을 위한 업무 앱 스마트공입니다.\n찾으시는 업무를 자연어로 입력해주세요.');
         msgs.dataset.greeted = '1';
       }
       document.getElementById('appFinderInput').focus();
     }
   }
 
-  function addFinderMessage(who, text) {
+  // 화면에만 그리는 부분 (저장은 하지 않음) — 복원 시 재사용
+  function renderFinderMessage(who, text) {
     const msgs = document.getElementById('appFinderMessages');
     const div = document.createElement('div');
     div.className = 'af-msg ' + (who === 'user' ? 'af-msg-user' : 'af-msg-bot');
@@ -1080,21 +1115,36 @@
     return div;
   }
 
-  function addFinderSuggestions(results) {
+  function renderFinderSuggestions(items) {
     const msgs = document.getElementById('appFinderMessages');
     const wrap = document.createElement('div');
     wrap.className = 'af-suggest';
-    results.forEach(r => {
+    items.forEach(item => {
       const btn = document.createElement('button');
-      btn.textContent = r.app.title;
+      btn.textContent = item.title;
       btn.onclick = () => {
-        switchApp(r.app.url);
+        switchApp(item.url);
         widgetCloseAfterNav();
       };
       wrap.appendChild(btn);
     });
     msgs.appendChild(wrap);
     msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  // 화면에 그리면서, 새로고침해도 남도록 기록에도 남기는 버전
+  function addFinderMessage(who, text) {
+    const div = renderFinderMessage(who, text);
+    finderHistory.push({ type: 'msg', who, text });
+    saveFinderHistory(finderHistory);
+    return div;
+  }
+
+  function addFinderSuggestions(results) {
+    const items = results.map(r => ({ title: r.app.title, url: r.app.url }));
+    renderFinderSuggestions(items);
+    finderHistory.push({ type: 'suggest', items });
+    saveFinderHistory(finderHistory);
   }
 
   function widgetCloseAfterNav() {
@@ -1140,6 +1190,8 @@
     setTimeout(widgetCloseAfterNav, 900);
     return false;
   }
+
+  restoreFinderHistoryToDOM();
 </script>
 </body>
 </html>
