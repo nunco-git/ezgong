@@ -966,6 +966,93 @@
     return scored;
   }
 
+  // ── 스마트 엑셀 함수 변환기 전용: 기능이 워낙 많아서(63개), 세부 기능까지
+  // 알아보고 그 기능이 화면에 미리 선택된 채로 열리는 주소(?fn=기능키)로 이동한다.
+  // (엑셀 함수 변환기 앱 쪽에도 이 주소를 읽어 자동 선택하는 코드가 추가되어 있어야 함)
+  const EXCEL_FN_APP_URL = 'https://nunco-git.github.io/excelfuntion/';
+  const EXCEL_SUBFUNCTIONS = [
+    { key: '왼쪽N글자', label: '왼쪽 N글자 추출', keywords: ['left', 'n글자', '앞글자', '왼쪽', '왼쪽글자', '추출'] },
+    { key: '오른쪽N글자', label: '오른쪽 N글자 추출', keywords: ['n글자', 'right', '뒷글자', '오른쪽', '오른쪽글자', '추출'] },
+    { key: '중간N글자', label: '중간 N글자 추출(MID)', keywords: ['mid', 'n글자', '가운데글자', '중간', '추출'] },
+    { key: '구분자왼쪽추출', label: '구분자 왼쪽 추출(LEFT+FIND)', keywords: ['find', 'left', '구분자', '구분자앞', '왼쪽', '추출'] },
+    { key: '구분자오른쪽추출', label: '구분자 오른쪽 추출(RIGHT+FIND)', keywords: ['find', 'right', '구분자', '구분자뒤', '오른쪽', '추출'] },
+    { key: '두구분자사이추출', label: '두 구분자 사이 추출(MID+FIND)', keywords: ['find', 'mid', '괄호안', '괄호추출', '구분자', '사이', '추출'] },
+    { key: '특정문자치환', label: '특정 문자 치환', keywords: ['substitute', '문자', '바꾸기', '치환', '특정'] },
+    { key: '특수문자제거', label: '특수문자 제거', keywords: ['기호제거', '제거', '특수기호제거', '특수문자'] },
+    { key: '공백제거', label: '공백 제거', keywords: ['trim', '공백', '띄어쓰기제거', '스페이스제거', '제거'] },
+    { key: '문자열길이', label: '문자열 길이 세기', keywords: ['len', '글자수', '길이', '문자열', '세기'] },
+    { key: '텍스트나누기', label: '텍스트 나누기', keywords: ['split', '나누기', '셀나누기', '열나누기', '텍스트'] },
+    { key: '텍스트합치기', label: '텍스트 합치기', keywords: ['concat', 'concatenate', 'textjoin', '셀합치기', '열합치기', '텍스트', '합치기'] },
+    { key: '날짜형식변환', label: '날짜 형식 변환 (YYYY-MM-DD)', keywords: ['date', 'dd', 'mm', 'yyyy', 'yyyy-mm-dd', '날짜', '날짜변환', '변환', '형식'] },
+    { key: '날짜형식변환한글', label: '날짜 형식 변환 (한글)', keywords: ['날짜', '날짜변환', '년월일', '변환', '한글', '형식'] },
+    { key: '날짜형식변환행정', label: '날짜 형식 변환 (행정문서용, 2005. 6. 20.)', keywords: ['20', '2005', '공문서날짜', '날짜', '변환', '행정날짜', '행정문서용', '형식'] },
+    { key: '날짜형식변환점표기', label: '날짜 형식 변환 (점표기, 2005.06.20)', keywords: ['06', '20', '2005', '날짜', '날짜점', '변환', '점찍기', '점표기', '형식'] },
+    { key: '기간형식변환', label: '기간 형식 변환 (YYYY-MM-DD)', keywords: ['dd', 'mm', 'yyyy', '기간', '기간변환', '날짜범위', '변환', '형식'] },
+    { key: '기간형식변환한글', label: '기간 형식 변환 (한글)', keywords: ['기간', '기간변환', '날짜범위', '변환', '한글', '형식'] },
+    { key: '기간형식변환행정', label: '기간 형식 변환 (행정문서용, 2005. 6. 20.)', keywords: ['20', '2005', '공문서기간', '기간', '변환', '행정문서용', '형식'] },
+    { key: '기간형식변환점표기', label: '기간 형식 변환 (점표기, 2005.06.20)', keywords: ['06', '20', '2005', '기간', '기간점표기', '변환', '점표기', '형식'] },
+    { key: '요일표시', label: '요일 표시', keywords: ['weekday', '무슨요일', '요일', '표시'] },
+    { key: '연도추출', label: '연도만 추출', keywords: ['year', '연도만', '추출'] },
+    { key: '날짜차이', label: '날짜 차이 계산(일수)', keywords: ['datedif', '계산', '날짜', '날짜계산', '일수', '일수계산', '차이'] },
+    { key: '날짜더하기', label: 'N일 이후 날짜 계산', keywords: ['n일', 'n일후', '계산', '날짜', '날짜계산', '이후'] },
+    { key: '기간계산', label: '두 날짜 기간 계산(년/월/일)', keywords: ['datedif', '계산', '기간', '기간차이', '날짜', '만나이아님'] },
+    { key: '단위변환원천', label: '단위변환(원→천)', keywords: ['단위변환', '천원단위'] },
+    { key: '단위변환원백만', label: '단위변환(원→백만)', keywords: ['단위변환', '백만', '백만원단위'] },
+    { key: '단위변환천백만', label: '단위변환(천→백만)', keywords: ['단위변환', '백만', '천->백만'] },
+    { key: '한글금액변환', label: '한글 금액 변환', keywords: ['금액', '금액한글', '변환', '원정', '한글', '한글로표시'] },
+    { key: '반올림', label: '반올림(ROUND)', keywords: ['round', '반올림', '반올림하기'] },
+    { key: '내림', label: '내림(ROUNDDOWN)', keywords: ['rounddown', '내림', '버림'] },
+    { key: '올림', label: '올림(ROUNDUP)', keywords: ['roundup', '올림'] },
+    { key: '주민번호성별판별', label: '성별 판별', keywords: ['남녀구분', '성별', '성별확인', '판별'] },
+    { key: '주민번호생년월일전환', label: '생년월일 전환', keywords: ['생년월일', '생년월일추출', '생일추출', '전환'] },
+    { key: '주민번호만나이계산', label: '만 나이 계산', keywords: ['계산', '나이', '나이계산', '만나이'] },
+    { key: '주민번호나이이상', label: '만 몇 세 이상 판별', keywords: ['나이조건', '몇세이상', '이상', '판별'] },
+    { key: '주민번호나이미만', label: '만 몇 세 미만 판별', keywords: ['나이조건', '몇세미만', '미만', '판별'] },
+    { key: '이름마스킹', label: '이름 가운데 마스킹', keywords: ['가운데', '마스킹', '성명마스킹', '이름', '이름가리기'] },
+    { key: '주민번호마스킹', label: '주민등록번호 마스킹', keywords: ['마스킹', '주민등록번호', '주민등록번호가리기'] },
+    { key: '전화번호마스킹', label: '전화번호 마스킹', keywords: ['마스킹', '연락처마스킹', '전화번호', '핸드폰마스킹', '휴대폰마스킹'] },
+    { key: '이메일마스킹', label: '이메일 마스킹', keywords: ['마스킹', '메일가리기', '이메일'] },
+    { key: '계좌번호마스킹', label: '계좌번호 마스킹', keywords: ['계좌가리기', '계좌번호', '마스킹', '통장번호마스킹'] },
+    { key: '전화번호형식', label: '전화번호 형식(-추가)', keywords: ['연락처형식', '전화번호', '전화번호하이픈', '추가', '형식'] },
+    { key: '주민번호형식', label: '주민등록번호 형식(-추가)', keywords: ['주민등록번호', '주민번호하이픈', '추가', '형식'] },
+    { key: '사업자번호형식', label: '사업자등록번호 형식(-추가)', keywords: ['사업자등록번호', '사업자등록번호하이픈', '추가', '형식'] },
+    { key: '숫자만추출', label: '숫자만 추출(하이픈 제거)', keywords: ['숫자만', '숫자추출', '제거', '추출', '하이픈', '하이픈제거'] },
+    { key: '엑스룩업', label: 'XLOOKUP(값 1개 찾기)', keywords: ['1개', 'vlookup', 'xlookup', '값찾기', '조회', '찾기'] },
+    { key: '중복값찾기한셀', label: 'XLOOKUP(모든 값 찾기, 한셀에 입력)', keywords: ['xlookup', '모든', '모든값찾기', '입력', '찾기', '한셀에', '한칸에'] },
+    { key: '중복값찾기여러셀', label: 'XLOOKUP(모든 값 찾기, 여러셀에 입력)', keywords: ['xlookup', '모든', '모든값찾기', '여러셀에', '여러칸', '입력', '찾기'] },
+    { key: '카운트이프', label: 'COUNTIF (조건 개수 세기)', keywords: ['countif', '개수', '개수세기', '세기', '조건', '조건개수'] },
+    { key: '카운트이프스', label: 'COUNTIFS (여러 조건 개수 세기)', keywords: ['countifs', '개수', '세기', '여러', '여러조건개수', '조건'] },
+    { key: '섬이프', label: 'SUMIF (조건에 맞는 값 합계)', keywords: ['sumif', '맞는', '조건에', '조건합계', '합계'] },
+    { key: '섬이프스', label: 'SUMIFS (여러 조건에 맞는 값 합계)', keywords: ['sumifs', '맞는', '여러', '여러조건합계', '조건에', '합계'] },
+    { key: '피벗테이블', label: '피벗 테이블 만들기', keywords: ['pivot', '만들기', '요약표', '집계표', '테이블', '피벗'] },
+    { key: '심사표', label: '심사표(최고·최저 제외 합계)', keywords: ['심사표', '점수합계', '제외', '최고', '최고최저제외', '최저', '평가표', '합계'] },
+    { key: '매크로시트만들기', label: '특정 열 기준 시트 만들기', keywords: ['기준', '만들기', '부서별시트', '시트', '시트나누기', '특정'] },
+    { key: '매크로파일만들기', label: '특정 열 기준 파일 만들기', keywords: ['기준', '만들기', '부서별파일', '특정', '파일', '파일나누기'] },
+    { key: '매크로개별인쇄', label: '특정 열 기준 일괄 인쇄/PDF 저장', keywords: ['pdf', '개별인쇄', '기준', '인쇄', '일괄', '일괄인쇄', '저장', '특정'] },
+    { key: '매크로개별pdf', label: '특정 열 기준 개별 PDF 저장', keywords: ['pdf', '개별', '개별pdf저장', '기준', '일괄pdf', '저장', '특정'] },
+    { key: '매크로통합셀해제', label: '통합된 셀 해제하기', keywords: ['병합셀해제', '셀병합풀기', '통합된', '해제하기'] },
+    { key: '매크로사진일괄입력', label: '사진파일 일괄 입력', keywords: ['사진삽입', '사진파일', '이미지일괄삽입', '일괄', '입력'] },
+    { key: '매크로동적목록', label: '동적 목록 구현', keywords: ['구현', '데이터유효성', '동적', '드롭다운', '목록', '연동목록'] },
+    { key: '매크로엑셀표서식제거', label: '엑셀표 서식제거(한글 붙여넣기용)', keywords: ['붙여넣기용', '서식제거', '엑셀표', '한글', '한글붙여넣기'] },
+  ];
+
+  function scoreSubFunction(item, tokens) {
+    const text = (item.label + ' ' + item.keywords.join(' ')).toLowerCase();
+    let score = 0;
+    tokens.forEach(tok => {
+      if (text.includes(tok)) score += tok.length;
+    });
+    return score;
+  }
+
+  function findBestExcelSubFunction(tokens) {
+    const scored = EXCEL_SUBFUNCTIONS
+      .map(item => ({ item, score: scoreSubFunction(item, tokens) }))
+      .filter(r => r.score > 0)
+      .sort((a, b) => b.score - a.score);
+    return scored.length ? scored[0] : null;
+  }
+
   function toggleAppFinder() {
     const widget = document.getElementById('appFinderWidget');
     widget.classList.toggle('open');
@@ -1024,8 +1111,22 @@
       return false;
     }
     const best = results[0];
-    addFinderMessage('bot', `"${best.app.title}" 화면으로 이동할게요.`);
-    switchApp(best.app.url);
+    let targetUrl = best.app.url;
+    let displayName = best.app.title;
+
+    // 엑셀 함수 변환기로 갈 때는 63개 세부 기능 중 어떤 것을 찾는지도 함께 확인해서
+    // 그 기능이 미리 선택된 화면으로 바로 연결한다.
+    if (best.app.url === EXCEL_FN_APP_URL) {
+      const tokens = tokenizeQuery(query);
+      const subMatch = findBestExcelSubFunction(tokens);
+      if (subMatch) {
+        targetUrl = EXCEL_FN_APP_URL + '?fn=' + encodeURIComponent(subMatch.item.key);
+        displayName = best.app.title + ' - ' + subMatch.item.label;
+      }
+    }
+
+    addFinderMessage('bot', `"${displayName}" 화면으로 이동할게요.`);
+    switchApp(targetUrl);
 
     const alternatives = results.slice(1, 3).filter(r => r.score >= best.score * 0.4);
     if (alternatives.length) {
