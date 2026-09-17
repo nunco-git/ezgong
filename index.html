@@ -439,23 +439,27 @@
     font-family: inherit;
   }
   #appFinderToggle {
-    width: 58px; height: 58px;
-    border-radius: 50%;
+    height: 52px;
+    padding: 0 20px 0 16px;
+    border-radius: 999px;
     border: none;
     cursor: pointer;
     background: linear-gradient(135deg, #f97316 0%, #22c55e 55%, #3b82f6 100%);
     color: #fff;
-    font-size: 24px;
+    font-size: 15px;
+    font-weight: 800;
     box-shadow: 0 8px 20px rgba(15,23,42,0.28);
-    display: flex; align-items: center; justify-content: center;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    white-space: nowrap;
     transition: transform 0.15s;
   }
-  #appFinderToggle:hover { transform: scale(1.06); }
+  #appFinderToggle .af-toggle-icon { font-size: 20px; }
+  #appFinderToggle:hover { transform: scale(1.05); }
   #appFinderPanel {
     display: none;
     position: absolute;
     right: 0;
-    bottom: 72px;
+    bottom: 66px;
     width: 340px;
     max-width: calc(100vw - 32px);
     height: 460px;
@@ -600,7 +604,7 @@
 </div>
 
 <div id="appFinderWidget">
-  <button id="appFinderToggle" onclick="toggleAppFinder()" aria-label="기능 찾기 챗봇 열기">🔍</button>
+  <button id="appFinderToggle" onclick="toggleAppFinder()" aria-label="기능 찾기 챗봇 열기"><span class="af-toggle-icon">🔍</span>기능 찾기 챗봇</button>
   <div id="appFinderPanel">
     <div id="appFinderHeader">
       <span>🔍 기능 찾기 챗봇</span>
