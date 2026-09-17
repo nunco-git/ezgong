@@ -429,6 +429,131 @@
     #topBar .brand { width: auto; padding: 2px 12px; }
     #mobileMenuDropdown.open { display: flex; }
   }
+
+  /* ── 우측 하단 기능 찾기 챗봇 (모든 화면 공통으로 떠있음) ── */
+  #appFinderWidget {
+    position: fixed;
+    right: 22px;
+    bottom: 22px;
+    z-index: 9999;
+    font-family: inherit;
+  }
+  #appFinderToggle {
+    width: 58px; height: 58px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    background: linear-gradient(135deg, #f97316 0%, #22c55e 55%, #3b82f6 100%);
+    color: #fff;
+    font-size: 24px;
+    box-shadow: 0 8px 20px rgba(15,23,42,0.28);
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.15s;
+  }
+  #appFinderToggle:hover { transform: scale(1.06); }
+  #appFinderPanel {
+    display: none;
+    position: absolute;
+    right: 0;
+    bottom: 72px;
+    width: 340px;
+    max-width: calc(100vw - 32px);
+    height: 460px;
+    max-height: calc(100vh - 120px);
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 16px 40px rgba(15,23,42,0.28);
+    border: 1px solid #e2e8f0;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #appFinderWidget.open #appFinderPanel { display: flex; }
+  #appFinderHeader {
+    padding: 14px 16px;
+    background: linear-gradient(90deg, #0f172a, #1e293b);
+    color: #fff;
+    font-weight: 800;
+    font-size: 14px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  #appFinderHeader button {
+    background: none; border: none; color: #cbd5e1; font-size: 16px; cursor: pointer;
+    line-height: 1;
+  }
+  #appFinderMessages {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 14px 14px 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: #f8fafc;
+  }
+  .af-msg {
+    max-width: 92%;
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 9px 12px;
+    border-radius: 12px;
+    word-break: keep-all;
+    white-space: pre-line;
+  }
+  .af-msg-bot {
+    align-self: flex-start;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    color: #0f172a;
+  }
+  .af-msg-user {
+    align-self: flex-end;
+    background: #0f172a;
+    color: #fff;
+  }
+  .af-suggest {
+    align-self: flex-start;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 92%;
+  }
+  .af-suggest button {
+    text-align: left;
+    font-size: 12.5px;
+    font-weight: 700;
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid #bfdbfe;
+    background: #eff6ff;
+    color: #1d4ed8;
+    cursor: pointer;
+  }
+  .af-suggest button:hover { background: #dbeafe; }
+  #appFinderForm {
+    display: flex;
+    gap: 8px;
+    padding: 10px;
+    border-top: 1px solid #e2e8f0;
+    background: #fff;
+  }
+  #appFinderInput {
+    flex: 1 1 auto;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    padding: 9px 12px;
+    font-size: 13px;
+    outline: none;
+  }
+  #appFinderInput:focus { border-color: #3b82f6; }
+  #appFinderForm button[type="submit"] {
+    border: none;
+    border-radius: 10px;
+    padding: 0 16px;
+    background: #0f172a;
+    color: #fff;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+  }
 </style>
 </head>
 <body>
@@ -471,6 +596,21 @@
       <iframe id="appFrame" title="웹앱 화면"></iframe>
       <div id="frameHint">이 화면이 정상적으로 안 보이면 해당 사이트가 다른 페이지 안에 넣는(iframe) 것을 막아둔 경우입니다.<br><a href="#" onclick="openCurrentInNewTab(); return false;">새 탭에서 직접 열기 →</a></div>
     </div>
+  </div>
+</div>
+
+<div id="appFinderWidget">
+  <button id="appFinderToggle" onclick="toggleAppFinder()" aria-label="기능 찾기 챗봇 열기">🔍</button>
+  <div id="appFinderPanel">
+    <div id="appFinderHeader">
+      <span>🔍 기능 찾기 챗봇</span>
+      <button onclick="toggleAppFinder()" aria-label="닫기">✕</button>
+    </div>
+    <div id="appFinderMessages"></div>
+    <form id="appFinderForm" onsubmit="return handleAppFinderSubmit(event)">
+      <input type="text" id="appFinderInput" placeholder="예: 엑셀 파일 여러개 하나로 합치고 싶어" autocomplete="off">
+      <button type="submit">이동</button>
+    </form>
   </div>
 </div>
 
@@ -755,6 +895,146 @@
     }, 5000);
   }
   renderBanners();
+
+  // ── 우측 하단 "기능 찾기" 챗봇: 키워드 매칭 방식 ──
+  // 각 앱의 title/feats/usecases에 없는 표현(동의어)도 어느 정도 잡아내도록
+  // url을 키로 하는 보조 키워드 목록을 함께 사용한다.
+  const APP_SEARCH_KEYWORDS = {
+    'https://pdf-frontend-sigma-one.vercel.app/': ['pdf', '이미지', '합치기', '합쳐', '병합', '통합', '스캔', '변환'],
+    'https://nunco-git.github.io/hwpwfinder/': ['한글', 'hwp', '정리', '추출', '엑셀로', '문서정리', '자료정리'],
+    'https://nunco-git.github.io/hwpxmerge/': ['한글', 'hwp', 'hwpx', '병합', '합치기', '합쳐', '문서병합', '보고서', '취합'],
+    'https://nunco-git.github.io/excelmerge/': ['엑셀', 'excel', 'xlsx', '병합', '합치기', '합쳐', '취합', '통합', '비밀번호', '잠금해제', '해독'],
+    'https://nunco-git.github.io/excelfuntion/': [
+      '엑셀', 'excel', '함수', '수식', '변환',
+      // 자주 쓰는 엑셀 함수 이름 (사용자가 함수명으로 바로 물어봐도 찾도록)
+      'vlookup', 'xlookup', 'countif', 'countifs', 'sumif', 'sumifs', 'sum',
+      'if', 'ifs', 'iferror', 'ifblank', 'average', 'averageif',
+      'concatenate', 'concat', 'textjoin', 'text', 'left', 'right', 'mid',
+      'trim', 'round', 'roundup', 'rounddown', 'index', 'match', 'isblank',
+      'value', 'date', 'datedif', 'today', 'proper', 'substitute', 'find',
+      // 실제 기능/활용 키워드
+      '찾기함수', '합계함수', '조건부합계', '명단정리', '연락처마스킹',
+      '전화번호', '생년월일', '날짜변환', '날짜형식', '서식통일', '서식변환',
+      '부서별분류', '지역별분류', '파일나누기', '인쇄설정', '사진삽입',
+      '동적목록', '드롭다운', '데이터유효성',
+    ],
+    'https://nunco-git.github.io/multipointmap/': ['지도', '맵', '마커', '위치', '좌표', '핀', '표시'],
+    'https://nunco-git.github.io/picadjust/': ['이미지', '사진', '편집', '리사이즈', '자르기', '용량', '압축', '변환'],
+    'https://nunco-git.github.io/filerename/': ['파일명', '이름변경', '일괄변경', '정리', '이름바꾸기'],
+    'https://nunco-git.github.io/data-compile/': ['자료', '취합', '제출', '수합', '모으기', '집계'],
+    'https://nunco-git.github.io/pdfblack/': ['개인정보', '마스킹', '블러', '가리기', '보안', '유출방지', '지우기', '검게'],
+  };
+
+  function stripHtml(str) {
+    return String(str).replace(/<[^>]+>/g, '');
+  }
+
+  // 검색 대상 텍스트: 제목 + 기능 + 활용사례 + 보조 키워드
+  const APP_SEARCH_INDEX = APPS.map(app => {
+    const text = [
+      app.title,
+      (app.feats || []).map(stripHtml).join(' '),
+      (app.usecases || []).join(' '),
+      (APP_SEARCH_KEYWORDS[app.url] || []).join(' '),
+    ].join(' ').toLowerCase();
+    return { app, text };
+  });
+
+  function tokenizeQuery(query) {
+    return query
+      .toLowerCase()
+      .split(/[\s,.\/!?~()\[\]"'‘’“”·]+/)
+      .map(t => t.trim())
+      .filter(t => t.length >= 2);
+  }
+
+  function scoreApp(entry, tokens) {
+    let score = 0;
+    tokens.forEach(tok => {
+      if (entry.text.includes(tok)) score += tok.length;
+    });
+    return score;
+  }
+
+  function findBestApps(query) {
+    const tokens = tokenizeQuery(query);
+    if (!tokens.length) return [];
+    const scored = APP_SEARCH_INDEX
+      .map(entry => ({ app: entry.app, score: scoreApp(entry, tokens) }))
+      .filter(r => r.score > 0)
+      .sort((a, b) => b.score - a.score);
+    return scored;
+  }
+
+  function toggleAppFinder() {
+    const widget = document.getElementById('appFinderWidget');
+    widget.classList.toggle('open');
+    if (widget.classList.contains('open')) {
+      const msgs = document.getElementById('appFinderMessages');
+      if (!msgs.dataset.greeted) {
+        addFinderMessage('bot', '안녕하세요! 찾으시는 업무를 자연어로 입력해주세요.\n예) "여러 부서 엑셀 파일 하나로 합치고 싶어"');
+        msgs.dataset.greeted = '1';
+      }
+      document.getElementById('appFinderInput').focus();
+    }
+  }
+
+  function addFinderMessage(who, text) {
+    const msgs = document.getElementById('appFinderMessages');
+    const div = document.createElement('div');
+    div.className = 'af-msg ' + (who === 'user' ? 'af-msg-user' : 'af-msg-bot');
+    div.textContent = text;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+    return div;
+  }
+
+  function addFinderSuggestions(results) {
+    const msgs = document.getElementById('appFinderMessages');
+    const wrap = document.createElement('div');
+    wrap.className = 'af-suggest';
+    results.forEach(r => {
+      const btn = document.createElement('button');
+      btn.textContent = r.app.title;
+      btn.onclick = () => {
+        switchApp(r.app.url);
+        widgetCloseAfterNav();
+      };
+      wrap.appendChild(btn);
+    });
+    msgs.appendChild(wrap);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function widgetCloseAfterNav() {
+    document.getElementById('appFinderWidget').classList.remove('open');
+  }
+
+  function handleAppFinderSubmit(evt) {
+    evt.preventDefault();
+    const input = document.getElementById('appFinderInput');
+    const query = input.value.trim();
+    if (!query) return false;
+    addFinderMessage('user', query);
+    input.value = '';
+
+    const results = findBestApps(query);
+    if (!results.length) {
+      addFinderMessage('bot', '죄송해요, 어떤 기능을 찾으시는지 잘 모르겠어요. 다른 표현으로 다시 말씀해주시겠어요?');
+      return false;
+    }
+    const best = results[0];
+    addFinderMessage('bot', `"${best.app.title}" 화면으로 이동할게요.`);
+    switchApp(best.app.url);
+
+    const alternatives = results.slice(1, 3).filter(r => r.score >= best.score * 0.4);
+    if (alternatives.length) {
+      addFinderMessage('bot', '혹시 이걸 찾으신 거라면 아래에서 선택해주세요:');
+      addFinderSuggestions(alternatives);
+    }
+    setTimeout(widgetCloseAfterNav, 900);
+    return false;
+  }
 </script>
 </body>
 </html>
