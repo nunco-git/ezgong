@@ -1151,7 +1151,30 @@
     document.getElementById('appFinderWidget').classList.remove('open');
   }
 
-  function handleAppFinderSubmit(evt) {
+  // 키워드 매칭이 실패했을 때만 호출하는 AI(Gemini) 폴백.
+  // 배포한 Cloud Function 주소를 여기에 넣으세요. 비워두면 AI 폴백 없이
+  // 기존처럼 "못 찾았어요" 메시지만 보여줍니다. (자세한 배포 방법은
+  // functions_deploy/README.md 참고)
+  const CLOUD_FUNCTION_URL = '';
+
+  async function askAIFallback(query) {
+    if (!CLOUD_FUNCTION_URL) return null;
+    try {
+      const res = await fetch(CLOUD_FUNCTION_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (!data || !data.url) return null;
+      return data; // { url, fn, label, confidence }
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async function handleAppFinderSubmit(evt) {
     evt.preventDefault();
     const input = document.getElementById('appFinderInput');
     const query = input.value.trim();
@@ -1161,7 +1184,22 @@
 
     const results = findBestApps(query);
     if (!results.length) {
-      addFinderMessage('bot', '죄송해요, 어떤 기능을 찾으시는지 잘 모르겠어요. 다른 표현으로 다시 말씀해주시겠어요?');
+      // 키워드 매칭 실패 → AI 폴백 시도 (설정되어 있을 때만)
+      if (CLOUD_FUNCTION_URL) {
+        addFinderMessage('bot', 'AI에게 물어보고 있어요...');
+      }
+      const aiResult = await askAIFallback(query);
+      if (aiResult) {
+        const label = aiResult.label || '찾으시는 화면';
+        const url = aiResult.fn
+          ? aiResult.url + '?fn=' + encodeURIComponent(aiResult.fn)
+          : aiResult.url;
+        addFinderMessage('bot', `"${label}" 화면으로 이동할게요.`);
+        switchApp(url);
+        setTimeout(widgetCloseAfterNav, 900);
+      } else {
+        addFinderMessage('bot', '죄송해요, 어떤 기능을 찾으시는지 잘 모르겠어요. 다른 표현으로 다시 말씀해주시겠어요?');
+      }
       return false;
     }
     const best = results[0];
