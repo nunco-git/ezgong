@@ -1155,7 +1155,7 @@
   // 배포한 Cloud Function 주소를 여기에 넣으세요. 비워두면 AI 폴백 없이
   // 기존처럼 "못 찾았어요" 메시지만 보여줍니다. (자세한 배포 방법은
   // functions_deploy/README.md 참고)
-  const CLOUD_FUNCTION_URL = '';
+  const CLOUD_FUNCTION_URL = 'https://asia-northeast3-chatbot-6b636.cloudfunctions.net/findAppByAI';
 
   async function askAIFallback(query) {
     if (!CLOUD_FUNCTION_URL) return null;
