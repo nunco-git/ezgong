@@ -944,18 +944,69 @@
     return { app, text };
   });
 
+  // 자주 붙는 조사/어미를 앞부분(어간)만 남기고 잘라내서, "합쳐줘"/"합치고싶어"처럼
+  // 다르게 활용된 표현도 "합치" 같은 공통 부분으로 비교되게 한다. (완벽한 형태소
+  // 분석은 아니고, 자주 쓰는 표현 위주의 실용적인 처리)
+  const KOREAN_ENDINGS = [
+    '해주세요', '해주시겠어요', '해줄래요', '해줘요', '해줘',
+    '하고싶습니다', '하고싶어요', '하고싶어', '하고 싶어요', '하고 싶어',
+    '하려고요', '하려고합니다', '하려고', '하려합니다', '하려해요',
+    '하고자합니다', '하고자', '해야합니다', '해야해요', '해야될까요',
+    '되나요', '되나', '될까요', '됩니다', '되게', '되도록',
+    '합니다', '해요', '하나요', '할까요', '하는데', '하려는데',
+    '있나요', '있을까요', '있어요', '싶어요', '싶은데', '싶다',
+    '주세요', '줘요', '줘', '줄래', '주실래요',
+  ];
+  // 조사(짧은 것부터가 아니라 긴 것부터 매칭해야 오검출이 적다)
+  const KOREAN_PARTICLES = [
+    '으로부터', '에서부터', '한테서', '으로는', '에서는', '에게서',
+    '이라서', '이라고', '에서', '에게', '한테', '으로', '이랑', '하고',
+    '까지', '부터', '마저', '조차', '만큼', '처럼',
+    '은', '는', '이', '가', '을', '를', '의', '에', '로', '와', '과',
+    '도', '만', '나', '랑',
+  ];
+
+  function stripKoreanTail(word) {
+    let w = word;
+    // 문장형 어미 제거 (가장 긴 것부터 시도)
+    for (const end of KOREAN_ENDINGS) {
+      if (w.length - end.length >= 1 && w.endsWith(end)) {
+        w = w.slice(0, -end.length);
+        break;
+      }
+    }
+    // 조사 제거 (남은 글자가 1자 이상일 때만)
+    for (const p of KOREAN_PARTICLES) {
+      if (w.length - p.length >= 1 && w.endsWith(p)) {
+        w = w.slice(0, -p.length);
+        break;
+      }
+    }
+    return w;
+  }
+
   function tokenizeQuery(query) {
     return query
       .toLowerCase()
       .split(/[\s,.\/!?~()\[\]"'‘’“”·]+/)
       .map(t => t.trim())
-      .filter(t => t.length >= 2);
+      .filter(t => t.length >= 2)
+      .map(t => {
+        const stemmed = stripKoreanTail(t);
+        // 어간이 너무 짧아지면(1자) 오검출 위험이 크므로 원본을 그대로 쓴다.
+        return stemmed.length >= 2 ? stemmed : t;
+      });
   }
 
+  // 여러 앱/기능에 공통으로 등장하는 흔한 단어(예: "엑셀")는 점수 기여도를 낮추고,
+  // 소수의 항목에만 등장하는 단어(예: "마스킹")는 더 결정적인 단서로 보고 가중치를 높인다.
   function scoreApp(entry, tokens) {
     let score = 0;
     tokens.forEach(tok => {
-      if (entry.text.includes(tok)) score += tok.length;
+      if (entry.text.includes(tok)) {
+        const df = APP_SEARCH_INDEX.filter(e => e.text.includes(tok)).length || 1;
+        score += tok.length / df;
+      }
     });
     return score;
   }
@@ -1044,7 +1095,12 @@
     const text = (item.label + ' ' + item.keywords.join(' ')).toLowerCase();
     let score = 0;
     tokens.forEach(tok => {
-      if (text.includes(tok)) score += tok.length;
+      if (text.includes(tok)) {
+        const df = EXCEL_SUBFUNCTIONS.filter(f =>
+          (f.label + ' ' + f.keywords.join(' ')).toLowerCase().includes(tok)
+        ).length || 1;
+        score += tok.length / df;
+      }
     });
     return score;
   }
@@ -1194,9 +1250,15 @@
         const url = aiResult.fn
           ? aiResult.url + '?fn=' + encodeURIComponent(aiResult.fn)
           : aiResult.url;
-        addFinderMessage('bot', `"${label}" 화면으로 이동할게요.`);
-        switchApp(url);
-        setTimeout(widgetCloseAfterNav, 900);
+        if (aiResult.confidence === 'low') {
+          // 확신이 낮을 때는 바로 이동시키지 않고, 확인받은 뒤에 이동한다.
+          addFinderMessage('bot', `혹시 "${label}"을(를) 찾으시나요? 맞으면 아래에서 선택해주세요.`);
+          addFinderSuggestions([{ app: { title: label, url } }]);
+        } else {
+          addFinderMessage('bot', `"${label}" 화면으로 이동할게요.`);
+          switchApp(url);
+          setTimeout(widgetCloseAfterNav, 900);
+        }
       } else {
         addFinderMessage('bot', '죄송해요, 어떤 기능을 찾으시는지 잘 모르겠어요. 다른 표현으로 다시 말씀해주시겠어요?');
       }
