@@ -260,8 +260,9 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    overflow: hidden;
+    overflow: visible;
     border-radius: 12px;
+    transform: translateY(-8px);
   }
   .home-header-logo img {
     display: block;
@@ -282,6 +283,9 @@
     background: #dbeafe;
     border: 1px solid #bfdbfe;
     word-break: keep-all;
+    margin-top: -26px;
+    position: relative;
+    z-index: 2;
   }
   .home-card {
     grid-column: span 3;
