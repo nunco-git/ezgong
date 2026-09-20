@@ -27,17 +27,23 @@
     box-shadow: 0 1px 3px rgba(0,0,0,0.15);
     position: relative;
   }
+  /* 상단 좌측 브랜드 영역: 3열 × 2행 그리드 (순번: 1행 1,2,3 / 2행 4,5,6)
+     [1][4] → 로고 (1열 전체 병합, 세로로 2행 합침)
+     [2]    → 슬기로운 직장생활을 위한 (1행, 2열)
+     [5]    → 스마트업무앱          (2행, 2열)
+     [3][6] → 스마트공 (3열 전체 병합, 세로로 2행 합침) */
   #topBar .brand {
     width: 300px;
     flex-shrink: 0;
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-rows: repeat(2, 1fr);
     align-items: center;
-    text-align: left;
-    padding: 2px 10px;
-    line-height: 1.3;
-    gap: 8px;
+    justify-items: center;
+    text-align: center;
+    padding: 2px 12px;
+    row-gap: 0;
+    column-gap: 8px;
     background: linear-gradient(90deg, #1e3a8a 0%, #1e293b 85%);
     border-right: 1px solid #334155;
     white-space: nowrap;
@@ -45,27 +51,32 @@
     cursor: pointer;
     transition: background 0.15s;
   }
+  #topBar .brand .brand-cell-14 { grid-column: 1; grid-row: 1 / 3; }
+  #topBar .brand .brand-cell-2 { grid-column: 2; grid-row: 1; }
+  #topBar .brand .brand-cell-5 { grid-column: 2; grid-row: 2; }
+  #topBar .brand .brand-cell-36 { grid-column: 3; grid-row: 1 / 3; }
   #topBar .brand .brand-logo {
     height: 26px;
     width: auto;
-    flex-shrink: 0;
-  }
-  #topBar .brand .brand-text {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    overflow: hidden;
   }
   #topBar .brand:hover { background: linear-gradient(90deg, #234690 0%, #253347 85%); }
   #topBar .brand.active { background: linear-gradient(90deg, #2563eb 0%, #1e3a8a 85%); }
   #topBar .brand .brand-tagline {
-    font-size: 12.5px;
+    font-size: 10.5px;
     font-weight: 500;
     color: #93c5fd;
-    letter-spacing: -0.1px;
+    letter-spacing: -0.2px;
+    justify-self: start;
   }
-  #topBar .brand .brand-main {
-    font-size: 12.5px;
+  #topBar .brand .brand-app {
+    font-size: 12px;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.2px;
+    justify-self: start;
+  }
+  #topBar .brand .brand-name {
+    font-size: 13px;
     font-weight: 800;
     color: #ffffff;
     letter-spacing: -0.1px;
@@ -493,6 +504,13 @@
     background: none; border: none; color: #cbd5e1; font-size: 16px; cursor: pointer;
     line-height: 1;
   }
+  #appFinderHeader .af-brand-home {
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-color: rgba(255,255,255,0.4);
+  }
+  #appFinderHeader .af-brand-home:hover { color: #93c5fd; }
   #appFinderMessages {
     flex: 1 1 auto;
     overflow-y: auto;
@@ -586,11 +604,10 @@
 <div id="shell">
   <div id="topBar">
     <div class="brand" id="brandHome" onclick="switchApp(null); closeMobileMenu();">
-      <img src="smartgong_logo_icon.png" alt="스마트공" class="brand-logo">
-      <div class="brand-text">
-        <span class="brand-tagline">슬기로운 직장생활을 위한</span>
-        <span class="brand-main">📂 스마트 업무앱(스마트 공)</span>
-      </div>
+      <img src="smartgong_logo_icon.png" alt="스마트공" class="brand-logo brand-cell brand-cell-14">
+      <span class="brand-tagline brand-cell brand-cell-2">슬기로운 직장생활을 위한</span>
+      <span class="brand-app brand-cell brand-cell-5">스마트업무앱</span>
+      <span class="brand-name brand-cell brand-cell-36">스마트공</span>
     </div>
     <div id="tabList"></div>
     <button id="mobileMenuBtn" onclick="toggleMobileMenu()" aria-label="앱 목록 열기">☰</button>
@@ -622,7 +639,7 @@
   <button id="appFinderToggle" onclick="toggleAppFinder()" aria-label="스마트공 기능찾기 열기"><span class="af-toggle-icon">🔍</span>스마트공 기능찾기</button>
   <div id="appFinderPanel">
     <div id="appFinderHeader">
-      <span>🔍 스마트공 기능찾기</span>
+      <span>🔍 <span class="af-brand-home" onclick="goHomeFromFinder()" role="button" tabindex="0" aria-label="처음 화면(스마트공)으로 이동">스마트공</span> 기능찾기</span>
       <button onclick="toggleAppFinder()" aria-label="닫기">✕</button>
     </div>
     <div id="appFinderMessages"></div>
@@ -1163,6 +1180,11 @@
       }
     });
     document.getElementById('appFinderMessages').dataset.greeted = '1';
+  }
+
+  function goHomeFromFinder() {
+    switchApp(null);
+    document.getElementById('appFinderWidget').classList.remove('open');
   }
 
   function toggleAppFinder() {
