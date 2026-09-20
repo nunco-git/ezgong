@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>서비스 안내 | 스마트공</title>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" integrity="sha384-2nNKoOPayicGa+aRguOQuiZP+RqQ4G3jalfDeOgftkKD7zBM2gJXTwcFqCZltdv0">
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+    margin: 0;
+    padding: 40px 20px;
+    background-color: #f4f6f8;
+    display: flex;
+    justify-content: center;
+    color: #1e293b;
+    line-height: 1.7;
+  }
+  .page {
+    width: 100%;
+    max-width: 880px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 44px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.05);
+  }
+  .top-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+  .top-title img { height: 40px; width: auto; }
+  .top-title h1 {
+    font-family: 'Jua', 'Pretendard Variable', sans-serif;
+    font-weight: 400;
+    font-size: 2rem;
+    color: #9a3412;
+    margin: 0;
+  }
+  .subtitle { color: #64748b; font-size: 15.5px; margin: 0 0 30px 0; }
+
+  .motive-box {
+    background: linear-gradient(160deg, #eff6ff 0%, #f5f8ff 100%);
+    border: 1px solid #bfdbfe;
+    border-radius: 14px;
+    padding: 24px 26px;
+    margin-bottom: 34px;
+  }
+  .motive-box h2 {
+    margin: 0 0 12px 0;
+    font-size: 1.15rem;
+    color: #1e3a8a;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .motive-box p { margin: 0 0 10px 0; color: #1e3a8a; font-size: 15.5px; }
+  .motive-box p:last-child { margin-bottom: 0; }
+
+  section { margin-bottom: 34px; }
+  section h2 {
+    font-size: 1.15rem;
+    color: #0f172a;
+    border-left: 4px solid #2563eb;
+    padding-left: 10px;
+    margin-bottom: 14px;
+  }
+  section p { color: #334155; font-size: 15.5px; margin: 0 0 10px 0; }
+
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  .feature-card {
+    background: #fafafa;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .feature-card strong {
+    display: block;
+    font-size: 14.5px;
+    color: #0f172a;
+    margin-bottom: 4px;
+  }
+  .feature-card span { font-size: 13.5px; color: #64748b; }
+
+  .security-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .security-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 14.5px;
+    color: #166534;
+  }
+  .security-list .icon { flex-shrink: 0; }
+
+  .contact-box {
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 12px;
+    padding: 16px 20px;
+    font-size: 14.5px;
+    color: #9a3412;
+  }
+  .contact-box a { color: #c2410c; font-weight: 700; text-decoration: none; }
+
+  footer {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid #e2e8f0;
+  }
+  footer .footer-links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-size: 15px;
+    color: #94a3b8;
+  }
+  footer .footer-links a, footer .footer-links .footer-nav-link { color: #64748b; text-decoration: none; }
+  footer .footer-links .brand { color: #0f172a; text-decoration: none; font-weight: 800; font-size: 16px; display: inline-flex; align-items: center; gap: 6px; }
+  footer .footer-links .brand img { height: 28px; width: auto; }
+
+  @media (max-width: 640px) {
+    .page { padding: 24px; border-radius: 12px; }
+    .feature-grid { grid-template-columns: 1fr; }
+    .top-title h1 { font-size: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+  <div class="page">
+    <div class="top-title">
+      <img src="smartgong_logo_icon.png" alt="스마트공">
+      <h1>스마트공 서비스 안내</h1>
+    </div>
+    <p class="subtitle">공공기관 실무자가 만든, 서버 전송 없는 웹 업무도구 모음 · smartgong.kr</p>
+
+    <div class="motive-box">
+      <h2>💡 왜 만들었나요</h2>
+      <p>
+        공공기관에서 일을 하다 보면 형식만 다를 뿐 본질은 비슷한 업무를 매년, 매달 반복하게 됩니다.
+        이런 반복 업무는 엑셀 함수나 매크로만으로 해결되지 않는 경우가 많고, 최근에는 챗GPT·클로드·제미나이 같은
+        AI 도구를 활용하면 훨씬 효율적으로 처리할 수 있다는 것도 알게 되었습니다.
+      </p>
+      <p>
+        하지만 실제 업무 현장에서는 문서 대부분이 주민등록번호, 연락처, 주소 등 개인정보를 포함하고 있어서
+        이런 자료를 외부 서버나 AI 서비스에 그대로 업로드하기가 어렵다는 현실적인 문제가 있었습니다.
+      </p>
+      <p>
+        그래서 <strong>개인정보가 담긴 파일을 어디에도 전송하지 않고, 브라우저 안에서만 처리</strong>하면서도
+        AI 시대에 맞게 반복 업무를 자동화할 수 있는, 별도의 설치나 회원가입 없이 누구나 바로 쓸 수 있는
+        웹 도구가 필요하다는 생각으로 스마트공을 시작하게 되었습니다.
+      </p>
+    </div>
+
+    <section>
+      <h2>스마트공이란</h2>
+      <p>
+        스마트공은 공공기관 실무자가 실제 업무 경험을 바탕으로 직접 기획·개발한 웹 기반 업무도구 모음입니다.
+        회원가입이나 설치 프로그램 없이 웹 주소만 열면 바로 사용할 수 있고, 대부분의 기능이 파일을
+        서버로 전송하지 않고 사용자의 브라우저 안에서 직접 처리되도록 설계되어 있습니다.
+      </p>
+    </section>
+
+    <section>
+      <h2>제공하는 도구 예시</h2>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <strong>📂 공문 일괄 조회</strong>
+          <span>PDF·한글·엑셀·이미지·압축 파일을 한 화면에서 조회 가능</span>
+        </div>
+        <div class="feature-card">
+          <strong>📊 엑셀 자동화</strong>
+          <span>자주 쓰는 엑셀 함수 자동 변환, 여러 엑셀 파일 시트 병합</span>
+        </div>
+        <div class="feature-card">
+          <strong>📑 보고서·자료 병합</strong>
+          <span>한글파일, 엑셀파일을 간편하게 병합 가능</span>
+        </div>
+        <div class="feature-card">
+          <strong>🔒 개인정보 보호</strong>
+          <span>PDF·이미지 속 개인정보 자동 탐지 및 마스킹(비식별화)</span>
+        </div>
+        <div class="feature-card">
+          <strong>📋 자료·서식 취합</strong>
+          <span>설문·증빙자료·의무교육 이수결과 등 다수 담당자 자료 취합</span>
+        </div>
+        <div class="feature-card">
+          <strong>🗃️ 파일 정리</strong>
+          <span>문서 내용 기반 파일명 일괄 변경, 사진 방향·용량 일괄 조정</span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>스마트공의 원칙</h2>
+      <ul class="security-list">
+        <li><span class="icon">🌐</span><span><strong>서버 전송 없음</strong> — 업로드한 파일은 원칙적으로 사용자 브라우저 안에서만 처리되며 외부 서버로 전송되지 않습니다.</span></li>
+        <li><span class="icon">🆓</span><span><strong>설치·가입 없이 즉시 사용</strong> — 프로그램 설치나 회원가입 절차 없이 웹 주소 접속만으로 바로 이용할 수 있습니다.</span></li>
+        <li><span class="icon">🛠️</span><span><strong>현장 실무 기반 개발</strong> — 실제 행정 업무 과정에서 겪은 불편을 해결하기 위해 필요에 따라 기능을 계속 추가·개선하고 있습니다.</span></li>
+      </ul>
+    </section>
+
+    <div class="contact-box">
+      개선 의견이나 오류 제보, 필요한 기능 제안은 언제든 환영합니다.<br>
+      <strong style="color:#c2410c;">smartgongmaster@gmail.com</strong> 으로 편하게 연락해 주세요.
+    </div>
+
+    <footer>
+      <div class="footer-links">
+        <span class="brand footer-nav-link" data-href="https://smartgong.kr/" data-newtab="1" role="link" tabindex="0" style="cursor:pointer;">
+          <img src="smartgong_logo_icon.png" alt="스마트공">
+          <span>스마트공</span>
+          <span style="color:#94a3b8; font-weight:600; font-size:15px;">smartgong.kr</span>
+        </span>
+        <span style="color:#cbd5e1;">|</span>
+        <span class="footer-nav-link" data-href="about.html" role="link" tabindex="0" style="cursor:pointer;">서비스 안내</span>
+        <span style="color:#cbd5e1;">|</span>
+        <span class="footer-nav-link" data-href="services.html" role="link" tabindex="0" style="cursor:pointer;">서비스 목록</span>
+        <span style="color:#cbd5e1;">|</span>
+        <span class="footer-nav-link" data-href="terms.html" role="link" tabindex="0" style="cursor:pointer;">이용약관</span>
+        <span style="color:#cbd5e1;">|</span>
+        <span class="footer-nav-link" data-href="privacy.html" role="link" tabindex="0" style="cursor:pointer;">개인정보처리방침</span>
+        <span style="color:#cbd5e1;">|</span>
+        <span class="footer-nav-link" data-href="copyright.html" role="link" tabindex="0" style="cursor:pointer;">저작권정책</span>
+        <span style="color:#cbd5e1;">|</span>
+        <span style="color:#64748b;">Copyright &copy; 2026 SmartGong. All Rights Reserved.</span>
+      </div>
+    </footer>
+
+    <script>
+      document.querySelectorAll('.footer-nav-link').forEach(function (el) {
+        var url = el.getAttribute('data-href');
+        var newTab = el.getAttribute('data-newtab') === '1';
+        function go() {
+          if (newTab) { window.open(url, '_blank', 'noopener'); }
+          else { window.location.href = url; }
+        }
+        el.addEventListener('click', go);
+        el.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); }
+        });
+      });
+    </script>
+  </div>
+</body>
+</html>

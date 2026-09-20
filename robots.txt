@@ -1,0 +1,16 @@
+# www.smartgong.kr (실제 서빙 도메인) robots.txt
+# smartgong.kr / smartgong.co.kr / vercel.app 은 모두 이 도메인으로 308 리다이렉트됨
+# 비공개 경로 없는 공개 포털 - 전체 허용
+
+User-agent: *
+Allow: /
+
+# 네이버 검색로봇 (네이버 서치어드바이저 등록용)
+User-agent: Yeti
+Allow: /
+
+# 구글
+User-agent: Googlebot
+Allow: /
+
+Sitemap: https://www.smartgong.kr/sitemap.xml

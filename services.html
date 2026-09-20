@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>서비스 목록 | 스마트공</title>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" integrity="sha384-2nNKoOPayicGa+aRguOQuiZP+RqQ4G3jalfDeOgftkKD7zBM2gJXTwcFqCZltdv0">
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+    margin: 0;
+    padding: 40px 20px;
+    background-color: #f4f6f8;
+    display: flex;
+    justify-content: center;
+    color: #1e293b;
+    line-height: 1.7;
+  }
+  .page {
+    width: 100%;
+    max-width: 1080px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 44px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.05);
+  }
+
+  /* ── 앱 임베드 뷰 (iframe) ── */
+  #appView {
+    display: none;
+    flex-direction: column;
+    height: 82vh;
+    min-height: 520px;
+    margin-bottom: 20px;
+  }
+  #appView.active { display: flex; }
+  .app-grid.hidden { display: none; }
+  #appViewBar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 12px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  #appViewTitle { font-size: 1.05rem; font-weight: 700; color: #0f172a; }
+  #appViewBar .app-view-actions { display: flex; gap: 8px; }
+  #appViewBar button {
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 700;
+    padding: 7px 14px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    color: #334155;
+    cursor: pointer;
+  }
+  #appViewBar button:hover { background: #f1f5f9; }
+  #appViewBar #backToListBtn { color: #2563eb; border-color: #bfdbfe; }
+  #appFrameWrap {
+    position: relative;
+    flex: 1;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fafafa;
+  }
+  #appFrame {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+  }
+  #frameHint {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: rgba(15,23,42,0.92);
+    color: #e2e8f0;
+    padding: 24px;
+    text-align: center;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 14.5px;
+  }
+  #frameHint a { color: #93c5fd; font-weight: 700; text-decoration: none; }
+  #frameHint a:hover { text-decoration: underline; }
+  .top-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+  .top-title img { height: 40px; width: auto; }
+  .top-title h1 {
+    font-family: 'Jua', 'Pretendard Variable', sans-serif;
+    font-weight: 400;
+    font-size: 2rem;
+    color: #9a3412;
+    margin: 0;
+  }
+  .subtitle { color: #64748b; font-size: 15.5px; margin: 0 0 32px 0; }
+
+  .app-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+  }
+  .app-card {
+    display: block;
+    background: #fafafa;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 20px 22px;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+  }
+  .app-card:hover,
+  .app-card:focus-visible {
+    border-color: #93c5fd;
+    box-shadow: 0 4px 14px rgba(37,99,235,0.10);
+    transform: translateY(-1px);
+    outline: none;
+  }
+  .app-card h2 {
+    margin: 0 0 10px 0;
+    font-size: 1.05rem;
+    color: #0f172a;
+  }
+  .app-card ul {
+    margin: 0 0 12px 0;
+    padding-left: 18px;
+  }
+  .app-card ul li {
+    font-size: 13.5px;
+    color: #475569;
+    margin-bottom: 3px;
+  }
+  .app-card ul li strong { color: #1d4ed8; }
+  .app-card .go-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #2563eb;
+  }
+
+  .contact-box {
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 12px;
+    padding: 16px 20px;
+    font-size: 14.5px;
+    color: #9a3412;
+    margin-top: 34px;
+  }
+  .contact-box a { color: #c2410c; font-weight: 700; text-decoration: none; }
+
+  footer {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid #e2e8f0;
+  }
+  footer .footer-links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-size: 15px;
+    color: #94a3b8;
+  }
+  footer .footer-links a, footer .footer-links .footer-nav-link { color: #64748b; text-decoration: none; }
+  footer .footer-links .brand { color: #0f172a; text-decoration: none; font-weight: 800; font-size: 16px; display: inline-flex; align-items: center; gap: 6px; }
+  footer .footer-links .brand img { height: 28px; width: auto; }
+
+  @media (max-width: 720px) {
+    .page { padding: 24px; border-radius: 12px; }
+    .app-grid { grid-template-columns: 1fr; }
+    .top-title h1 { font-size: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+  <div class="page">
+    <div class="top-title">
+      <img src="smartgong_logo_icon.png" alt="스마트공">
+      <h1>스마트공 서비스 목록</h1>
+    </div>
+    <p class="subtitle">서버 전송 없이 브라우저에서 바로 쓰는 스마트공의 업무 도구들입니다. 카드를 클릭하면 이 화면 안에서 바로 열립니다.</p>
+
+    <div id="appView">
+      <div id="appViewBar">
+        <span id="appViewTitle"></span>
+        <div class="app-view-actions">
+          <button type="button" id="openNewTabBtn">↗ 새 탭에서 열기</button>
+          <button type="button" id="backToListBtn">← 목록으로</button>
+        </div>
+      </div>
+      <div id="appFrameWrap">
+        <iframe id="appFrame" title="스마트공 도구 화면"></iframe>
+        <div id="frameHint">
+          이 화면이 정상적으로 안 보이면 해당 사이트가 다른 페이지 안에 넣는(iframe) 것을 막아둔 경우입니다.<br>
+          <a href="#" id="frameHintOpenBtn">새 탭에서 직접 열기 →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="app-grid" id="appGrid">
+
+      <div class="app-card" data-url="https://pdf-frontend-sigma-one.vercel.app/" role="link" tabindex="0">
+        <h2>📄 스마트 PDF·이미지 병합기</h2>
+        <ul>
+          <li><strong>외부 서버 전송 ZERO</strong>: 브라우저에서만 처리</li>
+          <li><strong>미리보기 지원</strong>: 순서 확인·조정 후 병합</li>
+          <li><strong>PDF → 이미지 변환</strong> 기능 포함</li>
+        </ul>
+        <span class="go-link">바로가기 →</span>
+      </div>
+
+      <div class="app-card" data-url="https://nunco-git.github.io/hwpwfinder/" role="link" tabindex="0">
+        <h2>📁 스마트 문서 정리기</h2>
+        <ul>
+          <li><strong>한글(HWP·HWPX) 자료 추출</strong>: 필요한 내용만 뽑아 정리</li>
+          <li><strong>PDF·이미지 자료 통합 정리</strong>: 보기 쉬운 엑셀표로 변환</li>
+          <li><strong>서버 전송 없음</strong>: 브라우저에서 안전하게 처리</li>
+        </ul>
+        <span class="go-link">바로가기 →</span>
+      </div>
+
+      <div class="app-card" data-url="https://nunco-git.github.io/hwpxmerge/" role="link" tabindex="0">
+        <h2>📝 스마트 한글(HWPX) 병합기</h2>
+        <ul>
+          <li><strong>순서대로 병합</strong>: 여러 문서를 하나로</li>
+          <li><strong>서식 유지</strong>: 폰트·테두리 안 깨짐</li>
+          <li><strong>빈 템플릿 채우기</strong> 기능 지원</li>
+        </ul>
+        <span class="go-link">바로가기 →</span>
+      </div>
+
+      <div class="app-card" data-url="https://nunco-git.github.io/excelmerge/" role="link" tabindex="0">
+        <h2>📊 스마트 엑셀 병합기</h2>
+        <ul>
+          <li><strong>시트별 일괄 병합</strong>: 여러 파일 한 번에</li>
+          <li><strong>비밀번호 해독</strong>: 잠긴 엑셀도 바로 해제</li>
+          <li><strong>서버 전송 없음</strong>: 안전하게 로컬 처리</li>
+        </ul>
+        <span class="go-link">바로가기 →</span>
+      </div>
+
+      <div class="app-card" data-url="https://nunco-git.github.io/excelfuntion/" role="link" tabindex="0">
+        <h2>🧮 스마트 엑셀 함수 변환기</h2>
+        <ul>
+          <li><strong>함수 클릭 변환</strong>: XLOOKUP·COUNTIF 등</li>
+          <li><strong>실무 기능 다수</strong>: 텍스트·날짜·마스킹</li>
+          <li><strong>인쇄·사진삽입·동적목록</strong>도 지원</li>
+        </ul>
+        <span class="go-link">바로가기 →</span>
+      </div>
+
+      <div class="app-card" data-url="https://nunco-git.github.io/multipointmap/" role="link" tabindex="0">
+        <h2>🗺️ 스마트 맵마커</h2>
+        <ul>
+          <li><strong>주소 지도 표시</strong>: 엑셀 목록 자동 반영</li>
+          <li><strong>경로 계산</strong>: 방문 순서 최적화</li>
+          <li><strong>지도 내보내기</strong>: HTML로 공유</li>
+        </ul>
+        <span class="go-link">바로가기 →</span>
+      </div>
+
+      <div class="app-card" data-url="https://nunco-git.github.io/picadjust/" role="link" tabindex="0">
+        <h2>🖼️ 스마트 이미지 편집기</h2>
+        <ul>
+          <li><strong>방향 일괄 보정</strong>: 회전 자동 처리</li>
+          <li><strong>용량 일괄 조정</strong>: 목표 KB 압축</li>
+          <li><strong>파일명 변경</strong>: 개별·일괄 지원</li>
+        </ul>
+        <span class="go-link">바로가기 →</span>
+      </div>
+
+      <div class="app-card" data-url="https://nunco-git.github.io/filerename/" role="link" tabindex="0">
+        <h2>🏷️ 스마트 파일명 관리자</h2>
+        <ul>
+          <li><strong>내용 자동 인식</strong>: PDF·HWPX 추출</li>
+          <li><strong>파일명 자동 생성</strong>: 규칙 조합</li>
+          <li><strong>규칙 프리셋 저장</strong> 재사용 가능</li>
+        </ul>
+        <span class="go-link">바로가기 →</span>
+      </div>
+
+      <div class="app-card" data-url="https://nunco-git.github.io/data-compile/" role="link" tabindex="0">
+        <h2>📋 스마트 자료 취합 시스템</h2>
+        <ul>
+          <li><strong>설문·양식 배포</strong>: 한 번에 공유</li>
+          <li><strong>응답 자동 취합</strong>: 한 곳에서 정리</li>
+          <li><strong>회차별 관리</strong> 및 첨부 다운로드</li>
+        </ul>
+        <span class="go-link">바로가기 →</span>
+      </div>
+
+      <div class="app-card" data-url="https://nunco-git.github.io/pdfblack/" role="link" tabindex="0">
+        <h2>🔒 스마트 개인정보 마스킹</h2>
+        <ul>
+          <li><strong>PDF·이미지·HWPX 지원</strong>: 스캔본(OCR)·한글 파일까지 처리</li>
+          <li><strong>4가지 마스킹 방식</strong>: 검은색·회색·초성·일련번호</li>
+          <li><strong>자동 탐지 + 수동 보정</strong>: 놓친 부분 추가, 오탐 복귀 가능</li>
+        </ul>
+        <span class="go-link">바로가기 →</span>
+      </div>
+
+      <div class="app-card" data-url="https://nunco-git.github.io/filsuedumanager/" role="link" tabindex="0">
+        <h2>📚 스마트 의무교육관리시스템</h2>
+        <ul>
+          <li><strong>공무원·공공기관·복지시설 의무교육 관리 용이</strong></li>
+          <li><strong>의무교육 이수내용 간편 등록</strong></li>
+          <li><strong>이수증 제출 등 관리 부담 경감</strong></li>
+        </ul>
+        <span class="go-link">바로가기 →</span>
+      </div>
+
+    </div>
+
+    <div class="contact-box">
+      새로운 기능 제안이나 오류 제보는 언제든 환영합니다.<br>
+      <strong style="color:#c2410c;">smartgongmaster@gmail.com</strong> 으로 편하게 연락해 주세요.
+    </div>
+
+    <footer>
+      <div class="footer-links">
+        <span class="brand footer-nav-link" data-href="https://smartgong.kr/" data-newtab="1" role="link" tabindex="0" style="cursor:pointer;">
+          <img src="smartgong_logo_icon.png" alt="스마트공">
+          <span>스마트공</span>
+          <span style="color:#94a3b8; font-weight:600; font-size:15px;">smartgong.kr</span>
+        </span>
+        <span style="color:#cbd5e1;">|</span>
+        <span class="footer-nav-link" data-href="about.html" role="link" tabindex="0" style="cursor:pointer;">서비스 안내</span>
+        <span style="color:#cbd5e1;">|</span>
+        <span class="footer-nav-link" data-href="services.html" role="link" tabindex="0" style="cursor:pointer;">서비스 목록</span>
+        <span style="color:#cbd5e1;">|</span>
+        <span class="footer-nav-link" data-href="terms.html" role="link" tabindex="0" style="cursor:pointer;">이용약관</span>
+        <span style="color:#cbd5e1;">|</span>
+        <span class="footer-nav-link" data-href="privacy.html" role="link" tabindex="0" style="cursor:pointer;">개인정보처리방침</span>
+        <span style="color:#cbd5e1;">|</span>
+        <span class="footer-nav-link" data-href="copyright.html" role="link" tabindex="0" style="cursor:pointer;">저작권정책</span>
+        <span style="color:#cbd5e1;">|</span>
+        <span style="color:#64748b;">Copyright &copy; 2026 SmartGong. All Rights Reserved.</span>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    var currentUrl = null;
+    var appGrid = document.getElementById('appGrid');
+    var appView = document.getElementById('appView');
+    var appFrame = document.getElementById('appFrame');
+    var frameHint = document.getElementById('frameHint');
+    var appViewTitle = document.getElementById('appViewTitle');
+    var frameHintTimer = null;
+
+    function openApp(url, title) {
+      currentUrl = url;
+      clearTimeout(frameHintTimer);
+      frameHint.style.display = 'none';
+
+      appViewTitle.textContent = title || '';
+      appFrame.src = url;
+
+      appGrid.classList.add('hidden');
+      appView.classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // iframe 임베드를 막아둔 사이트인 경우를 대비해, 일정 시간 뒤 안내를 보여줌
+      // (로드 실패를 100% 감지할 방법은 브라우저 보안 정책상 없음)
+      frameHintTimer = setTimeout(function () {
+        frameHint.style.display = 'flex';
+      }, 4000);
+    }
+
+    function closeApp() {
+      currentUrl = null;
+      clearTimeout(frameHintTimer);
+      frameHint.style.display = 'none';
+      appFrame.src = 'about:blank';
+      appView.classList.remove('active');
+      appGrid.classList.remove('hidden');
+    }
+
+    appFrame.addEventListener('load', function () {
+      clearTimeout(frameHintTimer);
+      frameHint.style.display = 'none';
+    });
+
+    document.getElementById('backToListBtn').addEventListener('click', closeApp);
+    document.getElementById('openNewTabBtn').addEventListener('click', function () {
+      if (currentUrl) window.open(currentUrl, '_blank', 'noopener');
+    });
+    document.getElementById('frameHintOpenBtn').addEventListener('click', function (e) {
+      e.preventDefault();
+      if (currentUrl) window.open(currentUrl, '_blank', 'noopener');
+    });
+
+    document.querySelectorAll('.app-card').forEach(function (card) {
+      var url = card.getAttribute('data-url');
+      var titleEl = card.querySelector('h2');
+      var title = titleEl ? titleEl.textContent : '';
+      function go() { openApp(url, title); }
+      card.addEventListener('click', go);
+      card.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          go();
+        }
+      });
+    });
+
+    document.querySelectorAll('.footer-nav-link').forEach(function (el) {
+      var url = el.getAttribute('data-href');
+      var newTab = el.getAttribute('data-newtab') === '1';
+      function go() {
+        if (newTab) { window.open(url, '_blank', 'noopener'); }
+        else { window.location.href = url; }
+      }
+      el.addEventListener('click', go);
+      el.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); }
+      });
+    });
+  </script>
+</body>
+</html>
