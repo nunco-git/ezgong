@@ -34,52 +34,65 @@
      [3][6] → 스마트공 (3열 전체 병합, 세로로 2행 합침) */
   #topBar .brand {
     width: 300px;
+    max-width: 300px;
     flex-shrink: 0;
     display: grid;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: 32px max-content 1fr;
     grid-template-rows: repeat(2, 1fr);
     align-items: center;
     justify-items: center;
     text-align: center;
-    padding: 2px 12px;
+    padding: 2px 10px;
     row-gap: 0;
-    column-gap: 8px;
+    column-gap: 6px;
     background: linear-gradient(90deg, #1e3a8a 0%, #1e293b 85%);
     border-right: 1px solid #334155;
-    white-space: nowrap;
     overflow: hidden;
     cursor: pointer;
     transition: background 0.15s;
   }
-  #topBar .brand .brand-cell-14 { grid-column: 1; grid-row: 1 / 3; }
-  #topBar .brand .brand-cell-2 { grid-column: 2; grid-row: 1; }
-  #topBar .brand .brand-cell-5 { grid-column: 2; grid-row: 2; }
-  #topBar .brand .brand-cell-36 { grid-column: 3; grid-row: 1 / 3; }
+  #topBar .brand .brand-cell-14 { grid-column: 1; grid-row: 1 / 3; min-width: 0; }
+  /* 2,5번 칸은 자기 글자 길이만큼만 차지하고(max-content), 남는 폭은 전부
+     3,6번(스마트공) 칸으로 넘어가 글자 크기를 키우는 데 쓰인다 */
+  #topBar .brand .brand-cell-2 { grid-column: 2; grid-row: 1; min-width: 0; }
+  #topBar .brand .brand-cell-5 { grid-column: 2; grid-row: 2; min-width: 0; }
+  #topBar .brand .brand-cell-36 { grid-column: 3; grid-row: 1 / 3; min-width: 0; width: 100%; }
   #topBar .brand .brand-logo {
-    height: 26px;
+    max-height: 26px;
+    max-width: 32px;
     width: auto;
+    height: auto;
   }
   #topBar .brand:hover { background: linear-gradient(90deg, #234690 0%, #253347 85%); }
   #topBar .brand.active { background: linear-gradient(90deg, #2563eb 0%, #1e3a8a 85%); }
+  #topBar .brand .brand-tagline,
+  #topBar .brand .brand-app,
+  #topBar .brand .brand-name {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   #topBar .brand .brand-tagline {
-    font-size: 10.5px;
+    font-size: 9.5px;
     font-weight: 500;
     color: #93c5fd;
-    letter-spacing: -0.2px;
-    justify-self: start;
+    letter-spacing: -0.3px;
+    text-align: left;
   }
   #topBar .brand .brand-app {
-    font-size: 12px;
+    font-size: 11px;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.3px;
+    text-align: left;
+  }
+  #topBar .brand .brand-name {
+    font-size: 19px;
     font-weight: 800;
     color: #ffffff;
     letter-spacing: -0.2px;
-    justify-self: start;
-  }
-  #topBar .brand .brand-name {
-    font-size: 13px;
-    font-weight: 800;
-    color: #ffffff;
-    letter-spacing: -0.1px;
+    text-align: center;
   }
   #tabList {
     flex: 1;
