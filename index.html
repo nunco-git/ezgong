@@ -668,13 +668,13 @@
   // ── 여기에 포털에 넣을 웹앱 목록을 정의합니다. 필요하면 자유롭게 추가/수정하세요. ──
   const APPS = [
     { title: '📄 스마트 PDF·이미지 병합기', url: 'https://pdf-frontend-sigma-one.vercel.app/', feats: [
-      '<strong>외부 서버 전송 ZERO</strong>: 브라우저에서만 처리',
-      '<strong>미리보기 지원</strong>: 순서 확인·조정 후 병합',
-      '<strong>PDF → 이미지 변환</strong> 기능 포함',
+      '압축파일 그대로 미리보기 가능',
+      'PDF, 이미지 확인·조정 후 병합',
+      'HWPX, 엑셀파일도 미리보기 가능',
     ], featsShort: [
-      '<strong>외부 전송 ZERO</strong>: 브라우저 처리',
-      '<strong>미리보기</strong>: 순서 확인·조정 후 병합',
-      '<strong>PDF → 이미지 변환</strong> 포함',
+      '압축파일 그대로 미리보기 가능',
+      'PDF, 이미지 확인·조정 후 병합',
+      'HWPX, 엑셀파일도 미리보기 가능',
     ], usecases: [
       '공사 준공서류·행사 증빙자료(공문+사진+영수증)를 하나의 PDF로 묶어 결재 상신하거나, 감사·정산 자료 제출 시 첨부파일을 한 번에 정리할 때',
       '첨부파일이 있는 공문서를 한 번에 내려받아 내용을 빠르게 파악하고 싶을 때',
@@ -682,50 +682,50 @@
       '각종 시스템에서 여러 파일을 한꺼번에 내려받아 내용을 확인해야 할 때',
     ] },
     { title: '📁 스마트 문서 정리기', url: 'https://nunco-git.github.io/hwpwfinder/', feats: [
-      '<strong>한글(HWP·HWPX) 자료 추출</strong>: 필요한 내용만 뽑아 정리',
-      '<strong>PDF·이미지 자료 통합 정리</strong>: 보기 쉬운 엑셀표로 변환',
-      '<strong>서버 전송 없음</strong>: 브라우저에서 안전하게 처리',
+      '한글·PDF에서 필요한 자료 추출',
+      '엑셀파일로 변환하여 다운 가능',
+      '서버 전송 없이 안전하게 처리',
     ], featsShort: [
-      '<strong>한글·PDF·이미지</strong> 자료 추출',
-      '<strong>엑셀표로 변환</strong>: 보기 쉽게 정리',
-      '<strong>서버 전송 없음</strong>: 안전하게 처리',
+      '한글·PDF에서 필요한 자료 추출',
+      '엑셀파일로 변환하여 다운 가능',
+      '서버 전송 없이 안전하게 처리',
     ], usecases: [
       '한글문서에서 자료를 정리해서 엑셀파일로 만들고 싶을 때',
       'PDF나 이미지 자료를 한번에 보기 쉽게 엑셀파일로 정리하고 싶을 때',
     ] },
     { title: '📝 스마트 한글(HWPX) 병합기', url: 'https://nunco-git.github.io/hwpxmerge/', feats: [
-      '<strong>순서대로 병합</strong>: 여러 문서를 하나로',
-      '<strong>서식 유지</strong>: 폰트·테두리 안 깨짐',
-      '<strong>빈 템플릿 채우기</strong> 기능 지원',
+      'HWPX 파일을 순서대로 병합',
+      '서식 유지 폰트·테두리 안 깨짐',
+      '빈 서식과 비교해서 취합 가능',
     ], featsShort: [
-      '<strong>순서대로 병합</strong>: 여러 문서를 하나로',
-      '<strong>서식 유지</strong>: 폰트·테두리 안 깨짐',
-      '<strong>빈 템플릿 채우기</strong> 지원',
+      'HWPX 파일을 순서대로 병합',
+      '서식 유지 폰트·테두리 안 깨짐',
+      '빈 서식과 비교해서 취합 가능',
     ], usecases: [
       '여러 부서가 나눠 작성한 회의자료·보고서 초안(hwpx)을 순서대로 합쳐 상급기관 제출용 종합보고서를 만들 때',
       '감사보고서 등 한글로 제출하는 보고서를 여러 명으로부터 취합해야 할 때',
     ] },
     { title: '📊 스마트 엑셀 병합기', url: 'https://nunco-git.github.io/excelmerge/', feats: [
-      '<strong>시트별 일괄 병합</strong>: 여러 파일 한 번에',
-      '<strong>비밀번호 해독</strong>: 잠긴 엑셀도 바로 해제',
-      '<strong>서버 전송 없음</strong>: 안전하게 로컬 처리',
+      '시트별로 필요한 열까지 일괄 병합',
+      '비밀번호 파일도 일괄 해제·병합 가능',
+      '병합결과를 별도 기록하여 검증 가능',
     ], featsShort: [
-      '<strong>시트별 일괄 병합</strong>: 한 번에',
-      '<strong>비밀번호 해독</strong>: 잠긴 엑셀 해제',
-      '<strong>서버 전송 없음</strong>: 로컬 처리',
+      '시트별로 필요한 열까지 일괄 병합',
+      '비밀번호 파일도 일괄 해제·병합 가능',
+      '병합결과를 별도 기록하여 검증 가능',
     ], usecases: [
       '읍면동·부서별로 각자 제출한 실적·현황 엑셀 파일을 취합 담당자가 한 번에 병합해 통합 집계표를 만들 때',
       '개인정보가 포함된 여러 엑셀 파일(비밀번호 설정본 포함)을 한 번에 안전하게 취합할 때',
       '여러 부서·기관에서 받은 각종 제출 자료를 하나로 모아 제출해야 할 때',
     ] },
     { title: '🧮 스마트 엑셀 함수 변환기', url: 'https://nunco-git.github.io/excelfuntion/', feats: [
-      '<strong>함수 클릭 변환</strong>: XLOOKUP·COUNTIF 등',
-      '<strong>실무 기능 다수</strong>: 텍스트·날짜·마스킹',
-      '<strong>인쇄·사진삽입·동적목록</strong>도 지원',
+      '함수 클릭 변환: XLOOKUP 등',
+      '실무 기능: 텍스트·날짜·마스킹',
+      '인쇄·사진삽입·동적목록지원',
     ], featsShort: [
-      '<strong>함수 클릭 변환</strong>: XLOOKUP 등',
-      '<strong>실무 기능</strong>: 텍스트·날짜·마스킹',
-      '<strong>인쇄·사진삽입·동적목록</strong> 지원',
+      '함수 클릭 변환: XLOOKUP 등',
+      '실무 기능: 텍스트·날짜·마스킹',
+      '인쇄·사진삽입·동적목록지원',
     ], usecases: [
       '엑셀 함수를 몰라도 담당자가 값만 입력하면 명단 정리, 연락처 마스킹, 날짜·서식 변환 결과를 바로 얻어 업무에 붙여넣을 때',
       '자료에서 원하는 값을 찾는 찾기 함수(VLOOKUP·XLOOKUP)나 합계 함수(SUMIF 등)가 필요할 때',
@@ -734,13 +734,13 @@
       '이처럼 엑셀에서 많이 쓰는 기능을 모두 한자리에 모아 쓰고 싶을 때',
     ] },
     { title: '🗺️ 스마트 맵마커', url: 'https://nunco-git.github.io/multipointmap/', feats: [
-      '<strong>주소 지도 표시</strong>: 엑셀 목록 자동 반영',
-      '<strong>경로 계산</strong>: 방문 순서 최적화',
-      '<strong>지도 내보내기</strong>: HTML로 공유',
+      '엑셀 파일주소를 지도에 표시',
+      '방문 순서 최적화 등 경로 계산',
+      '마킹한 지도를 HTML로 공유',
     ], featsShort: [
-      '<strong>주소 지도 표시</strong>: 엑셀 자동 반영',
-      '<strong>경로 계산</strong>: 방문 순서 최적화',
-      '<strong>지도 내보내기</strong>: HTML로 공유',
+      '엑셀 파일주소를 지도에 표시',
+      '방문 순서 최적화 등 경로 계산',
+      '마킹한 지도를 HTML로 공유',
     ], usecases: [
       '현장점검·실태조사 대상지(공사장, 사업장, 취약계층 가구 등) 주소 목록을 지도에 표시해 방문 동선을 짤 때',
       '관리하는 사업장이나 장소에 대한 목록을 만들어서 업무에 활용하고 싶을 때',
@@ -748,63 +748,63 @@
       '방문 장소에 대한 정보를 지도에 표시해서 공유하고 싶을 때',
     ] },
     { title: '🖼️ 스마트 이미지 편집기', url: 'https://nunco-git.github.io/picadjust/', feats: [
-      '<strong>방향 일괄 보정</strong>: 회전 자동 처리',
-      '<strong>용량 일괄 조정</strong>: 목표 KB 압축',
-      '<strong>파일명 변경</strong>: 개별·일괄 지원',
+      '방향 일괄 보정: 회전 자동 처리',
+      '크기 일괄 조정: 목표 KB 압축',
+      '파일명 변경: 개별·일괄 지원',
     ], featsShort: [
-      '<strong>방향 일괄 보정</strong>: 회전 자동 처리',
-      '<strong>용량 일괄 조정</strong>: 목표 KB 압축',
-      '<strong>파일명 변경</strong>: 개별·일괄 지원',
+      '방향 일괄 보정: 회전 자동 처리',
+      '크기 일괄 조정: 목표 KB 압축',
+      '파일명 변경: 개별·일괄 지원',
     ], usecases: [
       '민원·현장 증빙사진의 방향이 뒤집혀 있거나 용량이 커서 시스템 업로드가 안 될 때, 여러 장을 한 번에 규격에 맞게 보정할 때',
       '수십 장의 현장 사진 등을 제목과 연번으로 구분하여 관리하고 싶을 때',
     ] },
     { title: '🏷️ 스마트 파일명 관리자', url: 'https://nunco-git.github.io/filerename/', feats: [
-      '<strong>내용 자동 인식</strong>: PDF·HWPX 추출',
-      '<strong>파일명 자동 생성</strong>: 규칙 조합',
-      '<strong>규칙 프리셋 저장</strong> 재사용 가능',
+      '내용 자동 인식: PDF·HWPX 추출',
+      '파일명 자동 생성: 규칙 조합',
+      '규칙 프리셋 저장, 재사용 가능',
     ], featsShort: [
-      '<strong>내용 자동 인식</strong>: PDF·HWPX 추출',
-      '<strong>파일명 자동 생성</strong>: 규칙 조합',
-      '<strong>규칙 프리셋 저장</strong> 재사용 가능',
+      '내용 자동 인식: PDF·HWPX 추출',
+      '파일명 자동 생성: 규칙 조합',
+      '규칙 프리셋 저장, 재사용 가능',
     ], usecases: [
-      '스캔한 공문·증빙서류 수백 건을 문서번호·수신처·날짜 등 문서 내용 기준으로 자동 파일명 부여해 문서관리를 표준화할 때',
+      'PDF 파일 등 공문·증빙서류를 문서번호·수신처·날짜 등 문서 내용 기준으로 자동 파일명 부여해 문서관리를 표준화할 때',
       '행복e음이나 각종 업무 시스템에서 다운받은 파일에 신청자의 정보로 파일명을 변경하고 싶을 때',
       '각종 교육 이수증의 이수자 이름과 교육사이트, 교육과정을 엑셀파일로 정리할 필요가 있을 때',
     ] },
     { title: '📋 스마트 자료 취합 시스템', url: 'https://nunco-git.github.io/data-compile/', feats: [
-      '<strong>설문·양식 배포</strong>: 한 번에 공유',
-      '<strong>응답 자동 취합</strong>: 한 곳에서 정리',
-      '<strong>회차별 관리</strong> 및 첨부 다운로드',
+      '설문 등을 다수의 기관에서 취합할 때',
+      '엑셀 파일 등록, 직접 작성 취합 가능',
+      '회차별 관리 및 취합결과 간편 다운로드',
     ], featsShort: [
-      '<strong>설문·양식 배포</strong>: 한 번에 공유',
-      '<strong>응답 자동 취합</strong>: 한 곳에서 정리',
-      '<strong>회차별 관리</strong> 및 첨부 다운로드',
+      '설문 등을 다수의 기관에서 취합할 때',
+      '엑셀 파일 등록, 직접 작성 취합 가능',
+      '회차별 관리 및 취합결과 간편 다운로드',
     ], usecases: [
       '읍면동·산하기관에 설문조사나 실태조사 양식을 배포하고, 각자 보내오는 응답(엑셀·첨부파일 포함)을 한 곳에서 자동으로 취합할 때',
       '사회복지시설이나 보조사업자로부터 자료를 쉽고 간단하게 취합하고 싶을 때',
       '다수의 기관과 사람들에게서 자료를 받아서 간단하게 취합하고 싶을 때',
     ] },
     { title: '🔒 스마트 개인정보 마스킹', url: 'https://nunco-git.github.io/pdfblack/', feats: [
-      '<strong>PDF·이미지·HWPX 지원</strong>: 스캔본(OCR)·한글 파일까지 처리',
-      '<strong>4가지 마스킹 방식</strong>: 검은색·회색·초성·일련번호',
-      '<strong>자동 탐지 + 수동 보정</strong>: 놓친 부분 추가, 오탐 복귀 가능',
+      'PDF·이미지·HWPX 파일 지원',
+      '4가지 방식 마스킹(검정·회색·초성·번호)',
+      '자동 탐지 및 직접 보면서 마스킹 가능',
     ], featsShort: [
-      '<strong>PDF·이미지·HWPX</strong> 지원',
-      '<strong>4가지 방식</strong>: 검정·회색·초성·번호',
-      '<strong>자동 탐지 + 수동 보정</strong> 가능',
+      'PDF·이미지·HWPX 파일 지원',
+      '4가지 방식 마스킹(검정·회색·초성·번호)',
+      '자동 탐지 및 직접 보면서 마스킹 가능',
     ], usecases: [
       '정보공개청구 대응이나 민원서류 공개 전, 문서 속 주민번호·연락처·성명 등 개인정보를 자동으로 찾아 가려줄 때',
       '자동인식이 안되는 개인정보를 일괄 변경하거나 수동으로 찾아서 마스킹처리해야 할 때',
     ] },
     { title: '📚 스마트 의무교육관리시스템', url: 'https://nunco-git.github.io/filsuedumanager/', feats: [
-      '<strong>공무원·공공기관·복지시설 의무교육 관리 용이</strong>',
-      '<strong>의무교육 이수증 자동 인식</strong>하여 정보저장',
-      '<strong>이수증 제출 등 관리 부담 경감</strong>',
+      '의무교육 이수 관리를 간편하게',
+      '이수증 번호, 이수일 등 간편 입력',
+      '서무담당자, 교육담당자 부담 경감',
     ], featsShort: [
-      '<strong>의무교육 이수 관리</strong> 용이',
-      '<strong>이수증 자동 인식</strong>·정보 저장',
-      '<strong>제출·관리 부담 경감</strong>',
+      '의무교육 이수 관리를 간편하게',
+      '이수증 번호, 이수일 등 간편 입력',
+      '서무담당자, 교육담당자 부담 경감',
     ], usecases: [
       '공무원들의 수많은 의무교육을 관리하기 위해 이수증을 제출받고 교육정보를 저장하는 등 자잘한 업무를 해야 할 때',
       '각 교육담당자들이 부서별 이수정보를 다시 취합하는 등 번거로운 업무를 해야 할 때',
@@ -1022,6 +1022,14 @@
     'https://nunco-git.github.io/filsuedumanager/': ['의무교육', '사회복지시설', '필수교육', '공무원', '이수증', '교육이수', '교육관리', '교육정보', '이수정보', '교육담당자', '복지시설', '종사자교육', '법정의무교육'],
   };
 
+  // 특정 앱은 개별 키워드 하나만으로는 걸리지 않고, 정해진 단어 조합이 함께
+  // 있을 때만 후보로 올라오게 한다. (예: 엑셀 병합기는 "엑셀"만 입력해서는
+  // 안 뜨고, "엑셀"+합치기/병합/모으기/하나로 계열 단어가 함께 있어야 뜸 —
+  // 엑셀함수변환기 등 다른 엑셀 관련 앱과 겹치는 것을 막기 위함)
+  const APP_REQUIRED_COMBOS = {
+    'https://nunco-git.github.io/excelmerge/': { all: ['엑셀'], any: ['합치', '병합', '모으', '하나로'] },
+  };
+
   function stripHtml(str) {
     return String(str).replace(/<[^>]+>/g, '');
   }
@@ -1093,7 +1101,13 @@
 
   // 여러 앱/기능에 공통으로 등장하는 흔한 단어(예: "엑셀")는 점수 기여도를 낮추고,
   // 소수의 항목에만 등장하는 단어(예: "마스킹")는 더 결정적인 단서로 보고 가중치를 높인다.
-  function scoreApp(entry, tokens) {
+  function scoreApp(entry, tokens, rawQuery) {
+    const combo = APP_REQUIRED_COMBOS[entry.app.url];
+    if (combo) {
+      const hasAll = combo.all.every(w => rawQuery.includes(w));
+      const hasAny = combo.any.some(w => rawQuery.includes(w));
+      if (!hasAll || !hasAny) return 0;
+    }
     let score = 0;
     tokens.forEach(tok => {
       if (entry.text.includes(tok)) {
@@ -1107,8 +1121,9 @@
   function findBestApps(query) {
     const tokens = tokenizeQuery(query);
     if (!tokens.length) return [];
+    const rawQuery = query.toLowerCase();
     const scored = APP_SEARCH_INDEX
-      .map(entry => ({ app: entry.app, score: scoreApp(entry, tokens) }))
+      .map(entry => ({ app: entry.app, score: scoreApp(entry, tokens, rawQuery) }))
       .filter(r => r.score > 0)
       .sort((a, b) => b.score - a.score);
     return scored;
@@ -1156,15 +1171,17 @@
     { key: '주민번호만나이계산', label: '만 나이 계산', category: '주민등록번호', keywords: ['계산', '나이', '나이계산', '만나이'] },
     { key: '주민번호나이이상', label: '만 몇 세 이상 판별', category: '주민등록번호', keywords: ['나이조건', '몇세이상', '이상', '판별'] },
     { key: '주민번호나이미만', label: '만 몇 세 미만 판별', category: '주민등록번호', keywords: ['나이조건', '몇세미만', '미만', '판별'] },
-    { key: '이름마스킹', label: '이름 가운데 마스킹', category: '개인정보 마스킹', keywords: ['가운데', '마스킹', '성명마스킹', '이름', '이름가리기', '이름 안보이게', '이름 일부 안보이게', '이름 일부 가리기', '이름 일부 마스킹', '이름 가운데 안보이게', '이름 가운데 마스킹'] },
-    { key: '주민번호마스킹', label: '주민등록번호 마스킹', category: '개인정보 마스킹', keywords: ['마스킹', '주민등록번호', '주민등록번호가리기', '주민등록번호 일부 마스킹', '주민등록번호 일부 안보이게', '주민등록번호 뒷자리 가리기', '주민등록번호 일부 가리기. 주민번호 뒷자리 가리기', '주민번호 뒷자리 안보이게', '주민번호 마스킹', '주민번호 일부 마스킹', '주민번호 일부 가리기'] },
-    { key: '전화번호마스킹', label: '전화번호 마스킹', category: '개인정보 마스킹', keywords: ['마스킹', '연락처마스킹', '전화번호', '핸드폰마스킹', '휴대폰마스킹', '전화번호 마스킹', '전화번호 일부 가리기', '전화번호 일부 안보이게', '휴대폰 번호 마스킹', '휴대폰 번호 가리기', '휴대폰 번호 안보이게'] },
-    { key: '이메일마스킹', label: '이메일 마스킹', category: '개인정보 마스킹', keywords: ['마스킹', '메일가리기', '이메일', '이메일 일부 가르기', '이메일 일부 마스킹', '이메일 일부 안보이게'] },
-    { key: '계좌번호마스킹', label: '계좌번호 마스킹', category: '개인정보 마스킹', keywords: ['계좌가리기', '계좌번호', '마스킹', '통장번호마스킹', '계좌번호 일부 가리기', '계좌번호 마스킹', '계좌번호 일부 안보이게'] },
+    { key: '이름마스킹', label: '이름 가운데 마스킹', category: '개인정보 마스킹', keywords: ['개인정보', '가운데', '마스킹', '성명마스킹', '이름', '이름가리기', '이름 안보이게', '이름 일부 안보이게', '이름 일부 가리기', '이름 일부 마스킹', '이름 가운데 안보이게', '이름 가운데 마스킹'] },
+    { key: '주민번호마스킹', label: '주민등록번호 마스킹', category: '개인정보 마스킹', keywords: ['개인정보', '마스킹', '주민등록번호', '주민등록번호가리기', '주민등록번호 일부 마스킹', '주민등록번호 일부 안보이게', '주민등록번호 뒷자리 가리기', '주민등록번호 일부 가리기. 주민번호 뒷자리 가리기', '주민번호 뒷자리 안보이게', '주민번호 마스킹', '주민번호 일부 마스킹', '주민번호 일부 가리기'] },
+    { key: '전화번호마스킹', label: '전화번호 마스킹', category: '개인정보 마스킹', keywords: ['개인정보', '마스킹', '연락처마스킹', '전화번호', '핸드폰마스킹', '휴대폰마스킹', '전화번호 마스킹', '전화번호 일부 가리기', '전화번호 일부 안보이게', '휴대폰 번호 마스킹', '휴대폰 번호 가리기', '휴대폰 번호 안보이게'] },
+    { key: '이메일마스킹', label: '이메일 마스킹', category: '개인정보 마스킹', keywords: ['개인정보', '마스킹', '메일가리기', '이메일', '이메일 일부 가르기', '이메일 일부 마스킹', '이메일 일부 안보이게'] },
+    { key: '계좌번호마스킹', label: '계좌번호 마스킹', category: '개인정보 마스킹', keywords: ['개인정보', '계좌가리기', '계좌번호', '마스킹', '통장번호마스킹', '계좌번호 일부 가리기', '계좌번호 마스킹', '계좌번호 일부 안보이게'] },
     { key: '전화번호형식', label: '전화번호 형식(-추가)', category: '서식 변환', keywords: ['연락처형식', '전화번호', '전화번호하이픈', '추가', '형식', '전화번호 형식 정리', '전화번호 정리', '전화번호 형식 통일', '전화번호 일괄 정리'] },
     { key: '주민번호형식', label: '주민등록번호 형식(-추가)', category: '서식 변환', keywords: ['주민등록번호', '주민번호하이픈', '추가', '형식', '주민등록번호 형식으로 정리', '주민등록번호 형식 정리', '주민등록번호에 하이픈 추가', '주민등록번호 통일', '주민번호 정리', '주민번호 형식정리', '주민번호 형식 통일', '주민번호 서식 정리', '주민번호 서식 통일'] },
     { key: '사업자번호형식', label: '사업자등록번호 형식(-추가)', category: '서식 변환', keywords: ['사업자등록번호', '사업자등록번호하이픈', '추가', '형식', '사업자 등록번호 정리', '사업자등록번호 정리', '사업자등록번호에 하이픈 추가', '사업자등록번호 통일'] },
     { key: '숫자만추출', label: '숫자만 추출(하이픈 제거)', category: '서식 변환', keywords: ['숫자만', '숫자추출', '제거', '추출', '하이픈', '하이픈제거', '이호조 계좌번호', '숫자만 나오게'] },
+    { key: '계좌번호정리', label: '계좌번호 검증/정리', category: '숫자/금액/계좌번호', keywords: ['계좌', '계좌번호', '계좌번호검증', '계좌번호정리', '계좌번호유효성', '검증', '정리', '유효성', '유효성검사', '계좌번호 확인', '계좌번호가 맞는지 확인', '계좌번호 유효성 검사', '계좌번호 오류 확인', '계좌번호 형식 확인'] },
+    { key: '은행코드은행명', label: '은행코드:은행명 입력 (VLOOKUP)', category: '숫자/금액/계좌번호', keywords: ['은행', '은행명', '은행코드', '은행코드조회', '은행명코드', '금융기관코드', '은행 코드 찾기', '은행 코드 조회', '은행명으로 코드 찾기', '은행 코드표', '금융기관 코드 조회', 'vlookup'] },
     { key: '엑스룩업', label: 'XLOOKUP(값 1개 찾기)', category: '찾기(XLOOKUP, SUMIF 등)', keywords: ['1개', 'vlookup', 'xlookup', '값찾기', '조회', '찾기', '자료에서 특정 값 구하기', '자료에서 값을 한꺼번에 구하기', '자료에서 값 구하기'] },
     { key: '중복값찾기한셀', label: 'XLOOKUP(모든 값 찾기, 한셀에 입력)', category: '찾기(XLOOKUP, SUMIF 등)', keywords: ['xlookup', '모든', '모든값찾기', '입력', '찾기', '한셀에', '한칸에', '자료에서 특정 값 구하기', '자료에서 값을 한꺼번에 구하기', '자료에서 값 구하기', 'vlookup'] },
     { key: '중복값찾기여러셀', label: 'XLOOKUP(모든 값 찾기, 여러셀에 입력)', category: '찾기(XLOOKUP, SUMIF 등)', keywords: ['xlookup', '모든', '모든값찾기', '여러셀에', '여러칸', '입력', '찾기', '자료에서 특정 값 구하기', '자료에서 값을 한꺼번에 구하기', '자료에서 값 구하기', 'vlookup'] },
@@ -1198,11 +1215,17 @@
     return score;
   }
 
-  function findBestExcelSubFunction(tokens) {
-    const scored = EXCEL_SUBFUNCTIONS
+  // 점수순으로 정렬된 전체 목록을 돌려준다. (1순위는 바로 이동, 2~3순위는
+  // "혹시 이거였나요?" 대안으로 보여주는 데 사용)
+  function findBestExcelSubFunctions(tokens) {
+    return EXCEL_SUBFUNCTIONS
       .map(item => ({ item, score: scoreSubFunction(item, tokens) }))
       .filter(r => r.score > 0)
       .sort((a, b) => b.score - a.score);
+  }
+
+  function findBestExcelSubFunction(tokens) {
+    const scored = findBestExcelSubFunctions(tokens);
     return scored.length ? scored[0] : null;
   }
 
@@ -1251,7 +1274,7 @@
     if (widget.classList.contains('open')) {
       const msgs = document.getElementById('appFinderMessages');
       if (!msgs.dataset.greeted) {
-        addFinderMessage('bot', '안녕하세요! 스마트한 직장생활을 위한 업무 앱 스마트공입니다.\n찾으시는 업무를 자연어로 입력해주세요.');
+        addFinderMessage('bot', '안녕하세요! 스마트한 직장생활을 위한 업무 앱 스마트공입니다.\n찾으시는 업무를 자연어로 입력해주세요.\n💡 엑셀 함수 변환기의 기능을 찾으신다면 "함수"라는 단어를 꼭 넣어주세요. (예: 개인정보 함수, 계좌번호 함수)');
         msgs.dataset.greeted = '1';
       }
       document.getElementById('appFinderInput').focus();
@@ -1294,11 +1317,23 @@
     return div;
   }
 
-  function addFinderSuggestions(results) {
-    const items = results.map(r => ({ title: r.app.title, url: r.app.url }));
+  // 화면에 그리면서 기록에도 남기는 공용 버전 — items는 {title, url} 배열
+  function addSuggestionItems(items) {
     renderFinderSuggestions(items);
     finderHistory.push({ type: 'suggest', items });
     saveFinderHistory(finderHistory);
+  }
+
+  function addFinderSuggestions(results) {
+    addSuggestionItems(results.map(r => ({ title: r.app.title, url: r.app.url })));
+  }
+
+  // 엑셀 함수 변환기 세부 기능 대안 목록(2~3순위)을 "OO앱 - 기능명" 형태로 보여준다.
+  function addExcelSubFunctionSuggestions(appTitle, matches) {
+    addSuggestionItems(matches.map(m => ({
+      title: appTitle + ' - ' + m.item.label,
+      url: EXCEL_FN_APP_URL + '?fn=' + encodeURIComponent(m.item.key),
+    })));
   }
 
   function widgetCloseAfterNav() {
@@ -1439,6 +1474,31 @@
     addFinderMessage('user', query);
     input.value = '';
 
+    // "함수"라는 단어가 들어오면 다른 앱과 헷갈리지 않고 곧바로 엑셀 함수
+    // 변환기의 세부 기능 중에서 찾는다. (예: "개인정보 함수" → 개인정보
+    // 마스킹 계열 함수, "계좌번호 함수" → 계좌번호 검증 함수)
+    if (query.toLowerCase().includes('함수')) {
+      const tokens = tokenizeQuery(query);
+      const subMatches = findBestExcelSubFunctions(tokens);
+      const appTitle = (APPS.find(a => a.url === EXCEL_FN_APP_URL) || {}).title || '스마트 엑셀 함수 변환기';
+      if (subMatches.length) {
+        const best = subMatches[0];
+        const targetUrl = EXCEL_FN_APP_URL + '?fn=' + encodeURIComponent(best.item.key);
+        addFinderMessage('bot', `"${appTitle} - ${best.item.label}" 화면으로 이동할게요.`);
+        switchApp(targetUrl);
+        const alternatives = subMatches.slice(1, 3).filter(m => m.score >= best.score * 0.4);
+        if (alternatives.length) {
+          addFinderMessage('bot', '혹시 이걸 찾으신 거라면 아래에서 선택해주세요:');
+          addExcelSubFunctionSuggestions(appTitle, alternatives);
+        }
+      } else {
+        addFinderMessage('bot', `"${appTitle}" 화면으로 이동할게요. 원하시는 기능을 화면에서 찾아보세요.`);
+        switchApp(EXCEL_FN_APP_URL);
+      }
+      setTimeout(widgetCloseAfterNav, 900);
+      return false;
+    }
+
     const results = findBestApps(query);
     if (!results.length) {
       // 키워드 매칭 실패 → AI 폴백 시도 (설정되어 있을 때만)
@@ -1472,22 +1532,30 @@
 
     // 엑셀 함수 변환기로 갈 때는 63개 세부 기능 중 어떤 것을 찾는지도 함께 확인해서
     // 그 기능이 미리 선택된 화면으로 바로 연결한다.
+    let subAlternatives = [];
     if (best.app.url === EXCEL_FN_APP_URL) {
       const tokens = tokenizeQuery(query);
-      const subMatch = findBestExcelSubFunction(tokens);
-      if (subMatch) {
-        targetUrl = EXCEL_FN_APP_URL + '?fn=' + encodeURIComponent(subMatch.item.key);
-        displayName = best.app.title + ' - ' + subMatch.item.label;
+      const subMatches = findBestExcelSubFunctions(tokens);
+      if (subMatches.length) {
+        const subBest = subMatches[0];
+        targetUrl = EXCEL_FN_APP_URL + '?fn=' + encodeURIComponent(subBest.item.key);
+        displayName = best.app.title + ' - ' + subBest.item.label;
+        subAlternatives = subMatches.slice(1, 3).filter(m => m.score >= subBest.score * 0.4);
       }
     }
 
     addFinderMessage('bot', `"${displayName}" 화면으로 이동할게요.`);
     switchApp(targetUrl);
 
-    const alternatives = results.slice(1, 3).filter(r => r.score >= best.score * 0.4);
-    if (alternatives.length) {
+    if (subAlternatives.length) {
       addFinderMessage('bot', '혹시 이걸 찾으신 거라면 아래에서 선택해주세요:');
-      addFinderSuggestions(alternatives);
+      addExcelSubFunctionSuggestions(best.app.title, subAlternatives);
+    } else {
+      const alternatives = results.slice(1, 3).filter(r => r.score >= best.score * 0.4);
+      if (alternatives.length) {
+        addFinderMessage('bot', '혹시 이걸 찾으신 거라면 아래에서 선택해주세요:');
+        addFinderSuggestions(alternatives);
+      }
     }
     setTimeout(widgetCloseAfterNav, 900);
     return false;
