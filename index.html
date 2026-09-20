@@ -265,7 +265,7 @@
   .home-grid {
     display: grid;
     grid-template-columns: repeat(12, 1fr);
-    grid-template-rows: repeat(3, minmax(150px, 1fr));
+    grid-template-rows: repeat(3, minmax(auto, 1fr));
     align-items: stretch;
     gap: 16px;
     width: 100%;
@@ -284,6 +284,7 @@
     justify-content: center;
     gap: 8px;
     overflow: visible;
+    min-height: 0;
     border-radius: 12px;
     transform: translateY(-8px);
   }
@@ -317,12 +318,12 @@
     background: #ffffff;
     border: 1px solid #e2e8f0;
     border-radius: 12px;
-    padding: 18px 20px;
+    padding: 18px 22px;
     cursor: pointer;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 6px;
+    gap: 10px;
     transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s;
   }
   .home-card:hover {
@@ -335,16 +336,17 @@
     font-size: 12px; font-weight: 800; color: #93c5fd; letter-spacing: 0.5px;
   }
   .home-card h3 {
-    margin: 0; font-size: 20px; font-weight: 400; color: #0f172a; word-break: keep-all;
+    margin: 0; font-size: 23px; line-height: 1.35; font-weight: 400; color: #0f172a; word-break: keep-all;
     font-family: 'Jua', 'Pretendard Variable', sans-serif;
   }
   .home-card ul {
-    margin: 2px 0 0; padding-left: 16px; font-size: 13px; color: #64748b; line-height: 1.6;
+    margin: 4px 0 0; padding-left: 16px; font-size: 15px; color: #64748b; line-height: 1.85;
   }
   .home-card ul li {
-    margin: 0;
+    margin: 0 0 4px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
+  .home-card ul li:last-child { margin-bottom: 0; }
   .home-card ul li strong { color: #334155; }
   .home-card-usecase {
     position: absolute;
@@ -669,6 +671,10 @@
       '<strong>외부 서버 전송 ZERO</strong>: 브라우저에서만 처리',
       '<strong>미리보기 지원</strong>: 순서 확인·조정 후 병합',
       '<strong>PDF → 이미지 변환</strong> 기능 포함',
+    ], featsShort: [
+      '<strong>외부 전송 ZERO</strong>: 브라우저 처리',
+      '<strong>미리보기</strong>: 순서 확인·조정 후 병합',
+      '<strong>PDF → 이미지 변환</strong> 포함',
     ], usecases: [
       '공사 준공서류·행사 증빙자료(공문+사진+영수증)를 하나의 PDF로 묶어 결재 상신하거나, 감사·정산 자료 제출 시 첨부파일을 한 번에 정리할 때',
       '첨부파일이 있는 공문서를 한 번에 내려받아 내용을 빠르게 파악하고 싶을 때',
@@ -679,6 +685,10 @@
       '<strong>한글(HWP·HWPX) 자료 추출</strong>: 필요한 내용만 뽑아 정리',
       '<strong>PDF·이미지 자료 통합 정리</strong>: 보기 쉬운 엑셀표로 변환',
       '<strong>서버 전송 없음</strong>: 브라우저에서 안전하게 처리',
+    ], featsShort: [
+      '<strong>한글·PDF·이미지</strong> 자료 추출',
+      '<strong>엑셀표로 변환</strong>: 보기 쉽게 정리',
+      '<strong>서버 전송 없음</strong>: 안전하게 처리',
     ], usecases: [
       '한글문서에서 자료를 정리해서 엑셀파일로 만들고 싶을 때',
       'PDF나 이미지 자료를 한번에 보기 쉽게 엑셀파일로 정리하고 싶을 때',
@@ -687,6 +697,10 @@
       '<strong>순서대로 병합</strong>: 여러 문서를 하나로',
       '<strong>서식 유지</strong>: 폰트·테두리 안 깨짐',
       '<strong>빈 템플릿 채우기</strong> 기능 지원',
+    ], featsShort: [
+      '<strong>순서대로 병합</strong>: 여러 문서를 하나로',
+      '<strong>서식 유지</strong>: 폰트·테두리 안 깨짐',
+      '<strong>빈 템플릿 채우기</strong> 지원',
     ], usecases: [
       '여러 부서가 나눠 작성한 회의자료·보고서 초안(hwpx)을 순서대로 합쳐 상급기관 제출용 종합보고서를 만들 때',
       '감사보고서 등 한글로 제출하는 보고서를 여러 명으로부터 취합해야 할 때',
@@ -695,6 +709,10 @@
       '<strong>시트별 일괄 병합</strong>: 여러 파일 한 번에',
       '<strong>비밀번호 해독</strong>: 잠긴 엑셀도 바로 해제',
       '<strong>서버 전송 없음</strong>: 안전하게 로컬 처리',
+    ], featsShort: [
+      '<strong>시트별 일괄 병합</strong>: 한 번에',
+      '<strong>비밀번호 해독</strong>: 잠긴 엑셀 해제',
+      '<strong>서버 전송 없음</strong>: 로컬 처리',
     ], usecases: [
       '읍면동·부서별로 각자 제출한 실적·현황 엑셀 파일을 취합 담당자가 한 번에 병합해 통합 집계표를 만들 때',
       '개인정보가 포함된 여러 엑셀 파일(비밀번호 설정본 포함)을 한 번에 안전하게 취합할 때',
@@ -704,6 +722,10 @@
       '<strong>함수 클릭 변환</strong>: XLOOKUP·COUNTIF 등',
       '<strong>실무 기능 다수</strong>: 텍스트·날짜·마스킹',
       '<strong>인쇄·사진삽입·동적목록</strong>도 지원',
+    ], featsShort: [
+      '<strong>함수 클릭 변환</strong>: XLOOKUP 등',
+      '<strong>실무 기능</strong>: 텍스트·날짜·마스킹',
+      '<strong>인쇄·사진삽입·동적목록</strong> 지원',
     ], usecases: [
       '엑셀 함수를 몰라도 담당자가 값만 입력하면 명단 정리, 연락처 마스킹, 날짜·서식 변환 결과를 바로 얻어 업무에 붙여넣을 때',
       '자료에서 원하는 값을 찾는 찾기 함수(VLOOKUP·XLOOKUP)나 합계 함수(SUMIF 등)가 필요할 때',
@@ -713,6 +735,10 @@
     ] },
     { title: '🗺️ 스마트 맵마커', url: 'https://nunco-git.github.io/multipointmap/', feats: [
       '<strong>주소 지도 표시</strong>: 엑셀 목록 자동 반영',
+      '<strong>경로 계산</strong>: 방문 순서 최적화',
+      '<strong>지도 내보내기</strong>: HTML로 공유',
+    ], featsShort: [
+      '<strong>주소 지도 표시</strong>: 엑셀 자동 반영',
       '<strong>경로 계산</strong>: 방문 순서 최적화',
       '<strong>지도 내보내기</strong>: HTML로 공유',
     ], usecases: [
@@ -725,11 +751,19 @@
       '<strong>방향 일괄 보정</strong>: 회전 자동 처리',
       '<strong>용량 일괄 조정</strong>: 목표 KB 압축',
       '<strong>파일명 변경</strong>: 개별·일괄 지원',
+    ], featsShort: [
+      '<strong>방향 일괄 보정</strong>: 회전 자동 처리',
+      '<strong>용량 일괄 조정</strong>: 목표 KB 압축',
+      '<strong>파일명 변경</strong>: 개별·일괄 지원',
     ], usecases: [
       '민원·현장 증빙사진의 방향이 뒤집혀 있거나 용량이 커서 시스템 업로드가 안 될 때, 여러 장을 한 번에 규격에 맞게 보정할 때',
       '수십 장의 현장 사진 등을 제목과 연번으로 구분하여 관리하고 싶을 때',
     ] },
     { title: '🏷️ 스마트 파일명 관리자', url: 'https://nunco-git.github.io/filerename/', feats: [
+      '<strong>내용 자동 인식</strong>: PDF·HWPX 추출',
+      '<strong>파일명 자동 생성</strong>: 규칙 조합',
+      '<strong>규칙 프리셋 저장</strong> 재사용 가능',
+    ], featsShort: [
       '<strong>내용 자동 인식</strong>: PDF·HWPX 추출',
       '<strong>파일명 자동 생성</strong>: 규칙 조합',
       '<strong>규칙 프리셋 저장</strong> 재사용 가능',
@@ -742,6 +776,10 @@
       '<strong>설문·양식 배포</strong>: 한 번에 공유',
       '<strong>응답 자동 취합</strong>: 한 곳에서 정리',
       '<strong>회차별 관리</strong> 및 첨부 다운로드',
+    ], featsShort: [
+      '<strong>설문·양식 배포</strong>: 한 번에 공유',
+      '<strong>응답 자동 취합</strong>: 한 곳에서 정리',
+      '<strong>회차별 관리</strong> 및 첨부 다운로드',
     ], usecases: [
       '읍면동·산하기관에 설문조사나 실태조사 양식을 배포하고, 각자 보내오는 응답(엑셀·첨부파일 포함)을 한 곳에서 자동으로 취합할 때',
       '사회복지시설이나 보조사업자로부터 자료를 쉽고 간단하게 취합하고 싶을 때',
@@ -751,6 +789,10 @@
       '<strong>PDF·이미지·HWPX 지원</strong>: 스캔본(OCR)·한글 파일까지 처리',
       '<strong>4가지 마스킹 방식</strong>: 검은색·회색·초성·일련번호',
       '<strong>자동 탐지 + 수동 보정</strong>: 놓친 부분 추가, 오탐 복귀 가능',
+    ], featsShort: [
+      '<strong>PDF·이미지·HWPX</strong> 지원',
+      '<strong>4가지 방식</strong>: 검정·회색·초성·번호',
+      '<strong>자동 탐지 + 수동 보정</strong> 가능',
     ], usecases: [
       '정보공개청구 대응이나 민원서류 공개 전, 문서 속 주민번호·연락처·성명 등 개인정보를 자동으로 찾아 가려줄 때',
       '자동인식이 안되는 개인정보를 일괄 변경하거나 수동으로 찾아서 마스킹처리해야 할 때',
@@ -759,6 +801,10 @@
       '<strong>공무원·공공기관·복지시설 의무교육 관리 용이</strong>',
       '<strong>의무교육 이수증 자동 인식</strong>하여 정보저장',
       '<strong>이수증 제출 등 관리 부담 경감</strong>',
+    ], featsShort: [
+      '<strong>의무교육 이수 관리</strong> 용이',
+      '<strong>이수증 자동 인식</strong>·정보 저장',
+      '<strong>제출·관리 부담 경감</strong>',
     ], usecases: [
       '공무원들의 수많은 의무교육을 관리하기 위해 이수증을 제출받고 교육정보를 저장하는 등 자잘한 업무를 해야 할 때',
       '각 교육담당자들이 부서별 이수정보를 다시 취합하는 등 번거로운 업무를 해야 할 때',
@@ -817,7 +863,7 @@
       const h3 = document.createElement('h3');
       h3.textContent = app.title;
       const ul = document.createElement('ul');
-      ul.innerHTML = (app.feats || []).map(f => `<li>${f}</li>`).join('');
+      ul.innerHTML = (app.featsShort || app.feats || []).map(f => `<li>${f}</li>`).join('');
       card.appendChild(num);
       card.appendChild(h3);
       card.appendChild(ul);
