@@ -162,6 +162,34 @@
     font-size: 13.5px;
   }
 
+    /* ── 관리자 통계 대시보드 ── */
+  #adminOverlay { display:none; position:fixed; inset:0; background:rgba(15,23,42,.55); z-index:100000; align-items:center; justify-content:center; padding:16px; }
+  #adminOverlay.open { display:flex; }
+  #adminPanel { background:#fff; color:#0f172a; width:min(880px,100%); max-height:100%; border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,.35); display:flex; flex-direction:column; overflow:hidden; font-size:13.5px; }
+  .ad-head { display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid #e2e8f0; flex-wrap:wrap; }
+  .ad-head strong { font-size:15px; margin-right:auto; }
+  #adUser { color:#64748b; font-size:12px; }
+  .ad-head button { border:1px solid #cbd5e1; background:#f8fafc; border-radius:8px; padding:6px 10px; cursor:pointer; font-size:12.5px; font-weight:600; color:#0f172a; }
+  .ad-head button:hover { background:#e2e8f0; }
+  .ad-toolbar { display:flex; align-items:center; gap:8px; padding:10px 16px 0; flex-wrap:wrap; }
+  #adRange { display:flex; gap:4px; }
+  #adRange button { border:1px solid #cbd5e1; background:#fff; border-radius:999px; padding:4px 12px; cursor:pointer; font-size:12.5px; font-weight:600; color:#334155; }
+  #adRange button.on { background:#0f172a; color:#fff; border-color:#0f172a; }
+  #adBody { padding:8px 16px 18px; overflow:auto; }
+  #adBody h4 { margin:18px 0 8px; font-size:14px; } #adBody h4 small { color:#64748b; font-weight:500; }
+  .ad-msg { color:#475569; padding:32px 0; text-align:center; }
+  .ad-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:8px; margin-top:8px; }
+  .ad-card { background:#f1f5f9; border-radius:10px; padding:10px 12px; }
+  .ad-card span { display:block; color:#64748b; font-size:11.5px; margin-bottom:3px; }
+  .ad-card b { font-size:18px; }
+  .ad-chart { border:1px solid #e2e8f0; border-radius:10px; padding:8px; }
+  .ad-table { width:100%; border-collapse:collapse; }
+  .ad-table th, .ad-table td { padding:7px 8px; border-bottom:1px solid #e2e8f0; text-align:left; }
+  .ad-table th { color:#64748b; font-size:12px; font-weight:600; }
+  .ad-table td:nth-child(3), .ad-table td:nth-child(4), .ad-table th:nth-child(3), .ad-table th:nth-child(4) { text-align:right; }
+  .ad-bar { background:#e2e8f0; border-radius:99px; height:8px; overflow:hidden; } .ad-bar i { display:block; height:100%; background:#3b82f6; }
+  .ad-note { color:#64748b; font-size:11.5px; margin-top:12px; line-height:1.5; }
+
   /* ── 전체 레이아웃 ── */
   #shell { display: flex; flex-direction: column; height: 100vh; }
   #body { flex: 1; display: flex; min-height: 0; }
@@ -612,6 +640,8 @@
     cursor: pointer;
   }
 </style>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
@@ -624,6 +654,7 @@
       <img src="smartgong_wordmark.png" alt="스마트공" class="brand-name brand-cell brand-cell-36">
     </div>
     <div id="tabList"></div>
+    </div>
     <button id="mobileMenuBtn" onclick="toggleMobileMenu()" aria-label="앱 목록 열기">☰</button>
     <div id="mobileMenuDropdown"></div>
   </div>
@@ -646,6 +677,20 @@
       <iframe id="appFrame" title="웹앱 화면"></iframe>
       <div id="frameHint">이 화면이 정상적으로 안 보이면 해당 사이트가 다른 페이지 안에 넣는(iframe) 것을 막아둔 경우입니다.<br><a href="#" onclick="openCurrentInNewTab(); return false;">새 탭에서 직접 열기 →</a></div>
     </div>
+  </div>
+</div>
+
+<div id="adminOverlay" role="dialog" aria-modal="true" aria-label="방문 통계">
+  <div id="adminPanel">
+    <div class="ad-head">
+      <strong>📈 방문 통계</strong>
+      <button id="adClose" type="button" aria-label="닫기">✕</button>
+    </div>
+    <div class="ad-toolbar">
+      <div id="adRange"><button data-d="7">7일</button><button data-d="14">14일</button><button data-d="30" class="on">30일</button><button data-d="90">90일</button><button data-d="365">1년</button></div>
+      <button id="adCsv" type="button" class="ad-head-btn" style="margin-left:auto;border:1px solid #cbd5e1;background:#f8fafc;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:12.5px;font-weight:600;">⬇ CSV</button>
+    </div>
+    <div id="adBody"></div>
   </div>
 </div>
 
@@ -901,6 +946,7 @@
 
   function switchApp(url) {
     currentUrl = url;
+    if (url && window.__portalReady) { try { trackAppOpen(url); } catch (e) {} } // 앱 클릭 통계
     const homeScreen = document.getElementById('homeScreen');
     const frame = document.getElementById('appFrame');
     const hint = document.getElementById('frameHint');
@@ -935,6 +981,7 @@
   renderHomeGrid();
   const DEFAULT_HOME_URL = 'https://pdf-frontend-sigma-one.vercel.app/';
   switchApp(DEFAULT_HOME_URL); // 처음 열었을 때 오른쪽 화면에 스마트 PDF·이미지 병합기를 표시
+  window.__portalReady = true; // 이후부터의 앱 열기만 클릭으로 집계(자동 첫 화면은 제외)
 
   // ── 좌측 광고 배너 (정적 이미지 4개, 지정한 링크로 연결) ──
   const BANNERS = [
@@ -1566,6 +1613,226 @@
     setTimeout(widgetCloseAfterNav, 900);
     return false;
   }
+
+  // ── 방문자 수 집계 + 앱별 통계 + 관리자 대시보드 (Firebase Firestore) ──
+  // ※ 아래 설정값을 본인 Firebase 프로젝트 값으로 바꿔주세요. (Firebase 콘솔 > 프로젝트 설정 > 내 앱)
+  const VISITOR_FIREBASE_CONFIG = {
+   apiKey: "AIzaSyAokDpc5E_KyWXTh5oHMcAClOG0fHDBPtA",
+  authDomain: "visitorcount-7a285.firebaseapp.com",
+  projectId: "visitorcount-7a285",
+  storageBucket: "visitorcount-7a285.firebasestorage.app",
+  messagingSenderId: "120562149638",
+  appId: "1:120562149638:web:c8c4ef310ba72764095687",
+  measurementId: "G-CZPLBEM3KD"
+  };
+  const SESSION_GAP_MS = 30 * 60 * 1000; // 30분 이상 활동이 없으면 새 방문(세션)으로 계산 (Google Analytics 방식)
+
+  const vsFmt = n => Number(n || 0).toLocaleString('ko-KR');
+  const vsKst = (t) => new Date((t || Date.now()) + 9 * 3600 * 1000).toISOString().slice(0, 10);
+  const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+  const vsEsc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const vsInc = n => firebase.firestore.FieldValue.increment(n);
+
+  let __vs = null;
+  function vsInit() {
+    if (__vs) return __vs;
+    if (!window.firebase || String(VISITOR_FIREBASE_CONFIG.apiKey).startsWith('YOUR_')) return null;
+    const app = firebase.apps.find(a => a.name === 'visitor') || firebase.initializeApp(VISITOR_FIREBASE_CONFIG, 'visitor');
+    __vs = { app, db: app.firestore() };
+    return __vs;
+  }
+
+  // 새 방문(세션) 여부: 첫 접속, 30분 이상 무활동, 날짜(한국시간)가 바뀐 경우
+  function vsCheckSession() {
+    const now = Date.now(), today = vsKst(now);
+    let s = null;
+    try { s = JSON.parse(lsGet('sg_session') || 'null'); } catch (e) {}
+    const isNew = !s || (now - s.last > SESSION_GAP_MS) || s.date !== today;
+    lsSet('sg_session', JSON.stringify({ date: isNew ? today : s.date, last: now }));
+    return isNew;
+  }
+
+  let __vsBusy = false;
+  async function vsTick() {
+    const v = vsInit();
+    if (!v || __vsBusy) return;
+    __vsBusy = true;
+    try {
+      const today = vsKst();
+      const newVisitor = lsGet('sg_last_visit_date') !== today; // 하루 1회(브라우저 기준)
+      const newSession = vsCheckSession();                       // 30분 무활동 기준
+      const dayRef = v.db.collection('visitorStats').doc('day_' + today);
+      const totalRef = v.db.collection('visitorStats').doc('total');
+      if (newVisitor || newSession) {
+        const vi = newVisitor ? 1 : 0, se = newSession ? 1 : 0;
+        const batch = v.db.batch();
+        batch.set(dayRef, { date: today, visitors: vsInc(vi), visits: vsInc(se) }, { merge: true });
+        batch.set(totalRef, { visitors: vsInc(vi), visits: vsInc(se) }, { merge: true });
+        await batch.commit();
+        if (newVisitor) lsSet('sg_last_visit_date', today);
+      }
+      const [d, t] = await Promise.all([dayRef.get(), totalRef.get()]);
+      const dd = d.exists ? d.data() : {}, tt = t.exists ? t.data() : {};
+      const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = vsFmt(val); };
+      set('vsTodayV', dd.visitors); set('vsTotalV', tt.visitors);
+      set('vsFtToday', dd.visitors); set('vsFtTotal', tt.visitors);
+      set('vsTodayS', dd.visits);   set('vsTotalS', tt.visits);
+    } catch (e) {
+      console.warn('방문자 집계 실패:', e);
+    } finally {
+      __vsBusy = false;
+    }
+  }
+
+  function vsSlug(url) {
+    try { const u = new URL(url); return (u.hostname + u.pathname).replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 80); }
+    catch (e) { return String(url).replace(/[^a-zA-Z0-9]+/g, '_').slice(0, 80); }
+  }
+
+  // 앱(탭/카드) 열기 1회 = 클릭수 +1, 그날 그 앱을 처음 여는 브라우저면 방문자 +1
+  async function trackAppOpen(url) {
+    const v = vsInit();
+    if (!v) return;
+    const app = APPS.find(a => a.url === url);
+    if (!app) return;
+    try {
+      const today = vsKst(), slug = vsSlug(url);
+      let seen = { date: today, list: [] };
+      try { const s = JSON.parse(lsGet('sg_app_seen') || 'null'); if (s && s.date === today) seen = s; } catch (e) {}
+      const first = !seen.list.includes(slug);
+      if (first) { seen.list.push(slug); lsSet('sg_app_seen', JSON.stringify(seen)); }
+      await v.db.collection('appStats').doc(today + '_' + slug)
+        .set({ app: app.title, date: today, clicks: vsInc(1), visitors: vsInc(first ? 1 : 0) }, { merge: true });
+    } catch (e) { console.warn('앱 클릭 집계 실패:', e); }
+  }
+
+  // ── 관리자 대시보드 ──
+  let adRange = 30;
+
+  function adNiceStep(x) {
+    const p = Math.pow(10, Math.floor(Math.log10(x || 1)));
+    for (const m of [1, 2, 5, 10]) if (m * p >= x) return m * p;
+    return 10 * p;
+  }
+
+  function adDrawChart(days, vis, ses) {
+    const W = 720, H = 250, L = 44, R = 14, T = 26, B = 32;
+    const max = Math.max(1, ...vis, ...ses);
+    const step = adNiceStep(max / 4), top = Math.ceil(max / step) * step;
+    const x = i => L + (days.length <= 1 ? (W - L - R) / 2 : i * (W - L - R) / (days.length - 1));
+    const y = v => T + (H - T - B) * (1 - v / top);
+    let g = '';
+    for (let v = 0; v <= top; v += step) {
+      g += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#e2e8f0"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end" font-size="10.5" fill="#64748b">${vsFmt(v)}</text>`;
+    }
+    const every = Math.ceil(days.length / 8);
+    days.forEach((d, i) => { if (i % every === 0 && (days.length - 1 - i >= every / 2 || i === days.length - 1)) g += `<text x="${x(i)}" y="${H - 10}" text-anchor="middle" font-size="10.5" fill="#64748b">${d.slice(5)}</text>`; });
+    const line = (arr, color, label) => {
+      const pts = arr.map((v, i) => `${x(i)},${y(v)}`).join(' ');
+      const dots = days.length > 60 ? '' : arr.map((v, i) => `<circle cx="${x(i)}" cy="${y(v)}" r="3" fill="${color}"><title>${days[i]} ${label} ${vsFmt(v)}</title></circle>`).join('');
+      return `<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2.2" stroke-linejoin="round"/>${dots}`;
+    };
+    const legend = `<g font-size="11.5" font-weight="700"><rect x="${L}" y="4" width="10" height="10" rx="2" fill="#3b82f6"/><text x="${L + 15}" y="13" fill="#334155">방문자(브라우저·일 1회)</text><rect x="${L + 170}" y="4" width="10" height="10" rx="2" fill="#f59e0b"/><text x="${L + 185}" y="13" fill="#334155">방문수(30분 기준)</text></g>`;
+    return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="일별 방문 추이">${legend}${g}${line(ses, '#f59e0b', '방문수')}${line(vis, '#3b82f6', '방문자')}</svg>`;
+  }
+
+  async function adLoad() {
+    const body = document.getElementById('adBody');
+    const v = vsInit();
+    if (!v) { body.innerHTML = '<p class="ad-msg">Firebase 설정값(VISITOR_FIREBASE_CONFIG)을 먼저 입력해 주세요.</p>'; return; }
+    body.innerHTML = '<p class="ad-msg">불러오는 중…</p>';
+    try {
+      const days = [];
+      for (let i = adRange - 1; i >= 0; i--) days.push(vsKst(Date.now() - i * 86400000));
+      const start = days[0];
+      const [ds, as, tot] = await Promise.all([
+        v.db.collection('visitorStats').where('date', '>=', start).get(),
+        v.db.collection('appStats').where('date', '>=', start).get(),
+        v.db.collection('visitorStats').doc('total').get(),
+      ]);
+      const dayMap = {};
+      ds.forEach(d => { const x = d.data(); dayMap[x.date] = x; });
+      const vis = days.map(d => (dayMap[d] && dayMap[d].visitors) || 0);
+      const ses = days.map(d => (dayMap[d] && dayMap[d].visits) || 0);
+      const sum = a => a.reduce((p, c) => p + c, 0);
+      const t = tot.exists ? tot.data() : {};
+
+      const rows = {};
+      APPS.forEach(a => { rows[vsSlug(a.url)] = { name: a.title, clicks: 0, visitors: 0 }; });
+      as.forEach(d => {
+        const x = d.data(), slug = d.id.slice(11); // "YYYY-MM-DD_" 이후
+        const r = rows[slug] || (rows[slug] = { name: x.app || slug, clicks: 0, visitors: 0 });
+        r.clicks += x.clicks || 0; r.visitors += x.visitors || 0;
+      });
+      const list = Object.values(rows).sort((a, b) => b.clicks - a.clicks || b.visitors - a.visitors);
+      const maxClick = Math.max(1, ...list.map(r => r.clicks));
+      const totalClicks = sum(list.map(r => r.clicks));
+
+      window.__adCsv = () => {
+        let c = '날짜,방문자,방문수\n' + days.map((d, i) => `${d},${vis[i]},${ses[i]}`).join('\n');
+        c += '\n\n앱,클릭수,방문자\n' + list.map(r => `"${r.name.replace(/"/g, '""')}",${r.clicks},${r.visitors}`).join('\n');
+        return c;
+      };
+
+      body.innerHTML = `
+        <div class="ad-cards">
+          <div class="ad-card"><span>오늘 방문자</span><b>${vsFmt(vis[vis.length - 1])}</b></div>
+          <div class="ad-card"><span>오늘 방문수</span><b>${vsFmt(ses[ses.length - 1])}</b></div>
+          <div class="ad-card"><span>최근 ${adRange}일 방문자 합계</span><b>${vsFmt(sum(vis))}</b></div>
+          <div class="ad-card"><span>최근 ${adRange}일 방문수 합계</span><b>${vsFmt(sum(ses))}</b></div>
+          <div class="ad-card"><span>누적 방문자 / 방문수</span><b>${vsFmt(t.visitors)} / ${vsFmt(t.visits)}</b></div>
+          <div class="ad-card"><span>최근 ${adRange}일 앱 클릭 합계</span><b>${vsFmt(totalClicks)}</b></div>
+        </div>
+        <h4>일별 방문 추이</h4>
+        <div class="ad-chart">${adDrawChart(days, vis, ses)}</div>
+        <h4>앱별 이용 현황 <small>(최근 ${adRange}일)</small></h4>
+        <table class="ad-table">
+          <thead><tr><th>#</th><th>앱</th><th>클릭수</th><th>방문자</th><th style="width:34%">클릭 비율</th></tr></thead>
+          <tbody>${list.map((r, i) => `<tr><td>${i + 1}</td><td>${vsEsc(r.name)}</td><td>${vsFmt(r.clicks)}</td><td>${vsFmt(r.visitors)}</td><td><div class="ad-bar"><i style="width:${(r.clicks / maxClick * 100).toFixed(1)}%"></i></div></td></tr>`).join('')}</tbody>
+        </table>
+        <p class="ad-note">방문자 = 같은 브라우저는 하루 1회 · 방문수 = 30분 이상 활동이 없으면 새 방문 · 앱 클릭수 = 탭/카드로 앱을 연 횟수 · 앱 방문자 = 그날 그 앱을 처음 연 브라우저 수(기간 합계)</p>`;
+    } catch (e) {
+      console.warn(e);
+      body.innerHTML = e && e.code === 'permission-denied'
+        ? '<p class="ad-msg">조회 권한이 없습니다. Firestore 규칙(appStats 읽기)을 확인해 주세요.</p>'
+        : '<p class="ad-msg">통계를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</p>';
+    }
+  }
+
+  function openAdmin() {
+    document.getElementById('adminOverlay').classList.add('open');
+    adLoad();
+  }
+  function closeAdmin() { document.getElementById('adminOverlay').classList.remove('open'); }
+
+  document.getElementById('adClose').addEventListener('click', closeAdmin);
+  document.getElementById('adminOverlay').addEventListener('click', e => { if (e.target.id === 'adminOverlay') closeAdmin(); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeAdmin();
+    if (e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')) { e.preventDefault(); openAdmin(); } // 관리자 단축키
+  });
+  document.getElementById('adCsv').addEventListener('click', () => {
+    if (!window.__adCsv) return;
+    const blob = new Blob(['﻿' + window.__adCsv()], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = '방문통계_' + vsKst() + '.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+  });
+  document.querySelectorAll('#adRange button').forEach(btn => btn.addEventListener('click', () => {
+    adRange = Number(btn.dataset.d);
+    document.querySelectorAll('#adRange button').forEach(b => b.classList.toggle('on', b === btn));
+    adLoad();
+  }));
+  if (location.hash === '#admin') setTimeout(openAdmin, 300); // 모바일 등에서 주소 뒤에 #admin 을 붙여 열기
+
+  function vsStart() {
+    vsTick();
+    // 탭이 열려 있는 동안 1분마다 활동으로 간주해 세션을 유지하고, 30분 이상 자리를 비웠다 돌아오면 새 방문으로 집계
+    setInterval(() => { if (document.visibilityState === 'visible') vsTick(); }, 60 * 1000);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') vsTick(); });
+  }
+  vsStart();
 
   restoreFinderHistoryToDOM();
 </script>
