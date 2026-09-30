@@ -162,7 +162,32 @@
     font-size: 13.5px;
   }
 
-    /* ── 관리자 통계 대시보드 ── */
+    /* ── 바로가기 편집 (스마트공 로고에 마우스를 올리면 표시) ── */
+  #tabEditor { display:none; position:absolute; top:40px; left:0; width:min(360px,100vw); max-height:calc(100vh - 60px); overflow:auto; background:#fff; color:#0f172a; border:1px solid #cbd5e1; border-radius:0 0 12px 12px; box-shadow:0 12px 32px rgba(15,23,42,.28); z-index:3000; font-size:13px; }
+  #tabEditor.open { display:block; }
+  #tedCatcher { display:none; position:fixed; left:0; right:0; top:40px; bottom:0; z-index:2999; background:transparent; }
+  #tedCatcher.on { display:block; }
+  .ted-head { display:flex; align-items:center; gap:8px; padding:10px 12px 4px; }
+  .ted-head strong { font-size:14px; margin-right:auto; }
+  .ted-head button, .ted-foot button { border:1px solid #cbd5e1; background:#f8fafc; border-radius:7px; padding:4px 9px; font-size:12px; font-weight:600; color:#0f172a; cursor:pointer; }
+  .ted-head button:hover, .ted-foot button:hover { background:#e2e8f0; }
+  .ted-help { padding:0 12px 8px; color:#64748b; font-size:11.5px; line-height:1.5; }
+  #tabEdList { padding:0 8px; }
+  .ted-row { display:flex; align-items:center; gap:6px; padding:5px 6px; border:1px solid transparent; border-radius:8px; background:#fff; }
+  .ted-row:nth-child(odd) { background:#f8fafc; }
+  .ted-row.off .ted-name { color:#94a3b8; text-decoration:line-through; }
+  .ted-row.drag { opacity:.4; }
+  .ted-row.over { border-color:#3b82f6; background:#eff6ff; }
+  .ted-grip { cursor:grab; color:#94a3b8; letter-spacing:-2px; user-select:none; padding:0 2px; }
+  .ted-chk { flex:1; min-width:0; display:flex; align-items:center; gap:7px; cursor:pointer; }
+  .ted-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; }
+  .ted-mv { display:flex; gap:2px; }
+  .ted-mv button { border:1px solid #e2e8f0; background:#fff; border-radius:6px; width:24px; height:24px; font-size:10px; cursor:pointer; color:#475569; padding:0; }
+  .ted-mv button:hover { background:#e2e8f0; }
+  .ted-foot { display:flex; align-items:center; gap:8px; padding:8px 12px 10px; }
+  #tedMsg { color:#dc2626; font-size:11.5px; margin-right:auto; }
+
+  /* ── 관리자 통계 대시보드 ── */
   #adminOverlay { display:none; position:fixed; inset:0; background:rgba(15,23,42,.55); z-index:100000; align-items:center; justify-content:center; padding:16px; }
   #adminOverlay.open { display:flex; }
   #adminPanel { background:#fff; color:#0f172a; width:min(880px,100%); max-height:100%; border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,.35); display:flex; flex-direction:column; overflow:hidden; font-size:13.5px; }
@@ -647,11 +672,17 @@
 
 <div id="shell">
   <div id="topBar">
-    <div class="brand" id="brandHome" onclick="switchApp(null); closeMobileMenu();">
+    <div class="brand" id="brandHome" title="클릭: 초기화면 / 마우스를 올리면 바로가기 편집" onclick="switchApp(null); closeMobileMenu();">
       <img src="smartgong_logo_icon.png" alt="스마트공" class="brand-logo brand-cell brand-cell-14">
       <span class="brand-tagline brand-cell brand-cell-2">슬기로운 직장생활을 위한</span>
       <span class="brand-app brand-cell brand-cell-5">스마트 업무앱</span>
       <img src="smartgong_wordmark.png" alt="스마트공" class="brand-name brand-cell brand-cell-36">
+    </div>
+    <div id="tabEditor" role="dialog" aria-label="바로가기 편집">
+      <div class="ted-head"><strong>⚙ 바로가기 편집</strong><button type="button" id="tedHome">🏠 초기화면</button><button type="button" id="tedClose" aria-label="닫기">✕</button></div>
+      <div class="ted-help">끌어서(또는 ▲▼) 순서를 바꾸고, 체크를 해제하면 상단 바로가기에서 숨겨집니다. 이 브라우저에 저장됩니다.</div>
+      <div id="tabEdList"></div>
+      <div class="ted-foot"><span id="tedMsg"></span><button type="button" id="tedReset">초기화</button></div>
     </div>
     <div id="tabList"></div>
     <button id="mobileMenuBtn" onclick="toggleMobileMenu()" aria-label="앱 목록 열기">☰</button>
@@ -678,6 +709,8 @@
     </div>
   </div>
 </div>
+
+<div id="tedCatcher"></div>
 
 <div id="adminOverlay" role="dialog" aria-modal="true" aria-label="방문 통계">
   <div id="adminPanel">
@@ -864,6 +897,25 @@
 
   let currentUrl = null; // null이면 초기화면(홈)을 의미
 
+  // ── 바로가기(상단 탭) 순서/숨김 편집: 브라우저별로 저장 ──
+  const TAB_PREF_KEY = 'sg_tab_prefs';
+  function loadTabPrefs() {
+    try { const p = JSON.parse(localStorage.getItem(TAB_PREF_KEY) || 'null'); if (p && Array.isArray(p.order) && Array.isArray(p.hidden)) return p; } catch (e) {}
+    return { order: [], hidden: [] };
+  }
+  function saveTabPrefs() { try { localStorage.setItem(TAB_PREF_KEY, JSON.stringify(tabPrefs)); } catch (e) {} }
+  let tabPrefs = loadTabPrefs();
+
+  // 저장된 순서대로 정렬(새로 추가된 앱은 뒤에 붙음)
+  function orderedApps() {
+    const byUrl = new Map(APPS.map(a => [a.url, a]));
+    const out = [];
+    tabPrefs.order.forEach(u => { if (byUrl.has(u)) { out.push(byUrl.get(u)); byUrl.delete(u); } });
+    byUrl.forEach(a => out.push(a));
+    return out;
+  }
+  const isTabHidden = url => tabPrefs.hidden.includes(url);
+
   // 상단 바로가기에는 이름에서 "스마트"를 빼서 11개가 한눈에 들어오게 짧게 표시한다.
   // (카드/검색 등 다른 곳의 정식 이름(app.title)은 그대로 유지)
   function shortTabLabel(title) {
@@ -879,7 +931,7 @@
     const brandHome = document.getElementById('brandHome');
     if (brandHome) brandHome.classList.toggle('active', currentUrl === null);
 
-    APPS.forEach((app, idx) => {
+    orderedApps().filter(a => !isTabHidden(a.url)).forEach((app) => {
       const btn = document.createElement('button');
       btn.className = 'tab-btn' + (app.url === currentUrl ? ' active' : '');
       btn.textContent = shortTabLabel(app.title);
@@ -892,7 +944,77 @@
       mBtn.onclick = () => { switchApp(app.url); closeMobileMenu(); };
       mobileDropdown.appendChild(mBtn);
     });
+
+    const mEdit = document.createElement('button');
+    mEdit.className = 'tab-btn';
+    mEdit.textContent = '⚙ 바로가기 편집';
+    mEdit.onclick = () => { closeMobileMenu(); tedPinned = true; tedOpen(); };
+    mobileDropdown.appendChild(mEdit);
   }
+
+  // ── 바로가기 편집 창 (스마트공 로고 마우스온 / 모바일은 메뉴의 "바로가기 편집") ──
+  const tedEl = document.getElementById('tabEditor');
+  let tedPinned = false, tedTimer = null, tedDragFrom = null;
+
+  function tedMsg(t) { const m = document.getElementById('tedMsg'); m.textContent = t || ''; if (t) setTimeout(() => { if (m.textContent === t) m.textContent = ''; }, 2500); }
+  function tedCommit(urls) { tabPrefs.order = urls; saveTabPrefs(); renderTabs(); tedRender(); }
+  function tedMove(from, to) {
+    const urls = orderedApps().map(a => a.url);
+    if (to < 0 || to >= urls.length || from === to) return;
+    const [u] = urls.splice(from, 1); urls.splice(to, 0, u);
+    tedCommit(urls);
+  }
+  function tedSetHidden(url, hide) {
+    const visible = APPS.filter(a => !isTabHidden(a.url)).length;
+    if (hide && visible <= 1) { tedMsg('최소 1개는 표시해야 합니다.'); tedRender(); return; }
+    tabPrefs.hidden = hide ? Array.from(new Set(tabPrefs.hidden.concat(url))) : tabPrefs.hidden.filter(u => u !== url);
+    saveTabPrefs(); renderTabs(); tedRender();
+  }
+  function tedRender() {
+    const list = document.getElementById('tabEdList');
+    list.innerHTML = '';
+    orderedApps().forEach((app, i) => {
+      const off = isTabHidden(app.url);
+      const row = document.createElement('div');
+      row.className = 'ted-row' + (off ? ' off' : '');
+      row.draggable = true;
+      row.innerHTML = '<span class="ted-grip" aria-hidden="true">⋮⋮</span><label class="ted-chk"><input type="checkbox"><span class="ted-name"></span></label><span class="ted-mv"><button type="button" data-d="-1" title="위로">▲</button><button type="button" data-d="1" title="아래로">▼</button></span>';
+      const cb = row.querySelector('input');
+      cb.checked = !off;
+      cb.addEventListener('change', () => tedSetHidden(app.url, !cb.checked));
+      row.querySelector('.ted-name').textContent = app.title;
+      row.querySelectorAll('.ted-mv button').forEach(b => b.addEventListener('click', () => tedMove(i, i + Number(b.dataset.d))));
+      row.addEventListener('dragstart', e => { tedDragFrom = i; e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', String(i)); } catch (x) {} row.classList.add('drag'); });
+      row.addEventListener('dragend', () => { tedDragFrom = null; row.classList.remove('drag'); list.querySelectorAll('.over').forEach(r => r.classList.remove('over')); });
+      row.addEventListener('dragover', e => { e.preventDefault(); row.classList.add('over'); });
+      row.addEventListener('dragleave', () => row.classList.remove('over'));
+      row.addEventListener('drop', e => { e.preventDefault(); const f = tedDragFrom; tedDragFrom = null; if (f !== null) tedMove(f, i); });
+      list.appendChild(row);
+    });
+  }
+  function tedOpen() { clearTimeout(tedTimer); tedRender(); tedEl.classList.add('open'); document.getElementById('tedCatcher').classList.add('on'); }
+  function tedClose() { tedPinned = false; clearTimeout(tedTimer); tedEl.classList.remove('open'); document.getElementById('tedCatcher').classList.remove('on'); }
+  function tedCloseSoon() { if (tedPinned) return; clearTimeout(tedTimer); tedTimer = setTimeout(tedClose, 300); }
+
+  (function () {
+    const brand = document.getElementById('brandHome');
+    brand.addEventListener('mouseenter', () => { if (window.matchMedia('(hover: hover)').matches) tedOpen(); });
+    brand.addEventListener('mouseleave', tedCloseSoon);
+    tedEl.addEventListener('mouseenter', () => clearTimeout(tedTimer));
+    tedEl.addEventListener('mouseleave', tedCloseSoon);
+    document.getElementById('tedClose').addEventListener('click', tedClose);
+    document.getElementById('tedHome').addEventListener('click', () => { switchApp(null); tedClose(); });
+    document.getElementById('tedReset').addEventListener('click', () => { tabPrefs = { order: [], hidden: [] }; saveTabPrefs(); renderTabs(); tedRender(); });
+    document.addEventListener('mousedown', e => { if (tedPinned && !tedEl.contains(e.target)) tedClose(); });
+    // iframe(앱 화면) 위로 마우스가 나가면 mouseleave가 안 올 수 있어 이동/진입을 별도로 감지해 닫음
+    document.addEventListener('mousemove', e => { if (tedEl.classList.contains('open') && !tedPinned && !brand.contains(e.target) && !tedEl.contains(e.target)) tedCloseSoon(); });
+    // 패널 아래 화면(iframe 포함) 위에 투명 막을 깔아, 마우스가 나가거나 클릭하면 닫히게 함
+    const catcher = document.getElementById('tedCatcher');
+    catcher.addEventListener('mouseenter', tedCloseSoon);
+    catcher.addEventListener('mousemove', tedCloseSoon);
+    catcher.addEventListener('mousedown', tedClose);
+    catcher.addEventListener('touchstart', tedClose, { passive: true });
+  })();
 
   // 홈 화면(스마트 업무앱 모음)에서만 쓰는 카드 배치 순서.
   // 특징칸이 사라지고 로고 1칸만 헤더로 남아, 나머지 11칸에 앱 11개를 순서대로 채운다.
