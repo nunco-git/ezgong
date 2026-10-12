@@ -559,6 +559,33 @@
     overflow: hidden;
   }
   #appFinderWidget.open #appFinderPanel { display: flex; }
+  /* 최소화 버튼 / 최소화 상태 */
+  #appFinderMin {
+    position: absolute; top: -8px; right: -6px;
+    width: 22px; height: 22px; border-radius: 50%;
+    border: none; background: #0f172a; color: #fff;
+    font-size: 15px; font-weight: 800; line-height: 1;
+    cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    display: flex; align-items: center; justify-content: center;
+    padding: 0; z-index: 1;
+  }
+  #appFinderMin:hover { background: #334155; }
+  #appFinderRestore {
+    display: none;
+    width: 26px; height: 44px;
+    border: none; border-radius: 10px 0 0 10px;
+    background: linear-gradient(135deg, #f97316 0%, #22c55e 55%, #3b82f6 100%);
+    color: #fff; font-size: 14px; cursor: pointer; padding: 0;
+    align-items: center; justify-content: center;
+    box-shadow: 0 4px 10px rgba(15,23,42,0.25);
+    opacity: 0.55; transition: opacity 0.15s, width 0.15s;
+  }
+  #appFinderRestore:hover { opacity: 1; width: 32px; }
+  #appFinderWidget.minimized { right: 0; }
+  #appFinderWidget.minimized #appFinderToggle,
+  #appFinderWidget.minimized #appFinderMin,
+  #appFinderWidget.minimized #appFinderPanel { display: none !important; }
+  #appFinderWidget.minimized #appFinderRestore { display: flex; }
   #appFinderHeader {
     padding: 14px 16px;
     background: linear-gradient(90deg, #0f172a, #1e293b);
@@ -728,6 +755,8 @@
 
 <div id="appFinderWidget">
   <button id="appFinderToggle" onclick="toggleAppFinder()" aria-label="스마트공 기능찾기 열기"><span class="af-toggle-icon">🔍</span>스마트공 기능찾기</button>
+  <button id="appFinderMin" type="button" onclick="minimizeAppFinder(event)" aria-label="기능찾기 버튼 최소화" title="최소화 (화면 오른쪽 끝의 🔍 탭으로 다시 열 수 있어요)">−</button>
+  <button id="appFinderRestore" type="button" onclick="restoreAppFinder()" aria-label="기능찾기 버튼 다시 보이기" title="스마트공 기능찾기">🔍</button>
   <div id="appFinderPanel">
     <div id="appFinderHeader">
       <span>🔍 <span class="af-brand-home" onclick="goHomeFromFinder()" role="button" tabindex="0" aria-label="처음 화면(스마트공)으로 이동">스마트공</span> 기능찾기</span>
@@ -1449,6 +1478,19 @@
     document.getElementById('appFinderWidget').classList.remove('open');
   }
 
+  function minimizeAppFinder(e) {
+    if (e) e.stopPropagation();
+    const widget = document.getElementById('appFinderWidget');
+    widget.classList.remove('open');
+    widget.classList.add('minimized');
+    try { localStorage.setItem('sg_finder_min', '1'); } catch (err) {}
+  }
+
+  function restoreAppFinder() {
+    document.getElementById('appFinderWidget').classList.remove('minimized');
+    try { localStorage.setItem('sg_finder_min', '0'); } catch (err) {}
+  }
+
   function toggleAppFinder() {
     const widget = document.getElementById('appFinderWidget');
     widget.classList.toggle('open');
@@ -1963,6 +2005,11 @@
   vsStart();
 
   restoreFinderHistoryToDOM();
+  try {
+    if (localStorage.getItem('sg_finder_min') === '1') {
+      document.getElementById('appFinderWidget').classList.add('minimized');
+    }
+  } catch (err) {}
 </script>
 </body>
 </html>
