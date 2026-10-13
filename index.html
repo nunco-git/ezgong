@@ -179,7 +179,9 @@
   .ted-row.drag { opacity:.4; }
   .ted-row.over { border-color:#3b82f6; background:#eff6ff; }
   .ted-grip { cursor:grab; color:#94a3b8; letter-spacing:-2px; user-select:none; padding:0 2px; }
-  .ted-chk { flex:1; min-width:0; display:flex; align-items:center; gap:7px; cursor:pointer; }
+  .ted-cb { cursor:pointer; margin:0 4px 0 0; flex:none; }
+  .ted-link { flex:1; min-width:0; color:inherit; text-decoration:none; cursor:pointer; }
+  .ted-link:hover { color:#2563eb; text-decoration:underline; }
   .ted-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; }
   .ted-mv { display:flex; gap:2px; }
   .ted-mv button { border:1px solid #e2e8f0; background:#fff; border-radius:6px; width:24px; height:24px; font-size:10px; cursor:pointer; color:#475569; padding:0; }
@@ -707,7 +709,7 @@
     </div>
     <div id="tabEditor" role="dialog" aria-label="바로가기 편집">
       <div class="ted-head"><strong>⚙ 바로가기 편집</strong><button type="button" id="tedHome">🏠 초기화면</button><button type="button" id="tedClose" aria-label="닫기">✕</button></div>
-      <div class="ted-help">끌어서(또는 ▲▼) 순서를 바꾸고, 체크를 해제하면 상단 바로가기에서 숨겨집니다. 이 브라우저에 저장됩니다.</div>
+      <div class="ted-help">끌어서(또는 ▲▼) 순서를 바꾸고, 체크를 해제하면 상단 바로가기에서 숨겨집니다. 이름을 누르면 해당 앱으로 이동합니다. 이 브라우저에 저장됩니다.</div>
       <div id="tabEdList"></div>
       <div class="ted-foot"><span id="tedMsg"></span><button type="button" id="tedReset">초기화</button></div>
     </div>
@@ -928,6 +930,12 @@
     ], usecases: [
       '근로계약서, 임대차계약서, 장기요양기관 입소·이용신청서 등 자주 쓰는 계약·신청 서류를 빠르게 작성하고 싶을 때',
     ] },
+    { title: '⏰ 스마트일정 알림', url: 'https://nunco-git.github.io/planneralarm/', feats: [
+      '일정 달력에서 일정을 등록·확인',
+      '등록한 일정을 알림으로 안내',
+    ], usecases: [
+      '회의·마감·행사 등 업무 일정을 달력에 정리하고 잊지 않도록 알림을 받고 싶을 때',
+    ] },
   ];
 
   let currentUrl = null; // null이면 초기화면(홈)을 의미
@@ -1013,11 +1021,13 @@
       const row = document.createElement('div');
       row.className = 'ted-row' + (off ? ' off' : '');
       row.draggable = true;
-      row.innerHTML = '<span class="ted-grip" aria-hidden="true">⋮⋮</span><label class="ted-chk"><input type="checkbox"><span class="ted-name"></span></label><span class="ted-mv"><button type="button" data-d="-1" title="위로">▲</button><button type="button" data-d="1" title="아래로">▼</button></span>';
+      row.innerHTML = '<span class="ted-grip" aria-hidden="true">⋮⋮</span><input type="checkbox" class="ted-cb" title="바로가기 표시/숨김"><a class="ted-name ted-link" href="#" title="이 앱으로 이동"></a><span class="ted-mv"><button type="button" data-d="-1" title="위로">▲</button><button type="button" data-d="1" title="아래로">▼</button></span>';
       const cb = row.querySelector('input');
       cb.checked = !off;
       cb.addEventListener('change', () => tedSetHidden(app.url, !cb.checked));
-      row.querySelector('.ted-name').textContent = app.title;
+      const nameEl = row.querySelector('.ted-name'); nameEl.draggable = false;
+      nameEl.textContent = app.title;
+      nameEl.addEventListener('click', e => { e.preventDefault(); switchApp(app.url); tedClose(); });
       row.querySelectorAll('.ted-mv button').forEach(b => b.addEventListener('click', () => tedMove(i, i + Number(b.dataset.d))));
       row.addEventListener('dragstart', e => { tedDragFrom = i; e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', String(i)); } catch (x) {} row.classList.add('drag'); });
       row.addEventListener('dragend', () => { tedDragFrom = null; row.classList.remove('drag'); list.querySelectorAll('.over').forEach(r => r.classList.remove('over')); });
