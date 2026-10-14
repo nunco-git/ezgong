@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>업무 웹앱 포털</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0f172a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="스마트공">
+<link rel="apple-touch-icon" href="smartgong_logo_icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
 
@@ -519,6 +525,15 @@
     #mobileMenuDropdown.open { display: flex; }
   }
 
+  /* ── 홈 화면 바로가기(앱처럼 설치) 안내 ── */
+  #a2hsOverlay { display:none; position:fixed; inset:0; background:rgba(15,23,42,.55); z-index:10000; align-items:center; justify-content:center; padding:16px; }
+  #a2hsOverlay.open { display:flex; }
+  #a2hsBox { background:#fff; color:#0f172a; border-radius:14px; max-width:360px; width:100%; padding:18px 18px 14px; box-shadow:0 16px 40px rgba(15,23,42,.4); font-size:14px; line-height:1.6; }
+  #a2hsBox h3 { margin:0 0 8px; font-size:16px; }
+  #a2hsBox ol { margin:6px 0 10px; padding-left:20px; }
+  #a2hsBox .a2hs-note { color:#64748b; font-size:12px; }
+  #a2hsBox button { margin-top:6px; width:100%; border:none; background:#0f172a; color:#fff; border-radius:8px; padding:9px; font-size:14px; font-weight:600; cursor:pointer; }
+
   /* ── 우측 하단 기능 찾기 챗봇 (모든 화면 공통으로 떠있음) ── */
   #appFinderWidget {
     position: fixed;
@@ -993,7 +1008,44 @@
     mEdit.textContent = '⚙ 바로가기 편집';
     mEdit.onclick = () => { closeMobileMenu(); tedPinned = true; tedOpen(); };
     mobileDropdown.appendChild(mEdit);
+
+    if (!isStandalone()) {
+      const mInstall = document.createElement('button');
+      mInstall.className = 'tab-btn';
+      mInstall.textContent = '📲 폰 화면에 바로가기 추가';
+      mInstall.onclick = () => { closeMobileMenu(); a2hsStart(); };
+      mobileDropdown.appendChild(mInstall);
+    }
   }
+
+  // ── 홈 화면 바로가기(앱처럼 설치) ──
+  let deferredInstall = null;
+  function isStandalone() {
+    return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+  }
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstall = e; });
+  window.addEventListener('appinstalled', () => { deferredInstall = null; renderTabs(); });
+  function a2hsGuide() {
+    const ua = navigator.userAgent || '';
+    const isIOS = /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
+    if (isIOS) {
+      return '<ol><li>Safari로 이 페이지를 엽니다. (다른 브라우저는 Safari로 열어 주세요)</li><li>하단의 <b>공유 버튼(□↑)</b>을 누릅니다.</li><li><b>홈 화면에 추가</b>를 선택하고 <b>추가</b>를 누릅니다.</li></ol><div class="a2hs-note">추가하면 폰 화면에 앱 아이콘이 생기고, 누르면 주소창 없이 앱처럼 열립니다.</div>';
+    }
+    return '<ol><li>Chrome(삼성 인터넷은 하단 ☰ 메뉴)에서 이 페이지를 엽니다.</li><li>우측 상단 <b>⋮ 메뉴</b>를 누릅니다.</li><li><b>홈 화면에 추가</b>(또는 <b>앱 설치</b>)를 선택하고 <b>추가</b>를 누릅니다.</li></ol><div class="a2hs-note">추가하면 폰 화면에 앱 아이콘이 생기고, 누르면 앱처럼 열립니다.</div>';
+  }
+  async function a2hsStart() {
+    if (deferredInstall) {
+      try { deferredInstall.prompt(); await deferredInstall.userChoice; } catch (e) {}
+      deferredInstall = null;
+      return;
+    }
+    document.getElementById('a2hsBody').innerHTML = a2hsGuide();
+    document.getElementById('a2hsOverlay').classList.add('open');
+  }
+  document.addEventListener('click', e => {
+    const ov = document.getElementById('a2hsOverlay');
+    if (ov && (e.target.id === 'a2hsClose' || e.target === ov)) ov.classList.remove('open');
+  });
 
   // ── 바로가기 편집 창 (스마트공 로고 마우스온 / 모바일은 메뉴의 "바로가기 편집") ──
   const tedEl = document.getElementById('tabEditor');
@@ -2021,5 +2073,12 @@
     }
   } catch (err) {}
 </script>
+<div id="a2hsOverlay" role="dialog" aria-label="홈 화면에 바로가기 추가">
+  <div id="a2hsBox">
+    <h3>📲 폰 화면에 바로가기 추가</h3>
+    <div id="a2hsBody"></div>
+    <button type="button" id="a2hsClose">확인</button>
+  </div>
+</div>
 </body>
 </html>

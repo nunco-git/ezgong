@@ -1,0 +1,18 @@
+{
+  "name": "스마트공 업무앱",
+  "short_name": "스마트공",
+  "description": "슬기로운 직장생활을 위한 스마트 업무앱",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "smartgong_logo_icon.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
