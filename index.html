@@ -804,6 +804,12 @@
       '압축파일 속 내용을 압축을 풀지 않고 바로 확인하고 싶을 때',
       '각종 시스템에서 여러 파일을 한꺼번에 내려받아 내용을 확인해야 할 때',
     ] },
+    { title: '⏰ 스마트 일정 알라미', url: 'https://nunco-git.github.io/planneralarm/', feats: [
+      '일정 달력에서 일정을 등록·확인',
+      '등록한 일정을 알림으로 안내',
+    ], usecases: [
+      '회의·마감·행사 등 업무 일정을 달력에 정리하고 잊지 않도록 알림을 받고 싶을 때',
+    ] },
     { title: '📁 스마트 문서 정리기', url: 'https://nunco-git.github.io/hwpwfinder/', feats: [
       '한글·PDF에서 필요한 자료 추출',
       '엑셀파일로 변환하여 다운 가능',
@@ -945,12 +951,6 @@
     ], usecases: [
       '근로계약서, 임대차계약서, 장기요양기관 입소·이용신청서 등 자주 쓰는 계약·신청 서류를 빠르게 작성하고 싶을 때',
     ] },
-    { title: '⏰ 스마트 일정 알라미', url: 'https://nunco-git.github.io/planneralarm/', feats: [
-      '일정 달력에서 일정을 등록·확인',
-      '등록한 일정을 알림으로 안내',
-    ], usecases: [
-      '회의·마감·행사 등 업무 일정을 달력에 정리하고 잊지 않도록 알림을 받고 싶을 때',
-    ] },
   ];
 
   let currentUrl = null; // null이면 초기화면(홈)을 의미
@@ -963,6 +963,19 @@
   }
   function saveTabPrefs() { try { localStorage.setItem(TAB_PREF_KEY, JSON.stringify(tabPrefs)); } catch (e) {} }
   let tabPrefs = loadTabPrefs();
+  // 일정 알라미를 두 번째로 옮기는 1회성 보정(이미 순서를 저장해 둔 브라우저용)
+  (function () {
+    const PLANNER = 'https://nunco-git.github.io/planneralarm/', FLAG = 'sg_planner_pos2';
+    try {
+      if (localStorage.getItem(FLAG)) return;
+      localStorage.setItem(FLAG, '1');
+      if (tabPrefs.order.length) {
+        const o = tabPrefs.order.filter(u => u !== PLANNER);
+        o.splice(Math.min(1, o.length), 0, PLANNER);
+        tabPrefs.order = o; saveTabPrefs();
+      }
+    } catch (e) {}
+  })();
 
   // 저장된 순서대로 정렬(새로 추가된 앱은 뒤에 붙음)
   function orderedApps() {
