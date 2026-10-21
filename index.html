@@ -939,7 +939,7 @@
       '각 교육담당자들이 부서별 이수정보를 다시 취합하는 등 번거로운 업무를 해야 할 때',
       '사회복지시설 종사자의 각종 의무교육 정보를 취합해야 할 때',
     ] },
-    { title: '📎 한글(HWPX) 간편도구 모음', url: 'https://nunco-git.github.io/hwpxtool/', feats: [
+    { title: '📎 한글엑셀 간편도구 모음', url: 'https://nunco-git.github.io/hwpxtool/', feats: [
       '자주 쓰는 한글(HWPX) 편집 기능을 한 곳에 모음',
       '쪽번호 수정, 사진 자동삽입 등 간편도구 지원',
     ], usecases: [
@@ -977,11 +977,40 @@
     } catch (e) {}
   })();
 
+  // 기본 순서 변경 반영을 위한 1회성 초기화(숨김 설정은 유지)
+  (function () {
+    const FLAG = 'sg_default_order_v3';
+    try {
+      if (localStorage.getItem(FLAG)) return;
+      localStorage.setItem(FLAG, '1');
+      if (tabPrefs.order.length) { tabPrefs.order = []; saveTabPrefs(); }
+    } catch (e) {}
+  })();
+
+  // 기본 탭 순서(저장된 순서가 없을 때 사용)
+  const DEFAULT_ORDER = [
+    'https://pdf-frontend-sigma-one.vercel.app/',
+    'https://nunco-git.github.io/planneralarm/',
+    'https://nunco-git.github.io/hwpxtool/',
+    'https://nunco-git.github.io/applyform/',
+    'https://nunco-git.github.io/data-compile/',
+    'https://nunco-git.github.io/filerename/',
+    'https://nunco-git.github.io/excelfuntion/',
+    'https://nunco-git.github.io/multipointmap/',
+    'https://nunco-git.github.io/hwpxmerge/',
+    'https://nunco-git.github.io/excelmerge/',
+    'https://nunco-git.github.io/hwpwfinder/',
+    'https://nunco-git.github.io/picadjust/',
+    'https://nunco-git.github.io/filsuedumanager/',
+    'https://nunco-git.github.io/pdfblack/',
+  ];
+
   // 저장된 순서대로 정렬(새로 추가된 앱은 뒤에 붙음)
   function orderedApps() {
     const byUrl = new Map(APPS.map(a => [a.url, a]));
     const out = [];
-    tabPrefs.order.forEach(u => { if (byUrl.has(u)) { out.push(byUrl.get(u)); byUrl.delete(u); } });
+    const seq = tabPrefs.order.length ? tabPrefs.order : DEFAULT_ORDER;
+    seq.forEach(u => { if (byUrl.has(u)) { out.push(byUrl.get(u)); byUrl.delete(u); } });
     byUrl.forEach(a => out.push(a));
     return out;
   }
