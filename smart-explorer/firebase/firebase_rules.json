@@ -1,0 +1,24 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "installs": {
+      "$id": {
+        ".write": "$id.matches(/^[0-9a-f]{32}$/)",
+        ".validate": "newData.hasChildren(['v', 'last'])",
+        "v": { ".validate": "newData.isString() && newData.val().length <= 20" },
+        "first": { ".validate": "newData.isNumber() && (!data.exists() || data.val() == newData.val())" },
+        "last": { ".validate": "newData.isNumber() && newData.val() <= now" },
+        "$other": { ".validate": false }
+      }
+    },
+    "daily": {
+      "$date": {
+        "$id": {
+          ".write": "$date.matches(/^20[0-9][0-9]-[0-1][0-9]-[0-3][0-9]$/) && $id.matches(/^[0-9a-f]{32}$/)",
+          ".validate": "newData.isBoolean()"
+        }
+      }
+    }
+  }
+}

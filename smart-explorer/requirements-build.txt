@@ -1,0 +1,17 @@
+# 스마트탐색기 빌드에 필요한 패키지
+# 처음 빌드가 잘 되면 "pip freeze > requirements-lock.txt" 로 정확한 버전을 고정해 두는 것을 권장합니다
+# (다음 빌드 때 모르는 사이 패키지가 바뀌는 것을 막음)
+pyinstaller
+pypdfium2
+comtypes
+pillow
+py7zr
+rarfile
+pystray
+winrt-runtime
+winrt-Windows.Foundation
+winrt-Windows.Foundation.Collections
+winrt-Windows.Globalization
+winrt-Windows.Graphics.Imaging
+winrt-Windows.Media.Ocr
+winrt-Windows.Storage.Streams

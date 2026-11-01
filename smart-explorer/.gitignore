@@ -1,0 +1,12 @@
+# 빌드 결과물
+build/
+dist/
+*.spec
+version_info.txt
+.venv-build/
+__pycache__/
+*.pyc
+
+# 비밀 값은 절대 올리지 않기
+*.secret
+secrets*.json
