@@ -1,0 +1,4 @@
+# 스마트 일정 알라미 빌드에 필요한 패키지
+pyinstaller
+pillow
+pystray
