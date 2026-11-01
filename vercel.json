@@ -38,6 +38,16 @@
       "source": "/download/smart-clipboard/info",
       "destination": "https://github.com/nunco-git/ezgong/releases/tag/smartclipboard-v1.0.0",
       "permanent": false
+    },
+    {
+      "source": "/download/smart-alarm",
+      "destination": "https://github.com/nunco-git/ezgong/releases/download/smartalarm-v1.1.0/RepeatAlarm.exe",
+      "permanent": false
+    },
+    {
+      "source": "/download/smart-alarm/info",
+      "destination": "https://github.com/nunco-git/ezgong/releases/tag/smartalarm-v1.1.0",
+      "permanent": false
     }
   ]
 }
