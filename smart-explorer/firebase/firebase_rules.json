@@ -6,10 +6,18 @@
       "$id": {
         ".write": "$id.matches(/^[0-9a-f]{32}$/)",
         ".validate": "newData.hasChildren(['v', 'last'])",
-        "v": { ".validate": "newData.isString() && newData.val().length <= 20" },
-        "first": { ".validate": "newData.isNumber() && (!data.exists() || data.val() == newData.val())" },
-        "last": { ".validate": "newData.isNumber() && newData.val() <= now" },
-        "$other": { ".validate": false }
+        "v": {
+          ".validate": "newData.isString() && newData.val().length <= 20"
+        },
+        "first": {
+          ".validate": "newData.isNumber() && (!data.exists() || data.val() == newData.val())"
+        },
+        "last": {
+          ".validate": "newData.isNumber() && newData.val() <= now"
+        },
+        "$other": {
+          ".validate": false
+        }
       }
     },
     "daily": {
@@ -17,6 +25,37 @@
         "$id": {
           ".write": "$date.matches(/^20[0-9][0-9]-[0-1][0-9]-[0-3][0-9]$/) && $id.matches(/^[0-9a-f]{32}$/)",
           ".validate": "newData.isBoolean()"
+        }
+      }
+    },
+    "apps": {
+      "$app": {
+        ".validate": "$app.matches(/^[a-z]{3,24}$/)",
+        "installs": {
+          "$id": {
+            ".write": "$id.matches(/^[0-9a-f]{32}$/)",
+            ".validate": "newData.hasChildren(['v', 'last'])",
+            "v": {
+              ".validate": "newData.isString() && newData.val().length <= 20"
+            },
+            "first": {
+              ".validate": "newData.isNumber() && (!data.exists() || data.val() == newData.val())"
+            },
+            "last": {
+              ".validate": "newData.isNumber() && newData.val() <= now"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "daily": {
+          "$date": {
+            "$id": {
+              ".write": "$date.matches(/^20[0-9][0-9]-[0-1][0-9]-[0-3][0-9]$/) && $id.matches(/^[0-9a-f]{32}$/)",
+              ".validate": "newData.isBoolean()"
+            }
+          }
         }
       }
     }
