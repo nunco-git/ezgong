@@ -1,0 +1,3 @@
+# 스마트클립 빌드에 필요한 패키지 (프로그램은 Pillow 외에 추가 패키지 없음)
+pyinstaller
+pillow

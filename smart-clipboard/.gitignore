@@ -1,0 +1,7 @@
+build/
+dist/
+*.spec
+smartclip_version.txt
+SmartClip.exe
+.venv-build/
+__pycache__/

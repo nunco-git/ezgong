@@ -1,0 +1,170 @@
+# 스마트클립 자동 배포
+#   smart-clipboard/smart_clipboard.py 의 APP_VERSION 을 올려서 main 에 올리면
+#   (또는 태그 smartclipboard-v1.2.3 을 올리면, 또는 Actions 탭에서 직접 실행하면)
+#   깃허브 서버(윈도우)에서 빌드 → SHA-256 기록 → 빌드 출처 증명 → 릴리스(태그 smartclipboard-v버전) 게시
+#   같은 버전 릴리스가 이미 있으면 아무것도 하지 않음
+name: smart-clipboard-release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "smart-clipboard/**"
+      - ".github/workflows/smart-clipboard-release.yml"
+    tags: ["smartclipboard-v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write        # 릴리스·태그 만들기
+  id-token: write        # 빌드 출처 증명(attestation) 서명
+  attestations: write
+
+concurrency:
+  group: smart-clipboard-release
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: pwsh
+    working-directory: smart-clipboard
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 버전 확인 (이미 나간 버전이면 건너뜀)
+        id: ver
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ("${{ github.ref_type }}" -eq "tag") {
+            python tools/make_version_file.py --check "${{ github.ref_name }}"
+          } else {
+            python tools/make_version_file.py | Out-Null
+          }
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          $ver = (python tools/make_version_file.py).Trim()
+          $tag = "smartclipboard-v$ver"
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "ver=$ver" >> $env:GITHUB_OUTPUT
+          gh release view $tag --repo "${{ github.repository }}" *> $null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "릴리스 $tag 가 이미 있어서 건너뜁니다. 새로 내려면 APP_VERSION 을 올려 주세요."
+            "skip=true" >> $env:GITHUB_OUTPUT
+          } else {
+            "skip=false" >> $env:GITHUB_OUTPUT
+          }
+          exit 0
+
+      - name: 패키지 설치
+        if: steps.ver.outputs.skip != 'true'
+        run: |
+          python -m pip install --upgrade pip
+          if (Test-Path requirements-lock.txt) { pip install -r requirements-lock.txt }
+          else { pip install -r requirements-build.txt }
+
+      - name: exe 만들기
+        if: steps.ver.outputs.skip != 'true'
+        run: |
+          python -m PyInstaller --noconfirm --clean --onefile --noconsole --noupx --name SmartClip `
+            --icon clip_icon.ico --version-file smartclip_version.txt `
+            smart_clipboard.py
+
+      # (선택) 코드 서명 인증서가 생기면 여기에 서명 단계를 넣으세요. 서명은 해시 계산 전에 해야 합니다.
+
+      - name: SHA-256 계산
+        id: hash
+        if: steps.ver.outputs.skip != 'true'
+        run: |
+          $h = (Get-FileHash dist/SmartClip.exe -Algorithm SHA256).Hash.ToLower()
+          "$h  SmartClip.exe" | Out-File -Encoding ascii dist/SHA256SUMS.txt
+          "sha=$h" >> $env:GITHUB_OUTPUT
+
+      - name: 빌드 출처 증명
+        if: steps.ver.outputs.skip != 'true'
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: smart-clipboard/dist/SmartClip.exe
+
+      - name: 릴리스 만들기 (초안)
+        if: steps.ver.outputs.skip != 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          draft: true
+          name: 스마트클립 v${{ steps.ver.outputs.ver }}
+          files: |
+            smart-clipboard/dist/SmartClip.exe
+            smart-clipboard/dist/SHA256SUMS.txt
+          body: |
+            ## 스마트클립 v${{ steps.ver.outputs.ver }}
+
+            한글·엑셀·워드 표와 서식을 그대로 다시 붙여넣는 클립보드 기록 관리자 (스마트공 시리즈, https://smartgong.kr)
+
+            (바뀐 점은 여기에 적어 주세요)
+
+            ### ⚠ 처음 실행할 때 "Windows의 PC 보호" 창이 뜨면
+
+            새로 나온 프로그램이라 윈도우가 아직 몰라서 뜨는 안내입니다. 아래처럼 실행하세요.
+
+            1. 파란 창에서 **추가 정보** → **실행** 을 누릅니다.
+            2. **실행** 버튼이 없으면: 받은 `SmartClip.exe` 를 오른쪽 클릭 → **속성** → 아래쪽 **차단 해제** 체크 → **확인** 후 다시 실행합니다.
+            3. 브라우저가 다운로드를 막으면: 크롬은 다운로드 목록 **⋮ → 유지**, 엣지는 **… → 유지 → 추가 정보 → 그래도 유지**.
+
+            ※ "스마트 앱 컨트롤에 의해 차단됨"이 뜨거나 기관 보안 정책으로 막히면 위 방법으로는 실행되지 않습니다. 이때는 전산 담당자에게 문의해 주세요.
+            ※ 반드시 **smartgong.kr** 또는 이 깃허브 페이지에서 받은 파일만 실행하세요.
+
+            ---
+            **파일 확인 (SHA-256)**
+            `${{ steps.hash.outputs.sha }}`
+
+            - PowerShell: `Get-FileHash SmartClip.exe` 결과가 위 값과 같아야 합니다.
+            - 깃허브 CLI: `gh attestation verify SmartClip.exe --repo ${{ github.repository }}`
+
+      # 파일을 모두 올린 뒤에 게시 → '변경 불가 릴리스'를 켜 둬도 문제없음
+      - name: 릴리스 게시
+        if: steps.ver.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release edit "${{ steps.ver.outputs.tag }}" --draft=false --repo "${{ github.repository }}"
+
+      # 홈페이지 고정 주소(smartgong.kr/download/smart-clipboard)가 새 버전을 가리키게 vercel.json 고치기
+      - name: 홈페이지 내려받기 주소 갱신
+        if: steps.ver.outputs.skip != 'true'
+        working-directory: .
+        shell: bash
+        env:
+          TAG: ${{ steps.ver.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout -B main origin/main
+          python - <<'PY'
+          import json, os
+          tag = os.environ["TAG"]
+          base = "https://github.com/nunco-git/ezgong/releases"
+          with open("vercel.json", encoding="utf-8") as f:
+              d = json.load(f)
+          red = [r for r in d.get("redirects", []) if not r.get("source", "").startswith("/download/smart-clipboard")]
+          red += [
+              {"source": "/download/smart-clipboard", "destination": f"{base}/download/{tag}/SmartClip.exe", "permanent": False},
+              {"source": "/download/smart-clipboard/info", "destination": f"{base}/tag/{tag}", "permanent": False},
+          ]
+          d["redirects"] = red
+          with open("vercel.json", "w", encoding="utf-8") as f:
+              json.dump(d, f, ensure_ascii=False, indent=2)
+              f.write("\n")
+          PY
+          git add vercel.json
+          if git diff --cached --quiet; then echo "이미 최신 주소"; exit 0; fi
+          git commit -m "스마트클립 내려받기 주소를 $TAG 로 갱신"
+          git push origin main
+
