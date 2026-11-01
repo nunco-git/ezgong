@@ -128,3 +128,37 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release edit "${{ steps.ver.outputs.tag }}" --draft=false --repo "${{ github.repository }}"
+
+      # 홈페이지 고정 주소(smartgong.kr/download/smart-explorer)가 새 버전을 가리키게 vercel.json 고치기
+      - name: 홈페이지 내려받기 주소 갱신
+        if: steps.ver.outputs.skip != 'true'
+        working-directory: .
+        shell: bash
+        env:
+          TAG: ${{ steps.ver.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout -B main origin/main
+          python - <<'PY'
+          import json, os
+          tag = os.environ["TAG"]
+          base = "https://github.com/nunco-git/ezgong/releases"
+          with open("vercel.json", encoding="utf-8") as f:
+              d = json.load(f)
+          red = [r for r in d.get("redirects", []) if not r.get("source", "").startswith("/download/smart-explorer")]
+          red += [
+              {"source": "/download/smart-explorer", "destination": f"{base}/download/{tag}/SmartExplorer.exe", "permanent": False},
+              {"source": "/download/smart-explorer/info", "destination": f"{base}/tag/{tag}", "permanent": False},
+          ]
+          d["redirects"] = red
+          with open("vercel.json", "w", encoding="utf-8") as f:
+              json.dump(d, f, ensure_ascii=False, indent=2)
+              f.write("\n")
+          PY
+          git add vercel.json
+          if git diff --cached --quiet; then echo "이미 최신 주소"; exit 0; fi
+          git commit -m "스마트탐색기 내려받기 주소를 $TAG 로 갱신"
+          git push origin main
+

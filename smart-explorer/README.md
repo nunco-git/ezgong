@@ -6,7 +6,10 @@
 
 ## 내려받기
 
-[Releases](https://github.com/nunco-git/ezgong/releases) 에서 **스마트탐색기** 릴리스의 `SmartExplorer.exe` 를 받으세요. **다른 곳에서 받은 파일은 실행하지 마세요.**
+- **바로 받기 (항상 최신 버전):** https://smartgong.kr/download/smart-explorer
+- 설명·SHA-256이 있는 릴리스 페이지: https://smartgong.kr/download/smart-explorer/info
+
+**위 주소나 깃허브 공식 릴리스가 아닌 곳에서 받은 파일은 실행하지 마세요.**
 
 ### 받은 파일이 진짜인지 확인
 
