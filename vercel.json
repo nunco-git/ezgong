@@ -48,6 +48,16 @@
       "source": "/download/smart-alarm/info",
       "destination": "https://github.com/nunco-git/ezgong/releases/tag/smartalarm-v1.1.0",
       "permanent": false
+    },
+    {
+      "source": "/download/smart-pdf-editor",
+      "destination": "https://github.com/nunco-git/smartpdfeditor/releases/latest/download/smartpdfeditor.exe",
+      "permanent": false
+    },
+    {
+      "source": "/download/smart-pdf-editor/info",
+      "destination": "https://github.com/nunco-git/smartpdfeditor/releases/latest",
+      "permanent": false
     }
   ]
 }
