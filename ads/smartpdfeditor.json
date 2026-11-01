@@ -1,0 +1,11 @@
+{
+  "enabled": true,
+  "interval": 30,
+  "ads": [
+    {
+      "image": "smartpdfeditor-1.png",
+      "link": "https://smartgong.kr",
+      "until": ""
+    }
+  ]
+}
