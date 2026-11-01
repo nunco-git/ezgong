@@ -9,6 +9,9 @@
 - **바로 받기 (항상 최신 버전):** https://smartgong.kr/download/smart-explorer
 - 설명·SHA-256이 있는 릴리스 페이지: https://smartgong.kr/download/smart-explorer/info
 
+> **무료 프로그램입니다.** 창 오른쪽이나 왼쪽 하단에 광고가 표시될 수 있습니다.
+> 설치 없이 실행하는 프로그램이라, 지우려면 **`SmartExplorer.exe` 파일을 삭제**하면 됩니다. (설정은 `%LOCALAPPDATA%\SmartExplorer` 폴더에 있으며 함께 지워도 됩니다)
+
 **위 주소나 깃허브 공식 릴리스가 아닌 곳에서 받은 파일은 실행하지 마세요.**
 
 ### ⚠ 처음 실행할 때 "Windows의 PC 보호" 창이 뜨면
