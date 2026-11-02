@@ -3261,11 +3261,179 @@ if sys.platform == "win32" and struct.calcsize("P") == 8:
                 for x in pidls:
                     _ole32.CoTaskMemFree(x)
 
+
+        # ── 윈도우 탐색기 오른쪽 클릭 메뉴 (속성·압축·보내기·연결 프로그램·백신 검사 등 그대로) ──
+        _u32 = ctypes.windll.user32
+        _O.IID_IContextMenu = _O.GUID.of("{000214E4-0000-0000-C000-000000000046}")
+        _O.IID_IContextMenu2 = _O.GUID.of("{000214F4-0000-0000-C000-000000000046}")
+        _O.IID_IContextMenu3 = _O.GUID.of("{BCFCE0A0-EC17-11D0-8D10-00A0C90F2719}")
+        _O.IID_IShellItem = _O.GUID.of("{43826D1E-E718-42EE-BC55-A1E261C37BFE}")
+        _O.IID_IShellFolder = _O.GUID.of("{000214E6-0000-0000-C000-000000000046}")
+        _O.BHID_SFUIObject = _O.GUID.of("{3981E225-F559-11D3-8E3A-00C04F6837D5}")
+        _O.BHID_SFObject = _O.GUID.of("{3981E224-F559-11D3-8E3A-00C04F6837D5}")
+        _shell32.SHCreateItemFromIDList.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.POINTER(ctypes.c_void_p)]
+        _u32.CreatePopupMenu.restype = ctypes.c_void_p
+        _u32.DestroyMenu.argtypes = [ctypes.c_void_p]
+        _u32.TrackPopupMenuEx.argtypes = [ctypes.c_void_p, ctypes.c_uint, ctypes.c_int, ctypes.c_int, _wt.HWND,
+                                          ctypes.c_void_p]
+        _u32.TrackPopupMenuEx.restype = ctypes.c_int
+        _u32.DefWindowProcW.argtypes = [_wt.HWND, ctypes.c_uint, ctypes.c_size_t, ctypes.c_ssize_t]
+        _u32.DefWindowProcW.restype = ctypes.c_ssize_t
+        _u32.CreateWindowExW.argtypes = [ctypes.c_ulong, ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_ulong,
+                                         ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, _wt.HWND,
+                                         ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p]
+        _u32.CreateWindowExW.restype = _wt.HWND
+        _u32.SetForegroundWindow.argtypes = [_wt.HWND]
+        _u32.PostMessageW.argtypes = [_wt.HWND, ctypes.c_uint, ctypes.c_size_t, ctypes.c_ssize_t]
+        _WNDPROC = ctypes.WINFUNCTYPE(ctypes.c_ssize_t, _wt.HWND, ctypes.c_uint, ctypes.c_size_t, ctypes.c_ssize_t)
+
+        class _WNDCLASSEXW(ctypes.Structure):
+            _fields_ = [("cbSize", ctypes.c_uint), ("style", ctypes.c_uint), ("lpfnWndProc", _WNDPROC),
+                        ("cbClsExtra", ctypes.c_int), ("cbWndExtra", ctypes.c_int), ("hInstance", ctypes.c_void_p),
+                        ("hIcon", ctypes.c_void_p), ("hCursor", ctypes.c_void_p), ("hbrBackground", ctypes.c_void_p),
+                        ("lpszMenuName", ctypes.c_wchar_p), ("lpszClassName", ctypes.c_wchar_p),
+                        ("hIconSm", ctypes.c_void_p)]
+
+        class _CMICEX(ctypes.Structure):
+            _fields_ = [("cbSize", ctypes.c_ulong), ("fMask", ctypes.c_ulong), ("hwnd", _wt.HWND),
+                        ("lpVerb", ctypes.c_void_p), ("lpParameters", ctypes.c_char_p),
+                        ("lpDirectory", ctypes.c_char_p), ("nShow", ctypes.c_int), ("dwHotKey", ctypes.c_ulong),
+                        ("hIcon", ctypes.c_void_p), ("lpTitle", ctypes.c_char_p), ("lpVerbW", ctypes.c_void_p),
+                        ("lpParametersW", ctypes.c_wchar_p), ("lpDirectoryW", ctypes.c_wchar_p),
+                        ("lpTitleW", ctypes.c_wchar_p), ("ptInvoke", _O.POINT)]
+
+        _menu_state = {"cm2": None, "cm3": None, "hwnd": None}
+
+        def _menu_wndproc(hwnd, msg, wp, lp):
+            # 보내기·연결 프로그램 같은 하위 메뉴는 메뉴가 열릴 때 채워지므로 메시지를 넘겨 줌
+            if msg in (0x0117, 0x002B, 0x002C, 0x0120):   # INITMENUPOPUP, DRAWITEM, MEASUREITEM, MENUCHAR
+                try:
+                    if _menu_state["cm3"]:
+                        res = ctypes.c_ssize_t(0)
+                        if _vcall(_menu_state["cm3"], 7, ctypes.c_long,
+                                  [ctypes.c_uint, ctypes.c_size_t, ctypes.c_ssize_t, ctypes.POINTER(ctypes.c_ssize_t)],
+                                  msg, wp, lp, ctypes.byref(res)) == 0:
+                            return res.value
+                    elif _menu_state["cm2"]:
+                        if _vcall(_menu_state["cm2"], 6, ctypes.c_long, [ctypes.c_uint, ctypes.c_size_t,
+                                                                          ctypes.c_ssize_t], msg, wp, lp) == 0:
+                            return 0
+                except Exception:
+                    pass
+            return _u32.DefWindowProcW(hwnd, msg, wp, lp)
+
+        _menu_proc = _WNDPROC(_menu_wndproc)
+
+        def _menu_owner():
+            if _menu_state["hwnd"]:
+                return _menu_state["hwnd"]
+            wc = _WNDCLASSEXW()
+            wc.cbSize = ctypes.sizeof(_WNDCLASSEXW)
+            wc.lpfnWndProc = _menu_proc
+            wc.hInstance = ctypes.windll.kernel32.GetModuleHandleW(None)
+            wc.lpszClassName = "SmartExplorerShellMenu"
+            ctypes.windll.user32.RegisterClassExW(ctypes.byref(wc))
+            _menu_state["wc"] = wc
+            _menu_state["hwnd"] = _u32.CreateWindowExW(0x80, "SmartExplorerShellMenu", "", 0x80000000,
+                                                       0, 0, 0, 0, None, None, wc.hInstance, None)
+            return _menu_state["hwnd"]
+
+        def _pidl(path):
+            pidl = ctypes.c_void_p()
+            if _shell32.SHParseDisplayName(os.path.abspath(path), None, ctypes.byref(pidl), 0, None) != 0:
+                return None
+            return pidl
+
+        def _context_menu_for(paths, background_dir):
+            pcm = ctypes.c_void_p()
+            if background_dir:              # 빈 곳: 그 폴더 자체의 메뉴 (새로 만들기 등)
+                pidl = _pidl(background_dir)
+                if not pidl:
+                    return None
+                psi, psf = ctypes.c_void_p(), ctypes.c_void_p()
+                try:
+                    if _shell32.SHCreateItemFromIDList(pidl, ctypes.byref(_O.IID_IShellItem), ctypes.byref(psi)) != 0:
+                        return None
+                    if _vcall(psi.value, 3, ctypes.c_long, [ctypes.c_void_p] * 3 + [ctypes.POINTER(ctypes.c_void_p)],
+                              None, ctypes.byref(_O.BHID_SFObject), ctypes.byref(_O.IID_IShellFolder),
+                              ctypes.byref(psf)) != 0:
+                        return None
+                    if _vcall(psf.value, 8, ctypes.c_long, [_wt.HWND, ctypes.c_void_p, ctypes.POINTER(ctypes.c_void_p)],
+                              _menu_owner(), ctypes.byref(_O.IID_IContextMenu), ctypes.byref(pcm)) != 0:
+                        return None
+                    return pcm.value
+                finally:
+                    _release(psf.value)
+                    _release(psi.value)
+                    _ole32.CoTaskMemFree(pidl)
+            pidls = [x for x in (_pidl(p) for p in paths) if x]
+            try:
+                if not pidls:
+                    return None
+                arr = (ctypes.c_void_p * len(pidls))(*[x.value for x in pidls])
+                psia = ctypes.c_void_p()
+                if _shell32.SHCreateShellItemArrayFromIDLists(len(pidls), arr, ctypes.byref(psia)) != 0:
+                    return None
+                try:
+                    if _vcall(psia.value, 3, ctypes.c_long, [ctypes.c_void_p] * 3 + [ctypes.POINTER(ctypes.c_void_p)],
+                              None, ctypes.byref(_O.BHID_SFUIObject), ctypes.byref(_O.IID_IContextMenu),
+                              ctypes.byref(pcm)) != 0:
+                        return None
+                    return pcm.value
+                finally:
+                    _release(psia.value)
+            finally:
+                for x in pidls:
+                    _ole32.CoTaskMemFree(x)
+
+        def shell_menu(paths, x, y, background_dir=None, extended=False):
+            """윈도우 탐색기의 오른쪽 클릭 메뉴를 그대로 띄우고, 고른 명령을 실행. 고른 명령이 있으면 True"""
+            pcm = _context_menu_for(paths, background_dir)
+            if not pcm:
+                return False
+            hmenu = _u32.CreatePopupMenu()
+            cm2, cm3 = ctypes.c_void_p(), ctypes.c_void_p()
+            try:
+                flags = 0x0 | 0x4 | (0x100 if extended else 0)          # NORMAL | EXPLORE | (Shift: 확장 메뉴)
+                if _vcall(pcm, 3, ctypes.c_long, [ctypes.c_void_p, ctypes.c_uint, ctypes.c_uint, ctypes.c_uint,
+                                                  ctypes.c_uint], hmenu, 0, 1, 0x7FFF, flags) < 0:
+                    return False
+                _vcall(pcm, 0, ctypes.c_long, [ctypes.c_void_p, ctypes.POINTER(ctypes.c_void_p)],
+                       ctypes.byref(_O.IID_IContextMenu3), ctypes.byref(cm3))
+                if not cm3:
+                    _vcall(pcm, 0, ctypes.c_long, [ctypes.c_void_p, ctypes.POINTER(ctypes.c_void_p)],
+                           ctypes.byref(_O.IID_IContextMenu2), ctypes.byref(cm2))
+                _menu_state["cm3"], _menu_state["cm2"] = cm3.value, cm2.value
+                owner = _menu_owner()
+                _u32.SetForegroundWindow(owner)
+                cmd = _u32.TrackPopupMenuEx(hmenu, 0x0100 | 0x0002, int(x), int(y), owner, None)   # RETURNCMD|RIGHTBUTTON
+                _u32.PostMessageW(owner, 0, 0, 0)
+                if cmd <= 0:
+                    return False
+                ci = _CMICEX()
+                ci.cbSize = ctypes.sizeof(_CMICEX)
+                ci.fMask = 0x4000 | 0x20000000            # UNICODE | PTINVOKE
+                ci.hwnd = owner
+                ci.lpVerb = ci.lpVerbW = cmd - 1
+                ci.nShow = 1
+                ci.ptInvoke = _O.POINT(int(x), int(y))
+                if background_dir:
+                    ci.lpDirectoryW = background_dir
+                _vcall(pcm, 4, ctypes.c_long, [ctypes.c_void_p], ctypes.byref(ci))
+                return True
+            finally:
+                _menu_state["cm3"] = _menu_state["cm2"] = None
+                _release(cm3.value)
+                _release(cm2.value)
+                _u32.DestroyMenu(hmenu)
+                _release(pcm)
+
         _hr = _ole32.OleInitialize(None)
         if _hr in (0, 1):                     # S_OK / S_FALSE(이미 준비됨)
             OLE_DND = _OLE
             OLE_DND.DropTarget = OleDropTarget
             OLE_DND.drag_files = staticmethod(ole_drag_files)
+            OLE_DND.shell_menu = staticmethod(shell_menu)
     except Exception:
         OLE_DND = None
 
@@ -3963,11 +4131,18 @@ class SearchPane(tk.Frame):
             self.tree.focus(iid)
         elif not iid:
             self.tree.selection_set(())
+        has = bool(self.tree.selection())
+        browse = self.mode == "browse"
+        if (e.state & 0x1) and OLE_DND is not None and (has or browse):      # Shift+오른쪽 클릭: 윈도우 메뉴 바로
+            self.windows_menu(e.x_root, e.y_root, extended=True)
+            return "break"
         m = self.menu
         m.delete(0, "end")
-        has = bool(self.tree.selection())
         h = self.current()
-        browse = self.mode == "browse"
+        if OLE_DND is not None and (has or browse):
+            m.add_command(label="Windows 메뉴 — 속성·압축·보내기·연결 프로그램 등  (Shift+오른쪽 클릭)",
+                          command=lambda x=e.x_root, y=e.y_root: self.windows_menu(x, y))
+            m.add_separator()
         if has:
             m.add_command(label="폴더 열기" if h.get("is_dir") else "열기", command=self.activate)
             if not h.get("is_dir"):
@@ -3992,6 +4167,22 @@ class SearchPane(tk.Frame):
             m.add_command(label="새 폴더  (Ctrl+Shift+N)", command=self.new_folder)
             m.add_command(label="새로 고침  (F5)", command=self.refresh)
         m.tk_popup(e.x_root, e.y_root)
+
+    def windows_menu(self, x, y, extended=False):
+        """윈도우 탐색기 오른쪽 클릭 메뉴 그대로 (고른 파일 / 빈 곳이면 이 폴더의 메뉴)"""
+        paths = self.selected_paths()
+        bg = None if paths else (self.cwd if self.mode == "browse" else None)
+        if not paths and not bg:
+            return
+        self.app.release_previews()
+        try:
+            done = OLE_DND.shell_menu(paths, x, y, background_dir=bg, extended=extended)
+        except Exception as ex:
+            messagebox.showerror(APP_NAME, f"Windows 메뉴를 열 수 없습니다.\n{ex}")
+            return
+        if done:                       # 지우기·압축·새로 만들기 등으로 폴더 내용이 바뀌었을 수 있음
+            self.after(600, self.app.refresh_browsers)
+            self.after(2500, self.app.refresh_browsers)
 
     # ───────── 파일 동작 ─────────
     def open_file(self):
