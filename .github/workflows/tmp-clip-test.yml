@@ -1,0 +1,75 @@
+name: tmp-clip-test
+on:
+  push:
+    branches: [test-clip]
+jobs:
+  t:
+    runs-on: windows-latest
+    defaults: { run: { shell: pwsh, working-directory: smart-clipboard } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r requirements-build.txt pillow
+      - run: |
+          @'
+          import os, sys, io, base64, tempfile, time
+          sys.path.insert(0, os.getcwd())
+          import smart_clipboard as S
+          S.DATA_DIR = tempfile.mkdtemp()
+          app = S.App()
+          st = app.store
+          res = []
+          def check(c, name):
+              res.append(("OK  " if c else "FAIL") + " " + name)
+          def shot(name):
+              from PIL import ImageGrab
+              app.root.update(); time.sleep(0.4); app.root.update()
+              img = ImageGrab.grab(); b = io.BytesIO(); img.save(b, "PNG")
+              s = base64.b64encode(b.getvalue()).decode()
+              for i in range(0, len(s), 4000):
+                  print("IMG%s:%s" % (name, s[i:i+4000]))
+          def steps():
+              try:
+                  st.add_memo("평범한 메모 내용입니다", "")
+                  a = st.add_memo("p@ssw0rd!23", "은행 비밀번호", hidden=True)
+                  st.add_memo("1234-5678", "", hidden=True)
+                  app.show()
+                  app.reload(keep_id=a)
+                  rows = {r["iid"]: r["values"]["text"] for r in app.tree.rows}
+                  check(rows[str(a)].startswith("🔒 은행 비밀번호") and "p@ss" not in rows[str(a)], "목록에 제목+●●● 표시: " + rows[str(a)])
+                  check(any(v == "🔒 ●●●●●●" for v in rows.values()), "제목 없으면 🔒 ●●●●●●")
+                  pv = app.preview.get("1.0", "end")
+                  check("p@ss" not in pv and "가린 내용" in pv, "미리보기 가림")
+                  app.search_var.set("p@ss"); app.refresh()
+                  check(str(a) not in app.order, "내용으로는 검색 안 됨")
+                  app.search_var.set("은행"); app.refresh()
+                  check(str(a) in app.order, "제목으로 검색 됨")
+                  app.search_var.set(""); app.refresh(keep_id=a)
+                  shot("list")
+                  app.reveal()
+                  check("p@ssw0rd!23" in app.preview.get("1.0", "end"), "잠깐 보기")
+                  app.use(paste=False)
+                  app.root.update()
+                  check(app.root.clipboard_get() == "p@ssw0rd!23", "붙여넣기 내용 그대로")
+                  app.toggle_hidden()
+                  it = app.current()
+                  check(it and not it["hidden"], "가리기 풀기")
+                  app.toggle_hidden()
+                  check(app.current()["hidden"], "다시 가리기")
+                  st.update_memo(a, "new-pass", "은행 비밀번호", hidden=True)
+                  app.reload(keep_id=a)
+                  check(S.get_text(dict(st.formats(a))) == "new-pass", "메모 고치기")
+                  st.max_items = 1; st.trim()
+                  check(len(st.list()) == 3, "메모는 개수 제한에 안 지워짐")
+                  app.add_memo(); app.root.update()
+                  app._memo_win.children  # 열림
+                  shot("dialog")
+              except Exception as e:
+                  import traceback; res.append("FAIL 예외 " + traceback.format_exc())
+              print("\n".join(res), flush=True)
+              os._exit(0 if all(r.startswith("OK") for r in res) else 1)
+          app.root.after(1500, steps)
+          app.run()
+          '@ | Set-Content t.py -Encoding utf8
+          $env:PYTHONIOENCODING="utf-8"; python t.py
