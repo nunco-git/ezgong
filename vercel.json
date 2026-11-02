@@ -40,16 +40,6 @@
       "permanent": false
     },
     {
-      "source": "/download/smart-explorer",
-      "destination": "https://github.com/nunco-git/ezgong/releases/download/smartexplorer-v1.0.1/SmartExplorer.exe",
-      "permanent": false
-    },
-    {
-      "source": "/download/smart-explorer/info",
-      "destination": "https://github.com/nunco-git/ezgong/releases/tag/smartexplorer-v1.0.1",
-      "permanent": false
-    },
-    {
       "source": "/download/smart-clipboard",
       "destination": "https://github.com/nunco-git/ezgong/releases/download/smartclipboard-v1.1.2/SmartClip.exe",
       "permanent": false
@@ -57,6 +47,16 @@
     {
       "source": "/download/smart-clipboard/info",
       "destination": "https://github.com/nunco-git/ezgong/releases/tag/smartclipboard-v1.1.2",
+      "permanent": false
+    },
+    {
+      "source": "/download/smart-explorer",
+      "destination": "https://github.com/nunco-git/ezgong/releases/download/smartexplorer-v1.0.2/SmartExplorer.exe",
+      "permanent": false
+    },
+    {
+      "source": "/download/smart-explorer/info",
+      "destination": "https://github.com/nunco-git/ezgong/releases/tag/smartexplorer-v1.0.2",
       "permanent": false
     }
   ]
