@@ -1,0 +1,25 @@
+name: tmp-edit-notes
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  edit:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import subprocess, os
+          repo = os.environ["GITHUB_REPOSITORY"]; tag = "smartexplorer-v1.0.6"
+          old = "(바뀐 점은 여기에 적어 주세요 — 프로그램의 새 버전 알림 창에 그대로 보입니다)"
+          new = ("### 1.0.6 에서 바뀐 점\n"
+                 "- **칸이 1개일 때 미리보기를 목록 오른쪽에** — 넓은 화면을 옆으로 나눠 씁니다. 칸을 2개 이상으로 나누면 미리보기는 목록 아래로 옵니다. 경계 위치는 오른쪽·아래 각각 따로 기억합니다.\n\n"
+                 "### 1.0.5 에서 바뀐 점\n"
+                 "- 윈도우 탐색기·바탕화면·다른 프로그램과 끌어다 놓기 (파일 그림·'이동/복사' 표시), Windows 오른쪽 클릭 메뉴\n\n"
+                 "### 1.0.4 · 1.0.3 · 1.0.2 · 1.0.1\n- 폴더 숨기기, [업데이트 필요] 버튼, 오류·개선 제안 메일 안내, 알람 시험 창·알라미 충돌 수정")
+          body = subprocess.check_output(["gh", "release", "view", tag, "--repo", repo, "--json", "body", "-q", ".body"], text=True)
+          body = body.replace(old, new) if old in body else new + "\n\n" + body
+          open("b.md", "w", encoding="utf-8").write(body)
+          subprocess.check_call(["gh", "release", "edit", tag, "--repo", repo, "--notes-file", "b.md"])
+          PY
