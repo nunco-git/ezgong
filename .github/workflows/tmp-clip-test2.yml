@@ -73,10 +73,10 @@ jobs:
                   check(n == 1 and not st.has_password() and len(st.list()) == 1, "잊어버림: 가린 항목만 지움")
                   st.set_password("abcd1234"); st.add_memo("secret", "카드", hidden=True); app.reload()
                   S.ask_password = real_ask
-                  app.open_settings(); app.root.update()
+                  app.open_lock_settings(); app.root.update()
                   shot("settings")
                   app._settings_win.destroy()
-                  app.root.after(1200, lambda: shot("ask"))
+                  app.root.after(1200, lambda: (print("TOPS", [(str(w), w.winfo_ismapped(), w.geometry()) for w in app.root.winfo_children() if isinstance(w, S.tk.Toplevel)], flush=True), shot("ask")))
                   app.root.after(1600, lambda: [w.destroy() for w in app.root.winfo_children() if isinstance(w, S.tk.Toplevel)])
                   real_ask(app, "비밀번호 확인", "🔒 가린 내용을 보려면 비밀번호를 입력하세요.", check=st.check_password)
               except Exception:

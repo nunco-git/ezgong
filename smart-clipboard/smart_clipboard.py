@@ -1928,10 +1928,14 @@ class SettingsDialog:
         nb.pack(fill="both", expand=True, padx=12, pady=(12, 6))
         p1 = tk.Frame(nb, bg=C_BG, padx=14, pady=12)
         p2 = tk.Frame(nb, bg=C_BG, padx=14, pady=12)
+        p3 = tk.Frame(nb, bg=C_BG, padx=14, pady=12)
         nb.add(p1, text="  기록  ")
+        nb.add(p3, text="  🔒 비밀번호  ")
         nb.add(p2, text="  화면  ")
         self._build_record(p1)
+        self._build_lock(p3)
         self._build_look(p2)
+        self.nb, self.lock_tab = nb, p3
 
         bar = tk.Frame(t, bg=C_BG)
         bar.pack(fill="x", padx=12, pady=(0, 12))
@@ -2007,7 +2011,20 @@ class SettingsDialog:
                     lambda v: (a.retention_var.set({n: k for k, n in ret_names.items()}[v]), a.on_retention()))
         self._check(p, "프로그램을 끌 때 고정 안 된 기록 삭제", a.clear_exit_var, a._save)
 
+        self._section(p, "붙여넣기 · 단축키")
+        self._check(p, "한글에는 자동으로 호환 모드(HTML/RTF)로 붙여넣기", a.hwp_compat_var, a._save)
+        self._combo(p, "창 여는 단축키", list(HOTKEY_CHOICES), a.hotkey_var.get(),
+                    lambda v: (a.hotkey_var.set(v), a.on_hotkey()))
+        bar = tk.Frame(p, bg=C_BG)
+        bar.pack(fill="x", pady=(12, 0))
+        FlatButton(bar, "모든 기록 삭제 (고정 포함)…", a.wipe_all).pack(side="left")
+
+    def _build_lock(self, p):
+        a = self.app
         self._section(p, "🔒 가린 항목 비밀번호")
+        tk.Label(p, text="메모나 기록을 가리면(Ctrl+H) 목록·미리보기에 ●●●로만 보입니다.\n"
+                         "비밀번호를 정해 두면 가린 내용을 보거나 · 풀거나 · 고칠 때 비밀번호를 묻습니다.",
+                 font=FONT_SMALL, bg=C_BG, fg="#B49B74", anchor="w", justify="left", wraplength=420).pack(fill="x", pady=(0, 6))
         self.pw_lbl = tk.Label(p, font=FONT_SMALL, bg=C_BG, fg=C_BROWN, anchor="w", justify="left", wraplength=420)
         self.pw_lbl.pack(fill="x")
         pwb = tk.Frame(p, bg=C_BG)
@@ -2021,19 +2038,17 @@ class SettingsDialog:
         self._check(p, "가린 항목을 붙여넣을 때도 비밀번호 묻기", a.pw_paste_var, a._save,
                     "끄면 보거나 풀 때만 묻고, 붙여넣기(Enter)는 바로 됩니다.")
         self.refresh_pw()
-
-        self._section(p, "붙여넣기 · 단축키")
-        self._check(p, "한글에는 자동으로 호환 모드(HTML/RTF)로 붙여넣기", a.hwp_compat_var, a._save)
-        self._combo(p, "창 여는 단축키", list(HOTKEY_CHOICES), a.hotkey_var.get(),
-                    lambda v: (a.hotkey_var.set(v), a.on_hotkey()))
-        bar = tk.Frame(p, bg=C_BG)
-        bar.pack(fill="x", pady=(12, 0))
-        FlatButton(bar, "모든 기록 삭제 (고정 포함)…", a.wipe_all).pack(side="left")
+        tk.Label(p, text="· 한 번 넣으면 3분 동안(창을 숨기기 전까지) 다시 묻지 않습니다.\n"
+                         "· 5번 틀리면 30초 동안 막힙니다.\n"
+                         "· 비밀번호는 저장하지 않고 확인용 값만 암호화해 둡니다. 잊으면 되찾을 수 없으니\n"
+                         "  '잊어버렸어요…'로 가린 항목만 지우고 새로 정하세요.",
+                 font=FONT_SMALL, bg=C_BG, fg="#B49B74", anchor="w", justify="left").pack(fill="x", pady=(10, 0))
 
     def refresh_pw(self):
         has = self.app.store.has_password()
-        self.pw_lbl.config(text="정해 둠 — 가린 항목을 보거나 풀 때 비밀번호를 묻습니다. (한 번 넣으면 3분 동안, 창을 숨기기 전까지)"
-                           if has else "정하지 않음 — 지금은 누구나 '잠깐 보기'로 가린 내용을 볼 수 있습니다.")
+        self.pw_lbl.config(text="✔ 비밀번호를 정해 두었습니다." if has
+                           else "비밀번호를 정하지 않았습니다 — 지금은 누구나 '잠깐 보기'로 가린 내용을 볼 수 있습니다.",
+                           fg="#2E7D32" if has else "#C0392B")
         self.pw_set_btn.set_text("비밀번호 바꾸기" if has else "비밀번호 정하기")
         for b in (self.pw_clear_btn, self.pw_forgot_btn):
             if has:
@@ -2605,7 +2620,7 @@ class App:
         self.menu.add_command(label="✎ 메모 추가  (Ctrl+N)", command=self.add_memo)
         self.menu.add_command(label="메모 고치기  (Ctrl+E)", command=self.edit_memo)
         self.menu.add_command(label="🔒 가리기 / 풀기  (Ctrl+H)", command=self.toggle_hidden)
-        self.menu.add_command(label="🔒 가린 항목 비밀번호 정하기 / 바꾸기…", command=self.set_password)
+        self.menu.add_command(label="🔒 가린 항목 비밀번호…", command=self.open_lock_settings)
         self.menu.add_separator()
         self.menu.add_command(label="상단에 고정 / 고정 해제  (Ctrl+P)", command=self.toggle_pin)
         self.menu.add_command(label="고정 순서 위로  (Ctrl+↑)", command=lambda: self.move_pin(-1))
@@ -3181,6 +3196,15 @@ class App:
     # ─────────────────────── 설정 창 / 화면 테마 ───────────────────────
     def open_settings(self):
         SettingsDialog(self)
+
+    def open_lock_settings(self):
+        SettingsDialog(self)
+        dlg = getattr(self, "_settings_obj", None)
+        if dlg is not None:
+            try:
+                dlg.nb.select(dlg.lock_tab)
+            except Exception:
+                pass
 
     def _sync_autostart(self, save=True):
         """설정에 맞춰 레지스트리 자동 실행 등록/해제 (실행할 때마다 경로도 최신으로 맞춤)."""
