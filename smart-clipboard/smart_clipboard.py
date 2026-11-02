@@ -17,6 +17,9 @@ CopyQ 방식: 복사할 때 클립보드에 들어 있는 "모든 형식"을 원
   Ctrl+Shift+Enter  원본 형식 그대로 붙여넣기
   F2                저장된 형식 정보 보기
   Ctrl+P            상단에 고정 / 고정 해제
+  Ctrl+N            메모 바로 추가 (가리기를 켜면 비밀번호 등도 ●●●로 감춤)
+  Ctrl+E            메모 고치기
+  Ctrl+H            선택 항목 가리기 / 풀기 (붙여넣기는 그대로)
   Ctrl+↑ / Ctrl+↓   고정 항목 순서 바꾸기
   Ctrl+D, Delete    선택 항목 삭제
   Ctrl+T            항상 위에 표시 켜기/끄기
@@ -76,7 +79,7 @@ from tkinter import messagebox
 # 설정
 # ─────────────────────────────────────────────────────────────
 APP_NAME = "스마트클립"
-APP_VERSION = "1.0.0"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
+APP_VERSION = "1.1.0"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
 
 MOD_ALT, MOD_CONTROL, MOD_SHIFT, MOD_WIN, MOD_NOREPEAT = 0x1, 0x2, 0x4, 0x8, 0x4000
 HOTKEY_MODS = MOD_CONTROL | MOD_SHIFT      # 단축키 조합
@@ -959,7 +962,7 @@ SOURCE_NAMES = {
 
 def source_label(exe):
     if not exe:
-        return "알수없음"
+        return "직접"
     low = exe.lower()
     if low in SOURCE_NAMES:
         return SOURCE_NAMES[low]
@@ -1121,6 +1124,8 @@ class Store:
         if "enc" not in cols:
             self.db.execute("ALTER TABLE items ADD COLUMN enc INTEGER DEFAULT 0")
             self.db.execute("ALTER TABLE items ADD COLUMN meta BLOB")
+        if "hidden" not in cols:         # 가리기(비밀번호 등) 표시
+            self.db.execute("ALTER TABLE items ADD COLUMN hidden INTEGER DEFAULT 0")
         self.db.commit()
         self.max_items = MAX_ITEMS
         self.cache = {}                  # id → (preview, search) 복호화한 값 (메모리에만 보관)
@@ -1186,16 +1191,17 @@ class Store:
 
     def list(self):
         # 고정 항목은 사용자가 정한 순서로 맨 위, 나머지는 최근 순
-        cur = self.db.execute("SELECT id, ts, pinned, source, kind, size, keyhash, enc, preview, search, meta "
-                              "FROM items ORDER BY pinned DESC, "
+        cur = self.db.execute("SELECT id, ts, pinned, source, kind, size, keyhash, enc, preview, search, meta, "
+                              "hidden FROM items ORDER BY pinned DESC, "
                               "CASE WHEN pinned=1 THEN pin_order END ASC, ts DESC")
         out = []
-        for iid, ts, pinned, source, kind, size, kh, enc, preview, search, meta in cur.fetchall():
+        for iid, ts, pinned, source, kind, size, kh, enc, preview, search, meta, hidden in cur.fetchall():
             pm = self._meta(iid, enc, preview, search, meta)
             if pm is None:
                 continue
             out.append({"id": iid, "ts": ts, "pinned": pinned, "source": source, "kind": kind,
-                        "preview": pm[0], "search": pm[1], "size": size, "keyhash": kh})
+                        "preview": pm[0], "search": pm[1], "size": size, "keyhash": kh,
+                        "hidden": bool(hidden), "title": pm[2] if len(pm) > 2 else ""})
         return out
 
     def formats(self, item_id):
@@ -1270,6 +1276,46 @@ class Store:
         self.db.commit()
         return True
 
+    # ── 메모 · 가리기 ──
+    @staticmethod
+    def _memo_parts(text, title):
+        formats = [("#13", (text + "\x00").encode("utf-16-le"))]
+        first = re.sub(r"\s+", " ", text).strip()
+        preview = (title or first or "(빈 메모)")[:200]
+        search = (text + "\n" + title + " 메모").lower()
+        return formats, preview, search
+
+    def _seal_memo(self, formats, preview, search, title):
+        data = protect(pickle.dumps(formats, protocol=pickle.HIGHEST_PROTOCOL))
+        meta = protect(pickle.dumps((preview, search, title), protocol=pickle.HIGHEST_PROTOCOL))
+        return data, meta
+
+    def add_memo(self, text, title="", hidden=False):
+        """직접 적은 메모 → 고정 목록 맨 위에 추가 (기록 개수 제한으로 지워지지 않음)"""
+        formats, preview, search = self._memo_parts(text, title)
+        d, m = self._seal_memo(formats, preview, search, title)
+        top = self.db.execute("SELECT MIN(pin_order) FROM items WHERE pinned=1").fetchone()[0]
+        order = (top if top is not None else 0) - 1
+        cur = self.db.execute("INSERT INTO items(ts, pinned, pin_order, source, kind, preview, search, keyhash, "
+                              "size, data, meta, enc, hidden) VALUES(?,1,?,'',?,'','',?,?,?,?,1,?)",
+                              (time.time(), order, "메모", self._hkey("memo:" + os.urandom(16).hex()),
+                               len(formats[0][1]), d, m, 1 if hidden else 0))
+        self.db.commit()
+        self.cache[cur.lastrowid] = (preview, search, title)
+        return cur.lastrowid
+
+    def update_memo(self, item_id, text, title="", hidden=False):
+        formats, preview, search = self._memo_parts(text, title)
+        d, m = self._seal_memo(formats, preview, search, title)
+        self.db.execute("UPDATE items SET data=?, meta=?, size=?, hidden=?, enc=1 WHERE id=?",
+                        (d, m, len(formats[0][1]), 1 if hidden else 0, item_id))
+        self.db.commit()
+        self.cache[item_id] = (preview, search, title)
+
+    def set_hidden(self, item_id, hidden):
+        self.db.execute("UPDATE items SET hidden=? WHERE id=?", (1 if hidden else 0, item_id))
+        self.db.commit()
+
     def delete(self, item_id):
         self.db.execute("DELETE FROM items WHERE id=?", (item_id,))
         self.db.commit()
@@ -1308,7 +1354,7 @@ C_STAR_ON = "#F29A12"     # 고정된 별 (진하게)
 C_STAR_OFF = "#EADFCB"    # 고정 안 된 별 (희미하게)
 C_STAR_HOVER = "#E3B66A"  # 별 위에 마우스
 
-KIND_COLORS = {"표": "#2E7D32", "서식": "#1565C0", "이미지": "#8E44AD",
+KIND_COLORS = {"표": "#2E7D32", "서식": "#1565C0", "이미지": "#8E44AD", "메모": "#00838F",
                "파일": "#B5651D", "텍스트": C_BROWN, "기타": "#888888"}
 FONT = ("맑은 고딕", 10)
 FONT_SMALL = ("맑은 고딕", 9)
@@ -2049,6 +2095,105 @@ class SettingsDialog:
         self.t.destroy()
 
 
+class MemoDialog:
+    """✎ 메모 추가 / 고치기. 가리기를 켜면 목록·미리보기에 ●●●로 표시 (내용은 암호화되어 저장)"""
+
+    def __init__(self, app, item=None):
+        self.app, self.item = app, item
+        old = getattr(app, "_memo_win", None)
+        if old is not None and old.winfo_exists():
+            old.destroy()
+        t = self.t = tk.Toplevel(app.root, bg=C_BG)
+        app._memo_win = t
+        app.menu_open = True
+        t.title("메모 고치기" if item else "메모 추가")
+        t.transient(app.root)
+        t.attributes("-topmost", True)
+        t.resizable(True, True)
+        t.protocol("WM_DELETE_WINDOW", self.close)
+        try:
+            t.iconbitmap(icon_file())
+        except Exception:
+            pass
+        text, title, hidden = "", "", False
+        if item:
+            try:
+                text = get_text(dict(app.store.formats(item["id"])))
+            except Exception:
+                text = ""
+            title, hidden = item.get("title") or "", bool(item.get("hidden"))
+
+        f = tk.Frame(t, bg=C_BG, padx=14, pady=12)
+        f.pack(fill="both", expand=True)
+        tk.Label(f, text="제목 (선택 · 가려도 목록에 보임)", font=FONT_SMALL, bg=C_BG, fg=C_BROWN_LT,
+                 anchor="w").pack(fill="x")
+        self.title_var = tk.StringVar(value=title)
+        te = tk.Entry(f, textvariable=self.title_var, font=FONT, relief="solid", bd=1, bg=C_WHITE, fg=C_BROWN,
+                      insertbackground=C_BROWN)
+        te.pack(fill="x", ipady=3, pady=(2, 8))
+        tk.Label(f, text="내용 (붙여넣기 할 글)", font=FONT_SMALL, bg=C_BG, fg=C_BROWN_LT,
+                 anchor="w").pack(fill="x")
+        self.body = tk.Text(f, font=FONT, wrap="word", relief="solid", bd=1, bg=C_WHITE, fg=C_BROWN,
+                            insertbackground=C_BROWN, width=44, height=7, undo=True)
+        self.body.pack(fill="both", expand=True, pady=(2, 8))
+        self.body.insert("1.0", text)
+        self.hidden_var = tk.BooleanVar(value=hidden)
+        tk.Checkbutton(f, text="🔒 가리기 — 비밀번호 등 (목록·미리보기에 ●●●로 표시, 붙여넣기는 그대로)",
+                       variable=self.hidden_var, bg=C_BG, fg=C_BROWN, activebackground=C_BG,
+                       selectcolor=C_WHITE, font=FONT_SMALL, anchor="w").pack(fill="x")
+        tk.Label(f, text="내용은 이 PC·이 Windows 계정에서만 풀리도록 암호화되어 저장됩니다.",
+                 font=FONT_SMALL, bg=C_BG, fg="#B49B74", anchor="w").pack(fill="x", pady=(2, 0))
+        bar = tk.Frame(t, bg=C_BG)
+        bar.pack(fill="x", padx=14, pady=(0, 12))
+        FlatButton(bar, "취소", self.close).pack(side="right")
+        FlatButton(bar, "저장 (Ctrl+Enter)", self.save).pack(side="right", padx=(0, 6))
+        for w in (t, te, self.body):
+            w.bind("<Control-Return>", lambda e: (self.save(), "break")[1])
+        t.bind("<Escape>", lambda e: self.close())
+        te.bind("<Return>", lambda e: (self.body.focus_set(), "break")[1])
+        self._place()
+        (self.body if item else te).focus_set()
+
+    def _place(self):
+        t, r = self.t, self.app.root
+        t.update_idletasks()
+        tw, th = t.winfo_reqwidth(), t.winfo_reqheight()
+        sw, sh = t.winfo_screenwidth(), t.winfo_screenheight()
+        x = r.winfo_rootx() + max(0, (r.winfo_width() - tw) // 2)
+        y = r.winfo_rooty() + 60
+        t.geometry("+%d+%d" % (max(0, min(x, sw - tw - 8)), max(0, min(y, sh - th - 50))))
+
+    def save(self):
+        text = self.body.get("1.0", "end-1c")
+        title = self.title_var.get().strip()
+        if not text.strip():
+            self.app.toast("내용을 적어 주세요")
+            self.body.focus_set()
+            return
+        if self.item:
+            self.app.store.update_memo(self.item["id"], text, title, self.hidden_var.get())
+            iid = self.item["id"]
+        else:
+            iid = self.app.store.add_memo(text, title, self.hidden_var.get())
+            if self.app.search_var.get():
+                self.app.search_var.set("")
+        self.app.revealed = None
+        self.close()
+        self.app.reload(keep_id=iid)
+        self.app.toast("메모를 저장했습니다 (★ 고정 목록 맨 위)" if not self.item else "메모를 고쳤습니다")
+
+    def close(self):
+        try:
+            self.t.destroy()
+        except tk.TclError:
+            pass
+        self.app.menu_open = False
+        try:
+            self.app.root.focus_force()
+        except tk.TclError:
+            pass
+
+
 class App:
     def __init__(self):
         global HOTKEY_TEXT
@@ -2090,6 +2235,7 @@ class App:
         self.popup_mode = False             # 단축키로 잠깐 띄운 상태인지
         self._tray_notice_shown = False
         self.menu_open = False
+        self.revealed = None           # 가린 항목 중 잠깐 보기 중인 것
         self._tick = 0
         self._search_job = None
         self._own = (None, 0.0)             # 내가 클립보드에 넣은 내용 (다시 기록되지 않게)
@@ -2217,6 +2363,12 @@ class App:
         self.clear_btn2 = FlatButton(bar, "", self.clear_all, icon_name="trash",
                                      tip="최근 기록 모두 비우기\n(★ 고정 항목은 남습니다)")
         self.clear_btn2.pack(side="left", padx=(4, 0))
+        self.memo_btn = FlatButton(bar, "✎ 메모", self.add_memo,
+                                   tip="메모 바로 추가 (Ctrl+N)\n비밀번호처럼 감출 내용은 '가리기'를 켜세요")
+        self.memo_btn.pack(side="left", padx=(8, 0))
+        self.hide_btn = FlatButton(bar, "🔒 가리기", self.toggle_hidden,
+                                   tip="선택한 항목 가리기 / 풀기 (Ctrl+H)\n목록·미리보기에 ●●●로 표시, 붙여넣기는 그대로")
+        self.hide_btn.pack(side="left", padx=(2, 0))
         self.set_btn = FlatButton(bar, "설정", self.open_settings, icon_name="gear",
                                   tip="설정 - 기록 제한, 자동 실행, 배경, 글자 (Ctrl+,)")
         self.set_btn.pack(side="right")
@@ -2250,6 +2402,10 @@ class App:
         self.preview.pack(fill="both", expand=True)
         self.preview.tag_configure("hit", background=C_HILITE, foreground=C_BROWN)
         self.preview.tag_configure("dim", foreground="#B49B74")
+        self.preview.tag_configure("reveal", foreground="#1565C0", underline=True)
+        self.preview.tag_bind("reveal", "<Button-1>", lambda e: self.reveal())
+        self.preview.tag_bind("reveal", "<Enter>", lambda e: self.preview.config(cursor="hand2"))
+        self.preview.tag_bind("reveal", "<Leave>", lambda e: self.preview.config(cursor="arrow"))
         self.preview.config(state="disabled")
         pw.add(pf, minsize=70, stretch="never")
         self.root.after(100, lambda: self._place_sash(pw))
@@ -2282,6 +2438,10 @@ class App:
                               command=lambda: self.use(mode="raw"))
         self.menu.add_command(label="클립보드에만 넣기  (Ctrl+Enter)", command=lambda: self.use(paste=False))
         self.menu.add_separator()
+        self.menu.add_command(label="✎ 메모 추가  (Ctrl+N)", command=self.add_memo)
+        self.menu.add_command(label="메모 고치기  (Ctrl+E)", command=self.edit_memo)
+        self.menu.add_command(label="🔒 가리기 / 풀기  (Ctrl+H)", command=self.toggle_hidden)
+        self.menu.add_separator()
         self.menu.add_command(label="상단에 고정 / 고정 해제  (Ctrl+P)", command=self.toggle_pin)
         self.menu.add_command(label="고정 순서 위로  (Ctrl+↑)", command=lambda: self.move_pin(-1))
         self.menu.add_command(label="고정 순서 아래로  (Ctrl+↓)", command=lambda: self.move_pin(1))
@@ -2312,6 +2472,9 @@ class App:
             "<F2>": self.show_formats,
             "<Control-comma>": self.open_settings,
             "<Control-p>": self.toggle_pin, "<Control-P>": self.toggle_pin,
+            "<Control-n>": self.add_memo, "<Control-N>": self.add_memo,
+            "<Control-e>": self.edit_memo, "<Control-E>": self.edit_memo,
+            "<Control-h>": self.toggle_hidden, "<Control-H>": self.toggle_hidden,
             "<Control-d>": self.delete, "<Control-D>": self.delete,
             "<Control-t>": self.flip_topmost, "<Control-T>": self.flip_topmost,
             "<Control-k>": self.flip_keep, "<Control-K>": self.flip_keep,
@@ -2393,7 +2556,7 @@ class App:
             cur = self.current()
             keep_id = cur["id"] if cur else None
         terms = self.terms()
-        view = [it for it in self.items if all(t in (it["search"] or "") for t in terms)]
+        view = [it for it in self.items if all(t in self._search_text(it) for t in terms)]
         pinned = [it for it in view if it["pinned"]]
         recent = [it for it in view if not it["pinned"]]
 
@@ -2403,7 +2566,7 @@ class App:
             iid = str(it["id"])
             rows.append({"iid": iid, "kind": it["kind"], "pinned": bool(it["pinned"]), "values": {
                 "pin": "★" if it["pinned"] else "", "src": source_label_cached(it["source"]),
-                "kind": it["kind"], "text": it["preview"], "time": short_time(it["ts"])}})
+                "kind": it["kind"], "text": self._list_text(it), "time": short_time(it["ts"])}})
             self.order.append(iid)
             self.by_id[iid] = it
         self.tree.set_rows(rows)
@@ -2426,6 +2589,49 @@ class App:
         else:
             self._show_preview(None)
             self._update_pin_button()
+
+    # ── 가리기(비밀번호 등) ──
+    HIDDEN_DOTS = "●●●●●●"
+
+    def _list_text(self, it):
+        if not it.get("hidden"):
+            return it["preview"]
+        title = it.get("title") or ""
+        return "🔒 %s  %s" % (title, self.HIDDEN_DOTS) if title else "🔒 " + self.HIDDEN_DOTS
+
+    def _search_text(self, it):
+        """가린 항목은 제목으로만 찾음 (내용은 검색에 걸리지 않게)"""
+        if it.get("hidden"):
+            return ((it.get("title") or "") + " " + it["kind"] + " 가림").lower()
+        return it["search"] or ""
+
+    def toggle_hidden(self):
+        it = self.current()
+        if not it:
+            return
+        self.store.set_hidden(it["id"], not it.get("hidden"))
+        self.revealed = None
+        self.reload(keep_id=it["id"])
+        self.toast("가렸습니다 · 붙여넣기는 그대로 됩니다" if not it.get("hidden") else "가리기를 풀었습니다")
+
+    def reveal(self):
+        """가린 내용을 잠깐 보기 (다른 항목을 고르면 다시 가려짐)"""
+        it = self.current()
+        if it and it.get("hidden"):
+            self.revealed = None if self.revealed == it["id"] else it["id"]
+            self._show_preview(it)
+
+    def add_memo(self):
+        MemoDialog(self)
+
+    def edit_memo(self):
+        it = self.current()
+        if not it:
+            return
+        if it["kind"] != "메모":
+            self.toast("직접 적은 메모만 고칠 수 있습니다")
+            return
+        MemoDialog(self, it)
 
     def _star_click(self, iid):
         it = self.by_id.get(iid)
@@ -2450,7 +2656,10 @@ class App:
         return self.by_id.get(sel[0]) if sel else None
 
     def _on_select(self, e=None):
-        self._show_preview(self.current())
+        cur = self.current()
+        if not cur or cur["id"] != getattr(self, "revealed", None):
+            self.revealed = None
+        self._show_preview(cur)
         self._update_pin_button()
 
     def _on_double(self, e):
@@ -2486,6 +2695,8 @@ class App:
         self.btn_top.set_text("항상 위" if full else "")
         self.btn_keep.set_text("창 유지" if full else "")
         self.set_btn.set_text("설정" if full else "")
+        self.memo_btn.set_text("✎ 메모" if full else "✎")
+        self.hide_btn.set_text("🔒 가리기" if full else "🔒")
         # 아주 좁으면 "스마트클립"만 표시
         if layout == "narrow":
             self.link_lbl.pack_forget()
@@ -2520,6 +2731,14 @@ class App:
         self.info_lbl.config(text="%s · %s · %s · %s" % (
             source_label_cached(it["source"]), it["kind"], human_size(it["size"] or 0),
             time.strftime("%Y-%m-%d %H:%M", time.localtime(it["ts"]))))
+        if it.get("hidden") and getattr(self, "revealed", None) != it["id"]:
+            if it.get("title"):
+                p.insert("end", it["title"] + "\n\n")
+            p.insert("end", "🔒 가린 내용입니다.  ", "dim")
+            p.insert("end", "👁 잠깐 보기", "reveal")
+            p.insert("end", "  (Ctrl+H 가리기 풀기)\n\n붙여넣기(Enter)는 그대로 됩니다.", "dim")
+            p.config(state="disabled")
+            return
         try:
             body = full_text(self.store.formats(it["id"]))
         except Exception:
