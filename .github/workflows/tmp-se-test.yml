@@ -32,4 +32,4 @@ jobs:
           c.kill()
           sys.exit(0 if ok else 1)
           '@ | Set-Content t.py -Encoding utf8
-          python t.py
+          $env:PYTHONIOENCODING="utf-8"; python t.py
