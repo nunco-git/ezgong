@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.6"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.7"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -4652,6 +4652,54 @@ def background_photo(w, h):
 class SettingsDialog:
     """⚙ 환경설정 창: 글꼴, 글자·배경·목록·강조 색, 배경 그림"""
 
+    def refresh_shortcuts(self):
+        """만들어 둔 바로가기는 버튼을 숨기고, 둘 다 있으면 바로가기 칸을 통째로 숨김"""
+        desk, task = has_desktop_shortcut(), is_pinned_to_taskbar()
+        for b in (self.sc_desk, self.sc_task, self.sc_note):
+            b.pack_forget()
+        if desk and task:
+            self.sc_frame.pack_forget()
+            return
+        if not desk:
+            self.sc_desk.pack(side="left")
+        if not task:
+            self.sc_task.pack(side="left", padx=(6, 0))
+        self.sc_note.pack(side="left", padx=8)
+
+    def make_desk(self):
+        try:
+            make_desktop_shortcut()
+            self.sc_note.configure(text="바탕화면에 만들었습니다.")
+        except Exception as e:
+            messagebox.showerror(APP_NAME, f"바로가기를 만들 수 없습니다.\n{e}", parent=self.win)
+        self.win.after(1500, self.refresh_shortcuts)
+
+    def pin_task(self):
+        try:
+            make_start_menu_shortcut()          # 시작 메뉴에도 넣어 두면 검색·고정이 쉬움
+        except Exception:
+            pass
+        messagebox.showinfo(APP_NAME,
+                            "작업표시줄 고정은 Windows 보안 정책상 프로그램이 스스로 할 수 없어서, 한 번만 직접 해 주세요.\n\n"
+                            "① 화면 아래 작업표시줄에 있는 스마트탐색기 아이콘을 마우스 오른쪽 클릭\n"
+                            "② [작업 표시줄에 고정] 클릭\n\n"
+                            "(시작 메뉴에도 '스마트탐색기'를 넣어 두었습니다. 시작 메뉴에서 오른쪽 클릭 → "
+                            "[작업 표시줄에 고정]으로도 됩니다.)", parent=self.win)
+        self.sc_note.configure(text="고정하면 이 칸은 저절로 사라집니다.")
+        self._watch_pin(40)
+
+    def _watch_pin(self, n):
+        try:
+            if not self.win.winfo_exists():
+                return
+        except tk.TclError:
+            return
+        if is_pinned_to_taskbar():
+            self.sc_note.configure(text="작업표시줄에 고정됐습니다.")
+            self.win.after(1500, self.refresh_shortcuts)
+        elif n > 0:
+            self.win.after(1500, lambda: self._watch_pin(n - 1))
+
     def __init__(self, app):
         self.app = app
         self.orig = dict(THEME)
@@ -4663,6 +4711,14 @@ class SettingsDialog:
         w.protocol("WM_DELETE_WINDOW", self.cancel)
         body = ttk.Frame(w, padding=14)
         body.pack(fill="both", expand=True)
+
+        # 바로가기 (바탕화면·작업표시줄) — 만들고 나면 숨김
+        self.sc_frame = ttk.LabelFrame(w, text=" 📌 바로가기 ", padding=(10, 6))
+        self.sc_frame.pack(fill="x", padx=14, pady=(12, 0), before=body)
+        self.sc_desk = ttk.Button(self.sc_frame, text="🖥 바탕화면에 바로가기 만들기", command=self.make_desk)
+        self.sc_task = ttk.Button(self.sc_frame, text="📌 작업표시줄에 고정하기 …", command=self.pin_task)
+        self.sc_note = ttk.Label(self.sc_frame, text="", foreground="#2a6fdb")
+        self.refresh_shortcuts()
 
         # 알람·실행 설정 (자동 실행, 트레이, 단축키, 반복 알람)
         af = ttk.Frame(w, padding=(14, 12, 14, 0))
@@ -4986,7 +5042,8 @@ def center_on(win, parent=None, w=None, h=None):
         win.geometry(f"{int(w)}x{int(h)}+{x}+{y}")
     except Exception:
         pass
-DEFAULT_HOTKEY = {"ctrl": True, "alt": True, "shift": False, "win": False, "key": "E", "enabled": True}
+DEFAULT_HOTKEY = {"ctrl": True, "alt": False, "shift": True, "win": False, "key": "E", "enabled": True}   # Ctrl+Shift+E
+OLD_DEFAULT_HOTKEY = {"ctrl": True, "alt": True, "shift": False, "win": False, "key": "E"}
 HOTKEY_KEYS = [chr(c) for c in range(ord("A"), ord("Z") + 1)] + [str(d) for d in range(10)] + \
               [f"F{n}" for n in range(1, 13)] + ["Space"]
 
@@ -5029,8 +5086,98 @@ def set_autostart(on):
     return True
 
 
-def make_desktop_shortcut():
-    """바탕화면에 '스마트탐색기' 바로가기 만들기"""
+SHORTCUT_NAME = "스마트탐색기.lnk"
+EXE_NAME = "SmartExplorer.exe"
+
+
+def desktop_dir():
+    try:
+        import ctypes
+        buf = ctypes.create_unicode_buffer(260)
+        if ctypes.windll.shell32.SHGetFolderPathW(None, 0x10, None, 0, buf) == 0 and buf.value:   # 바탕화면(원드라이브 포함)
+            return buf.value
+    except Exception:
+        pass
+    return os.path.join(os.path.expanduser("~"), "Desktop")
+
+
+def has_desktop_shortcut():
+    try:
+        return os.path.exists(os.path.join(desktop_dir(), SHORTCUT_NAME))
+    except Exception:
+        return False
+
+
+def is_pinned_to_taskbar():
+    """작업표시줄에 고정돼 있는지 (고정한 바로가기들 중 이 프로그램을 가리키는 것이 있는지)"""
+    d = os.path.join(os.environ.get("APPDATA", ""), r"Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar")
+    exe = os.path.basename(sys.executable if getattr(sys, "frozen", False) else EXE_NAME).lower()
+    try:
+        for n in os.listdir(d):
+            if not n.lower().endswith(".lnk"):
+                continue
+            if os.path.splitext(n)[0] in ("스마트탐색기", "SmartExplorer"):
+                return True
+            with open(os.path.join(d, n), "rb") as f:
+                data = f.read(65536).lower()
+            if exe.encode("utf-16-le") in data or exe.encode("latin-1", "ignore") in data:
+                return True
+    except OSError:
+        pass
+    return False
+
+
+def create_lnk(lnk_path, target, args="", workdir="", icon="", desc=""):
+    """윈도우 바로가기(.lnk) 만들기 — PowerShell 없이 Windows 기능(IShellLink)을 직접 씀"""
+    import ctypes
+    ole32 = ctypes.windll.ole32
+
+    class GUID(ctypes.Structure):
+        _fields_ = [("a", ctypes.c_uint32), ("b", ctypes.c_uint16), ("c", ctypes.c_uint16), ("d", ctypes.c_ubyte * 8)]
+
+    def guid(t):
+        g = GUID()
+        ole32.CLSIDFromString(ctypes.c_wchar_p(t), ctypes.byref(g))
+        return g
+
+    def vcall(ptr, i, argtypes, *a):
+        vt = ctypes.cast(ptr, ctypes.POINTER(ctypes.POINTER(ctypes.c_void_p)))[0]
+        return ctypes.WINFUNCTYPE(ctypes.c_long, ctypes.c_void_p, *argtypes)(vt[i])(ptr, *a)
+
+    ole32.CoInitialize(None)
+    ole32.CoCreateInstance.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_ulong, ctypes.c_void_p,
+                                       ctypes.POINTER(ctypes.c_void_p)]
+    psl, ppf = ctypes.c_void_p(), ctypes.c_void_p()
+    hr = ole32.CoCreateInstance(ctypes.byref(guid("{00021401-0000-0000-C000-000000000046}")), None, 1,
+                                ctypes.byref(guid("{000214F9-0000-0000-C000-000000000046}")), ctypes.byref(psl))
+    if hr != 0 or not psl:
+        raise OSError(f"바로가기 기능을 쓸 수 없습니다 ({hr & 0xFFFFFFFF:#x})")
+    W = ctypes.c_wchar_p
+    try:
+        vcall(psl.value, 20, [W], target)                     # SetPath
+        vcall(psl.value, 11, [W], args or "")                 # SetArguments
+        vcall(psl.value, 9, [W], workdir or "")               # SetWorkingDirectory
+        vcall(psl.value, 7, [W], desc or "")                  # SetDescription
+        vcall(psl.value, 17, [W, ctypes.c_int], icon or target, 0)   # SetIconLocation
+        hr = vcall(psl.value, 0, [ctypes.c_void_p, ctypes.POINTER(ctypes.c_void_p)],
+                   ctypes.byref(guid("{0000010B-0000-0000-C000-000000000046}")), ctypes.byref(ppf))
+        if hr != 0 or not ppf:
+            raise OSError("바로가기를 저장할 수 없습니다")
+        hr = vcall(ppf.value, 6, [W, ctypes.c_int], lnk_path, 1)    # IPersistFile::Save
+        if hr != 0:
+            raise OSError(f"바로가기를 저장할 수 없습니다 ({hr & 0xFFFFFFFF:#x}): {lnk_path}")
+    finally:
+        for p in (ppf, psl):
+            if p:
+                vcall(p.value, 2, [])
+
+
+def make_start_menu_shortcut():
+    make_desktop_shortcut(os.path.join(os.environ.get("APPDATA", ""), r"Microsoft\Windows\Start Menu\Programs"))
+
+
+def make_desktop_shortcut(folder=None):
+    """바탕화면(또는 folder)에 '스마트탐색기' 바로가기 만들기"""
     if getattr(sys, "frozen", False):
         target, args, workdir = sys.executable, "", os.path.dirname(sys.executable)
     else:
@@ -5038,16 +5185,9 @@ def make_desktop_shortcut():
         pyw = os.path.join(os.path.dirname(py), "pythonw.exe")
         target = pyw if os.path.exists(pyw) else py
         args, workdir = f'"{os.path.abspath(__file__)}"', os.path.dirname(os.path.abspath(__file__))
-    q = lambda v: v.replace("'", "''")
-    ps = ("$d=[Environment]::GetFolderPath('Desktop');"
-          "$s=(New-Object -ComObject WScript.Shell).CreateShortcut((Join-Path $d '스마트탐색기.lnk'));"
-          f"$s.TargetPath='{q(target)}';$s.Arguments='{q(args)}';$s.WorkingDirectory='{q(workdir)}';"
-          f"$s.IconLocation='{q(target)},0';$s.Description='스마트탐색기 (스마트공 시리즈)';$s.Save()")
-    r = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps],
-                       capture_output=True, text=True, timeout=30,
-                       creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
-    if r.returncode != 0:
-        raise RuntimeError((r.stderr or r.stdout or "알 수 없는 오류").strip()[:300])
+    folder = folder or desktop_dir()
+    os.makedirs(folder, exist_ok=True)
+    create_lnk(os.path.join(folder, SHORTCUT_NAME), target, args, workdir, target, "스마트탐색기 (스마트공 시리즈)")
 
 
 def hotkey_text(hk):
@@ -5839,11 +5979,17 @@ class App:
         saved = self.s.get("alarm", {})
         self.alarm = dict(DEFAULT_ALARM, **saved) if "mode" in saved else dict(DEFAULT_ALARM)   # 예전 형식이면 새 기본값
         self.started = time.time()                    # 휴일 알람 기준: 프로그램을 켠 순간
-        self.hotkey = dict(DEFAULT_HOTKEY, **self.s.get("hotkey", {}))
+        saved_hk = self.s.get("hotkey", {})
+        if not self.s.get("hotkey_v2"):                  # 예전 기본값(Ctrl+Alt+E) 그대로였으면 새 기본값(Ctrl+Shift+E)으로
+            self.s["hotkey_v2"] = True
+            if all(saved_hk.get(k, v) == v for k, v in OLD_DEFAULT_HOTKEY.items()):
+                saved_hk = dict(saved_hk, **{k: v for k, v in DEFAULT_HOTKEY.items() if k != "enabled"})
+                self.s["hotkey"] = saved_hk
+        self.hotkey = dict(DEFAULT_HOTKEY, **saved_hk)
         self.alarm_next = None
         root.title(f"{APP_NAME}  v{APP_VERSION}")
         root.geometry(self.s.get("geometry", "1200x780"))
-        if self.s.get("zoomed", True):                 # 처음 켤 때(또는 지난번에 최대화였으면) 전체 화면
+        if True:                                          # 처음 켤 때도 늘 전체 화면
             try:
                 root.state("zoomed")
             except tk.TclError:
@@ -6275,8 +6421,12 @@ class App:
     def show_window(self):
         r = self.root
         r.deiconify()
-        if r.state() == "iconic":
-            r.state("normal")
+        r.update_idletasks()
+        try:
+            r.state("zoomed")                        # 늘 전체 화면으로 (트레이·단축키로 불러와도 제자리·제 크기)
+        except tk.TclError:
+            if r.state() == "iconic":
+                r.state("normal")
         r.lift()
         r.attributes("-topmost", True)
         r.after(300, lambda: r.attributes("-topmost", False))
@@ -6623,6 +6773,7 @@ class App:
         tx.tag_configure("contact", background="#fff8e6", lmargin1=8, lmargin2=8, rmargin=8,
                          spacing1=6, spacing3=6)
         tx.tag_configure("mail", foreground="#1565c0", underline=True, font=(FONT[0], fsz(10), "bold"))
+        tx.tag_configure("key", foreground="#b4690e", font=(FONT[0], fsz(12), "bold"))
 
         def copy_mail(e=None):
             try:
@@ -6639,6 +6790,11 @@ class App:
             if i == 0:
                 tx.insert("end", head + "\n", "h")
                 tx.insert("end", body + "\n\n")
+                hk = self.hotkey
+                tx.insert("end", "⌨ 바로 실행 단축키  ", ("contact", "b"))
+                tx.insert("end", hotkey_text(hk) if hk.get("enabled", True) else "꺼짐", ("contact", "key"))
+                tx.insert("end", "\n어디서든 누르면 스마트탐색기가 바로 앞으로 나옵니다 (트레이에 숨어 있어도). "
+                                 "바꾸기: ⚙ 환경설정 → 알람·실행 설정\n", "contact")
                 tx.insert("end", "✉ 사용하다가 오류나 개선할 점이 있으면 ", "contact")
                 tx.insert("end", CONTACT_EMAIL, ("contact", "mail"))
                 tx.insert("end", " 으로 알려 주세요. (누르면 주소 복사)\n", "contact")
