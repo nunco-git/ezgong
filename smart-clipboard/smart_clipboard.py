@@ -32,7 +32,8 @@ CopyQ 방식: 복사할 때 클립보드에 들어 있는 "모든 형식"을 원
   마우스 오른쪽 클릭  메뉴
 
 [보안] (행정기관 PC 사용 고려)
-  - 인터넷·네트워크 기능 없음 (외부로 아무것도 보내지 않음)
+  - 기록·메모는 외부로 보내지 않음. 인터넷은 '새 버전 확인'(깃허브에 최신 버전 번호만 물어봄)에만 쓰며
+    설정 → 기록 → '새 버전 확인'을 끄면 인터넷을 전혀 쓰지 않음
   - 기록은 Windows DPAPI로 암호화 저장 → 같은 PC·같은 Windows 계정에서만 열림
   - 주민등록번호·카드번호가 든 내용은 기록하지 않음 (기본값)
   - 자동 삭제(1/7/30일), 종료 시 삭제, 전체 삭제
@@ -80,7 +81,7 @@ from tkinter import messagebox
 # 설정
 # ─────────────────────────────────────────────────────────────
 APP_NAME = "스마트클립"
-APP_VERSION = "1.1.3"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
+APP_VERSION = "1.1.4"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
 
 MOD_ALT, MOD_CONTROL, MOD_SHIFT, MOD_WIN, MOD_NOREPEAT = 0x1, 0x2, 0x4, 0x8, 0x4000
 HOTKEY_MODS = MOD_CONTROL | MOD_SHIFT      # 단축키 조합
@@ -1407,6 +1408,15 @@ FONT_TITLE = ("맑은 고딕", 12, "bold")
 LIMIT_CHOICES = (100, 300, 500, 1000, 3000)
 SERIES_TEXT = "스마트공"
 CONTACT_EMAIL = "smartgongmaster@gmail.com"   # 오류·개선 제안 받는 주소
+GITHUB_REPO = "nunco-git/ezgong"              # 새 버전 확인 (깃허브 릴리스)
+RELEASE_TAG_PREFIX = "smartclipboard-v"
+DOWNLOAD_URL = "https://smartgong.kr/download/smart-clipboard"   # 항상 최신 버전 exe
+UPDATE_CHECK_HOURS = 12
+
+
+def ver_tuple(v):
+    nums = re.findall(r"\d+", str(v))[:4]
+    return tuple(int(n) for n in nums) + (0,) * (4 - len(nums))
 SERIES_URL = "https://smartgong.kr"
 
 # 작업표시줄/트레이 창은 붙여넣을 대상에서 제외
@@ -2049,6 +2059,9 @@ class SettingsDialog:
         self._section(p, "시작")
         self._check(p, "Windows 시작할 때 자동 실행", a.autostart_var, a._sync_autostart)
         self._check(p, "자동 실행할 때는 창 없이 트레이에서 시작", a.start_tray_var, a._sync_autostart)
+        self._check(p, "새 버전 확인 (하루 두 번, 깃허브에 최신 버전 번호만 물어봄)", a.update_check_var,
+                    lambda: (a._save(), a.check_update(force=True) if a.update_check_var.get() else a._show_update_btn()),
+                    "끄면 이 프로그램은 인터넷을 전혀 쓰지 않습니다.")
         self._section(p, "기록 제한 (해제하면 더 많은 내용이 기록됩니다)")
         self._check(p, "주민등록번호·카드번호가 든 내용은 기록하지 않음", a.pii_var, a._apply_record_settings)
         self._check(p, "프로그램이 '기록 금지'로 표시한 내용은 기록하지 않음", a.honor_var, a._apply_record_settings,
@@ -2487,6 +2500,9 @@ class App:
         self._tray_notice_shown = False
         self.menu_open = False
         self.revealed = None           # 가린 항목 중 잠깐 보기 중인 것
+        saved = self.settings.get("update_avail")
+        self.update_info = saved if isinstance(saved, dict) and \
+            ver_tuple(saved.get("version", "0")) > ver_tuple(APP_VERSION) else None
         self.unlocked_until = 0        # 비밀번호를 넣은 뒤 다시 묻지 않는 시각
         self.pw_block_until = 0        # 여러 번 틀렸을 때 잠시 막음
         self._tick = 0
@@ -2497,6 +2513,7 @@ class App:
         self.keep_var = tk.BooleanVar(value=bool(self.settings.get("keep_open", False)))
         self.hwp_compat_var = tk.BooleanVar(value=bool(self.settings.get("hwp_compat", True)))
         self.pw_paste_var = tk.BooleanVar(value=bool(self.settings.get("pw_on_paste", False)))
+        self.update_check_var = tk.BooleanVar(value=bool(self.settings.get("update_check", True)))
         self.limit_var = tk.IntVar(value=self.store.max_items)
         # 보안 설정
         self.pii_var = tk.BooleanVar(value=bool(self.settings.get("pii_skip", True)))
@@ -2534,6 +2551,8 @@ class App:
         else:
             self.show(None)        # 실행하면 창을 바로 띄움 (트레이 아이콘도 함께 표시)
         self.root.after(50, self.poll)
+        self._show_update_btn()
+        self.root.after(5000, self.check_update)
 
     # ─────────────────────── 화면 구성 ───────────────────────
     def _build(self):
@@ -2667,6 +2686,9 @@ class App:
         self.keys_lbl = tk.Label(foot, font=FONT_SMALL, bg=C_BG, fg="#B49B74", anchor="w", width=1,
                                  text="Enter 붙여넣기 · Shift+Enter 텍스트만 · Ctrl+P 고정 · 오른쪽 클릭 메뉴")
         self.keys_lbl.pack(side="left", fill="x", expand=True, padx=(0, 8))
+        self.upd_lbl = tk.Label(foot, text="⬆ 업데이트 필요", font=(FONT_SMALL[0], FONT_SMALL[1], "bold"),
+                                bg="#E8590C", fg="white", padx=8, pady=1, cursor="hand2")
+        self.upd_lbl.bind("<Button-1>", lambda e: self.show_update())
         self._layout = None
         r.bind("<Configure>", self._on_resize, add="+")
         # 오른쪽 아래 모서리: 끌어서 창 크기 조절
@@ -3251,6 +3273,7 @@ class App:
         self.settings["keep_open"] = bool(self.keep_var.get())
         self.settings["hwp_compat"] = bool(self.hwp_compat_var.get())
         self.settings["pw_on_paste"] = bool(self.pw_paste_var.get())
+        self.settings["update_check"] = bool(self.update_check_var.get())
         self.settings["max_items"] = int(self.store.max_items)
         self.settings["pii_skip"] = bool(self.pii_var.get())
         self.settings["retention_days"] = int(self.retention_var.get())
@@ -3480,6 +3503,63 @@ class App:
         FlatButton(bar, "목록 복사", copy_report).pack(side="left")
         FlatButton(bar, "닫기", t.destroy).pack(side="right")
 
+    # ── 새 버전 확인 ──
+    def check_update(self, force=False):
+        if not self.update_check_var.get():
+            return
+        if not force and time.time() - self.settings.get("update_checked", 0) < UPDATE_CHECK_HOURS * 3600 - 60:
+            self.root.after(3600 * 1000, self.check_update)
+            return
+        q = self.q
+
+        def work():
+            import urllib.request
+            try:
+                req = urllib.request.Request("https://api.github.com/repos/%s/releases?per_page=30" % GITHUB_REPO,
+                                             headers={"User-Agent": "SmartClip/%s" % APP_VERSION,
+                                                      "Accept": "application/vnd.github+json"})
+                with urllib.request.urlopen(req, timeout=10) as r:
+                    rels = json.loads(r.read(2 * 1024 * 1024).decode("utf-8"))
+                mine = [x for x in rels if isinstance(x, dict) and not x.get("draft") and not x.get("prerelease")
+                        and str(x.get("tag_name", "")).startswith(RELEASE_TAG_PREFIX)]
+                if not mine:
+                    return
+                rel = max(mine, key=lambda x: ver_tuple(str(x["tag_name"])[len(RELEASE_TAG_PREFIX):]))
+                tag = str(rel["tag_name"])[len(RELEASE_TAG_PREFIX):]
+                info = {"version": tag, "date": str(rel.get("published_at") or "")[:10]}
+                q.put(("update", info if ver_tuple(tag) > ver_tuple(APP_VERSION) else None))
+            except Exception:
+                pass                    # 인터넷이 안 되면 조용히 넘어감
+        threading.Thread(target=work, daemon=True).start()
+        if not force:
+            self.root.after(UPDATE_CHECK_HOURS * 3600 * 1000, self.check_update)
+
+    def _show_update_btn(self):
+        info = self.update_info
+        show = bool(info) and self.update_check_var.get()
+        try:
+            if show:
+                self.upd_lbl.config(text="⬆ 업데이트 필요 (v%s)" % info["version"])
+                if not self.upd_lbl.winfo_ismapped():
+                    self.upd_lbl.pack(side="left", padx=(0, 8), before=self.keys_lbl)
+            else:
+                self.upd_lbl.pack_forget()
+        except tk.TclError:
+            pass
+
+    def show_update(self):
+        info = self.update_info
+        if not info:
+            return
+        self.menu_open = True
+        ok = messagebox.askyesno(APP_NAME, "스마트클립 새 버전 v%s 이(가) 나왔습니다. (지금 v%s)\n\n"
+                                 "내려받을까요?\n\n받은 SmartClip.exe 를 지금 쓰는 파일 자리에 바꿔 넣고, "
+                                 "트레이 아이콘에서 끝내기 → 다시 실행하세요.\n(기록·메모·설정은 그대로 이어집니다)"
+                                 % (info["version"], APP_VERSION), parent=self.root)
+        self.menu_open = False
+        if ok:
+            webbrowser.open(DOWNLOAD_URL)
+
     def toggle_pin(self):
         it = self.current()
         if it:
@@ -3559,6 +3639,13 @@ class App:
             while True:
                 ev = self.q.get_nowait()
                 kind = ev[0]
+                if kind == "update":
+                    self.settings["update_checked"] = time.time()
+                    self.settings["update_avail"] = ev[1]
+                    self.update_info = ev[1]
+                    save_settings(self.settings)
+                    self._show_update_btn()
+                    continue
                 if kind == "clip":
                     formats, exe = ev[1], ev[2]
                     k, preview, search, keyhash, size = analyze(formats, exe)
