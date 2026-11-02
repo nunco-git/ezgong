@@ -2262,6 +2262,17 @@ def ask_password(app, title, prompt, confirm=False, check=None):
         t.grab_set()
     except tk.TclError:
         pass
+
+    def front():            # 본 창이 뒤늦게 앞으로 나와도 비밀번호 창이 가려지지 않게
+        try:
+            t.attributes("-topmost", True)
+            t.lift()
+            if t.focus_get() is None:
+                e1.focus_force()
+        except tk.TclError:
+            pass
+    for ms in (60, 250, 600, 1200):
+        t.after(ms, front)
     t.wait_window()
     app.menu_open = False
     try:
