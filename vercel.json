@@ -51,12 +51,12 @@
     },
     {
       "source": "/download/smart-clipboard",
-      "destination": "https://github.com/nunco-git/ezgong/releases/download/smartclipboard-v1.1.0/SmartClip.exe",
+      "destination": "https://github.com/nunco-git/ezgong/releases/download/smartclipboard-v1.1.1/SmartClip.exe",
       "permanent": false
     },
     {
       "source": "/download/smart-clipboard/info",
-      "destination": "https://github.com/nunco-git/ezgong/releases/tag/smartclipboard-v1.1.0",
+      "destination": "https://github.com/nunco-git/ezgong/releases/tag/smartclipboard-v1.1.1",
       "permanent": false
     }
   ]
