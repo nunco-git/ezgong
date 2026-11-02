@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.5"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.6"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -3555,10 +3555,13 @@ class SearchPane(tk.Frame):
         self.status_lbl.bind("<Enter>", self._status_tip)          # 글이 잘리면 마우스를 올려 전체 보기
         self.status_lbl.bind("<Leave>", lambda e: self._status_tip(hide=True))
 
+        self._inner = inner
+        self.side_preview = False          # True = 미리보기를 목록 오른쪽에 (칸이 1개일 때)
+        self._sashes = {"bottom": st.get("sash"), "side": st.get("sash_side")}
         paned = ttk.PanedWindow(inner, orient="vertical")
         paned.pack(fill="both", expand=True)
 
-        tf = ttk.Frame(paned)
+        tf = ttk.Frame(inner)              # 경계창을 다시 만들 수 있게 경계창의 부모(inner) 아래에 만듦
         self.tree = ttk.Treeview(tf, columns=("name", "count", "mtime", "folder"), show="headings",
                                  selectmode="extended")
         ys = ttk.Scrollbar(tf, orient="vertical", command=self.tree.yview)
@@ -3591,8 +3594,10 @@ class SearchPane(tk.Frame):
         t.bind("<B1-Motion>", self._drag_motion)
         t.bind("<ButtonRelease-1>", self._drag_release)
         paned.add(tf, weight=2)
+        tf.lift(paned)
+        self.tf = tf
 
-        bf = ttk.Frame(paned)
+        bf = ttk.Frame(inner)
         self.nb = ttk.Notebook(bf)
         self.nb.pack(fill="both", expand=True, pady=(4, 0))
         self.preview = PreviewPanel(self.nb)
@@ -3615,11 +3620,11 @@ class SearchPane(tk.Frame):
         self.nb.select(st.get("tab", 0))
         self.nb.bind("<<NotebookTabChanged>>", lambda e: self.schedule_preview(50))
         paned.add(bf, weight=3)
+        bf.lift(paned)
         self.bf = bf
         self.paned = paned
         self.after_idle(lambda: self.apply_preview_visible(save=False))
-        paned.bind("<ButtonRelease-1>", lambda e: self.after(10, self.clamp_sash), add="+")
-        paned.bind("<Configure>", lambda e: self.after(10, self.clamp_sash), add="+")
+        self._bind_paned(paned)
         if st.get("sash"):                            # 목록/미리보기 경계 위치 복원
             self.after(300, lambda: self._set_sash(st["sash"]))
 
@@ -3643,7 +3648,9 @@ class SearchPane(tk.Frame):
         return {"folder": self.folder_var.get(), "query": self.query_var.get(), "tab": tab,
                 "pinned": self.pinned_var.get(), "cwd": self.cwd or "", "preview_hidden": self.preview_hidden,
                 "hide_dirs": self.hide_dirs,
-                "fit": self.preview.fit_mode, "zoom": self.preview.zoom, "sash": self._sash_pos(),
+                "sash_side": (self._sash_pos() if self.side_preview else self._sashes.get("side")),
+                "fit": self.preview.fit_mode, "zoom": self.preview.zoom,
+                "sash": (self._sashes.get("bottom") if self.side_preview else self._sash_pos()),
                 "shell_fit": self.preview.shell_fit, "shell_zoom": self.preview.shell_zoom,
                 "types": {k: v.get() for k, v in self.type_vars.items()},
                 "opts": {k: v.get() for k, v in self.opt_vars.items()}}
@@ -3677,9 +3684,47 @@ class SearchPane(tk.Frame):
         else:
             self.ph.place_forget()
 
+    def _bind_paned(self, paned):
+        paned.bind("<ButtonRelease-1>", lambda e: self.after(10, self.clamp_sash), add="+")
+        paned.bind("<Configure>", lambda e: self.after(10, self.clamp_sash), add="+")
+
+    def _span(self):
+        return self.paned.winfo_width() if self.side_preview else self.paned.winfo_height()
+
+    def set_side_preview(self, side):
+        """미리보기 위치: side=True 면 목록 오른쪽, False 면 목록 아래 (경계창을 새로 만들어 바꿈)"""
+        side = bool(side)
+        if side == self.side_preview:
+            return
+        key_old = "side" if self.side_preview else "bottom"
+        cur = self._sash_pos()
+        if cur:
+            self._sashes[key_old] = cur
+        old = self.paned
+        try:
+            for w in list(old.panes()):
+                old.forget(w)
+        except Exception:
+            pass
+        old.destroy()
+        self.side_preview = side
+        paned = ttk.PanedWindow(self._inner, orient="horizontal" if side else "vertical")
+        paned.pack(fill="both", expand=True)
+        paned.add(self.tf, weight=2)
+        self.tf.lift(paned)
+        self.paned = paned
+        if not self.preview_hidden:
+            paned.add(self.bf, weight=3)
+        self.bf.lift(paned)
+        self._bind_paned(paned)
+        frac = self._sashes.get("side" if side else "bottom") or (0.45 if side else None)
+        if frac:
+            self.after(150, lambda: self._set_sash(frac))
+        self.schedule_preview(80)
+
     def _sash_pos(self):
         try:
-            h = self.paned.winfo_height()
+            h = self._span()
             return round(self.paned.sashpos(0) / h, 3) if h > 50 else None
         except Exception:
             return None
@@ -3689,8 +3734,9 @@ class SearchPane(tk.Frame):
         if not self.preview.adbox:
             return
         try:
-            h = self.paned.winfo_height()
-            need = ad_pixels(self)[1] + 45            # 광고 + 탭 머리글·여백
+            h = self._span()
+            aw, ah = ad_pixels(self)
+            need = (aw + 30) if self.side_preview else (ah + 45)   # 광고 + 탭 머리글·여백
             pos = self.paned.sashpos(0)
             if h > need + 60 and pos > h - need:
                 self.paned.sashpos(0, h - need)
@@ -3699,7 +3745,7 @@ class SearchPane(tk.Frame):
 
     def _set_sash(self, frac):
         try:
-            h = self.paned.winfo_height()
+            h = self._span()
             if h > 50 and 0.05 < frac < 0.95:
                 self.paned.sashpos(0, int(h * frac))
         except Exception:
@@ -5706,6 +5752,9 @@ GUIDE = [
     ("🪟 화면 분할",
      "위쪽에서 가로×세로 칸 수(최대 4×4)를 고르세요. 칸 사이 경계선이나 파란 손잡이를 끌어 크기를 조절하고, "
      "경계선을 더블클릭하면 같은 크기로 돌아갑니다."),
+    ("◧ 미리보기 위치",
+     "칸이 1개일 때는 미리보기가 목록 오른쪽에 나오고, 칸을 2개 이상으로 나누면 목록 아래로 옵니다.\n"
+     "목록과 미리보기 사이 경계를 끌어 크기를 조절하면 오른쪽·아래 각각 따로 기억합니다."),
     ("🗂 쉬는 동안 색인",
      "PC를 몇 분 동안 쓰지 않으면 바탕화면·문서·다운로드와 📌 고정한 폴더의 문서 내용을 미리 읽어 둡니다. "
      "그러면 처음 검색할 때도 바로 찾습니다. 키보드·마우스를 만지면 곧바로 멈춥니다. "
@@ -6003,6 +6052,12 @@ class App:
         self._make_splitters(cols, rows)
         self.enforce_ad_cell()
         self.place_panes()
+        side = n == 1 and self.s.get("side_preview_single", True)
+        for p in self.panes:                            # 칸이 1개면 미리보기를 목록 오른쪽에
+            try:
+                p.set_side_preview(side)
+            except Exception:
+                pass
         for i, p in enumerate(self.panes):              # 광고는 맨 오른쪽 아래 칸 하나에만
             p.preview.set_ad(i == len(self.panes) - 1)
             p.set_ad_pane(i == len(self.panes) - 1)
