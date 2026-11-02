@@ -1,0 +1,26 @@
+name: tmp-edit-notes
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  edit:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import subprocess, os
+          repo = os.environ["GITHUB_REPOSITORY"]; tag = "smartexplorer-v1.0.5"
+          old = "(바뀐 점은 여기에 적어 주세요 — 프로그램의 새 버전 알림 창에 그대로 보입니다)"
+          new = ("### 1.0.5 에서 바뀐 점\n"
+                 "- **윈도우 탐색기처럼 끌어다 놓기** — 다른 칸은 물론 **윈도우 탐색기·바탕화면·다른 프로그램**과도 파일을 끌어서 주고받습니다.\n"
+                 "  끄는 동안 탐색기처럼 **파일 그림과 '이동/복사' 표시**가 따라다니고, 놓을 폴더는 파랗게 표시됩니다. (같은 드라이브는 이동, 다른 드라이브는 복사 · Ctrl=복사, Shift=이동)\n"
+                 "- **Windows 오른쪽 클릭 메뉴** — 오른쪽 클릭 → 맨 위 「Windows 메뉴」(또는 Shift+오른쪽 클릭)로 속성·압축·보내기·연결 프로그램·바로 가기 만들기 등 탐색기 메뉴를 그대로 씁니다. 빈 곳에서는 '새로 만들기'도 됩니다.\n\n"
+                 "### 1.0.4 에서 바뀐 점\n- 폴더 숨기기 버튼, 새 버전이 나오면 [업데이트 필요] 버튼\n\n"
+                 "### 1.0.3 · 1.0.2 · 1.0.1\n- 오류·개선 제안 메일 안내, 알람 시험 창 닫히지 않던 문제, 알라미와 함께 켜면 실행 안 되던 문제 수정")
+          body = subprocess.check_output(["gh", "release", "view", tag, "--repo", repo, "--json", "body", "-q", ".body"], text=True)
+          body = body.replace(old, new) if old in body else new + "\n\n" + body
+          open("b.md", "w", encoding="utf-8").write(body)
+          subprocess.check_call(["gh", "release", "edit", tag, "--repo", repo, "--notes-file", "b.md"])
+          PY
