@@ -3027,6 +3027,249 @@ OPTION_LABELS = [("recursive", "하위 폴더 포함", True), ("name_search", "�
                  ("shell_preview", "원래 모양 미리보기", True)]
 
 
+# ───────────── 윈도우 탐색기와 끌어다 놓기 (OLE 드래그 앤 드롭) ─────────────
+# 탐색기·바탕화면·다른 프로그램과 파일을 끌어서 주고받음. 끄는 동안 탐색기처럼 파일 그림과 '이동/복사' 표시가 따라다님.
+OLE_DND = None
+if sys.platform == "win32" and struct.calcsize("P") == 8:
+    try:
+        import ctypes
+        from ctypes import wintypes as _wt
+
+        class _OLE:
+            DROPEFFECT_NONE, DROPEFFECT_COPY, DROPEFFECT_MOVE, DROPEFFECT_LINK = 0, 1, 2, 4
+            MK_SHIFT, MK_CONTROL, MK_ALT = 0x4, 0x8, 0x20
+            CF_HDROP, TYMED_HGLOBAL, DVASPECT_CONTENT = 15, 1, 1
+            S_OK, E_NOINTERFACE, E_UNEXPECTED = 0, 0x80004002 - 2 ** 32, 0x8000FFFF - 2 ** 32
+
+            class GUID(ctypes.Structure):
+                _fields_ = [("a", ctypes.c_uint32), ("b", ctypes.c_uint16), ("c", ctypes.c_uint16),
+                            ("d", ctypes.c_ubyte * 8)]
+
+                @classmethod
+                def of(cls, text):
+                    g = cls()
+                    ctypes.oledll.ole32.CLSIDFromString(ctypes.c_wchar_p(text), ctypes.byref(g))
+                    return g
+
+                def same(self, other):
+                    return bytes(self) == bytes(other)
+
+            class FORMATETC(ctypes.Structure):
+                _fields_ = [("cfFormat", ctypes.c_ushort), ("ptd", ctypes.c_void_p), ("dwAspect", ctypes.c_ulong),
+                            ("lindex", ctypes.c_long), ("tymed", ctypes.c_ulong)]
+
+            class STGMEDIUM(ctypes.Structure):
+                _fields_ = [("tymed", ctypes.c_ulong), ("hGlobal", ctypes.c_void_p), ("pUnk", ctypes.c_void_p)]
+
+            class POINT(ctypes.Structure):
+                _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
+
+        _O = _OLE
+        _ole32 = ctypes.windll.ole32
+        _shell32 = ctypes.windll.shell32
+        _O.IID_IUnknown = _O.GUID.of("{00000000-0000-0000-C000-000000000046}")
+        _O.IID_IDropTarget = _O.GUID.of("{00000122-0000-0000-C000-000000000046}")
+        _O.IID_IDataObject = _O.GUID.of("{0000010e-0000-0000-C000-000000000046}")
+        _O.IID_IDropTargetHelper = _O.GUID.of("{4657278B-411B-11D2-839A-00C04FD918D0}")
+        _O.CLSID_DragDropHelper = _O.GUID.of("{4657278A-411B-11D2-839A-00C04FD918D0}")
+        _O.BHID_DataObject = _O.GUID.of("{B8C0BD9F-ED24-455C-83E6-D5390C4FE8C4}")
+        _shell32.SHParseDisplayName.argtypes = [ctypes.c_wchar_p, ctypes.c_void_p, ctypes.POINTER(ctypes.c_void_p),
+                                                ctypes.c_ulong, ctypes.c_void_p]
+        _shell32.SHCreateShellItemArrayFromIDLists.argtypes = [ctypes.c_uint, ctypes.POINTER(ctypes.c_void_p),
+                                                               ctypes.POINTER(ctypes.c_void_p)]
+        _shell32.SHDoDragDrop.argtypes = [_wt.HWND, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_ulong,
+                                          ctypes.POINTER(ctypes.c_ulong)]
+        _shell32.DragQueryFileW.argtypes = [ctypes.c_void_p, ctypes.c_uint, ctypes.c_wchar_p, ctypes.c_uint]
+        _shell32.DragQueryFileW.restype = ctypes.c_uint
+        _ole32.RegisterDragDrop.argtypes = [_wt.HWND, ctypes.c_void_p]
+        _ole32.RevokeDragDrop.argtypes = [_wt.HWND]
+        _ole32.ReleaseStgMedium.argtypes = [ctypes.c_void_p]
+        _ole32.CoTaskMemFree.argtypes = [ctypes.c_void_p]
+        _ole32.CoCreateInstance.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_ulong, ctypes.c_void_p,
+                                            ctypes.POINTER(ctypes.c_void_p)]
+
+        def _vcall(ptr, index, restype, argtypes, *args):
+            """COM 객체(포인터)의 index번째 함수 부르기"""
+            vtbl = ctypes.cast(ptr, ctypes.POINTER(ctypes.POINTER(ctypes.c_void_p)))[0]
+            fn = ctypes.WINFUNCTYPE(restype, ctypes.c_void_p, *argtypes)(vtbl[index])
+            return fn(ptr, *args)
+
+        def _release(ptr):
+            if ptr:
+                _vcall(ptr, 2, ctypes.c_ulong, [])
+
+        def _files_from_dataobject(pdo):
+            """끌어 온 내용(IDataObject)에서 파일 경로 목록(CF_HDROP)을 꺼냄"""
+            fe = _O.FORMATETC(_O.CF_HDROP, None, _O.DVASPECT_CONTENT, -1, _O.TYMED_HGLOBAL)
+            st = _O.STGMEDIUM()
+            hr = _vcall(pdo, 3, ctypes.HRESULT if False else ctypes.c_long,
+                        [ctypes.POINTER(_O.FORMATETC), ctypes.POINTER(_O.STGMEDIUM)], ctypes.byref(fe), ctypes.byref(st))
+            if hr != 0:
+                return []
+            out = []
+            try:
+                n = _shell32.DragQueryFileW(st.hGlobal, 0xFFFFFFFF, None, 0)
+                for i in range(n):
+                    ln = _shell32.DragQueryFileW(st.hGlobal, i, None, 0)
+                    buf = ctypes.create_unicode_buffer(ln + 1)
+                    _shell32.DragQueryFileW(st.hGlobal, i, buf, ln + 1)
+                    out.append(buf.value)
+            finally:
+                _ole32.ReleaseStgMedium(ctypes.byref(st))
+            return out
+
+        _QI = ctypes.WINFUNCTYPE(ctypes.c_long, ctypes.c_void_p, ctypes.POINTER(_O.GUID), ctypes.POINTER(ctypes.c_void_p))
+        _AR = ctypes.WINFUNCTYPE(ctypes.c_ulong, ctypes.c_void_p)
+        _DE = ctypes.WINFUNCTYPE(ctypes.c_long, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_ulong, ctypes.c_int64,
+                                 ctypes.POINTER(ctypes.c_ulong))
+        _DO = ctypes.WINFUNCTYPE(ctypes.c_long, ctypes.c_void_p, ctypes.c_ulong, ctypes.c_int64,
+                                 ctypes.POINTER(ctypes.c_ulong))
+        _DL = ctypes.WINFUNCTYPE(ctypes.c_long, ctypes.c_void_p)
+
+        class _VTBL(ctypes.Structure):
+            _fields_ = [("QueryInterface", _QI), ("AddRef", _AR), ("Release", _AR), ("DragEnter", _DE),
+                        ("DragOver", _DO), ("DragLeave", _DL), ("Drop", _DE)]
+
+        class _COMOBJ(ctypes.Structure):
+            _fields_ = [("lpVtbl", ctypes.POINTER(_VTBL))]
+
+        def _pt(v):
+            """POINTL(값 전달, 64비트에서는 8바이트 한 덩어리) → (x, y)"""
+            v &= 0xFFFFFFFFFFFFFFFF
+            x, y = v & 0xFFFFFFFF, (v >> 32) & 0xFFFFFFFF
+            return (x - 2 ** 32 if x >= 2 ** 31 else x, y - 2 ** 32 if y >= 2 ** 31 else y)
+
+        class OleDropTarget:
+            """창에 '여기에 파일을 놓을 수 있음'을 등록. handler(kind, paths, x, y, keys) → 효과(복사/이동/없음)"""
+
+            def __init__(self, hwnd, handler):
+                self.hwnd, self.handler = hwnd, handler
+                self.paths = []
+                self.helper = ctypes.c_void_p()
+                try:          # 끄는 파일 그림을 이 창 위에서도 보여 주는 도우미
+                    _ole32.CoCreateInstance(ctypes.byref(_O.CLSID_DragDropHelper), None, 1,
+                                            ctypes.byref(_O.IID_IDropTargetHelper), ctypes.byref(self.helper))
+                except OSError:
+                    self.helper = ctypes.c_void_p()
+
+                def qi(this, riid, ppv):
+                    if riid[0].same(_O.IID_IUnknown) or riid[0].same(_O.IID_IDropTarget):
+                        ppv[0] = this
+                        return _O.S_OK
+                    ppv[0] = None
+                    return _O.E_NOINTERFACE
+
+                def addref(this):
+                    return 1
+
+                def drag_enter(this, pdo, keys, pt, peff):
+                    try:
+                        self.paths = _files_from_dataobject(pdo)
+                        x, y = _pt(pt)
+                        peff[0] = self._effect(self.handler("enter", self.paths, x, y, keys), peff[0])
+                        if self.helper:
+                            p = _O.POINT(x, y)
+                            _vcall(self.helper, 3, ctypes.c_long, [_wt.HWND, ctypes.c_void_p, ctypes.c_void_p,
+                                                                   ctypes.c_ulong], self.hwnd, pdo, ctypes.byref(p), peff[0])
+                    except Exception:
+                        peff[0] = 0
+                    return _O.S_OK
+
+                def drag_over(this, keys, pt, peff):
+                    try:
+                        x, y = _pt(pt)
+                        peff[0] = self._effect(self.handler("over", self.paths, x, y, keys), peff[0])
+                        if self.helper:
+                            p = _O.POINT(x, y)
+                            _vcall(self.helper, 5, ctypes.c_long, [ctypes.c_void_p, ctypes.c_ulong],
+                                   ctypes.byref(p), peff[0])
+                    except Exception:
+                        peff[0] = 0
+                    return _O.S_OK
+
+                def drag_leave(this):
+                    try:
+                        self.handler("leave", self.paths, 0, 0, 0)
+                        if self.helper:
+                            _vcall(self.helper, 4, ctypes.c_long, [])
+                    except Exception:
+                        pass
+                    return _O.S_OK
+
+                def drop(this, pdo, keys, pt, peff):
+                    try:
+                        x, y = _pt(pt)
+                        paths = _files_from_dataobject(pdo) or self.paths
+                        want = self._effect(self.handler("drop", paths, x, y, keys), peff[0])
+                        if self.helper:
+                            p = _O.POINT(x, y)
+                            _vcall(self.helper, 6, ctypes.c_long, [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_ulong],
+                                   pdo, ctypes.byref(p), want)
+                        # 실제 옮기기는 이 프로그램이 함 → 보낸 쪽(탐색기)이 원본을 지우지 않게 '복사'로 알려 줌
+                        peff[0] = _O.DROPEFFECT_COPY if want else 0
+                    except Exception:
+                        peff[0] = 0
+                    return _O.S_OK
+
+                self._fns = [_QI(qi), _AR(addref), _AR(addref), _DE(drag_enter), _DO(drag_over), _DL(drag_leave),
+                             _DE(drop)]
+                self._vtbl = _VTBL(*self._fns)
+                self._obj = _COMOBJ(ctypes.pointer(self._vtbl))
+                self.ok = _ole32.RegisterDragDrop(hwnd, ctypes.byref(self._obj)) == 0
+
+            @staticmethod
+            def _effect(want, allowed):
+                return want if want and (want & allowed) else 0
+
+            def revoke(self):
+                if self.ok:
+                    _ole32.RevokeDragDrop(self.hwnd)
+                    self.ok = False
+                _release(self.helper.value)
+                self.helper = ctypes.c_void_p()
+
+        def ole_drag_files(hwnd, paths):
+            """파일들을 끌기 시작 (탐색기처럼 그림이 따라다님). 끝날 때까지 기다렸다가 결과 효과를 돌려줌"""
+            pidls = []
+            try:
+                for p in paths:
+                    pidl = ctypes.c_void_p()
+                    if _shell32.SHParseDisplayName(os.path.abspath(p), None, ctypes.byref(pidl), 0, None) == 0:
+                        pidls.append(pidl)
+                if not pidls:
+                    return 0
+                arr = (ctypes.c_void_p * len(pidls))(*[x.value for x in pidls])
+                psia = ctypes.c_void_p()
+                if _shell32.SHCreateShellItemArrayFromIDLists(len(pidls), arr, ctypes.byref(psia)) != 0:
+                    return 0
+                pdo = ctypes.c_void_p()
+                try:
+                    hr = _vcall(psia.value, 3, ctypes.c_long, [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
+                                                               ctypes.POINTER(ctypes.c_void_p)],
+                                None, ctypes.byref(_O.BHID_DataObject), ctypes.byref(_O.IID_IDataObject),
+                                ctypes.byref(pdo))
+                    if hr != 0 or not pdo:
+                        return 0
+                    eff = ctypes.c_ulong(0)
+                    _shell32.SHDoDragDrop(hwnd, pdo, None, _O.DROPEFFECT_COPY | _O.DROPEFFECT_MOVE | _O.DROPEFFECT_LINK,
+                                          ctypes.byref(eff))
+                    return eff.value
+                finally:
+                    _release(pdo.value)
+                    _release(psia.value)
+            finally:
+                for x in pidls:
+                    _ole32.CoTaskMemFree(x)
+
+        _hr = _ole32.OleInitialize(None)
+        if _hr in (0, 1):                     # S_OK / S_FALSE(이미 준비됨)
+            OLE_DND = _OLE
+            OLE_DND.DropTarget = OleDropTarget
+            OLE_DND.drag_files = staticmethod(ole_drag_files)
+    except Exception:
+        OLE_DND = None
+
+
 class SearchPane(tk.Frame):
     """칸 하나 = 탐색기(둘러보기) + 본문 검색기. 검색어가 비어 있으면 폴더 내용을 보여 줌"""
     COLS = {
@@ -3155,6 +3398,7 @@ class SearchPane(tk.Frame):
         ys.pack(side="right", fill="y")
         self.tree.pack(side="left", fill="both", expand=True)
         self.tree.tag_configure("dir", foreground=theme_dir_color())
+        self.tree.tag_configure("drophl", background="#cce8ff")     # 끌어 놓을 폴더 표시
         t = self.tree
         t.bind("<<TreeviewSelect>>", self.on_select)
         t.bind("<Double-1>", lambda e: self.activate())
@@ -3910,6 +4154,20 @@ class SearchPane(tk.Frame):
                 self._drag = None
                 return
             d["active"] = True
+            if OLE_DND is not None and self.app.ole_target is not None:
+                # 탐색기처럼: 파일 그림이 따라다니고, 이 프로그램 칸·탐색기·바탕화면·다른 프로그램 어디에나 놓을 수 있음
+                self._drag = None
+                paths = d["paths"]
+                self.app.release_previews()
+                self.app.drag_source = self
+                try:
+                    OLE_DND.drag_files(int(self.winfo_toplevel().wm_frame(), 16), paths)
+                except Exception:
+                    pass
+                finally:
+                    self.app.drag_source = None
+                self.after(300, lambda: self.app.refresh_browsers())
+                return "break"
             self.winfo_toplevel().configure(cursor="hand2")
         target, dest = self.app.drop_target(e.x_root, e.y_root, d["paths"])
         if dest:
@@ -5324,6 +5582,9 @@ def load_settings():
 
 
 class App:
+    ole_target = None          # 끌어 온 파일 받는 곳 (윈도우)
+    drag_source = None
+    _drop_hl = None
     MAX_SPLIT = 4
 
     def __init__(self, root, instance=None):
@@ -5386,6 +5647,7 @@ class App:
         if isinstance(saved, dict) and self._ver_tuple(saved.get("version", "0")) > self._ver_tuple(APP_VERSION):
             self.update_info = saved
         root.after(8000, self.check_update)
+        root.after(300, self.setup_ole_drop)             # 탐색기·바탕화면에서 끌어 온 파일 받기
         root.bind_all("<FocusIn>", self._focus_in, add="+")
         root.bind_all("<Control-f>", self._focus_query)
         root.bind_all("<Control-F>", self._focus_query)
@@ -6170,6 +6432,81 @@ class App:
             return pane, None                          # 폴더를 자기 안으로 옮길 수 없음
         return pane, dest
 
+    # ───────── 탐색기·바탕화면에서 끌어 온 파일 받기 ─────────
+    def setup_ole_drop(self):
+        self.ole_target = None
+        self.drag_source = None
+        self._drop_hl = None
+        if OLE_DND is None:
+            return
+        try:
+            self.root.update_idletasks()
+            hwnd = int(self.root.wm_frame(), 16)
+            t = OLE_DND.DropTarget(hwnd, self._ole_drop_event)
+            self.ole_target = t if t.ok else None
+        except Exception:
+            self.ole_target = None
+
+    def _drop_effect(self, paths, dest, keys):
+        """탐색기와 같은 규칙: Ctrl=복사, Shift=이동, 그냥 놓으면 같은 드라이브는 이동·다른 드라이브는 복사"""
+        if keys & OLE_DND.MK_CONTROL:
+            return OLE_DND.DROPEFFECT_COPY
+        if keys & OLE_DND.MK_SHIFT:
+            return OLE_DND.DROPEFFECT_MOVE
+        return OLE_DND.DROPEFFECT_MOVE if same_drive(paths[0], dest) else OLE_DND.DROPEFFECT_COPY
+
+    def _set_drop_highlight(self, pane, row):
+        old = self._drop_hl
+        if old and old != (pane, row):
+            try:
+                op, orow = old
+                if orow and op.tree.exists(orow):
+                    tags = [t for t in op.tree.item(orow, "tags") if t != "drophl"]
+                    op.tree.item(orow, tags=tags)
+            except Exception:
+                pass
+        self._drop_hl = (pane, row) if pane is not None and row else None
+        if self._drop_hl:
+            try:
+                tags = list(pane.tree.item(row, "tags"))
+                if "drophl" not in tags:
+                    pane.tree.item(row, tags=tags + ["drophl"])
+            except Exception:
+                pass
+
+    def _ole_drop_event(self, kind, paths, x, y, keys):
+        if kind == "leave" or not paths:
+            self._set_drop_highlight(None, None)
+            self.set_hint("")
+            return 0
+        pane, dest = self.drop_target(x, y, paths)
+        row = None
+        if pane is not None and dest:
+            try:
+                r = pane.tree.identify_row(y - pane.tree.winfo_rooty())
+                h = pane.hits.get(r)
+                if h and h.get("is_dir") and os.path.normcase(h["path"]) == os.path.normcase(dest):
+                    row = r
+            except Exception:
+                pass
+        self._set_drop_highlight(pane, row)
+        if not dest:
+            self.set_hint("여기에는 놓을 수 없습니다" if pane is not None else "")
+            return 0
+        eff = self._drop_effect(paths, dest, keys)
+        op = "이동" if eff == OLE_DND.DROPEFFECT_MOVE else "복사"
+        if kind != "drop":
+            self.set_hint(f"{len(paths)}개 → {os.path.basename(dest.rstrip(os.sep)) or dest} 로 {op}  "
+                          "(Ctrl=복사, Shift=이동)")
+            return eff
+        self._set_drop_highlight(None, None)
+        self.set_hint("")
+        src = self.drag_source
+        # 끌어 놓기가 끝난 뒤에 옮김 (보낸 쪽이 기다리지 않게)
+        self.root.after(10, lambda: self.transfer(list(paths), dest, move=(eff == OLE_DND.DROPEFFECT_MOVE),
+                                                  source=src or pane))
+        return eff
+
     def release_previews(self):
         """미리보기가 파일을 붙잡고 있으면 옮기거나 지울 수 없으므로 먼저 놓아 줌"""
         for p in self.panes:
@@ -6223,6 +6560,11 @@ class App:
             self.cache.clear()
 
     def on_close(self):
+        try:
+            if self.ole_target is not None:
+                self.ole_target.revoke()
+        except Exception:
+            pass
         try:
             self.indexer.stop()
             self.indexer.thread.join(timeout=3)
