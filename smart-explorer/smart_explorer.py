@@ -5989,7 +5989,7 @@ class App:
         self.alarm_next = None
         root.title(f"{APP_NAME}  v{APP_VERSION}")
         root.geometry(self.s.get("geometry", "1200x780"))
-        if self.s.get("zoomed", True):                 # 처음 켤 때(또는 지난번에 최대화였으면) 전체 화면
+        if True:                                          # 처음 켤 때도 늘 전체 화면
             try:
                 root.state("zoomed")
             except tk.TclError:
@@ -6421,12 +6421,12 @@ class App:
     def show_window(self):
         r = self.root
         r.deiconify()
-        if self.s.get("zoomed", True):               # 기본은 전체 화면 (트레이에서 불러와도 제자리·제 크기로)
-            r.update_idletasks()
-            r.state("zoomed")
-            r.after(60, lambda: r.state() != "zoomed" and r.state("zoomed"))   # 창이 다 뜬 뒤 한 번 더
-        elif r.state() == "iconic":
-            r.state("normal")
+        r.update_idletasks()
+        try:
+            r.state("zoomed")                        # 늘 전체 화면으로 (트레이·단축키로 불러와도 제자리·제 크기)
+        except tk.TclError:
+            if r.state() == "iconic":
+                r.state("normal")
         r.lift()
         r.attributes("-topmost", True)
         r.after(300, lambda: r.attributes("-topmost", False))

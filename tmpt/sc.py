@@ -20,13 +20,7 @@ def go():
         check(S.hotkey_text(app.hotkey) == "Ctrl+Shift+E", "기본 단축키 %s" % S.hotkey_text(app.hotkey))
         app.s["zoomed"] = True
         root.withdraw(); pump(0.5)
-        print("before", root.state(), root.winfo_viewable(), "s.zoomed=", app.s.get("zoomed"), flush=True)
-        root.deiconify(); root.update_idletasks(); root.state("zoomed"); print("seq A ->", root.state(), flush=True); pump(0.5); print("seq A later", root.state(), flush=True)
-        root.withdraw(); pump(0.3)
-        root.deiconify(); root.update(); root.state("zoomed"); print("seq B ->", root.state(), flush=True); pump(0.5); print("seq B later", root.state(), flush=True)
-        root.withdraw(); pump(0.3)
-        root.state("zoomed"); print("seq C (zoom while withdrawn) ->", root.state(), flush=True); root.deiconify(); pump(0.5); print("seq C later", root.state(), flush=True)
-        root.state("normal"); root.withdraw(); pump(0.3)
+        root.state("normal"); pump(0.3); root.withdraw(); pump(0.3)
         app.show_window(); print("right after", root.state(), flush=True)
         for t in (0.1, 0.3, 1.0):
             pump(t); print("after", t, root.state(), root.geometry(), flush=True)
