@@ -1,0 +1,25 @@
+name: tmp-edit-notes
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  edit:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          T=smartexplorer-v1.0.2
+          gh release view $T --repo ${{ github.repository }} --json body -q .body > body.md
+          python3 - <<'PY'
+          s = open("body.md", encoding="utf-8").read()
+          new = ("### 1.0.2 에서 바뀐 점\n"
+                 "- 알람·실행 설정 창에서 「지금 시험해 보기」로 띄운 알람 창이 **확인 · 알람 끄기 · X 를 눌러도 닫히지 않던 문제**를 고쳤습니다.\n"
+                 "  (설정 창이 다른 창을 못 누르게 잡고 있어서 생긴 문제 — 알람 창이 잠시 넘겨받았다가 닫힐 때 돌려줍니다. Esc · Enter 로도 닫힙니다.)\n\n"
+                 "### 1.0.1 에서 바뀐 점\n"
+                 "- 스마트 일정 알라미가 켜져 있으면 스마트탐색기가 실행되지 않던 문제를 고쳤습니다.")
+          old = "(바뀐 점은 여기에 적어 주세요 — 프로그램의 새 버전 알림 창에 그대로 보입니다)"
+          s = s.replace(old, new) if old in s else new + "\n\n" + s
+          open("body.md", "w", encoding="utf-8").write(s)
+          PY
+          gh release edit $T --repo ${{ github.repository }} --notes-file body.md
