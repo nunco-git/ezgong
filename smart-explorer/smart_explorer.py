@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.0"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.1"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
 UPDATE_CHECK_HOURS = 12        # 새 버전 확인 간격
@@ -4367,7 +4367,8 @@ try:
 except ImportError:
     pystray = None
 
-INSTANCE_PORT = 47653                       # 프로그램이 이미 켜져 있는지 확인하는 내부 번호(이 PC 안에서만)
+INSTANCE_PORT = 48631                       # 프로그램이 이미 켜져 있는지 확인하는 내부 번호(이 PC 안에서만)
+INSTANCE_REPLY = b"SMARTEXPLORER-OK"           # 진짜 스마트탐색기인지 확인하는 대답
 RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 RUN_NAME = "SmartExplorer"
 DEFAULT_ALARM = {
@@ -4554,12 +4555,16 @@ class SingleInstance:
         return self.sock is not None
 
     def notify_existing(self, msg):
+        """켜져 있는 스마트탐색기에 알림. 진짜 스마트탐색기가 대답하면 True
+        (같은 번호를 다른 프로그램이 쓰고 있으면 False → 그냥 새로 실행)"""
         import socket
         try:
             with socket.create_connection(("127.0.0.1", INSTANCE_PORT), timeout=2) as c:
+                c.settimeout(2)
                 c.sendall(msg.encode())
+                return c.recv(16) == INSTANCE_REPLY
         except OSError:
-            pass
+            return False
 
     def serve(self, q):
         def loop():
@@ -4568,6 +4573,10 @@ class SingleInstance:
                     c, _ = self.sock.accept()
                     with c:
                         data = c.recv(64).decode("utf-8", "ignore")
+                        try:
+                            c.sendall(INSTANCE_REPLY)
+                        except OSError:
+                            pass
                     q.put(("instance", data))
                 except OSError:
                     break
@@ -6156,8 +6165,9 @@ def main():
     start_hidden = "--tray" in sys.argv
     instance = SingleInstance()
     if not instance.first:                             # 이미 켜져 있으면 그 창을 불러오고 끝냄
-        instance.notify_existing("tray" if start_hidden else "show")
-        return
+        if instance.notify_existing("tray" if start_hidden else "show"):
+            return
+        # 대답이 없으면 다른 프로그램이 같은 번호를 쓰는 것 → 그대로 실행 (하나만 실행 기능만 빠짐)
     root = tk.Tk()
     set_window_icon(root)
     app = App(root, instance)
