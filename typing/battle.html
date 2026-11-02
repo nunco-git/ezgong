@@ -187,6 +187,7 @@ main{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:8p
 .grp{display:flex;flex-direction:column;gap:6px}.grp>span{font-size:12px;font-weight:700;color:var(--muted)}
 .opts{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .opt{font:600 14px var(--f-body);border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:9px 6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px}
+.sel2{display:grid;grid-template-columns:1fr 1.3fr;gap:6px}.sel2 select{font:600 14px var(--f-body);padding:9px 8px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);min-width:0}.cnt{font-size:11.5px;color:var(--muted)}
 .opts.three{grid-template-columns:repeat(3,1fr)}.opts.three .opt{font-size:12.5px;padding:7px 4px}
 .opt small{font-size:10.5px;color:var(--muted);font-weight:600}
 .opt[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}.opt[aria-pressed="true"] small{color:var(--bg);opacity:.8}
@@ -308,6 +309,7 @@ const best=store.get('best',{});
 const ROWS=9;
 const GENERAL='사람 학교 친구 가족 오늘 내일 감사 사랑 행복 시간 전화 문자 사진 음식 김치 바다 하늘 나무 할머니 어머니 아버지 선생님 병원 약국 은행 시장 회사 공원 날씨 우산 커피 우유 과일 사과 딸기 수박 강아지 고양이 자동차 버스 지하철 기차 비행기 컴퓨터 휴대폰 신문 책상 의자 창문 냉장고 생일 축하 안녕 고마워 미안해 회의 출장 퇴근 출근 점심 저녁 아침 주말 휴가 여행 약속 연락 도착 출발 확인 좋아요 그래요 지금 나중에 어제 금요일 토요일 일요일 사무실 주차장 계단 편의점 마트 식당 카페 우체국 도서관 운동장 놀이터 아파트 김밥 라면 비빔밥 불고기 치킨 피자 햄버거 케이크 사탕 하나 다섯 여섯 일곱 여덟 아홉 봄 여름 가을 겨울 바람 구름 햇빛 무지개 단풍 왕관 외국 의사 화요일 원숭이 귀여운 예쁜 얘기 괜찮아'.split(' ');
 let WORDS=GENERAL;
+const CATS=window.UTJ_CATS||['일반'];
 const FIELDS=window.UTJ_FIELDS||{general:{name:'일반',words:''}};
 const GARB='깍두기 짧았다 앉았다 읽혔다 쌍둥이 꽃꽂이 뚫었다 밟았다 괜찮았어 훑어보다 꿇었다 얹었다 넓적다리 빨갛다 싸웠다 짜릿한 떡볶이 뾰족한 뒤꿈치 쾌활한 횡단보도 꿰맸다 닭갈비 값싼 삶았다 젊었다 맑았다'.split(' ');
 const LV={1:{name:'쉬움',rate:1.5,err:.07},2:{name:'보통',rate:2.4,err:.05},3:{name:'어려움',rate:3.4,err:.035},4:{name:'고수',rate:4.6,err:.02}};
@@ -445,12 +447,13 @@ function drawAll(){if(!G)return;
 let msgT=null;function flashMsg(s){const c=$('combo');c.dataset.msg=s;c.classList.add('pop');clearTimeout(msgT);msgT=setTimeout(()=>c.classList.remove('pop'),700)}
 
 // ── 화면: 시작·멈춤·결과 ──
-function menu(){if(G){G.run=false}
+function curCat(){return(FIELDS[CFG.field]||{cat:'일반'}).cat||'일반'}
+function menu(){if(!FIELDS[CFG.field])CFG.field='general';if(G){G.run=false}
   const lvBtns=Object.entries(LV).map(([k,v])=>'<button type="button" class="opt" data-lv="'+k+'" aria-pressed="'+(+k===+CFG.lv)+'">'+v.name+(best[CFG.kb+k]?'<small>최고 '+best[CFG.kb+k]+'자/분</small>':'')+'</button>').join('');
   $('sheetBody').innerHTML='<h2>엄지타자 대결</h2>'+
    '<p class="lead">떨어지는 낱말 블록을 쳐서 지우세요. 연달아 빨리 지우면 상대 바닥에 방해 블록이 올라가요. 블록이 천장까지 차면 져요.</p>'+
    '<div class="grp"><span>자판</span><div class="opts"><button type="button" class="opt" data-kb="cji" aria-pressed="'+(CFG.kb==='cji')+'">천지인</button><button type="button" class="opt" data-kb="qw" aria-pressed="'+(CFG.kb==='qw')+'">쿼티</button></div></div>'+
-   '<div class="grp"><span>분야 용어</span><div class="opts three">'+Object.entries(FIELDS).map(([k,v])=>'<button type="button" class="opt" data-fd="'+k+'" aria-pressed="'+(CFG.field===k)+'">'+v.name+'</button>').join('')+'</div></div>'+
+   '<div class="grp"><span>직업 용어</span><div class="sel2"><select id="catSel" aria-label="분야">'+CATS.map(c=>'<option'+(c===curCat()?' selected':'')+'>'+c+'</option>').join('')+'</select><select id="jobSel" aria-label="직업">'+Object.entries(FIELDS).filter(([k,v])=>(v.cat||'일반')===curCat()).map(([k,v])=>'<option value="'+k+'"'+(k===CFG.field?' selected':'')+'>'+v.name+'</option>').join('')+'</select></div><small class="cnt">'+(CFG.field==='general'?GENERAL.length:FIELDS[CFG.field].words.split(' ').length)+'개 낱말</small></div>'+
    '<div class="grp"><span>상대 컴퓨터</span><div class="opts four">'+lvBtns+'</div></div>'+
    '<label class="hck"><input type="checkbox" id="hintCk" '+(CFG.hint?'checked':'')+'> 다음 키 힌트</label>'+
    '<ul class="rules"><li><b>콤보</b> 5초 안에 연달아 지우면 콤보가 쌓여요. 3콤보마다 상대에게 방해 블록 1줄, 9콤보부터는 2줄.</li><li><b>긴 낱말</b> 다섯 글자 이상을 지우면 1줄 더. 회색 방해 블록은 어려운 낱말이에요.</li><li><b>막기</b> 빨간 막대는 곧 올라올 방해 블록이에요. 그 전에 지우면 그만큼 상쇄돼요.</li></ul>'+
@@ -458,7 +461,8 @@ function menu(){if(G){G.run=false}
   $('sheet').hidden=false;
   $('sheetBody').querySelectorAll('[data-kb]').forEach(b=>b.onclick=()=>{CFG.kb=b.dataset.kb;store.set('cfg',CFG);menu()});
   $('sheetBody').querySelectorAll('[data-lv]').forEach(b=>b.onclick=()=>{CFG.lv=+b.dataset.lv;store.set('cfg',CFG);menu()});
-  $('sheetBody').querySelectorAll('[data-fd]').forEach(b=>b.onclick=()=>{CFG.field=b.dataset.fd;store.set('cfg',CFG);menu()});
+  $('catSel').onchange=e=>{const k=Object.keys(FIELDS).find(k=>(FIELDS[k].cat||'일반')===e.target.value);CFG.field=k||'general';store.set('cfg',CFG);menu()};
+  $('jobSel').onchange=e=>{CFG.field=e.target.value;store.set('cfg',CFG);menu()};
   $('hintCk').onchange=e=>{CFG.hint=e.target.checked;store.set('cfg',CFG)};
   $('go').onclick=start}
 function over(){const win=G.op.dead&&!G.me.dead,sec=(G.now-G.t0)/1000;

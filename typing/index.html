@@ -284,7 +284,7 @@ function weakScore(w){const p=plan(w),g=globalAvg();let s=0;
   for(let i=1;i<p.P.length;i++){const a=pairAvg(pairKey(p.P[i-1],p.P[i]));if(a&&a>g)s+=(a-g)}return s/Math.sqrt(p.P.length)}
 
 function fieldWords(){const F=window.UTJ_FIELDS||{};return S.field&&S.field!=='general'&&F[S.field]?F[S.field].words.split(' ').filter(Boolean):DATA.word}
-function fieldOpts(){const F=window.UTJ_FIELDS||{general:{name:'일반'}};return Object.entries(F).map(([k,v])=>'<option value="'+k+'">'+v.name+'</option>').join('')}
+function fieldOpts(){const F=window.UTJ_FIELDS||{general:{name:'일반'}},C=window.UTJ_CATS||['일반'];return C.map(c=>'<optgroup label="'+c+'">'+Object.entries(F).filter(([k,v])=>(v.cat||'일반')===c).map(([k,v])=>'<option value="'+k+'">'+v.name+'</option>').join('')+'</optgroup>').join('')}
 function makeItems(){let out=[];
   if(S.mode==='jamo'){const pool=[...(S.stage==='mix'?DATA.jamo.v1+DATA.jamo.v2+DATA.jamo.c:DATA.jamo[S.stage])];
     while(out.length<N.jamo){const x=pool[Math.random()*pool.length|0];if(x!==out[out.length-1])out.push(x)}}
@@ -392,10 +392,10 @@ function renderSub(){document.querySelectorAll('.tabs button').forEach(b=>b.setA
   if(S.mode==='jamo')h+=Object.entries(STAGES).map(([k,v])=>'<button type="button" class="chip" data-st="'+k+'" aria-pressed="'+(S.stage===k)+'">'+v+'</button>').join('');
   else if(S.mode==='rhythm')h+=Object.entries(RSTAGES).map(([k,v])=>'<button type="button" class="chip" data-rs="'+k+'" aria-pressed="'+(S.rstage===k)+'">'+v+'</button>').join('');
   else if(S.mode==='weak')h+='<span>'+(pairCount()<40?'기록 '+Math.round(pairCount())+'/40타 · 지금은 섞어서 연습':'느린 키 조합이 많은 낱말 12개')+'</span>';
-  else if(S.mode==='word')h+='<label>분야 <select id="fieldSel">'+fieldOpts()+'</select></label>';else h+='<span>속담·생활 문장 5개</span>';
+  else if(S.mode==='word')h+='<label>직업 <select id="fieldSel" style="max-width:44vw">'+fieldOpts()+'</select></label>';else h+='<span>속담·생활 문장 5개</span>';
   h+='<span class="sp"></span><label><input type="checkbox" id="hintCk" '+(S.hint?'checked':'')+'> 힌트</label>'+
      '<label>가운데 키 <select id="midSel"><option value="auto">자동</option><option value="L">왼 엄지</option><option value="R">오른 엄지</option></select></label>';
-  sub.innerHTML=h;if($('fieldSel')){$('fieldSel').value=S.field||'general';$('fieldSel').onchange=e=>{S.field=e.target.value;savePrefs();newSession(true)}}$('midSel').value=S.mid;
+  sub.innerHTML=h;if($('fieldSel')){if(!(window.UTJ_FIELDS||{})[S.field])S.field='general';$('fieldSel').value=S.field;$('fieldSel').onchange=e=>{S.field=e.target.value;savePrefs();newSession(true)}}$('midSel').value=S.mid;
   sub.querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>{S.stage=b.dataset.st;savePrefs();renderSub();newSession(true)});
   sub.querySelectorAll('[data-rs]').forEach(b=>b.onclick=()=>{S.rstage=b.dataset.rs;savePrefs();renderSub();newSession(true)});
   $('hintCk').onchange=e=>{S.hint=e.target.checked;savePrefs();draw()};
