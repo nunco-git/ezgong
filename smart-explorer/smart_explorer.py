@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.1"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.2"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
 UPDATE_CHECK_HOURS = 12        # 새 버전 확인 간격
@@ -4711,8 +4711,20 @@ class AlarmPopup:
     """알람 알림 창: 모니터 가운데, 큼직하게, 항상 위에"""
 
     def __init__(self, app, message):
+        # 설정 창처럼 '다른 창을 못 누르게 잡고 있는 창'(grab)이 열려 있으면 알람 창 버튼이 눌리지 않음
+        # → 알람 창이 잠시 넘겨받았다가 닫힐 때 돌려줌
+        try:
+            self.prev_grab = app.root.grab_current()
+        except Exception:
+            self.prev_grab = None
+        if self.prev_grab is not None:
+            try:
+                self.prev_grab.grab_release()
+            except tk.TclError:
+                pass
         w = self.win = tk.Toplevel(app.root)
         w.title("스마트탐색기 알람")
+        w.protocol("WM_DELETE_WINDOW", self.close)
         w.attributes("-topmost", True)
         w.resizable(False, False)
         bg = "#fff8e6"
@@ -4730,14 +4742,38 @@ class AlarmPopup:
         st = ttk.Style()
         st.configure("Big.TButton", font=(FONT[0], fsz(14), "bold"), padding=(18, 8))
         st.configure("BigPlain.TButton", font=(FONT[0], fsz(13)), padding=(14, 8))
-        ttk.Button(bf, text="확인", style="Big.TButton", command=w.destroy).pack(side="right")
+        ttk.Button(bf, text="확인", style="Big.TButton", command=self.close).pack(side="right")
         ttk.Button(bf, text="알람 끄기", style="BigPlain.TButton",
-                   command=lambda: (app.set_alarm_enabled(False), w.destroy())).pack(side="right", padx=8)
+                   command=lambda: (app.set_alarm_enabled(False), self.close())).pack(side="right", padx=8)
+        w.bind("<Escape>", lambda e: self.close())
+        w.bind("<Return>", lambda e: self.close())
         w.update_idletasks()
         ww = max(720, w.winfo_reqwidth())
         wh = max(340, w.winfo_reqheight())
         center_on(w, None, ww, wh)                     # 모니터 가운데
+        if self.prev_grab is not None:
+            try:
+                w.grab_set()
+            except tk.TclError:
+                pass
         w.after(200, lambda: (w.lift(), w.focus_force()))
+
+    def close(self):
+        try:
+            self.win.grab_release()
+        except tk.TclError:
+            pass
+        try:
+            self.win.destroy()
+        except tk.TclError:
+            pass
+        g = self.prev_grab
+        if g is not None:
+            try:
+                if g.winfo_exists():
+                    g.grab_set()              # 설정 창에 다시 넘겨줌
+            except tk.TclError:
+                pass
 
 
 class AlarmDialog:
