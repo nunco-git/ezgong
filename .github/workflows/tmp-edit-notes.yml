@@ -1,0 +1,29 @@
+name: tmp-edit-notes
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  edit:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          T=smartclipboard-v1.1.2
+          gh release view $T --repo ${{ github.repository }} --json body -q .body > body.md
+          python3 - <<'PY'
+          s = open("body.md", encoding="utf-8").read()
+          new = ("### 1.1.2 에서 바뀐 점\n"
+                 "- 메모 추가는 **＋ 아이콘**, 가리기는 **PW 아이콘**으로 바꾸고, 목록의 **'내용' 제목 바로 옆**으로 옮겼습니다.\n"
+                 "- 가린 항목은 목록·미리보기에서 PW 아이콘으로 표시됩니다. (창 유지의 잠금 아이콘과 헷갈리지 않게)\n"
+                 "- 창을 좁게 줄여도 고정 · 항상 위 · 창 유지 · 설정 버튼이 그대로 보입니다.\n\n"
+                 "### 1.1.1 에서 바뀐 점\n"
+                 "- **가린 항목 비밀번호:** 설정 → 「비밀번호」 탭에서 정하면 가린 내용을 보거나 · 풀거나 · 고칠 때 비밀번호를 묻습니다. (3분 유지, 창을 숨기면 다시 잠금, 5번 틀리면 30초 막힘)\n\n"
+                 "### 1.1.0 에서 바뀐 점\n"
+                 "- **메모 바로 추가 (Ctrl+N):** ★ 고정 목록 맨 위에 들어가 지워지지 않고, Enter로 바로 붙여넣기\n"
+                 "- **가리기 (Ctrl+H):** 비밀번호 등은 목록·미리보기에 ●●●●●●로 표시, 찾기는 제목으로만, 붙여넣기는 그대로")
+          old = "(바뀐 점은 여기에 적어 주세요)"
+          s = s.replace(old, new) if old in s else new + "\n\n" + s
+          open("body.md", "w", encoding="utf-8").write(s)
+          PY
+          gh release edit $T --repo ${{ github.repository }} --notes-file body.md
