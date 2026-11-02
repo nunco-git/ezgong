@@ -80,7 +80,7 @@ from tkinter import messagebox
 # 설정
 # ─────────────────────────────────────────────────────────────
 APP_NAME = "스마트클립"
-APP_VERSION = "1.1.2"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
+APP_VERSION = "1.1.3"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
 
 MOD_ALT, MOD_CONTROL, MOD_SHIFT, MOD_WIN, MOD_NOREPEAT = 0x1, 0x2, 0x4, 0x8, 0x4000
 HOTKEY_MODS = MOD_CONTROL | MOD_SHIFT      # 단축키 조합
@@ -1406,6 +1406,7 @@ FONT_TITLE = ("맑은 고딕", 12, "bold")
 
 LIMIT_CHOICES = (100, 300, 500, 1000, 3000)
 SERIES_TEXT = "스마트공"
+CONTACT_EMAIL = "smartgongmaster@gmail.com"   # 오류·개선 제안 받는 주소
 SERIES_URL = "https://smartgong.kr"
 
 # 작업표시줄/트레이 창은 붙여넣을 대상에서 제외
@@ -1970,8 +1971,24 @@ class SettingsDialog:
         except Exception:
             pass
 
+        cf = tk.Frame(t, bg=C_CREAM, highlightthickness=1, highlightbackground=C_LINE)
+        cf.pack(fill="x", padx=12, pady=(12, 0))
+        tk.Label(cf, text="✉ 오류나 개선할 점은", font=FONT_SMALL, bg=C_CREAM, fg=C_BROWN).pack(
+            side="left", padx=(10, 3), pady=6)
+        ml = tk.Label(cf, text=CONTACT_EMAIL, font=(FONT_SMALL[0], FONT_SMALL[1], "bold", "underline"),
+                      bg=C_CREAM, fg="#1565C0", cursor="hand2")
+        ml.pack(side="left", pady=6)
+        tk.Label(cf, text="으로 알려 주세요", font=FONT_SMALL, bg=C_CREAM, fg=C_BROWN).pack(side="left", padx=3, pady=6)
+
+        def copy_mail(e=None):
+            app.root.clipboard_clear()
+            app.root.clipboard_append(CONTACT_EMAIL)
+            app.toast("메일 주소를 복사했습니다 · 받는 사람 칸에 붙여넣어 보내 주세요")
+        ml.bind("<Button-1>", copy_mail)
+        Tooltip(ml, "누르면 주소를 복사합니다")
+
         nb = ttk.Notebook(t, style="Clip.TNotebook")
-        nb.pack(fill="both", expand=True, padx=12, pady=(12, 6))
+        nb.pack(fill="both", expand=True, padx=12, pady=(8, 6))
         p1 = tk.Frame(nb, bg=C_BG, padx=14, pady=12)
         p2 = tk.Frame(nb, bg=C_BG, padx=14, pady=12)
         p3 = tk.Frame(nb, bg=C_BG, padx=14, pady=12)
