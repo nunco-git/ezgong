@@ -6422,7 +6422,9 @@ class App:
         r = self.root
         r.deiconify()
         if self.s.get("zoomed", True):               # 기본은 전체 화면 (트레이에서 불러와도 제자리·제 크기로)
+            r.update_idletasks()
             r.state("zoomed")
+            r.after(60, lambda: r.state() != "zoomed" and r.state("zoomed"))   # 창이 다 뜬 뒤 한 번 더
         elif r.state() == "iconic":
             r.state("normal")
         r.lift()
