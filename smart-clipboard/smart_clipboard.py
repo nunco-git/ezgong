@@ -962,7 +962,7 @@ SOURCE_NAMES = {
 
 def source_label(exe):
     if not exe:
-        return "직접 입력"
+        return "직접"
     low = exe.lower()
     if low in SOURCE_NAMES:
         return SOURCE_NAMES[low]
@@ -1354,7 +1354,7 @@ C_STAR_ON = "#F29A12"     # 고정된 별 (진하게)
 C_STAR_OFF = "#EADFCB"    # 고정 안 된 별 (희미하게)
 C_STAR_HOVER = "#E3B66A"  # 별 위에 마우스
 
-KIND_COLORS = {"표": "#2E7D32", "서식": "#1565C0", "이미지": "#8E44AD", "메모": "#C0392B",
+KIND_COLORS = {"표": "#2E7D32", "서식": "#1565C0", "이미지": "#8E44AD", "메모": "#00838F",
                "파일": "#B5651D", "텍스트": C_BROWN, "기타": "#888888"}
 FONT = ("맑은 고딕", 10)
 FONT_SMALL = ("맑은 고딕", 9)
@@ -2366,7 +2366,7 @@ class App:
         self.memo_btn = FlatButton(bar, "✎ 메모", self.add_memo,
                                    tip="메모 바로 추가 (Ctrl+N)\n비밀번호처럼 감출 내용은 '가리기'를 켜세요")
         self.memo_btn.pack(side="left", padx=(8, 0))
-        self.hide_btn = FlatButton(bar, "🔒", self.toggle_hidden, padx=7,
+        self.hide_btn = FlatButton(bar, "🔒 가리기", self.toggle_hidden,
                                    tip="선택한 항목 가리기 / 풀기 (Ctrl+H)\n목록·미리보기에 ●●●로 표시, 붙여넣기는 그대로")
         self.hide_btn.pack(side="left", padx=(2, 0))
         self.set_btn = FlatButton(bar, "설정", self.open_settings, icon_name="gear",
@@ -2696,6 +2696,7 @@ class App:
         self.btn_keep.set_text("창 유지" if full else "")
         self.set_btn.set_text("설정" if full else "")
         self.memo_btn.set_text("✎ 메모" if full else "✎")
+        self.hide_btn.set_text("🔒 가리기" if full else "🔒")
         # 아주 좁으면 "스마트클립"만 표시
         if layout == "narrow":
             self.link_lbl.pack_forget()
