@@ -121,6 +121,9 @@
   #tabList::-webkit-scrollbar { height: 4px; }
   #tabList::-webkit-scrollbar-thumb { background: #334155; }
 
+  .tab-btn.other-label { cursor: default; color: #64748b; font-weight: 600; font-size: 11.5px; padding-right: 4px; border-left: 1px solid #334155; margin-left: 4px; }
+  #mobileMenuDropdown .tab-btn.other-label { border-left: 0; margin-left: 0; border-top: 1px solid #334155; }
+  a.tab-btn.other-link { text-decoration: none; }
   .tab-btn {
     flex-shrink: 0;
     display: flex;
@@ -986,6 +989,11 @@
     ] },
   ];
 
+  // ── 기타 앱: 상단 바로가기 맨 끝에 새 탭 링크로 표시(포털 화면 안에 넣지 않음) ──
+  const OTHER_APPS = [
+    { title: '엄지타자', url: '/typing/' },
+  ];
+
   let currentUrl = null; // null이면 초기화면(홈)을 의미
 
   // ── 바로가기(상단 탭) 순서/숨김 편집: 브라우저별로 저장 ──
@@ -1077,6 +1085,23 @@
       mBtn.onclick = () => { switchApp(app.url); closeMobileMenu(); };
       mobileDropdown.appendChild(mBtn);
     });
+
+    if (OTHER_APPS.length) {
+      [tabList, mobileDropdown].forEach((box) => {
+        const lab = document.createElement('span');
+        lab.className = 'tab-btn other-label';
+        lab.textContent = '기타 앱';
+        box.appendChild(lab);
+        OTHER_APPS.forEach((o) => {
+          const a = document.createElement('a');
+          a.className = 'tab-btn other-link';
+          a.href = o.url; a.target = '_blank'; a.rel = 'noopener';
+          a.textContent = o.title + ' ↗';
+          a.onclick = () => closeMobileMenu();
+          box.appendChild(a);
+        });
+      });
+    }
 
     const mEdit = document.createElement('button');
     mEdit.className = 'tab-btn';
