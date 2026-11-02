@@ -20,7 +20,11 @@ def go():
         check(S.hotkey_text(app.hotkey) == "Ctrl+Shift+E", "기본 단축키 %s" % S.hotkey_text(app.hotkey))
         app.s["zoomed"] = True
         root.withdraw(); pump(0.5)
-        app.show_window(); pump(1)
+        print("before", root.state(), root.winfo_viewable(), flush=True)
+        app.show_window(); print("right after", root.state(), flush=True)
+        for t in (0.1, 0.3, 1.0):
+            pump(t); print("after", t, root.state(), root.geometry(), flush=True)
+        root.state("zoomed"); pump(0.5); print("manual zoomed ->", root.state(), root.geometry(), flush=True)
         check(root.state() == "zoomed", "트레이에서 불러오면 전체 화면 (%s)" % root.state())
         d = S.SettingsDialog(app); pump(1)
         check(d.sc_frame.winfo_ismapped() and d.sc_desk.winfo_ismapped(), "환경설정 맨 위 바로가기 칸")
