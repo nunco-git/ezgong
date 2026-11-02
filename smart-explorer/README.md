@@ -4,6 +4,10 @@
 
 화면을 여러 칸으로 나눠 쓰는 탐색기 + 파일명·본문 내용 검색 (스마트공 시리즈, https://smartgong.kr)
 
+## 오류 · 개선 제안
+
+사용하다가 오류나 개선할 점이 있으면 **smartgongmaster@gmail.com** 으로 알려 주세요.
+
 ## 내려받기
 
 - **바로 받기 (항상 최신 버전):** https://smartgong.kr/download/smart-explorer

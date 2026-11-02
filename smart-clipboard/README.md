@@ -18,6 +18,10 @@
   - 비밀번호 자체는 저장하지 않고 확인용 값(PBKDF2)만 암호화해 둡니다.
 - 모든 내용은 Windows DPAPI로 암호화되어 이 PC·이 계정에서만 풀립니다.
 
+## 오류 · 개선 제안
+
+사용하다가 오류나 개선할 점이 있으면 **smartgongmaster@gmail.com** 으로 알려 주세요.
+
 ## 내려받기
 
 - **바로 받기 (항상 최신 버전):** https://smartgong.kr/download/smart-clipboard

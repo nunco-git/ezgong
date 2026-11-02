@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.2"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.3"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
 UPDATE_CHECK_HOURS = 12        # 새 버전 확인 간격
@@ -5210,6 +5210,7 @@ class IndexDialog:
         self.win.destroy()
 
 
+CONTACT_EMAIL = "smartgongmaster@gmail.com"   # 오류·개선 제안 받는 주소
 INTRO_LINE = "파일명 + 본문 내용까지 검색  ·  PDF·엑셀·PPT·워드·이미지·압축파일 미리보기 (한글은 1쪽 미리보기)"
 GUIDE = [
     ("스마트탐색기  v" + APP_VERSION, "화면을 여러 칸으로 나눠 쓰는 탐색기에, 파일 이름은 물론 문서 안의 내용까지 찾아 주는 검색 기능을 더한 프로그램입니다."),
@@ -6068,10 +6069,29 @@ class App:
         tx.pack(fill="both", expand=True)
         tx.tag_configure("h", font=(FONT[0], fsz(13), "bold"), foreground="#b4690e")
         tx.tag_configure("b", font=(FONT[0], fsz(10), "bold"))
+        tx.tag_configure("contact", background="#fff8e6", lmargin1=8, lmargin2=8, rmargin=8,
+                         spacing1=6, spacing3=6)
+        tx.tag_configure("mail", foreground="#1565c0", underline=True, font=(FONT[0], fsz(10), "bold"))
+
+        def copy_mail(e=None):
+            try:
+                w.clipboard_clear()
+                w.clipboard_append(CONTACT_EMAIL)
+            except tk.TclError:
+                pass
+            messagebox.showinfo(APP_NAME, f"메일 주소를 복사했습니다.\n\n{CONTACT_EMAIL}\n\n"
+                                          "메일 받는 사람 칸에 붙여넣어(Ctrl+V) 보내 주세요.", parent=w)
+        tx.tag_bind("mail", "<Button-1>", copy_mail)
+        tx.tag_bind("mail", "<Enter>", lambda e: tx.configure(cursor="hand2"))
+        tx.tag_bind("mail", "<Leave>", lambda e: tx.configure(cursor=""))
         for i, (head, body) in enumerate(GUIDE):
             if i == 0:
                 tx.insert("end", head + "\n", "h")
                 tx.insert("end", body + "\n\n")
+                tx.insert("end", "✉ 사용하다가 오류나 개선할 점이 있으면 ", "contact")
+                tx.insert("end", CONTACT_EMAIL, ("contact", "mail"))
+                tx.insert("end", " 으로 알려 주세요. (누르면 주소 복사)\n", "contact")
+                tx.insert("end", "\n")
             else:
                 tx.insert("end", head + "\n", "b")
                 tx.insert("end", body + "\n\n")
