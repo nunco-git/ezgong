@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>기타 앱 - 스마트공</title>
+<meta name="description" content="스마트공에서 만든 업무 외 생활·학습 앱 모음입니다. 엄지타자, 상식 학력 진단 등.">
+<link rel="icon" href="/smartgong_logo_icon.png">
+<style>
+/* Layout: 스마트공 포털과 같은 짙은 남색 머리띠 + 아래로 쌓이는 앱 카드 목록 */
+:root{
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#f1f5f9; --card:#ffffff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0; --head:#0f172a; --head-ink:#f8fafc; --accent:#2563eb;
+  --f-body:'Pretendard',-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b1120;--card:#111827;--ink:#e2e8f0;--muted:#94a3b8;--line:#1e293b;--head:#020617;--accent:#60a5fa;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0b1120;--card:#111827;--ink:#e2e8f0;--muted:#94a3b8;--line:#1e293b;--head:#020617;--accent:#60a5fa;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6}
+.wrap{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{background:var(--head);color:var(--head-ink);padding-block:18px 22px}
+header a.home{color:#94a3b8;text-decoration:none;font-size:13px}
+header a.home:hover{color:#fff}
+header h1{font-size:24px;margin:6px 0 4px;text-wrap:balance}
+header p{margin:0;color:#cbd5e1;font-size:14px}
+main{padding-block:20px 40px}
+.list{display:grid;gap:12px}
+.app{display:flex;gap:14px;align-items:flex-start;padding:16px;background:var(--card);border:1px solid var(--line);border-radius:12px;color:inherit;text-decoration:none;transition:border-color .15s,transform .15s}
+.app:hover{border-color:var(--accent);transform:translateY(-1px)}
+.app:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.ic{flex:none;width:52px;height:52px;border-radius:12px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:22px}
+.ic img{width:100%;height:100%;border-radius:12px;object-fit:cover}
+.tx{min-width:0;flex:1}
+.tx h2{font-size:17px;margin:0 0 2px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tx h2 small{font-size:11px;font-weight:700;padding:1px 8px;border-radius:999px;background:var(--bg);color:var(--muted);border:1px solid var(--line)}
+.tx p{margin:0;color:var(--muted);font-size:14px}
+.go{flex:none;align-self:center;color:var(--accent);font-weight:700;font-size:14px}
+footer{color:var(--muted);font-size:12px;padding-block:0 30px}
+@media (prefers-reduced-motion:reduce){.app{transition:none}.app:hover{transform:none}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <a class="home" href="/">← 스마트공 홈</a>
+  <h1>기타 앱</h1>
+  <p>업무 도구 말고도 틈틈이 쓰기 좋은 생활·학습 앱을 모았습니다.</p>
+</div></header>
+<main class="wrap"><div class="list" id="list"></div></main>
+<footer class="wrap">오류나 개선 제안은 smartgongmaster@gmail.com 으로 보내 주세요.</footer>
+<script>
+// 새 앱을 만들면 아래 목록에 한 줄만 추가하면 됩니다. (위에서부터 순서대로 표시)
+//   title: 이름, url: 주소, desc: 한 줄 설명, tag: 분류, color: 아이콘 색, icon: 아이콘 이미지(없으면 이름 첫 글자)
+const MORE_APPS = [
+  { title:'엄지타자', url:'/typing/', tag:'타자 연습', color:'#2360C8', icon:'/typing/icon-192.png',
+    desc:'천지인 양손 엄지 타자 연습. 낱말·문장 연습과 분야별 용어 대결까지.' },
+  { title:'상식 학력 진단', url:'/quiz/', tag:'상식 테스트', color:'#2f6b4f',
+    desc:'초등·중학·고등·대학 교양 문제은행 2,000여 문항으로 내 상식이 몇 학년 수준인지 진단합니다.' },
+];
+
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+document.getElementById('list').innerHTML = MORE_APPS.map(a=>`
+  <a class="app" href="${esc(a.url)}">
+    <span class="ic" style="background:${esc(a.color||'#334155')}">${a.icon?`<img src="${esc(a.icon)}" alt="">`:esc(a.title.charAt(0))}</span>
+    <div class="tx"><h2>${esc(a.title)}${a.tag?`<small>${esc(a.tag)}</small>`:''}</h2><p>${esc(a.desc||'')}</p></div>
+    <span class="go">열기 →</span>
+  </a>`).join('');
+</script>
+</body>
+</html>
