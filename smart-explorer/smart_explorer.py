@@ -5146,7 +5146,8 @@ def make_desktop_shortcut(folder=None):
           "$s=(New-Object -ComObject WScript.Shell).CreateShortcut((Join-Path $d '스마트탐색기.lnk'));"
           f"$s.TargetPath='{q(target)}';$s.Arguments='{q(args)}';$s.WorkingDirectory='{q(workdir)}';"
           f"$s.IconLocation='{q(target)},0';$s.Description='스마트탐색기 (스마트공 시리즈)';$s.Save()")
-    r = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps],
+    enc = base64.b64encode(ps.encode("utf-16-le")).decode("ascii")      # 한글 경로·이름이 깨지지 않게
+    r = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-EncodedCommand", enc],
                        capture_output=True, text=True, timeout=30,
                        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     if r.returncode != 0:
