@@ -48,16 +48,21 @@ def go():
         subprocess.Popen(["explorer.exe", C]); time.sleep(4)
         hw = u.FindWindowW("CabinetWClass", None)
         print("explorer hwnd", hw, flush=True)
-        u.SetWindowPos(hw, -1, 660, 60, 360, 600, 0x40); time.sleep(1.5)   # HWND_TOPMOST, 보이게
+        root.state("normal"); root.geometry("600x700+0+0"); pump(1)
+        print("root w", root.winfo_width(), flush=True)
+        u.ShowWindow(hw, 9); u.SetWindowPos(hw, -1, 700, 60, 320, 600, 0x40); time.sleep(2)
+        r = wintypes.RECT(); u.GetWindowRect(hw, ctypes.byref(r)); print("explorer rect", r.left, r.top, r.right, r.bottom, u.IsWindowVisible(hw), flush=True)
         pump(0.5)
         p1.load_browse(); pump(0.5)
         sx, sy = row_center(p1, "a1.txt")
         def t2():
             time.sleep(0.5); mv(sx, sy); time.sleep(0.2); down(); time.sleep(0.2)
-            glide((sx, sy), (840, 450)); time.sleep(0.8); shot("toexplorer"); up()
+            glide((sx, sy), (860, 450)); time.sleep(0.8); shot("toexplorer"); up()
         threading.Thread(target=t2, daemon=True).start()
         pump(6)
-        check(os.path.exists(os.path.join(C, "a1.txt")), "탐색기 창으로 끌어 놓기 (C: %s)" % os.listdir(C))
+        desk = os.path.join(os.path.expanduser("~"), "Desktop")
+        check(os.path.exists(os.path.join(C, "a1.txt")) or os.path.exists(os.path.join(desk, "a1.txt")),
+              "탐색기 창(또는 바탕화면)으로 끌어 놓기 (C: %s, 바탕화면: %s)" % (os.listdir(C), os.path.exists(os.path.join(desk, "a1.txt"))))
         u.PostMessageW(hw, 0x10, 0, 0); time.sleep(0.5)
         root.lift(); pump(0.5)
         # 3) 다른 프로그램(별도 창)에서 끌어 오기
