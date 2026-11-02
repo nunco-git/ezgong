@@ -27,7 +27,7 @@ if which == "se":
         check(n0 == 9 and n1 == 3, "폴더 숨기기: %d → %d" % (n0, n1))
         check("보이기" in pane.dir_btn.cget("text"), "버튼 글자 바뀜")
         check(pane.get_state()["hide_dirs"], "상태 저장")
-        check(app.update_btn.winfo_ismapped(), "업데이트 필요 버튼 (info=%s)" % app.update_info)
+        check(app.update_btn.winfo_manager() == "pack", "업데이트 필요 버튼 (info=%s)" % app.update_info)
         root.geometry("1200x500+0+0"); pump(1)
         x, y = root.winfo_rootx(), root.winfo_rooty()
         grab("se", (x, y - 32, x + root.winfo_width(), y + 200))

@@ -2686,7 +2686,7 @@ class App:
         self.keys_lbl = tk.Label(foot, font=FONT_SMALL, bg=C_BG, fg="#B49B74", anchor="w", width=1,
                                  text="Enter 붙여넣기 · Shift+Enter 텍스트만 · Ctrl+P 고정 · 오른쪽 클릭 메뉴")
         self.keys_lbl.pack(side="left", fill="x", expand=True, padx=(0, 8))
-        self.upd_lbl = tk.Label(foot, text="⬆ 업데이트 필요", font=(FONT_SMALL[0], FONT_SMALL[1], "bold"),
+        self.upd_lbl = tk.Label(foot, text="업데이트 필요", font=(FONT_SMALL[0], FONT_SMALL[1], "bold"),
                                 bg="#E8590C", fg="white", padx=8, pady=1, cursor="hand2")
         self.upd_lbl.bind("<Button-1>", lambda e: self.show_update())
         self._layout = None
@@ -3539,7 +3539,7 @@ class App:
         show = bool(info) and self.update_check_var.get()
         try:
             if show:
-                self.upd_lbl.config(text="⬆ 업데이트 필요 (v%s)" % info["version"])
+                self.upd_lbl.config(text="업데이트 필요 (v%s)" % info["version"])
                 if not self.upd_lbl.winfo_ismapped():
                     self.upd_lbl.pack(side="left", padx=(0, 8), before=self.keys_lbl)
             else:

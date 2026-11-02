@@ -5472,9 +5472,9 @@ class App:
         ttk.Button(bar, text="ⓘ 사용 안내", command=self.show_guide).pack(side="right", padx=(0, 10))
         ttk.Button(bar, text="⚙ 환경설정", command=lambda: SettingsDialog(self)).pack(side="right", padx=(0, 4))
         self.update_var = tk.StringVar(value="")
-        self.update_slot = ttk.Frame(bar)                 # 새 버전이 있을 때만 [⬆ 업데이트 필요] 버튼이 나타남
+        self.update_slot = ttk.Frame(bar)                 # 새 버전이 있을 때만 [업데이트 필요] 버튼이 나타남
         self.update_slot.pack(side="right", padx=(0, 10))
-        self.update_btn = tk.Button(self.update_slot, text="⬆ 업데이트 필요", command=self.show_update,
+        self.update_btn = tk.Button(self.update_slot, text="업데이트 필요", command=self.show_update,
                                     bg="#e8590c", fg="white", activebackground="#c44a07", activeforeground="white",
                                     relief="flat", bd=0, padx=10, pady=2, cursor="hand2",
                                     font=(FONT[0], fsz(10), "bold"))
@@ -5906,14 +5906,14 @@ class App:
         if info and not manual and self.s.get("update_skip") != info["version"] \
                 and self.s.get("update_notified") != info["version"]:
             self.s["update_notified"] = info["version"]
-            self.tray.notify(f"새 버전 {info['version']}이(가) 나왔습니다. 위쪽 [⬆ 업데이트 필요] 버튼을 눌러 주세요.")
+            self.tray.notify(f"새 버전 {info['version']}이(가) 나왔습니다. 위쪽 [업데이트 필요] 버튼을 눌러 주세요.")
 
     def _show_update_badge(self):
         try:
             info = self.update_info
             if info and self.s.get("update_skip") != info["version"]:
-                self.update_var.set(f"⬆ 업데이트 필요 (v{info['version']})")
-                self.update_btn.configure(text=f"⬆ 업데이트 필요 (v{info['version']})")
+                self.update_var.set(f"업데이트 필요 (v{info['version']})")
+                self.update_btn.configure(text=f"업데이트 필요 (v{info['version']})")
                 if not self.update_btn.winfo_ismapped():
                     self.update_btn.pack()
             else:
@@ -5955,7 +5955,7 @@ class App:
         ttk.Button(bf, text="이 버전 건너뛰기", command=skip).pack(side="right", padx=4)
         ttk.Button(bf, text="깃허브에서 보기",
                    command=lambda: (__import__("webbrowser").open(info["url"]), w.destroy())).pack(side="right", padx=4)
-        ttk.Button(bf, text="⬇ 새 버전 내려받기", style="Accent.TButton",
+        ttk.Button(bf, text="새 버전 내려받기", style="Accent.TButton",
                    command=lambda: (__import__("webbrowser").open(DOWNLOAD_URL), w.destroy())).pack(side="right")
         center_on(w, self.root)
 

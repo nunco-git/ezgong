@@ -13,4 +13,4 @@ jobs:
       - env: { PYTHONIOENCODING: utf-8 }
         run: |
           python tmpt/u.py se
-          python tmpt/u.py clip
+
