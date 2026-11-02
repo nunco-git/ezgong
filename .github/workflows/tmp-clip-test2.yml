@@ -1,0 +1,89 @@
+name: tmp-clip-test2
+on:
+  push:
+    branches: [test-clip2]
+jobs:
+  t:
+    runs-on: windows-latest
+    defaults: { run: { shell: pwsh, working-directory: smart-clipboard } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r requirements-build.txt pillow
+      - run: |
+          @'
+          import os, sys, io, base64, tempfile, time
+          sys.path.insert(0, os.getcwd())
+          import smart_clipboard as S
+          S.DATA_DIR = tempfile.mkdtemp()
+          app = S.App()
+          st = app.store
+          res = []
+          def check(c, name): res.append(("OK  " if c else "FAIL") + " " + name)
+          def shot(name):
+              from PIL import ImageGrab
+              for _ in range(5): app.root.update(); time.sleep(0.1)
+              img = ImageGrab.grab(); b = io.BytesIO(); img.save(b, "PNG")
+              s = base64.b64encode(b.getvalue()).decode()
+              for i in range(0, len(s), 4000): print("IMG%s:%s" % (name, s[i:i+4000]))
+          real_ask = S.ask_password
+          answers = []
+          asked = []
+          def fake_ask(app_, title, prompt, confirm=False, check=None):
+              asked.append(prompt)
+              pw = answers.pop(0) if answers else None
+              if pw is None: return None
+              if check is not None and not check(pw): return None
+              return pw
+          def steps():
+              try:
+                  a = st.add_memo("p@ssw0rd!23", "은행 비밀번호", hidden=True)
+                  app.show(); app.reload(keep_id=a)
+                  check(not st.has_password(), "처음엔 비밀번호 없음")
+                  app.reveal(); check(app.revealed == a, "비밀번호 없으면 바로 보기"); app.reveal()
+                  st.set_password("abcd1234")
+                  check(st.check_password("abcd1234") and not st.check_password("x"), "비밀번호 확인")
+                  S.ask_password = fake_ask
+                  answers[:] = [None]; app.reveal()
+                  check(app.revealed is None and "p@ss" not in app.preview.get("1.0","end"), "취소하면 안 보임")
+                  answers[:] = ["wrong"]; app.reveal()
+                  check(app.revealed is None, "틀리면 안 보임")
+                  answers[:] = ["abcd1234"]; app.reveal()
+                  check(app.revealed == a and "p@ssw0rd!23" in app.preview.get("1.0","end"), "맞으면 보임")
+                  n = len(asked); app.reveal(); app.reveal()
+                  check(len(asked) == n, "3분 안에는 다시 묻지 않음")
+                  app.hide(); app.show(); app.reload(keep_id=a)
+                  check(app.revealed is None and app.unlocked_until == 0, "창 숨기면 다시 잠김")
+                  answers[:] = [None]; app.toggle_hidden()
+                  check(app.current()["hidden"], "비밀번호 없이 가리기 풀기 안 됨")
+                  answers[:] = [None]; app.edit_memo(); app.root.update()
+                  w = getattr(app, "_memo_win", None)
+                  check(not (w is not None and w.winfo_exists()), "비밀번호 없이 메모 고치기 안 됨")
+                  app.root.clipboard_clear(); app.root.clipboard_append("x"); app.root.update()
+                  app.use(paste=False); app.root.update()
+                  check(app.root.clipboard_get() == "p@ssw0rd!23", "기본: 붙여넣기는 바로 됨")
+                  app.pw_paste_var.set(True)
+                  app.root.clipboard_clear(); app.root.clipboard_append("x"); app.root.update()
+                  answers[:] = [None]; app.use(paste=False); app.root.update()
+                  check(app.root.clipboard_get() == "x", "옵션 켜면 붙여넣기도 비밀번호")
+                  app.pw_paste_var.set(False)
+                  st.add_memo("보통 메모", "")
+                  n = st.delete_hidden()
+                  check(n == 1 and not st.has_password() and len(st.list()) == 1, "잊어버림: 가린 항목만 지움")
+                  st.set_password("abcd1234"); st.add_memo("secret", "카드", hidden=True); app.reload()
+                  S.ask_password = real_ask
+                  app.open_settings(); app.root.update()
+                  shot("settings")
+                  app._settings_win.destroy()
+                  app.root.after(1200, lambda: shot("ask"))
+                  app.root.after(1600, lambda: [w.destroy() for w in app.root.winfo_children() if isinstance(w, S.tk.Toplevel)])
+                  real_ask(app, "비밀번호 확인", "🔒 가린 내용을 보려면 비밀번호를 입력하세요.", check=st.check_password)
+              except Exception:
+                  import traceback; res.append("FAIL 예외 " + traceback.format_exc())
+              print("\n".join(res), flush=True)
+              os._exit(0 if all(r.startswith("OK") for r in res) else 1)
+          app.root.after(1500, steps)
+          app.run()
+          '@ | Set-Content t.py -Encoding utf8
+          $env:PYTHONIOENCODING="utf-8"; python t.py
