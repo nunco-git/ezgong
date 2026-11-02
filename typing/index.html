@@ -175,6 +175,7 @@ a.chip.vs{text-decoration:none;background:var(--right);border-color:var(--right)
 </div>
 <div class="sheet" id="sheet" hidden><div id="sheetBody"></div></div>
 
+<script src="fields.js"></script>
 <script>
 /*ENGINE*/
 const VT={I:'ㅣ',D:'ㆍ',DD:'ㆍㆍ',E:'ㅡ',ID:'ㅏ',IDD:'ㅑ',DI:'ㅓ',DDI:'ㅕ',DE:'ㅗ',DDE:'ㅛ',ED:'ㅜ',EDD:'ㅠ',EI:'ㅢ',
@@ -282,6 +283,8 @@ function slowPairs(lim){const g=globalAvg();if(!g)return[];
 function weakScore(w){const p=plan(w),g=globalAvg();let s=0;
   for(let i=1;i<p.P.length;i++){const a=pairAvg(pairKey(p.P[i-1],p.P[i]));if(a&&a>g)s+=(a-g)}return s/Math.sqrt(p.P.length)}
 
+function fieldWords(){const F=window.UTJ_FIELDS||{};return S.field&&S.field!=='general'&&F[S.field]?F[S.field].words.split(' ').filter(Boolean):DATA.word}
+function fieldOpts(){const F=window.UTJ_FIELDS||{general:{name:'일반'}};return Object.entries(F).map(([k,v])=>'<option value="'+k+'">'+v.name+'</option>').join('')}
 function makeItems(){let out=[];
   if(S.mode==='jamo'){const pool=[...(S.stage==='mix'?DATA.jamo.v1+DATA.jamo.v2+DATA.jamo.c:DATA.jamo[S.stage])];
     while(out.length<N.jamo){const x=pool[Math.random()*pool.length|0];if(x!==out[out.length-1])out.push(x)}}
@@ -292,7 +295,7 @@ function makeItems(){let out=[];
   else if(S.mode==='weak'){
     if(pairCount()<40)out=shuffle(DATA.word).slice(0,N.weak);
     else{const sc=DATA.word.map(w=>({w,s:weakScore(w)})).sort((a,b)=>b.s-a.s);out=shuffle(sc.slice(0,24).map(x=>x.w)).slice(0,N.weak)}}
-  else out=shuffle(DATA[S.mode]).slice(0,N[S.mode]);return out}
+  else out=shuffle(S.mode==='word'?fieldWords():DATA[S.mode]).slice(0,N[S.mode]);return out}
 
 // pad
 const pad=$('pad');
@@ -383,16 +386,16 @@ function finish(){clearInterval(S.tick);store.set('pairs',pairs);const sp=speed(
   if($('goWeak'))$('goWeak').onclick=()=>{$('sheet').hidden=true;S.mode='weak';savePrefs();renderSub();newSession(true)}}
 function newSession(fresh){clearInterval(S.tick);const keep=S.items;S.items=fresh||!keep.length?makeItems():keep;
   Object.assign(S,{idx:0,start:null,presses:0,wrong:0,chars:0,busy:false,iv:[]});stats();loadItem()}
-function savePrefs(){store.set('prefs',{mode:S.mode,stage:S.stage,rstage:S.rstage,hint:S.hint,mid:S.mid})}
+function savePrefs(){store.set('prefs',{field:S.field,mode:S.mode,stage:S.stage,rstage:S.rstage,hint:S.hint,mid:S.mid})}
 function renderSub(){document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.mode===S.mode));
   const sub=$('sub');let h='';
   if(S.mode==='jamo')h+=Object.entries(STAGES).map(([k,v])=>'<button type="button" class="chip" data-st="'+k+'" aria-pressed="'+(S.stage===k)+'">'+v+'</button>').join('');
   else if(S.mode==='rhythm')h+=Object.entries(RSTAGES).map(([k,v])=>'<button type="button" class="chip" data-rs="'+k+'" aria-pressed="'+(S.rstage===k)+'">'+v+'</button>').join('');
   else if(S.mode==='weak')h+='<span>'+(pairCount()<40?'기록 '+Math.round(pairCount())+'/40타 · 지금은 섞어서 연습':'느린 키 조합이 많은 낱말 12개')+'</span>';
-  else h+='<span>'+(S.mode==='word'?'자주 쓰는 낱말 12개':'속담·생활 문장 5개')+'</span>';
+  else if(S.mode==='word')h+='<label>분야 <select id="fieldSel">'+fieldOpts()+'</select></label>';else h+='<span>속담·생활 문장 5개</span>';
   h+='<span class="sp"></span><label><input type="checkbox" id="hintCk" '+(S.hint?'checked':'')+'> 힌트</label>'+
      '<label>가운데 키 <select id="midSel"><option value="auto">자동</option><option value="L">왼 엄지</option><option value="R">오른 엄지</option></select></label>';
-  sub.innerHTML=h;$('midSel').value=S.mid;
+  sub.innerHTML=h;if($('fieldSel')){$('fieldSel').value=S.field||'general';$('fieldSel').onchange=e=>{S.field=e.target.value;savePrefs();newSession(true)}}$('midSel').value=S.mid;
   sub.querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>{S.stage=b.dataset.st;savePrefs();renderSub();newSession(true)});
   sub.querySelectorAll('[data-rs]').forEach(b=>b.onclick=()=>{S.rstage=b.dataset.rs;savePrefs();renderSub();newSession(true)});
   $('hintCk').onchange=e=>{S.hint=e.target.checked;savePrefs();draw()};

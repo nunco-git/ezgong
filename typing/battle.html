@@ -187,6 +187,7 @@ main{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:8p
 .grp{display:flex;flex-direction:column;gap:6px}.grp>span{font-size:12px;font-weight:700;color:var(--muted)}
 .opts{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .opt{font:600 14px var(--f-body);border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:9px 6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px}
+.opts.three{grid-template-columns:repeat(3,1fr)}.opts.three .opt{font-size:12.5px;padding:7px 4px}
 .opt small{font-size:10.5px;color:var(--muted);font-weight:600}
 .opt[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}.opt[aria-pressed="true"] small{color:var(--bg);opacity:.8}
 .hck{font-size:13px;display:flex;gap:6px;align-items:center}
@@ -221,6 +222,7 @@ h2.win{color:var(--ok)}h2.lose{color:var(--err)}
 </div>
 <div class="sheet" id="sheet"><div id="sheetBody"></div></div>
 <div class="count" id="count" hidden></div>
+<script src="fields.js"></script>
 <script>
 const CJI=(()=>{
 /*ENGINE*/
@@ -301,10 +303,12 @@ if(typeof module!=='undefined'){module.exports={CJI,QW}}else{
 const $=id=>document.getElementById(id);
 const store={get(k,d){try{const v=localStorage.getItem('bt-'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('bt-'+k,JSON.stringify(v))}catch(e){}}};
 let lastKb='cji';try{lastKb=localStorage.getItem('utj-kb')==='qwerty'?'qw':'cji'}catch(e){}
-const CFG=Object.assign({kb:lastKb,lv:2,hint:true},store.get('cfg',{}));
+const CFG=Object.assign({kb:lastKb,lv:2,hint:true,field:'general'},store.get('cfg',{}));
 const best=store.get('best',{});
 const ROWS=9;
-const WORDS='사람 학교 친구 가족 오늘 내일 감사 사랑 행복 시간 전화 문자 사진 음식 김치 바다 하늘 나무 할머니 어머니 아버지 선생님 병원 약국 은행 시장 회사 공원 날씨 우산 커피 우유 과일 사과 딸기 수박 강아지 고양이 자동차 버스 지하철 기차 비행기 컴퓨터 휴대폰 신문 책상 의자 창문 냉장고 생일 축하 안녕 고마워 미안해 회의 출장 퇴근 출근 점심 저녁 아침 주말 휴가 여행 약속 연락 도착 출발 확인 좋아요 그래요 지금 나중에 어제 금요일 토요일 일요일 사무실 주차장 계단 편의점 마트 식당 카페 우체국 도서관 운동장 놀이터 아파트 김밥 라면 비빔밥 불고기 치킨 피자 햄버거 케이크 사탕 하나 다섯 여섯 일곱 여덟 아홉 봄 여름 가을 겨울 바람 구름 햇빛 무지개 단풍 왕관 외국 의사 화요일 원숭이 귀여운 예쁜 얘기 괜찮아'.split(' ');
+const GENERAL='사람 학교 친구 가족 오늘 내일 감사 사랑 행복 시간 전화 문자 사진 음식 김치 바다 하늘 나무 할머니 어머니 아버지 선생님 병원 약국 은행 시장 회사 공원 날씨 우산 커피 우유 과일 사과 딸기 수박 강아지 고양이 자동차 버스 지하철 기차 비행기 컴퓨터 휴대폰 신문 책상 의자 창문 냉장고 생일 축하 안녕 고마워 미안해 회의 출장 퇴근 출근 점심 저녁 아침 주말 휴가 여행 약속 연락 도착 출발 확인 좋아요 그래요 지금 나중에 어제 금요일 토요일 일요일 사무실 주차장 계단 편의점 마트 식당 카페 우체국 도서관 운동장 놀이터 아파트 김밥 라면 비빔밥 불고기 치킨 피자 햄버거 케이크 사탕 하나 다섯 여섯 일곱 여덟 아홉 봄 여름 가을 겨울 바람 구름 햇빛 무지개 단풍 왕관 외국 의사 화요일 원숭이 귀여운 예쁜 얘기 괜찮아'.split(' ');
+let WORDS=GENERAL;
+const FIELDS=window.UTJ_FIELDS||{general:{name:'일반',words:''}};
 const GARB='깍두기 짧았다 앉았다 읽혔다 쌍둥이 꽃꽂이 뚫었다 밟았다 괜찮았어 훑어보다 꿇었다 얹었다 넓적다리 빨갛다 싸웠다 짜릿한 떡볶이 뾰족한 뒤꿈치 쾌활한 횡단보도 꿰맸다 닭갈비 값싼 삶았다 젊었다 맑았다'.split(' ');
 const LV={1:{name:'쉬움',rate:1.5,err:.07},2:{name:'보통',rate:2.4,err:.05},3:{name:'어려움',rate:3.4,err:.035},4:{name:'고수',rate:4.6,err:.02}};
 const ATK=[0,0,1,1,2,2,3,3,4];
@@ -351,12 +355,13 @@ function wordAt(i){let h=(i+1)*2654435761%4294967296;h^=h>>>13;h=(h*1274126177)>
 function newPlayer(name){return{name,chars:0,stack:[],fall:null,spawnAt:0,n:0,combo:0,last:0,sent:0,got:0,cleared:0,pend:[],dead:false}}
 let uid=0;
 function start(){
+  WORDS=CFG.field!=='general'&&FIELDS[CFG.field]?FIELDS[CFG.field].words.split(' ').filter(Boolean):GENERAL;
   const inp=makeInput(CFG.kb);
   G={kb:CFG.kb,lv:CFG.lv,inp,me:newPlayer('나'),op:newPlayer('컴퓨터'),seed:(Math.random()*1e9)|0,t0:0,now:0,run:false,paused:false,
      cpu:{target:null,prog:0,wait:0},wrong:false,keys:0,errs:0};
   buildPad(G.kb);paintShift();
   $('oppName').textContent='컴퓨터 · '+LV[G.lv].name;
-  $('hinfo').textContent=(G.kb==='cji'?'천지인':'쿼티')+' · '+LV[G.lv].name;
+  $('hinfo').textContent=(FIELDS[CFG.field]||{name:'일반'}).name+' · '+(G.kb==='cji'?'천지인':'쿼티')+' · '+LV[G.lv].name;
   $('sheet').hidden=true;drawAll();countdown(3)}
 function countdown(n){const c=$('count');c.hidden=false;c.textContent=n||'시작!';
   if(n>0)setTimeout(()=>countdown(n-1),650);else setTimeout(()=>{c.hidden=true;G.run=true;G.t0=G.now=performance.now();G.me.spawnAt=G.op.spawnAt=G.now;requestAnimationFrame(loop)},450)}
@@ -445,6 +450,7 @@ function menu(){if(G){G.run=false}
   $('sheetBody').innerHTML='<h2>엄지타자 대결</h2>'+
    '<p class="lead">떨어지는 낱말 블록을 쳐서 지우세요. 연달아 빨리 지우면 상대 바닥에 방해 블록이 올라가요. 블록이 천장까지 차면 져요.</p>'+
    '<div class="grp"><span>자판</span><div class="opts"><button type="button" class="opt" data-kb="cji" aria-pressed="'+(CFG.kb==='cji')+'">천지인</button><button type="button" class="opt" data-kb="qw" aria-pressed="'+(CFG.kb==='qw')+'">쿼티</button></div></div>'+
+   '<div class="grp"><span>분야 용어</span><div class="opts three">'+Object.entries(FIELDS).map(([k,v])=>'<button type="button" class="opt" data-fd="'+k+'" aria-pressed="'+(CFG.field===k)+'">'+v.name+'</button>').join('')+'</div></div>'+
    '<div class="grp"><span>상대 컴퓨터</span><div class="opts four">'+lvBtns+'</div></div>'+
    '<label class="hck"><input type="checkbox" id="hintCk" '+(CFG.hint?'checked':'')+'> 다음 키 힌트</label>'+
    '<ul class="rules"><li><b>콤보</b> 5초 안에 연달아 지우면 콤보가 쌓여요. 3콤보마다 상대에게 방해 블록 1줄, 9콤보부터는 2줄.</li><li><b>긴 낱말</b> 다섯 글자 이상을 지우면 1줄 더. 회색 방해 블록은 어려운 낱말이에요.</li><li><b>막기</b> 빨간 막대는 곧 올라올 방해 블록이에요. 그 전에 지우면 그만큼 상쇄돼요.</li></ul>'+
@@ -452,6 +458,7 @@ function menu(){if(G){G.run=false}
   $('sheet').hidden=false;
   $('sheetBody').querySelectorAll('[data-kb]').forEach(b=>b.onclick=()=>{CFG.kb=b.dataset.kb;store.set('cfg',CFG);menu()});
   $('sheetBody').querySelectorAll('[data-lv]').forEach(b=>b.onclick=()=>{CFG.lv=+b.dataset.lv;store.set('cfg',CFG);menu()});
+  $('sheetBody').querySelectorAll('[data-fd]').forEach(b=>b.onclick=()=>{CFG.field=b.dataset.fd;store.set('cfg',CFG);menu()});
   $('hintCk').onchange=e=>{CFG.hint=e.target.checked;store.set('cfg',CFG)};
   $('go').onclick=start}
 function over(){const win=G.op.dead&&!G.me.dead,sec=(G.now-G.t0)/1000;
@@ -460,7 +467,7 @@ function over(){const win=G.op.dead&&!G.me.dead,sec=(G.now-G.t0)/1000;
   const accu=G.keys?Math.max(0,Math.round(100*(1-G.errs/G.keys))):100;
   $('sheetBody').innerHTML='<h2 class="'+(win?'win':'lose')+'">'+(win?'이겼어요!':'졌어요')+'</h2>'+(nb?'<div class="new">'+LV[G.lv].name+' 새 최고 기록이에요.</div>':'')+
    '<div class="res"><div><span>지운 낱말</span><strong>'+G.me.cleared+'</strong></div><div><span>보낸 방해</span><strong>'+G.me.sent+'</strong></div><div><span>속도</span><strong>'+spd+'<small> 자/분</small></strong></div><div><span>정확도</span><strong>'+accu+'%</strong></div></div>'+
-   '<p class="lead">버틴 시간 '+Math.floor(sec/60)+'분 '+Math.floor(sec%60)+'초 · 컴퓨터 '+LV[G.lv].name+'</p>'+
+   '<p class="lead">'+(FIELDS[CFG.field]||{name:'일반'}).name+' 용어 · 버틴 시간 '+Math.floor(sec/60)+'분 '+Math.floor(sec%60)+'초 · 컴퓨터 '+LV[G.lv].name+'</p>'+
    '<div class="row"><button id="menuB" type="button">설정</button><button class="pri" id="againB" type="button">'+(win&&G.lv<4?'다음 단계: '+LV[G.lv+1].name:'다시 하기')+'</button></div>';
   $('sheet').hidden=false;
   $('menuB').onclick=menu;$('againB').onclick=()=>{if(win&&G.lv<4){CFG.lv=G.lv+1;store.set('cfg',CFG)}start()}}

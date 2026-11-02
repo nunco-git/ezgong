@@ -184,6 +184,7 @@ a.chip.vs{text-decoration:none;background:var(--right);border-color:var(--right)
 </div>
 <div class="sheet" id="sheet" hidden><div id="sheetBody"></div></div>
 
+<script src="fields.js"></script>
 <script>
 /*ENGINE*/
 const CHO='ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ',JUNG='ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ';
@@ -268,12 +269,14 @@ function pairCount(){let n=0;for(const v of Object.values(pairs))n+=v[0];return 
 function slowPairs(lim){const g=globalAvg();if(!g)return[];return Object.keys(pairs).map(pk=>({pk,avg:pairAvg(pk)})).filter(x=>x.avg&&x.avg>g*1.1).sort((a,b)=>b.avg-a.avg).slice(0,lim)}
 function weakScore(w){const p=plan(w),g=globalAvg();let s=0;for(let i=1;i<p.P.length;i++){const a=pairAvg(pairKey(p.P[i-1],p.P[i]));if(a&&a>g)s+=a-g}return s/Math.sqrt(p.P.length)}
 
+function fieldWords(){const F=window.UTJ_FIELDS||{};return S.field&&S.field!=='general'&&F[S.field]?F[S.field].words.split(' ').filter(Boolean):DATA.word}
+function fieldOpts(){const F=window.UTJ_FIELDS||{general:{name:'일반'}};return Object.entries(F).map(([k,v])=>'<option value="'+k+'">'+v.name+'</option>').join('')}
 function makeItems(){let out=[];
   if(S.mode==='jamo'){const pool=[...(S.stage==='mix'?Object.values(DATA.jamo).join(''):DATA.jamo[S.stage])];
     while(out.length<N.jamo){const x=pool[Math.random()*pool.length|0];if(x!==out[out.length-1])out.push(x)}}
   else if(S.mode==='weak'){if(pairCount()<40)out=shuffle(DATA.word).slice(0,N.weak);
     else{const sc=DATA.word.map(w=>({w,s:weakScore(w)})).sort((a,b)=>b.s-a.s);out=shuffle(sc.slice(0,24).map(x=>x.w)).slice(0,N.weak)}}
-  else out=shuffle(DATA[S.mode]).slice(0,N[S.mode]);return out}
+  else out=shuffle(S.mode==='word'?fieldWords():DATA[S.mode]).slice(0,N[S.mode]);return out}
 
 // 자판 그리기
 const pad=$('pad');
@@ -372,14 +375,14 @@ function finish(){clearInterval(S.tick);store.set('pairs',pairs);const sp=speed(
   if($('goWeak'))$('goWeak').onclick=()=>{$('sheet').hidden=true;S.mode='weak';savePrefs();renderSub();newSession(true)}}
 function newSession(fresh){clearInterval(S.tick);const keep=S.items;S.items=fresh||!keep.length?makeItems():keep;
   Object.assign(S,{idx:0,start:null,presses:0,wrong:0,chars:0,busy:false,iv:[]});stats();loadItem()}
-function savePrefs(){store.set('prefs',{mode:S.mode,stage:S.stage,hint:S.hint})}
+function savePrefs(){store.set('prefs',{field:S.field,mode:S.mode,stage:S.stage,hint:S.hint})}
 function renderSub(){document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.mode===S.mode));
   const sub=$('sub');let h='';
   if(S.mode==='jamo')h+=Object.entries(STAGES).map(([k,v])=>'<button type="button" class="chip" data-st="'+k+'" aria-pressed="'+(S.stage===k)+'">'+v+'</button>').join('');
   else if(S.mode==='weak')h+='<span>'+(pairCount()<40?'기록 '+Math.round(pairCount())+'/40타 · 지금은 섞어서 연습':'느린 키 조합이 많은 낱말 12개')+'</span>';
-  else h+='<span>'+(S.mode==='word'?'자주 쓰는 낱말 12개':'속담·생활 문장 5개')+'</span>';
+  else if(S.mode==='word')h+='<label>분야 <select id="fieldSel">'+fieldOpts()+'</select></label>';else h+='<span>속담·생활 문장 5개</span>';
   h+='<span class="sp"></span><label><input type="checkbox" id="hintCk" '+(S.hint?'checked':'')+'> 힌트</label>';
-  sub.innerHTML=h;
+  sub.innerHTML=h;if($('fieldSel')){$('fieldSel').value=S.field||'general';$('fieldSel').onchange=e=>{S.field=e.target.value;savePrefs();newSession(true)}}
   sub.querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>{S.stage=b.dataset.st;savePrefs();renderSub();newSession(true)});
   $('hintCk').onchange=e=>{S.hint=e.target.checked;savePrefs();draw()}}
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{S.mode=b.dataset.mode;savePrefs();renderSub();newSession(true)});
