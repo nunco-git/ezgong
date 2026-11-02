@@ -1,0 +1,14 @@
+name: tmp-side
+on:
+  push:
+    branches: [test-side]
+jobs:
+  t:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r smart-explorer/requirements-build.txt pillow
+      - env: { PYTHONIOENCODING: utf-8 }
+        run: python tmpt/side.py
