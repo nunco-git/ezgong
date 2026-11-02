@@ -5127,6 +5127,51 @@ def is_pinned_to_taskbar():
     return False
 
 
+def create_lnk(lnk_path, target, args="", workdir="", icon="", desc=""):
+    """윈도우 바로가기(.lnk) 만들기 — PowerShell 없이 Windows 기능(IShellLink)을 직접 씀"""
+    import ctypes
+    ole32 = ctypes.windll.ole32
+
+    class GUID(ctypes.Structure):
+        _fields_ = [("a", ctypes.c_uint32), ("b", ctypes.c_uint16), ("c", ctypes.c_uint16), ("d", ctypes.c_ubyte * 8)]
+
+    def guid(t):
+        g = GUID()
+        ole32.CLSIDFromString(ctypes.c_wchar_p(t), ctypes.byref(g))
+        return g
+
+    def vcall(ptr, i, argtypes, *a):
+        vt = ctypes.cast(ptr, ctypes.POINTER(ctypes.POINTER(ctypes.c_void_p)))[0]
+        return ctypes.WINFUNCTYPE(ctypes.c_long, ctypes.c_void_p, *argtypes)(vt[i])(ptr, *a)
+
+    ole32.CoInitialize(None)
+    ole32.CoCreateInstance.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_ulong, ctypes.c_void_p,
+                                       ctypes.POINTER(ctypes.c_void_p)]
+    psl, ppf = ctypes.c_void_p(), ctypes.c_void_p()
+    hr = ole32.CoCreateInstance(ctypes.byref(guid("{00021401-0000-0000-C000-000000000046}")), None, 1,
+                                ctypes.byref(guid("{000214F9-0000-0000-C000-000000000046}")), ctypes.byref(psl))
+    if hr != 0 or not psl:
+        raise OSError(f"바로가기 기능을 쓸 수 없습니다 ({hr & 0xFFFFFFFF:#x})")
+    W = ctypes.c_wchar_p
+    try:
+        vcall(psl.value, 20, [W], target)                     # SetPath
+        vcall(psl.value, 11, [W], args or "")                 # SetArguments
+        vcall(psl.value, 9, [W], workdir or "")               # SetWorkingDirectory
+        vcall(psl.value, 7, [W], desc or "")                  # SetDescription
+        vcall(psl.value, 17, [W, ctypes.c_int], icon or target, 0)   # SetIconLocation
+        hr = vcall(psl.value, 0, [ctypes.c_void_p, ctypes.POINTER(ctypes.c_void_p)],
+                   ctypes.byref(guid("{0000010B-0000-0000-C000-000000000046}")), ctypes.byref(ppf))
+        if hr != 0 or not ppf:
+            raise OSError("바로가기를 저장할 수 없습니다")
+        hr = vcall(ppf.value, 6, [W, ctypes.c_int], lnk_path, 1)    # IPersistFile::Save
+        if hr != 0:
+            raise OSError(f"바로가기를 저장할 수 없습니다 ({hr & 0xFFFFFFFF:#x}): {lnk_path}")
+    finally:
+        for p in (ppf, psl):
+            if p:
+                vcall(p.value, 2, [])
+
+
 def make_start_menu_shortcut():
     make_desktop_shortcut(os.path.join(os.environ.get("APPDATA", ""), r"Microsoft\Windows\Start Menu\Programs"))
 
@@ -5140,18 +5185,9 @@ def make_desktop_shortcut(folder=None):
         pyw = os.path.join(os.path.dirname(py), "pythonw.exe")
         target = pyw if os.path.exists(pyw) else py
         args, workdir = f'"{os.path.abspath(__file__)}"', os.path.dirname(os.path.abspath(__file__))
-    q = lambda v: v.replace("'", "''")
     folder = folder or desktop_dir()
-    ps = (f"$d='{q(folder)}';"
-          "$s=(New-Object -ComObject WScript.Shell).CreateShortcut((Join-Path $d '스마트탐색기.lnk'));"
-          f"$s.TargetPath='{q(target)}';$s.Arguments='{q(args)}';$s.WorkingDirectory='{q(workdir)}';"
-          f"$s.IconLocation='{q(target)},0';$s.Description='스마트탐색기 (스마트공 시리즈)';$s.Save()")
-    enc = base64.b64encode(ps.encode("utf-16-le")).decode("ascii")      # 한글 경로·이름이 깨지지 않게
-    r = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-EncodedCommand", enc],
-                       capture_output=True, text=True, timeout=30,
-                       creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
-    if r.returncode != 0:
-        raise RuntimeError((r.stderr or r.stdout or "알 수 없는 오류").strip()[:300])
+    os.makedirs(folder, exist_ok=True)
+    create_lnk(os.path.join(folder, SHORTCUT_NAME), target, args, workdir, target, "스마트탐색기 (스마트공 시리즈)")
 
 
 def hotkey_text(hk):
