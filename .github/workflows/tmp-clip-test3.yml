@@ -1,0 +1,68 @@
+name: tmp-clip-test3
+on:
+  push:
+    branches: [test-clip3]
+jobs:
+  t:
+    runs-on: windows-latest
+    defaults: { run: { shell: pwsh, working-directory: smart-clipboard } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r requirements-build.txt pillow
+      - run: |
+          @'
+          import os, sys, io, base64, tempfile, time
+          sys.path.insert(0, os.getcwd())
+          import smart_clipboard as S
+          S.DATA_DIR = tempfile.mkdtemp()
+          app = S.App()
+          st = app.store
+          res = []
+          def check(c, name): res.append(("OK  " if c else "FAIL") + " " + name)
+          def shot(name, bbox=None):
+              from PIL import ImageGrab
+              for _ in range(6): app.root.update(); time.sleep(0.12)
+              r = app.root
+              x, y = r.winfo_rootx(), r.winfo_rooty()
+              img = ImageGrab.grab(bbox=bbox or (x - 8, y - 32, x + r.winfo_width() + 8, y + r.winfo_height() + 8))
+              b = io.BytesIO(); img.save(b, "PNG")
+              s = base64.b64encode(b.getvalue()).decode()
+              for i in range(0, len(s), 4000): print("IMG%s:%s" % (name, s[i:i+4000]))
+          def steps():
+              try:
+                  st.add_memo("평범한 메모", "")
+                  a = st.add_memo("p@ss", "은행 비밀번호", hidden=True)
+                  st.add_memo("1234", "", hidden=True)
+                  app.show(); app.root.geometry("700x520+100+60"); app.reload(keep_id=a)
+                  shot("wide")
+                  h = app.tree.head
+                  check(bool(h.find_withtag("h_add")) and bool(h.find_withtag("h_pw")), "내용 옆 + / PW 아이콘")
+                  n0 = len(st.list())
+                  # + 클릭 → 메모 창
+                  x0, y0, x1, y1 = h.bbox("h_add")
+                  h.event_generate("<Button-1>", x=(x0 + x1)//2, y=(y0 + y1)//2); app.root.update()
+                  w = getattr(app, "_memo_win", None)
+                  check(w is not None and w.winfo_exists(), "+ 누르면 메모 추가 창")
+                  w.destroy(); app.menu_open = False
+                  app.reload(keep_id=a)
+                  x0, y0, x1, y1 = h.bbox("h_pw")
+                  h.event_generate("<Button-1>", x=(x0 + x1)//2, y=(y0 + y1)//2); app.root.update()
+                  check(not app.current()["hidden"], "PW 누르면 가리기 풀림")
+                  app.toggle_hidden()
+                  for wd in (430, 320):
+                      app.root.geometry("%dx520+100+60" % wd)
+                      for _ in range(6): app.root.update(); time.sleep(0.1)
+                      vis = [b.winfo_ismapped() and b.winfo_rootx() + b.winfo_width() <= app.root.winfo_rootx() + app.root.winfo_width() + 1
+                             for b in (app.btn_top, app.btn_keep, app.set_btn, app.pin_btn)]
+                      check(all(vis), "폭 %d에서 고정·창유지·설정 버튼 보임 %s" % (wd, vis))
+                      shot("w%d" % wd)
+              except Exception:
+                  import traceback; res.append("FAIL 예외 " + traceback.format_exc())
+              print("\n".join(res), flush=True)
+              os._exit(0 if all(r.startswith("OK") for r in res) else 1)
+          app.root.after(1500, steps)
+          app.run()
+          '@ | Set-Content t.py -Encoding utf8
+          $env:PYTHONIOENCODING="utf-8"; python t.py

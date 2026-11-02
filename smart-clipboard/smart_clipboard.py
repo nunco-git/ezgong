@@ -80,7 +80,7 @@ from tkinter import messagebox
 # 설정
 # ─────────────────────────────────────────────────────────────
 APP_NAME = "스마트클립"
-APP_VERSION = "1.1.1"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
+APP_VERSION = "1.1.2"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
 
 MOD_ALT, MOD_CONTROL, MOD_SHIFT, MOD_WIN, MOD_NOREPEAT = 0x1, 0x2, 0x4, 0x8, 0x4000
 HOTKEY_MODS = MOD_CONTROL | MOD_SHIFT      # 단축키 조합
@@ -1503,6 +1503,12 @@ ICONS = {
     "search_b": "iVBORw0KGgoAAAANSUhEUgAAABIAAAASCAYAAABWzo5XAAACaElEQVR4XpWUz0uUQRzGPzPv+7qyWpRC2DmksCAMDTJ311j6BXYJFtRtEzx48z9I1u3Ypa516FJmZJ4Kioh0TU+FQZdSIqwIy/Ighqu778zErK2t+i7Rcxnemed9vs88850RBCCdRjKBXPiFmK3FTGRRAkwQtyISCZygxUrzJYhtP9lv0x2l0ROcdSV7jGZ+DZ6OZPlpnWYy6KBCm0KWNDSEuRRh0HPIVFeBMSAFrOZZXPcZuD/NgzTIDDvFikLW9ugoqjvCYF2Yqys5ZnzNDWH4YgTNrmQo5LE7lyd+9yUvSvxyZwIbbAZ9+RQHHMM7bXgb8ojfes5yiZiK0uxJxtd9FmtyHL75Gl+IreHL/scb4SpFZ7WHt+5zzYoMnCNkK9vxziRv1gqMhkM05mo4YkW2hy9LVY1hn9Jo1+OTJX3bhW+3W5dDxWK4QjLnCLTW1AWFLffXblgUMOdIpO9z3Ao0rOBagYWDiGwW3xjaCxqpHb5aflPTzr6ygYtUnPreKN/7OlhMRjhWXjUZobc/jkm2M2bn0zHc7a62nFpPlIthj7F8gbwyDGOYB1rCIS7kC3xQmhFleDYyzZR1a53uaMhSsyXbOOO4XA95NEkJvoK8z0OteV/lcUUplhWcHp7kVbnYls4uazbRG+NoyKPWV/y4Pc5sTzsnXYdHjmCv0iwpOG/FgnqqiKA7VZpLnqA1FWWprwNjx642WoqZpYsXIBAikdhoDXs69n6VtpGM0urAE0dSrzSrviZ6b4qZSkKBKIml2mgRLpMGPuYFnYeyfK5g6N/PTFeU5kSMhj/M/zK0ieLD9xdFkd+vhvaTksxmCwAAAABJRU5ErkJggg==",
     "search_w": "iVBORw0KGgoAAAANSUhEUgAAABIAAAASCAYAAABWzo5XAAABe0lEQVR4Xo2Tvy4EYRTF72VlS0IiSomI1r/VUIiCXqETjyAegILHkHgB0ag8BB3NaigUBKEgIbt+cib3kzEzO9mTTCbz3fnOPef+casAMGBmetzMMLOuu+vdP4DBHuSV5wnK+AfAlRmYNrMNMxsxszszu3D3Zyl1959aWfpJRMCBmAp4BLZEELarkewA+0FwBWwDq8Ae8B7na0FWtpkyAFPAN3AJDBcszwFvQBsYkvKSJAUiy25kTRaaUgo0I34c8bkqVWpxwriZqZD3YbXj7l21HmiYWTvio1UFElGaD/2o76UgaASBOtkxs5WIPwTR/7mKTqlbY5B15wmYL9RoJ2ydhS0pLCPXtc248AWcxCicx9ktcAhIme70JMvqBawDN4U5OgWO4kzda/VLJquzyg7MxKVl4DXINOWJrHp1qnYtZ70FvASZ3ou10x4N0AzpSZazmkgJZIqED2ChckDrkAosJcAncA1M1u5fL+Rsam0mQmV5ZfpBXkGy9QtAPML7F7wW2wAAAABJRU5ErkJggg==",
     "search_l": "iVBORw0KGgoAAAANSUhEUgAAABIAAAASCAYAAABWzo5XAAAC0UlEQVR4Xo1UW0gUURg+l5mddXdtdYtQewx72IIQNNtV8kFKA3spxteeWm9FL4UW1jhFm+6LSRfNpyAicKuXgiSiMKRNLIPALhJhRW1kWeJlZ2fOJc7ayO66Rt/LMOf85zv/953vHAhyQNMAAqAGlcQX4NdiD+/qGqEQAp6rdk0MqSrONbnWuA2YtUj8856mylJJlupkGRUwyqd/GYlhffDFD03TkK7rLNdGyB4URZxz0NMSPO1Q5CmvR7nolKWz+W7Hda+SN3muaWejIFmWvRqpjkTbjdEoDTcHTm3a4Doz8zsxQQm/wDj6DDAtkxHucjuldQuGWXv8UuyRXZ9OBzWgIR3oLBIKblZc+A1l/JVpOGs7Bh/O2YXnmwNlnjzp8aJBvhdSc2vo6nMCIcwwH5WE7qXM5Zg3ePJk2UySiCDpO1KvqKqKxffEQOzlokGiBW6ldB45tgmSbPNX9EKANjLKGMbSR1FU/C2fRKNROutLUE2rkTDkU7IEGWXAl9PsLcWeVIuMgymMESKE7BB+xYvmJUEQjy9AXR8hlMNqw2QIO8AXUa/6/RnShFAoHA+3VficSHktYQgTllXffvnZhL1zd3PVwYJ8+drcfPJO+0DsgNhAkGeYnX5q3S2V+71u5+0lg5iE8BsAgmkAebnXrexbMsh7SthNCumDjitjo9lkK4G0wxYOBfcoDtjrckp+CSNgEgqMJL1lUfrWpTg6LULnkpTtPtkfG08ny0i2CJuuA5Fc2Hs0uN3llD3UsGZa+56+ixyurpIguCthWGhR9jNJ2F5BZmcq+4oAceTitNL1rwT2UKDCoaBhh4x8psVmDdOs6xwcfy7UrCL6C6iqKlIBAJP+KBdd2jLCLYEKRUL3ZYzWW5QtcQJ3HesfnViLKCdssp62YLkM4RMG+AfLog1G0din3Cv+gaGh5WdGXJtIa0VR6laAVa/I/yH9BbBJ/gC1MVkUgFVjigAAAABJRU5ErkJggg==",
+    "plus_b": "iVBORw0KGgoAAAANSUhEUgAAABIAAAASCAYAAABWzo5XAAABsklEQVR42sWTwWoUQRCGv66uXcU1gTnkZEQUD+JRRJK4ZBSfQGFAsurqC3jx4HFOvoAPoKK5yEKewdUQ8eQTGFw8KYgnZd1Md3mYybIOs4le9L90d/1/V1dVV3kOQZbhl5bwoxGR/w0H0Fvn+q0u96qzmyeWJmNe2q2XsizG1tE2T/pXuQBYluH/2NGUHLNgRlEEQowkB2rrkeQ5AkgOUggGOBzeIjEHSXZLLq/ddbW9zZIbq5wSzwdVPIHLz96w01BHA9AZo/UusXykQyeMcYXDnHCaShkcZ3trfBVFWp74PfLz5ZCPU49Zhh8MCLfXuaGO55NI21kZtoFzbrqPzqqIHaGtxMkeDze3eZymqJ7/UqZnxqJXOgq4KmEzCFUbqiAzdu/LCiVNNeLmGhePKQsTw4nDYuCkOZ6qRwrjgYf3ISJeiAbjF6952+iojjsrnIjKSBVfwMrmK97N02p9rgCSXeTbGaJ9ZnF/wnzB8Yr3QAAYDMp1LvZ7pL/KuV6Xyd0r7PW7XJt97K86m8hYhVbLo1H4cehgHsDZRpf7Asknz6PhkFBv2n+PNEXT9PdPacIvuT2IaxsKDukAAAAASUVORK5CYII=",
+    "plus_w": "iVBORw0KGgoAAAANSUhEUgAAABIAAAASCAYAAABWzo5XAAABGUlEQVR42sWUTU7DMBCF3yRhxY/EmrJA4gYgcQ64AReABQfiOCxYcIVegB2iKar9seAZnBJouupIka15med5fiNLGwJogU47DyC8XgO3QJTcNiSN1xk/cVGkjtVs0n4oaSUpJB3/92M31omkBpAkTNJKysYbDEZE/kUERAVk5xbVOb3xvFbDgCgiAGaS9t0Fks4qonPgVVJjsmVEzAdz4vUGeAM+gJW/VF12qvJLYAHcubbrfLokHbmbv6Kp9sW5bwNi7bIv7VSRdirp0SQPkl4qaX1EPE2dpxNLAbjaxv62kpEtt8SB8VZSskFplKgAfPmaPS/ZMhURCRgQTJ3sXtKe9++TpVWdZQ/bHLi3O8/OpZ0/J92Uh+0TJCXaNjh2vpAAAAAASUVORK5CYII=",
+    "plus_l": "iVBORw0KGgoAAAANSUhEUgAAABIAAAASCAYAAABWzo5XAAACAUlEQVR42sWTv2tTURTHv+fe+16jMYEMRap10MGho4o0VsjgX6Bws4ogahRdREWX1w5C/LUIFlwUHHPByT/AgBgyBBddi10qCtLJ9iXv3XMcXow1fW3c+t3uvd9z7udevkdjglrW6jk7rdvtVcaeSgACgMc3Fs43G9VLyNa0k1/lbUYRFAHSvFmbJcjb8v7w1dPG2RMApGWtzqsxu2KlcUlIpYOUKQEqu1lpnGQLKZd+Vo8z43MYGL3ZT8/FBzvvD307qddmeh4AlpbA24gEIPp7wADw5Do2RzcS4qywx2Mgso2oefn07FTRFL0X8ikJKXUU8O8CY3SS8EUR6YZkFMKU49j377/sfh11bFmr6875ZmPhwr6Q3vQTDgWiKMMkEKkhMoNEBACBfCHU3B+k9+4sd55HUc2YL3M/CAAUSTkwpsgCEGWgIoIkzV4SBEqN9ll0YDTiga/kfvajK2dOFaZQGogQexICHQH4tQm0GiR8m4BPmkSRJvaM+O6Lj53cRuN6dnX+sNe0GgZGbyQy/2D5Q3cn7z85stZqC2C9sqIq68d4RX0vKyQAAA1/YBhGDcADQN05n5ts55yvO+fXZnq+7pw3OpEsCpJuKfT1oW/iiPxRknBstAoKoTFEtPHfyR4fWgKkea16Symq/JoOHi4utj1RFsC9UxTVTBTVzCTfb2Ni0k0Yvmf9AAAAAElFTkSuQmCC",
+    "pw_b": "iVBORw0KGgoAAAANSUhEUgAAABIAAAASCAYAAABWzo5XAAACYklEQVR42p2Ty2+NURTFf2t/537VlKTVCBOPFkHjMcDAow8NpkY3kbSmBkblH+jYyF8gBorEjZGBEO/qRMwMBElVyqBBEIn23vudsw2+S6om1Z2cwcnaa+999llLANUqWdc0xgriay+pViMyzsoKLI5xMAGMHGEozxhogtzRcsgSXgFvRJ5em+KxRvoZq2RcMv2TCA4OZWWB+79YcmhGzmvkKAuZ0faH0ALdqUvkJpQS0cHNCAApUQiQEUxQROrBRFtKNFzMCArKxhvyQHej4FuCOUSPiYonPjg0zehJTsJ5XThrzVhnZrjDx8YG+upNDtR/cqQt0hMTlwXvJibZCdzLAyLjWEcnu3Gi4NXEJLvkPKxkuLWeHGo1Yh640NXFp4bRN/+Zcw6bq33kOJMLDb7nTeZe/6CRnDc4LwB3cSgmFABc5U4lZpJzv0jMrupgTRbo9LXscec54t6CsXdTYrXDXeDVmYN0IzbGVE4ETqxWMa9ze77gbEX00s7NPGAGA7aKl+5cMTGQ4JScW9F4lHIGKhnCidb62VCrEckZaw/MKmPSxHCzAIfjVx/w5foUd3D6cYauTvHsxlPeIk6Wc5Sq9sX6cYfoNGKkiAmA/aMn6BgfJCD2SGw7Pcx6QIjDKYFAGu3HHZqCaZxuGd0t4S2W6LQ7SWKrQA7vgQWH7WpZLDgkQTCxIy0S218qN3pNJZYAMzYLiIkCgYOyfVtob6vQLyBkEDIsW3oMzCDLsNC6y8rckKHoXCxNe5TRYAynhJxlmra0jBeJh9eeMbF0FysNCWBwkDAEPP5P9m/OkycUvwBPxPx5JhrDUgAAAABJRU5ErkJggg==",
+    "pw_w": "iVBORw0KGgoAAAANSUhEUgAAABIAAAASCAYAAABWzo5XAAABlUlEQVR42qWUsWpUURCGv7m5iRgNiotoE0STNIJprLQI4nP4BFbBBxAs4wvYCIKIpA8KERGNnQQrMRBh0QQLsdEu2b13P5u58bJsIOwOHO6ZM3Pn/DP/zAkAdQooGE8GEVGjjhvgSNQicnMHWAEi14n+z7UVEe9RV51cVkM9AE6NuPEQmEmEdd5epq3Kb6MfhirQA76ng8BloAP8AX4BV4Fp4CfQT30AfAMuABdRB2pXnVJPq+fUOfWp+jlruJEpLKqzaqV+UUNdVwdFQi8jogYeAL+B68B94Io6A3wE/ia6HrALbEeEwC0gyv8MGpneW2AfmAPOAzeAT8AbYBk4C2wCO2oHmAdsAtXZkBvAB+Aa8CjPVoDnwLPczwMvE13TMhWZ+17CejiC2letxnutfm3pT9KnXyRLw9JrUXxTPaOWmeaieilLcTt9oqG/D3ST8k5jbAXuJt0Lef4DOACWmhkNtR4ajWoEwuMascpAUQCPh24vR6xhW1svgLVmaO8Bd8cc2ncR8YIs2qTPSDSIykkCRUT1DyZ2Mswg9GPxAAAAAElFTkSuQmCC",
+    "pw_l": "iVBORw0KGgoAAAANSUhEUgAAABIAAAASCAYAAABWzo5XAAACu0lEQVR42qWTPYzVRRTFz7kz//cR2ARcPxMNeYtG3QANGnSNC4KhpXpUdib4QQMYYKV5oUA3UFi5SmFsrHixsjAQgwICAbWyMGqyYFATcAlLYpb33n/mHor/ArskJCinmZnMnXtnzvwuAeBIux2uLZ+2n/DftBbA8msjvrXbzeh0YHhAdTowAsCHb63b0GgU42XplMT7OUxSRWHq9cqT7x8+9x0n335pR7NefBSM0KLAapQWzxfuQUByodcvd0bSJsvsKNOdgOyCpD7JWjAyuWcIMrNIANk9EYAFi0aC5GQ0Q92zDwRcJJkgCeDjzXocvtFPs9l1mWDLAgvP+tOh0sxacnd3/zULD4Vgj1gMJgF/tWaeHA11f+HqzOAV9dFKZf6M5IU9U2efg3CsUQtM9NeW5cEqQBnAL7unzj5P4ni9CDIABBG3dru57Nmula2hf6yRR69fmX3XXSs67dEagFNzvXQ99Ozy308sHUj4TcCPBATh5ZSdNm9a5Slx0R3fOMOl+qNLhpq1sKzx8NBqWj4P4RgLX9OcGWyScBTAmQ+2vzhsZk+VyXWLodxtt60R0lez/bltQRyJKo40G4UZw3gJ/9nFz2kYp2OLyC/hxbcRYbxeD4SUq0TzT+sl2zFUa14yw6kYuPHGIIHS6/s+/uHqxKenvxb5KskNE1Onv997+OTvLm6+xYxVNNyRJKSsQUqeUnYIXHvovTVLOp31EeBqAE8feHPdYxVOHMvZIYI8tH1MLpSEpgUMGzk8D95twgVNQ3QSK0nQHX+Q6kF8BqxaLMrhJKKZPesuyJXubocQbAQAPHuSgGC2giRy9kQQLjAKOLi0WUzk7GCFdrw7UXVDgUWIC9e1IkQz4t+5cpIAcPCdsTeKyI2D5FzYSvfSvKmqRVOZdHzPJ2e+WOTFA6gqXv3I/9f+/SfSTR4XVCHjpCNeAAAAAElFTkSuQmCC",
 }
 _icon_cache = {}
 
@@ -1656,10 +1662,12 @@ class ClipList(tk.Frame):
     COLS = (("pin", "★", 30, "center"), ("src", "출처", 70, "center"), ("kind", "종류", 64, "center"),
             ("text", "내용", 0, "w"), ("time", "시간", 64, "center"))
 
-    def __init__(self, parent, on_select, on_star=None):
+    def __init__(self, parent, on_select, on_star=None, on_add=None, on_pw=None):
         super().__init__(parent, bg=C_LINE, padx=1, pady=1)
         self.on_select = on_select
         self.on_star = on_star
+        self.on_add, self.on_pw = on_add, on_pw
+        self._head_tip = None
         self.hover_star = None
         self.rows = []                  # [{"iid", "values", "kind", "pinned"}]
         self.pos = {}                   # iid → 줄 번호
@@ -1750,6 +1758,38 @@ class ClipList(tk.Frame):
                 h.create_text(x + cw / 2, 14, text=title, font=self.head_font, fill=C_BROWN)
             else:
                 h.create_text(x + 8, 14, text=title, font=self.head_font, fill=C_BROWN, anchor="w")
+            if cid == "text":           # 내용 제목 옆: [+ 메모 추가] [PW 가리기]
+                bx = x + 8 + self.head_font.measure(title) + 12
+                for tag, name, cmd, tip in (("h_add", "plus", self.on_add, "메모 바로 추가 (Ctrl+N)"),
+                                            ("h_pw", "pw", self.on_pw,
+                                             "선택한 항목 가리기 / 풀기 (Ctrl+H)\n비밀번호 같은 내용을 ●●●로 감춤\n"
+                                             "보거나 풀 때 물어볼 비밀번호는 설정 → 비밀번호")):
+                    if cmd is None:
+                        continue
+                    h.create_rectangle(bx - 4, 3, bx + 22, 25, fill="", outline="", tags=(tag, tag + "_bg"))
+                    h.create_image(bx + 9, 14, image=icon(name, "b"), tags=(tag,))
+                    h.tag_bind(tag, "<Button-1>", lambda e, cmd=cmd: cmd())
+                    h.tag_bind(tag, "<Enter>", lambda e, tag=tag, tip=tip: self._head_hover(tag, tip, e))
+                    h.tag_bind(tag, "<Leave>", lambda e, tag=tag: self._head_hover(tag, None, e))
+                    bx += 30
+
+    def _head_hover(self, tag, tip, e):
+        h = self.head
+        h.itemconfigure(tag + "_bg", fill=C_ORANGE_DK if tip else "", outline="")
+        h.configure(cursor="hand2" if tip else "")
+        if self._head_tip is not None:
+            try:
+                self._head_tip.destroy()
+            except tk.TclError:
+                pass
+            self._head_tip = None
+        if tip:
+            t = self._head_tip = tk.Toplevel(h)
+            t.overrideredirect(True)
+            t.attributes("-topmost", True)
+            tk.Label(t, text=tip, font=FONT_SMALL, bg=C_BROWN, fg="#FFF1D6", padx=8, pady=4,
+                     justify="left").pack()
+            t.geometry("+%d+%d" % (e.x_root + 8, h.winfo_rooty() + h.winfo_height() + 4))
 
     def draw(self):
         c = self.c
@@ -1798,8 +1838,14 @@ class ClipList(tk.Frame):
                     color = KIND_COLORS.get(r["kind"], th["fg"]) if r["kind"] != "텍스트" else th["fg"]
                 else:
                     color = th["fg"]
-                txt = val if cid == "pin" else self._fit(val, cw - 14)
-                if anchor == "center":
+                tx = 0
+                if cid == "text" and r.get("hidden"):     # 가린 항목: PW 표시
+                    c.create_image(x + 8 + 9, y + rh / 2, image=icon("pw", "b"))
+                    tx = 24
+                txt = val if cid == "pin" else self._fit(val, cw - 14 - tx)
+                if tx:
+                    c.create_text(x + 8 + tx, y + rh / 2, text=txt, font=self.font, fill=color, anchor="w")
+                elif anchor == "center":
                     c.create_text(x + cw / 2, y + rh / 2, text=txt, font=self.font, fill=color)
                 else:
                     c.create_text(x + 8, y + rh / 2, text=txt, font=self.font, fill=color, anchor="w")
@@ -1930,7 +1976,7 @@ class SettingsDialog:
         p2 = tk.Frame(nb, bg=C_BG, padx=14, pady=12)
         p3 = tk.Frame(nb, bg=C_BG, padx=14, pady=12)
         nb.add(p1, text="  기록  ")
-        nb.add(p3, text="  🔒 비밀번호  ")
+        nb.add(p3, text=" 비밀번호  ", image=icon("pw", "b"), compound="left")
         nb.add(p2, text="  화면  ")
         self._build_record(p1)
         self._build_lock(p3)
@@ -2021,7 +2067,7 @@ class SettingsDialog:
 
     def _build_lock(self, p):
         a = self.app
-        self._section(p, "🔒 가린 항목 비밀번호")
+        self._section(p, "가린 항목(PW) 비밀번호")
         tk.Label(p, text="메모나 기록을 가리면(Ctrl+H) 목록·미리보기에 ●●●로만 보입니다.\n"
                          "비밀번호를 정해 두면 가린 내용을 보거나 · 풀거나 · 고칠 때 비밀번호를 묻습니다.",
                  font=FONT_SMALL, bg=C_BG, fg="#B49B74", anchor="w", justify="left", wraplength=420).pack(fill="x", pady=(0, 6))
@@ -2283,7 +2329,7 @@ def ask_password(app, title, prompt, confirm=False, check=None):
 
 
 class MemoDialog:
-    """✎ 메모 추가 / 고치기. 가리기를 켜면 목록·미리보기에 ●●●로 표시 (내용은 암호화되어 저장)"""
+    """메모 추가 / 고치기. 가리기를 켜면 목록·미리보기에 ●●●로 표시 (내용은 암호화되어 저장)"""
 
     def __init__(self, app, item=None):
         self.app, self.item = app, item
@@ -2325,7 +2371,8 @@ class MemoDialog:
         self.body.pack(fill="both", expand=True, pady=(2, 8))
         self.body.insert("1.0", text)
         self.hidden_var = tk.BooleanVar(value=hidden)
-        tk.Checkbutton(f, text="🔒 가리기 — 비밀번호 등 (목록·미리보기에 ●●●로 표시, 붙여넣기는 그대로)",
+        tk.Checkbutton(f, text=" 가리기 — 비밀번호 등 (목록·미리보기에 ●●●로 표시, 붙여넣기는 그대로)",
+                       image=icon("pw", "b"), compound="left",
                        variable=self.hidden_var, bg=C_BG, fg=C_BROWN, activebackground=C_BG,
                        selectcolor=C_WHITE, font=FONT_SMALL, anchor="w").pack(fill="x")
         tk.Label(f, text="내용은 암호화되어 저장됩니다. 설정에서 비밀번호를 정하면 가린 내용을 볼 때 비밀번호를 묻습니다.",
@@ -2553,12 +2600,6 @@ class App:
         self.clear_btn2 = FlatButton(bar, "", self.clear_all, icon_name="trash",
                                      tip="최근 기록 모두 비우기\n(★ 고정 항목은 남습니다)")
         self.clear_btn2.pack(side="left", padx=(4, 0))
-        self.memo_btn = FlatButton(bar, "✎ 메모", self.add_memo,
-                                   tip="메모 바로 추가 (Ctrl+N)\n비밀번호처럼 감출 내용은 '가리기'를 켜세요")
-        self.memo_btn.pack(side="left", padx=(8, 0))
-        self.hide_btn = FlatButton(bar, "🔒 가리기", self.toggle_hidden,
-                                   tip="선택한 항목 가리기 / 풀기 (Ctrl+H)\n목록·미리보기에 ●●●로 표시, 붙여넣기는 그대로")
-        self.hide_btn.pack(side="left", padx=(2, 0))
         self.set_btn = FlatButton(bar, "설정", self.open_settings, icon_name="gear",
                                   tip="설정 - 기록 제한, 자동 실행, 배경, 글자 (Ctrl+,)")
         self.set_btn.pack(side="right")
@@ -2573,7 +2614,8 @@ class App:
         pw = tk.PanedWindow(r, orient="vertical", bg=C_BG, sashwidth=6, bd=0, sashrelief="flat")
         pw.pack(fill="both", expand=True, padx=12)
 
-        self.tree = ClipList(pw, self._on_select, on_star=self._star_click)
+        self.tree = ClipList(pw, self._on_select, on_star=self._star_click,
+                             on_add=lambda: self.add_memo(), on_pw=lambda: self.toggle_hidden())
         lf = self.tree
         pw.add(lf, minsize=150, stretch="always")
 
@@ -2628,10 +2670,13 @@ class App:
                               command=lambda: self.use(mode="raw"))
         self.menu.add_command(label="클립보드에만 넣기  (Ctrl+Enter)", command=lambda: self.use(paste=False))
         self.menu.add_separator()
-        self.menu.add_command(label="✎ 메모 추가  (Ctrl+N)", command=self.add_memo)
+        self.menu.add_command(label=" 메모 추가  (Ctrl+N)", command=self.add_memo, image=icon("plus", "b"),
+                              compound="left")
         self.menu.add_command(label="메모 고치기  (Ctrl+E)", command=self.edit_memo)
-        self.menu.add_command(label="🔒 가리기 / 풀기  (Ctrl+H)", command=self.toggle_hidden)
-        self.menu.add_command(label="🔒 가린 항목 비밀번호…", command=self.open_lock_settings)
+        self.menu.add_command(label=" 가리기 / 풀기  (Ctrl+H)", command=self.toggle_hidden, image=icon("pw", "b"),
+                              compound="left")
+        self.menu.add_command(label=" 가린 항목 비밀번호…", command=self.open_lock_settings, image=icon("pw", "l"),
+                              compound="left")
         self.menu.add_separator()
         self.menu.add_command(label="상단에 고정 / 고정 해제  (Ctrl+P)", command=self.toggle_pin)
         self.menu.add_command(label="고정 순서 위로  (Ctrl+↑)", command=lambda: self.move_pin(-1))
@@ -2755,7 +2800,8 @@ class App:
         self.order, self.by_id, rows = [], {}, []
         for it in pinned + recent:
             iid = str(it["id"])
-            rows.append({"iid": iid, "kind": it["kind"], "pinned": bool(it["pinned"]), "values": {
+            rows.append({"iid": iid, "kind": it["kind"], "pinned": bool(it["pinned"]),
+                         "hidden": bool(it.get("hidden")), "values": {
                 "pin": "★" if it["pinned"] else "", "src": source_label_cached(it["source"]),
                 "kind": it["kind"], "text": self._list_text(it), "time": short_time(it["ts"])}})
             self.order.append(iid)
@@ -2788,7 +2834,7 @@ class App:
         if not it.get("hidden"):
             return it["preview"]
         title = it.get("title") or ""
-        return "🔒 %s  %s" % (title, self.HIDDEN_DOTS) if title else "🔒 " + self.HIDDEN_DOTS
+        return "%s  %s" % (title, self.HIDDEN_DOTS) if title else self.HIDDEN_DOTS
 
     def _search_text(self, it):
         """가린 항목은 제목으로만 찾음 (내용은 검색에 걸리지 않게)"""
@@ -2814,7 +2860,7 @@ class App:
             if not ok:
                 tries["n"] += 1
             return ok
-        pw = ask_password(self, "비밀번호 확인", "🔒 %s 비밀번호를 입력하세요." % why, check=check)
+        pw = ask_password(self, "비밀번호 확인", "%s 비밀번호를 입력하세요." % why, check=check)
         if pw is None:
             if tries["n"] >= 5:
                 self.pw_block_until = time.time() + 30
@@ -2834,7 +2880,7 @@ class App:
     def set_password(self):
         if self.store.has_password() and not self.unlock("비밀번호를 바꾸려면 지금"):
             return
-        pw = ask_password(self, "가린 항목 비밀번호", "가린 항목(🔒)을 보거나 풀 때 물어볼 비밀번호를 정하세요.\n"
+        pw = ask_password(self, "가린 항목 비밀번호", "가린 항목(PW)을 보거나 풀 때 물어볼 비밀번호를 정하세요.\n"
                           "잊으면 되찾을 수 없습니다.", confirm=True)
         if pw is None:
             return
@@ -2970,8 +3016,6 @@ class App:
         self.btn_top.set_text("항상 위" if full else "")
         self.btn_keep.set_text("창 유지" if full else "")
         self.set_btn.set_text("설정" if full else "")
-        self.memo_btn.set_text("✎ 메모" if full else "✎")
-        self.hide_btn.set_text("🔒 가리기" if full else "🔒")
         # 아주 좁으면 "스마트클립"만 표시
         if layout == "narrow":
             self.link_lbl.pack_forget()
@@ -3009,7 +3053,8 @@ class App:
         if it.get("hidden") and getattr(self, "revealed", None) != it["id"]:
             if it.get("title"):
                 p.insert("end", it["title"] + "\n\n")
-            p.insert("end", "🔒 가린 내용입니다.  ", "dim")
+            p.image_create("end", image=icon("pw", "b"), padx=2)
+            p.insert("end", " 가린 내용입니다.  ", "dim")
             p.insert("end", "👁 잠깐 보기", "reveal")
             p.insert("end", "  (Ctrl+H 가리기 풀기)\n\n붙여넣기(Enter)는 그대로 됩니다.", "dim")
             p.config(state="disabled")
