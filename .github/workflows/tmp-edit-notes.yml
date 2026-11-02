@@ -1,0 +1,26 @@
+name: tmp-edit-notes
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  edit:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          T=smartexplorer-v1.0.1
+          gh release view $T --repo ${{ github.repository }} --json body -q .body > body.md
+          python3 - <<'PY'
+          s = open("body.md", encoding="utf-8").read()
+          new = ("### 1.0.1 에서 바뀐 점\n"
+                 "- **스마트 일정 알라미가 켜져 있으면 스마트탐색기가 실행되지 않던 문제를 고쳤습니다.**\n"
+                 "  두 프로그램이 '이미 켜져 있는지' 확인하는 내부 번호가 같아서, 알라미가 켜져 있으면 스마트탐색기가 이미 실행 중이라고 착각하고 바로 꺼졌습니다.\n"
+                 "  이제 서로 다른 번호를 쓰고, 혹시 다른 프로그램과 번호가 겹쳐도 그대로 실행됩니다.\n"
+                 "- 반대로 스마트탐색기를 먼저 켜면 알라미가 '이미 실행 중입니다'라며 켜지지 않던 문제도 함께 해결됩니다.")
+          old = "(바뀐 점은 여기에 적어 주세요 — 프로그램의 새 버전 알림 창에 그대로 보입니다)"
+          s = s.replace(old, new) if old in s else s
+          open("body.md", "w", encoding="utf-8").write(s)
+          PY
+          gh release edit $T --repo ${{ github.repository }} --notes-file body.md
+          gh release view $T --repo ${{ github.repository }} --json body -q .body | head -20
