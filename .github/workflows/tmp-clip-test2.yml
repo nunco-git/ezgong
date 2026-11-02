@@ -36,6 +36,21 @@ jobs:
               if pw is None: return None
               if check is not None and not check(pw): return None
               return pw
+          def dbg():
+              import ctypes
+              u = ctypes.windll.user32
+              for w in app.root.winfo_children():
+                  if isinstance(w, S.tk.Toplevel):
+                      h = int(w.wm_frame(), 16)
+                      print("TOP", w.title(), w.winfo_ismapped(), w.geometry(), "vis", u.IsWindowVisible(h), "iconic", u.IsIconic(h), w.state(), flush=True)
+              out = []
+              CB = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
+              def cb(h, l):
+                  if u.IsWindowVisible(h):
+                      b = ctypes.create_unicode_buffer(200); u.GetWindowTextW(h, b, 200); out.append(b.value)
+                  return True
+              u.EnumWindows(CB(cb), 0)
+              print("ZORDER", out[:8], flush=True)
           def steps():
               try:
                   a = st.add_memo("p@ssw0rd!23", "은행 비밀번호", hidden=True)
@@ -76,7 +91,7 @@ jobs:
                   app.open_lock_settings(); app.root.update()
                   shot("settings")
                   app._settings_win.destroy()
-                  app.root.after(1200, lambda: (print("TOPS", [(str(w), w.winfo_ismapped(), w.geometry()) for w in app.root.winfo_children() if isinstance(w, S.tk.Toplevel)], flush=True), shot("ask")))
+                  app.root.after(1200, lambda: (dbg(), shot("ask")))
                   app.root.after(1600, lambda: [w.destroy() for w in app.root.winfo_children() if isinstance(w, S.tk.Toplevel)])
                   real_ask(app, "비밀번호 확인", "🔒 가린 내용을 보려면 비밀번호를 입력하세요.", check=st.check_password)
               except Exception:
