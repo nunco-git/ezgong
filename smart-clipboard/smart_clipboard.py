@@ -20,6 +20,7 @@ CopyQ 방식: 복사할 때 클립보드에 들어 있는 "모든 형식"을 원
   Ctrl+N            메모 바로 추가 (가리기를 켜면 비밀번호 등도 ●●●로 감춤)
   Ctrl+E            메모 고치기
   Ctrl+H            선택 항목 가리기 / 풀기 (붙여넣기는 그대로)
+                    설정 → 기록 → '가린 항목 비밀번호'를 정하면 보거나 풀 때 비밀번호를 물음
   Ctrl+↑ / Ctrl+↓   고정 항목 순서 바꾸기
   Ctrl+D, Delete    선택 항목 삭제
   Ctrl+T            항상 위에 표시 켜기/끄기
@@ -79,7 +80,7 @@ from tkinter import messagebox
 # 설정
 # ─────────────────────────────────────────────────────────────
 APP_NAME = "스마트클립"
-APP_VERSION = "1.1.0"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
+APP_VERSION = "1.1.1"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
 
 MOD_ALT, MOD_CONTROL, MOD_SHIFT, MOD_WIN, MOD_NOREPEAT = 0x1, 0x2, 0x4, 0x8, 0x4000
 HOTKEY_MODS = MOD_CONTROL | MOD_SHIFT      # 단축키 조합
@@ -1312,6 +1313,48 @@ class Store:
         self.db.commit()
         self.cache[item_id] = (preview, search, title)
 
+    # ── 가린 항목 비밀번호 (PBKDF2 해시만 저장, 원래 비밀번호는 어디에도 남지 않음) ──
+    PW_ROUNDS = 200000
+
+    def _lock_rec(self):
+        row = self.db.execute("SELECT v FROM meta WHERE k='lockpw'").fetchone()
+        if not row:
+            return None
+        try:
+            return pickle.loads(unprotect(row[0]))
+        except Exception:
+            return None
+
+    def has_password(self):
+        return self._lock_rec() is not None
+
+    def set_password(self, pw):
+        """pw가 None이면 비밀번호 없앰"""
+        if pw is None:
+            self.db.execute("DELETE FROM meta WHERE k='lockpw'")
+        else:
+            salt = os.urandom(16)
+            h = hashlib.pbkdf2_hmac("sha256", pw.encode("utf-8"), salt, self.PW_ROUNDS)
+            rec = protect(pickle.dumps({"salt": salt, "hash": h, "rounds": self.PW_ROUNDS}))
+            self.db.execute("INSERT OR REPLACE INTO meta(k, v) VALUES('lockpw', ?)", (rec,))
+        self.db.commit()
+
+    def check_password(self, pw):
+        rec = self._lock_rec()
+        if rec is None:
+            return True
+        h = hashlib.pbkdf2_hmac("sha256", (pw or "").encode("utf-8"), rec["salt"], rec["rounds"])
+        return hmac.compare_digest(h, rec["hash"])
+
+    def delete_hidden(self):
+        """비밀번호를 잊었을 때: 가린 항목을 모두 지우고 비밀번호도 없앰"""
+        n = self.db.execute("DELETE FROM items WHERE hidden=1").rowcount
+        self.db.execute("DELETE FROM meta WHERE k='lockpw'")
+        self.db.commit()
+        self.db.execute("VACUUM")
+        self.cache.clear()
+        return n
+
     def set_hidden(self, item_id, hidden):
         self.db.execute("UPDATE items SET hidden=? WHERE id=?", (1 if hidden else 0, item_id))
         self.db.commit()
@@ -1870,6 +1913,7 @@ class SettingsDialog:
             return
         t = self.t = tk.Toplevel(app.root, bg=C_BG)
         app._settings_win = t
+        app._settings_obj = self
         t.title("스마트클립 설정")
         t.transient(app.root)
         t.attributes("-topmost", bool(app.topmost_var.get()))
@@ -1884,10 +1928,14 @@ class SettingsDialog:
         nb.pack(fill="both", expand=True, padx=12, pady=(12, 6))
         p1 = tk.Frame(nb, bg=C_BG, padx=14, pady=12)
         p2 = tk.Frame(nb, bg=C_BG, padx=14, pady=12)
+        p3 = tk.Frame(nb, bg=C_BG, padx=14, pady=12)
         nb.add(p1, text="  기록  ")
+        nb.add(p3, text="  🔒 비밀번호  ")
         nb.add(p2, text="  화면  ")
         self._build_record(p1)
+        self._build_lock(p3)
         self._build_look(p2)
+        self.nb, self.lock_tab = nb, p3
 
         bar = tk.Frame(t, bg=C_BG)
         bar.pack(fill="x", padx=12, pady=(0, 12))
@@ -1970,6 +2018,43 @@ class SettingsDialog:
         bar = tk.Frame(p, bg=C_BG)
         bar.pack(fill="x", pady=(12, 0))
         FlatButton(bar, "모든 기록 삭제 (고정 포함)…", a.wipe_all).pack(side="left")
+
+    def _build_lock(self, p):
+        a = self.app
+        self._section(p, "🔒 가린 항목 비밀번호")
+        tk.Label(p, text="메모나 기록을 가리면(Ctrl+H) 목록·미리보기에 ●●●로만 보입니다.\n"
+                         "비밀번호를 정해 두면 가린 내용을 보거나 · 풀거나 · 고칠 때 비밀번호를 묻습니다.",
+                 font=FONT_SMALL, bg=C_BG, fg="#B49B74", anchor="w", justify="left", wraplength=420).pack(fill="x", pady=(0, 6))
+        self.pw_lbl = tk.Label(p, font=FONT_SMALL, bg=C_BG, fg=C_BROWN, anchor="w", justify="left", wraplength=420)
+        self.pw_lbl.pack(fill="x")
+        pwb = tk.Frame(p, bg=C_BG)
+        pwb.pack(fill="x", pady=(4, 2))
+        self.pw_set_btn = FlatButton(pwb, "비밀번호 정하기", a.set_password)
+        self.pw_set_btn.pack(side="left")
+        self.pw_clear_btn = FlatButton(pwb, "없애기", a.clear_password)
+        self.pw_clear_btn.pack(side="left", padx=(6, 0))
+        self.pw_forgot_btn = FlatButton(pwb, "잊어버렸어요…", a.forgot_password)
+        self.pw_forgot_btn.pack(side="left", padx=(6, 0))
+        self._check(p, "가린 항목을 붙여넣을 때도 비밀번호 묻기", a.pw_paste_var, a._save,
+                    "끄면 보거나 풀 때만 묻고, 붙여넣기(Enter)는 바로 됩니다.")
+        self.refresh_pw()
+        tk.Label(p, text="· 한 번 넣으면 3분 동안(창을 숨기기 전까지) 다시 묻지 않습니다.\n"
+                         "· 5번 틀리면 30초 동안 막힙니다.\n"
+                         "· 비밀번호는 저장하지 않고 확인용 값만 암호화해 둡니다. 잊으면 되찾을 수 없으니\n"
+                         "  '잊어버렸어요…'로 가린 항목만 지우고 새로 정하세요.",
+                 font=FONT_SMALL, bg=C_BG, fg="#B49B74", anchor="w", justify="left").pack(fill="x", pady=(10, 0))
+
+    def refresh_pw(self):
+        has = self.app.store.has_password()
+        self.pw_lbl.config(text="✔ 비밀번호를 정해 두었습니다." if has
+                           else "비밀번호를 정하지 않았습니다 — 지금은 누구나 '잠깐 보기'로 가린 내용을 볼 수 있습니다.",
+                           fg="#2E7D32" if has else "#C0392B")
+        self.pw_set_btn.set_text("비밀번호 바꾸기" if has else "비밀번호 정하기")
+        for b in (self.pw_clear_btn, self.pw_forgot_btn):
+            if has:
+                b.pack(side="left", padx=(6, 0))
+            else:
+                b.pack_forget()
 
     # ── 화면 탭 ──
     def _build_look(self, p):
@@ -2092,7 +2177,109 @@ class SettingsDialog:
 
     def close(self):
         self.app._save()
+        self.app._settings_obj = None
         self.t.destroy()
+
+
+def ask_password(app, title, prompt, confirm=False, check=None):
+    """비밀번호 입력 창. confirm=True면 두 번 입력해서 확인.
+    check(pw) → True/False 를 주면 맞을 때까지 다시 묻고, 맞으면 비밀번호를, 취소하면 None을 돌려줌"""
+    t = tk.Toplevel(app.root, bg=C_BG)
+    t.title(title)
+    t.transient(app.root)
+    t.attributes("-topmost", True)
+    t.resizable(False, False)
+    try:
+        t.iconbitmap(icon_file())
+    except Exception:
+        pass
+    app.menu_open = True
+    res = {"pw": None}
+    f = tk.Frame(t, bg=C_BG, padx=16, pady=14)
+    f.pack(fill="both")
+    tk.Label(f, text=prompt, font=FONT, bg=C_BG, fg=C_BROWN, anchor="w", justify="left",
+             wraplength=320).pack(fill="x")
+    v1, v2 = tk.StringVar(), tk.StringVar()
+    opts = dict(font=FONT, relief="solid", bd=1, bg=C_WHITE, fg=C_BROWN, insertbackground=C_BROWN,
+                show="●", width=28)
+    e1 = tk.Entry(f, textvariable=v1, **opts)
+    e1.pack(fill="x", ipady=3, pady=(8, 0))
+    e2 = None
+    if confirm:
+        tk.Label(f, text="한 번 더 입력", font=FONT_SMALL, bg=C_BG, fg=C_BROWN_LT, anchor="w").pack(fill="x", pady=(8, 0))
+        e2 = tk.Entry(f, textvariable=v2, **opts)
+        e2.pack(fill="x", ipady=3, pady=(2, 0))
+    msg = tk.Label(f, text="", font=FONT_SMALL, bg=C_BG, fg="#C0392B", anchor="w")
+    msg.pack(fill="x", pady=(6, 0))
+    fails = {"n": 0}
+
+    def ok(_=None):
+        pw = v1.get()
+        if confirm:
+            if len(pw) < 4:
+                msg.config(text="4자 이상으로 정해 주세요")
+                return "break"
+            if pw != v2.get():
+                msg.config(text="두 번 입력한 비밀번호가 다릅니다")
+                v2.set("")
+                e2.focus_set()
+                return "break"
+        if check is not None and not check(pw):
+            fails["n"] += 1
+            v1.set("")
+            if fails["n"] >= 5:
+                msg.config(text="5번 틀렸습니다. 잠시 후 다시 시도해 주세요.")
+                t.after(1500, close)
+            else:
+                msg.config(text="비밀번호가 맞지 않습니다 (%d/5)" % fails["n"])
+            return "break"
+        res["pw"] = pw
+        close()
+        return "break"
+
+    def close(_=None):
+        try:
+            t.grab_release()
+            t.destroy()
+        except tk.TclError:
+            pass
+
+    bar = tk.Frame(t, bg=C_BG)
+    bar.pack(fill="x", padx=16, pady=(0, 12))
+    FlatButton(bar, "취소", close).pack(side="right")
+    FlatButton(bar, "확인 (Enter)", ok).pack(side="right", padx=(0, 6))
+    for e in (e1, e2):
+        if e is not None:
+            e.bind("<Return>", ok)
+    t.bind("<Escape>", close)
+    t.update_idletasks()
+    r = app.root
+    x = r.winfo_rootx() + max(0, (r.winfo_width() - t.winfo_reqwidth()) // 2)
+    y = r.winfo_rooty() + 80
+    t.geometry("+%d+%d" % (max(0, x), max(0, y)))
+    e1.focus_force()
+    try:
+        t.grab_set()
+    except tk.TclError:
+        pass
+
+    def front():            # 본 창이 뒤늦게 앞으로 나와도 비밀번호 창이 가려지지 않게
+        try:
+            t.attributes("-topmost", True)
+            t.lift()
+            if t.focus_get() is None:
+                e1.focus_force()
+        except tk.TclError:
+            pass
+    for ms in (60, 250, 600, 1200):
+        t.after(ms, front)
+    t.wait_window()
+    app.menu_open = False
+    try:
+        app.root.focus_force()
+    except tk.TclError:
+        pass
+    return res["pw"]
 
 
 class MemoDialog:
@@ -2141,7 +2328,7 @@ class MemoDialog:
         tk.Checkbutton(f, text="🔒 가리기 — 비밀번호 등 (목록·미리보기에 ●●●로 표시, 붙여넣기는 그대로)",
                        variable=self.hidden_var, bg=C_BG, fg=C_BROWN, activebackground=C_BG,
                        selectcolor=C_WHITE, font=FONT_SMALL, anchor="w").pack(fill="x")
-        tk.Label(f, text="내용은 이 PC·이 Windows 계정에서만 풀리도록 암호화되어 저장됩니다.",
+        tk.Label(f, text="내용은 암호화되어 저장됩니다. 설정에서 비밀번호를 정하면 가린 내용을 볼 때 비밀번호를 묻습니다.",
                  font=FONT_SMALL, bg=C_BG, fg="#B49B74", anchor="w").pack(fill="x", pady=(2, 0))
         bar = tk.Frame(t, bg=C_BG)
         bar.pack(fill="x", padx=14, pady=(0, 12))
@@ -2236,6 +2423,8 @@ class App:
         self._tray_notice_shown = False
         self.menu_open = False
         self.revealed = None           # 가린 항목 중 잠깐 보기 중인 것
+        self.unlocked_until = 0        # 비밀번호를 넣은 뒤 다시 묻지 않는 시각
+        self.pw_block_until = 0        # 여러 번 틀렸을 때 잠시 막음
         self._tick = 0
         self._search_job = None
         self._own = (None, 0.0)             # 내가 클립보드에 넣은 내용 (다시 기록되지 않게)
@@ -2243,6 +2432,7 @@ class App:
         self.topmost_var = tk.BooleanVar(value=bool(self.settings.get("topmost", False)))
         self.keep_var = tk.BooleanVar(value=bool(self.settings.get("keep_open", False)))
         self.hwp_compat_var = tk.BooleanVar(value=bool(self.settings.get("hwp_compat", True)))
+        self.pw_paste_var = tk.BooleanVar(value=bool(self.settings.get("pw_on_paste", False)))
         self.limit_var = tk.IntVar(value=self.store.max_items)
         # 보안 설정
         self.pii_var = tk.BooleanVar(value=bool(self.settings.get("pii_skip", True)))
@@ -2441,6 +2631,7 @@ class App:
         self.menu.add_command(label="✎ 메모 추가  (Ctrl+N)", command=self.add_memo)
         self.menu.add_command(label="메모 고치기  (Ctrl+E)", command=self.edit_memo)
         self.menu.add_command(label="🔒 가리기 / 풀기  (Ctrl+H)", command=self.toggle_hidden)
+        self.menu.add_command(label="🔒 가린 항목 비밀번호…", command=self.open_lock_settings)
         self.menu.add_separator()
         self.menu.add_command(label="상단에 고정 / 고정 해제  (Ctrl+P)", command=self.toggle_pin)
         self.menu.add_command(label="고정 순서 위로  (Ctrl+↑)", command=lambda: self.move_pin(-1))
@@ -2605,9 +2796,88 @@ class App:
             return ((it.get("title") or "") + " " + it["kind"] + " 가림").lower()
         return it["search"] or ""
 
+    UNLOCK_SEC = 180          # 비밀번호를 한 번 넣으면 3분 동안(창을 숨기기 전까지) 다시 묻지 않음
+
+    def unlock(self, why="가린 내용을 보려면"):
+        """가린 항목 비밀번호 확인. 비밀번호가 없거나 맞으면 True"""
+        if not self.store.has_password():
+            return True
+        if time.time() < self.unlocked_until:
+            return True
+        if time.time() < self.pw_block_until:
+            self.toast("비밀번호를 여러 번 틀렸습니다. 30초 뒤에 다시 시도해 주세요.")
+            return False
+        tries = {"n": 0}
+
+        def check(pw):
+            ok = self.store.check_password(pw)
+            if not ok:
+                tries["n"] += 1
+            return ok
+        pw = ask_password(self, "비밀번호 확인", "🔒 %s 비밀번호를 입력하세요." % why, check=check)
+        if pw is None:
+            if tries["n"] >= 5:
+                self.pw_block_until = time.time() + 30
+            return False
+        self.unlocked_until = time.time() + self.UNLOCK_SEC
+        return True
+
+    def lock_now(self):
+        self.unlocked_until = 0
+        if self.revealed is not None:
+            self.revealed = None
+            try:
+                self._show_preview(self.current())
+            except Exception:
+                pass
+
+    def set_password(self):
+        if self.store.has_password() and not self.unlock("비밀번호를 바꾸려면 지금"):
+            return
+        pw = ask_password(self, "가린 항목 비밀번호", "가린 항목(🔒)을 보거나 풀 때 물어볼 비밀번호를 정하세요.\n"
+                          "잊으면 되찾을 수 없습니다.", confirm=True)
+        if pw is None:
+            return
+        self.store.set_password(pw)
+        self.lock_now()
+        self.toast("비밀번호를 정했습니다")
+        self._refresh_pw_ui()
+
+    def clear_password(self):
+        if not self.store.has_password():
+            return
+        if not self.unlock("비밀번호를 없애려면 지금"):
+            return
+        self.store.set_password(None)
+        self.toast("비밀번호를 없앴습니다")
+        self._refresh_pw_ui()
+
+    def forgot_password(self):
+        self.menu_open = True
+        n = sum(1 for it in self.items if it.get("hidden"))
+        ok = messagebox.askyesno(APP_NAME, "비밀번호는 되찾을 수 없습니다.\n\n가린 항목 %d개를 모두 지우고 비밀번호를 없앨까요?\n"
+                                 "(가리지 않은 기록은 그대로 남습니다)" % n, icon="warning", parent=self.root)
+        self.menu_open = False
+        if ok:
+            self.store.delete_hidden()
+            self.lock_now()
+            self.reload()
+            self.toast("가린 항목과 비밀번호를 지웠습니다")
+            self._refresh_pw_ui()
+
+    def _refresh_pw_ui(self):
+        dlg = getattr(self, "_settings_obj", None)
+        if dlg is not None:
+            try:
+                dlg.refresh_pw()
+            except Exception:
+                pass
+
     def toggle_hidden(self):
         it = self.current()
         if not it:
+            return
+        if it.get("hidden") and not self.unlock("가리기를 풀려면"):
             return
         self.store.set_hidden(it["id"], not it.get("hidden"))
         self.revealed = None
@@ -2618,7 +2888,10 @@ class App:
         """가린 내용을 잠깐 보기 (다른 항목을 고르면 다시 가려짐)"""
         it = self.current()
         if it and it.get("hidden"):
-            self.revealed = None if self.revealed == it["id"] else it["id"]
+            if self.revealed == it["id"]:
+                self.revealed = None
+            elif self.unlock():
+                self.revealed = it["id"]
             self._show_preview(it)
 
     def add_memo(self):
@@ -2630,6 +2903,8 @@ class App:
             return
         if it["kind"] != "메모":
             self.toast("직접 적은 메모만 고칠 수 있습니다")
+            return
+        if it.get("hidden") and not self.unlock("가린 메모를 고치려면"):
             return
         MemoDialog(self, it)
 
@@ -2841,6 +3116,7 @@ class App:
         self._save()
         self.visible = False
         self.popup_mode = False
+        self.lock_now()                 # 창을 숨기면 다시 잠금
         self.root.withdraw()
         if first:
             self._tray_notice_shown = True
@@ -2912,6 +3188,7 @@ class App:
         self.settings["topmost"] = bool(self.topmost_var.get())
         self.settings["keep_open"] = bool(self.keep_var.get())
         self.settings["hwp_compat"] = bool(self.hwp_compat_var.get())
+        self.settings["pw_on_paste"] = bool(self.pw_paste_var.get())
         self.settings["max_items"] = int(self.store.max_items)
         self.settings["pii_skip"] = bool(self.pii_var.get())
         self.settings["retention_days"] = int(self.retention_var.get())
@@ -2930,6 +3207,15 @@ class App:
     # ─────────────────────── 설정 창 / 화면 테마 ───────────────────────
     def open_settings(self):
         SettingsDialog(self)
+
+    def open_lock_settings(self):
+        SettingsDialog(self)
+        dlg = getattr(self, "_settings_obj", None)
+        if dlg is not None:
+            try:
+                dlg.nb.select(dlg.lock_tab)
+            except Exception:
+                pass
 
     def _sync_autostart(self, save=True):
         """설정에 맞춰 레지스트리 자동 실행 등록/해제 (실행할 때마다 경로도 최신으로 맞춤)."""
@@ -3060,6 +3346,8 @@ class App:
         """mode: auto(대상에 맞게) / raw(원본 그대로) / compat(호환 모드)"""
         it = self.current()
         if not it:
+            return
+        if it.get("hidden") and self.pw_paste_var.get() and not self.unlock("가린 항목을 붙여넣으려면"):
             return
         formats = self.store.formats(it["id"])
         target = self.last_target
