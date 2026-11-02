@@ -48,17 +48,18 @@ def go():
         subprocess.Popen(["explorer.exe", C]); time.sleep(4)
         hw = u.FindWindowW("CabinetWClass", None)
         print("explorer hwnd", hw, flush=True)
-        u.MoveWindow(hw, 660, 60, 360, 600, True); u.SetForegroundWindow(hw); time.sleep(1)
-        root.lift(); pump(0.5)
+        u.SetWindowPos(hw, -1, 660, 60, 360, 600, 0x40); time.sleep(1.5)   # HWND_TOPMOST, 보이게
+        pump(0.5)
         p1.load_browse(); pump(0.5)
         sx, sy = row_center(p1, "a1.txt")
         def t2():
             time.sleep(0.5); mv(sx, sy); time.sleep(0.2); down(); time.sleep(0.2)
-            glide((sx, sy), (840, 400)); time.sleep(0.8); shot("toexplorer"); up()
+            glide((sx, sy), (840, 450)); time.sleep(0.8); shot("toexplorer"); up()
         threading.Thread(target=t2, daemon=True).start()
         pump(6)
         check(os.path.exists(os.path.join(C, "a1.txt")), "탐색기 창으로 끌어 놓기 (C: %s)" % os.listdir(C))
         u.PostMessageW(hw, 0x10, 0, 0); time.sleep(0.5)
+        root.lift(); pump(0.5)
         # 3) 다른 프로그램(별도 창)에서 끌어 오기
         src = subprocess.Popen([sys.executable, "tmpt/src.py", os.path.join(E, "external.txt")])
         time.sleep(4)
@@ -66,8 +67,10 @@ def go():
         def t3():
             mv(900, 650); time.sleep(0.3); down(); time.sleep(0.2)
             glide((900, 650), (tx, ty)); time.sleep(0.8); shot("fromext"); up()
+            time.sleep(0.3)
         threading.Thread(target=t3, daemon=True).start()
         pump(7)
+        print("hint after:", app.hint_var.get(), flush=True)
         check(os.path.exists(os.path.join(B, "external.txt")), "다른 프로그램에서 끌어 오기 (B: %s)" % os.listdir(B))
         src.kill()
     except Exception:

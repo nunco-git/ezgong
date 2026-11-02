@@ -5585,6 +5585,7 @@ class App:
     ole_target = None          # 끌어 온 파일 받는 곳 (윈도우)
     drag_source = None
     _drop_hl = None
+    _ole_req = _ole_drop_req = _ole_state = None
     MAX_SPLIT = 4
 
     def __init__(self, root, instance=None):
@@ -6437,6 +6438,7 @@ class App:
         self.ole_target = None
         self.drag_source = None
         self._drop_hl = None
+        self._ole_req = self._ole_drop_req = self._ole_state = None
         if OLE_DND is None:
             return
         try:
@@ -6444,6 +6446,8 @@ class App:
             hwnd = int(self.root.wm_frame(), 16)
             t = OLE_DND.DropTarget(hwnd, self._ole_drop_event)
             self.ole_target = t if t.ok else None
+            if self.ole_target is not None:
+                self.root.after(40, self._ole_poll)
         except Exception:
             self.ole_target = None
 
@@ -6475,6 +6479,46 @@ class App:
                 pass
 
     def _ole_drop_event(self, kind, paths, x, y, keys):
+        """끌어 놓기 알림 (윈도우가 부름).
+        다른 프로그램(탐색기 등)에서 끌어 올 때는 tkinter가 이벤트를 처리하는 도중에 불리므로 여기서 화면(tk)을 만지면
+        프로그램이 멈출 수 있음 → 요청만 적어 두고, 화면 일은 _ole_poll 이 이어서 함.
+        이 프로그램에서 끌기 시작한 경우(drag_source)는 끄는 동안 tk 가 돌지 않으므로 바로 처리"""
+        if self.drag_source is not None:
+            return self._ole_apply(kind, paths, x, y, keys)
+        self._ole_req = (kind, list(paths), x, y, keys)
+        if kind == "drop":
+            self._ole_drop_req = self._ole_req
+        st = self._ole_state                    # 화면 쪽에서 마지막으로 계산해 둔 결과
+        if kind == "leave" or not paths:
+            return 0
+        if st is None:
+            return OLE_DND.DROPEFFECT_COPY      # 아직 계산 전: 일단 받을 수 있다고 표시
+        eff = st[2]
+        if eff and keys & OLE_DND.MK_CONTROL:
+            eff = OLE_DND.DROPEFFECT_COPY
+        elif eff and keys & OLE_DND.MK_SHIFT:
+            eff = OLE_DND.DROPEFFECT_MOVE
+        return eff
+
+    def _ole_poll(self):
+        """다른 프로그램에서 끌어 오는 동안 화면 표시(놓을 폴더 강조·안내 글)와, 놓았을 때 옮기기"""
+        try:
+            req, self._ole_req = self._ole_req, None
+            if req is not None:
+                kind, paths, x, y, keys = req
+                if kind == "leave":
+                    self._ole_state = None
+                self._ole_apply("over" if kind == "drop" else kind, paths, x, y, keys, remember=True)
+            drop, self._ole_drop_req = self._ole_drop_req, None
+            if drop is not None:
+                kind, paths, x, y, keys = drop
+                self._ole_state = None
+                self._ole_apply("drop", paths, x, y, keys)
+        except Exception:
+            pass
+        self.root.after(40, self._ole_poll)
+
+    def _ole_apply(self, kind, paths, x, y, keys, remember=False):
         if kind == "leave" or not paths:
             self._set_drop_highlight(None, None)
             self.set_hint("")
@@ -6490,10 +6534,12 @@ class App:
             except Exception:
                 pass
         self._set_drop_highlight(pane, row)
+        eff = self._drop_effect(paths, dest, keys) if dest else 0
+        if remember:
+            self._ole_state = (pane, dest, eff)
         if not dest:
             self.set_hint("여기에는 놓을 수 없습니다" if pane is not None else "")
             return 0
-        eff = self._drop_effect(paths, dest, keys)
         op = "이동" if eff == OLE_DND.DROPEFFECT_MOVE else "복사"
         if kind != "drop":
             self.set_hint(f"{len(paths)}개 → {os.path.basename(dest.rstrip(os.sep)) or dest} 로 {op}  "
