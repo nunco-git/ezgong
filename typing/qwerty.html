@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#13212B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="엄지타자">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>엄지타자 쿼티</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=IBM+Plex+Sans+KR:wght@400;600;700&display=swap">
+<style>
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box;height:100%}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+img{max-width:100%}
+/* Layout: one-screen phone app — practice card scrolls on top, fixed 4x4 천지인 keypad at the thumbs. Left thumb = blue, right thumb = orange. */
+:root{
+  --bg:#E8EDEF; --surface:#FFFFFF; --key:#F8FAFB; --key-edge:#C3CED4; --ink:#13212B; --muted:#5D6E79; --line:#D3DCE0;
+  --left:#2360C8; --right:#D2512A; --ok:#1E8556; --err:#C42F37; --on:#FFFFFF;
+  --f-display:"Do Hyeon","IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E161B; --surface:#172229; --key:#212E37; --key-edge:#080E12; --ink:#E5EDF1; --muted:#8C9FAB; --line:#29373F;
+  --left:#5A92F2; --right:#F2784C; --ok:#3EBE84; --err:#F0636B; --on:#0E161B; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0E161B; --surface:#172229; --key:#212E37; --key-edge:#080E12; --ink:#E5EDF1; --muted:#8C9FAB; --line:#29373F;
+  --left:#5A92F2; --right:#F2784C; --ok:#3EBE84; --err:#F0636B; --on:#0E161B; color-scheme:dark }
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);margin:0;overflow:hidden;-webkit-tap-highlight-color:transparent}
+.app{height:100%;max-width:520px;margin:0 auto;display:flex;flex-direction:column;
+  padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));padding-block:8px;box-sizing:border-box;gap:8px}
+header{display:flex;flex-direction:column;gap:8px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+h1{font-family:var(--f-display);font-weight:400;font-size:22px;margin:0;letter-spacing:.5px}
+h1 b{font-weight:400;color:var(--left)} h1 i{font-style:normal;color:var(--right)}
+.tabs{display:flex;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
+.tabs button{flex:1;border:0;background:transparent;color:var(--muted);font:600 14px var(--f-body);padding:7px 0;border-radius:7px;cursor:pointer}
+.tabs button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.sub{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;color:var(--muted)}
+.chip{border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 12.5px var(--f-body);padding:5px 10px;border-radius:99px;cursor:pointer}
+.chip[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--bg)}
+.sub .sp{flex:1}
+.sub label{display:flex;align-items:center;gap:4px;cursor:pointer}
+.sub select{font:600 12.5px var(--f-body);background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:3px 4px}
+main{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:8px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.stat{background:var(--surface);border-radius:8px;padding:5px 6px;text-align:center}
+.stat span{display:block;font-size:10.5px;color:var(--muted);letter-spacing:.3px}
+.stat strong{font-family:var(--f-display);font-weight:400;font-size:20px;font-variant-numeric:tabular-nums}
+.card{background:var(--surface);border-radius:14px;padding:14px 14px 12px;display:flex;flex-direction:column;gap:10px;flex:1;min-height:150px}
+.prog{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+.bar{height:4px;background:var(--line);border-radius:4px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ink);transition:width .25s}
+.target{font-weight:600;line-height:1.45;word-break:keep-all;overflow-wrap:anywhere;text-wrap:balance;text-align:center;min-height:1.5em}
+.target.jamo{font-size:64px;line-height:1.1}
+.target.word{font-size:40px}
+.target.sent{font-size:25px;text-align:left}
+.target span{border-radius:4px}
+.target .done{color:var(--ok)}
+.target .cur{background:color-mix(in srgb,var(--ink) 10%,transparent);box-shadow:0 2px 0 var(--ink)}
+.target .todo{color:var(--ink)}
+.out{font-size:20px;min-height:32px;border-top:1px dashed var(--line);padding-top:8px;word-break:break-all;color:var(--ink)}
+.out .bad{color:var(--err);text-decoration:underline wavy;text-underline-offset:4px}
+.out .caret{display:inline-block;width:2px;height:1.1em;background:var(--ink);vertical-align:-3px;margin-left:1px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.guide{display:flex;flex-wrap:wrap;gap:5px;align-items:center;font-size:13px;color:var(--muted);min-height:28px}
+.step{font:600 14px var(--f-body);border:1px solid var(--line);border-radius:6px;padding:2px 7px;color:var(--ink);background:var(--bg)}
+.step.past{opacity:.35}
+.step.now{border-color:var(--ink);background:var(--ink);color:var(--bg)}
+.warn{color:var(--err);font-weight:600}
+.thumbs{display:flex;justify-content:space-between;gap:8px;font-size:12px;font-weight:700}
+.thumb{flex:1;padding:4px 8px;border-radius:99px;border:1px solid var(--line);color:var(--muted);transition:background .12s,color .12s}
+.thumb.r{text-align:right}
+.thumb.l.on{background:var(--left);border-color:var(--left);color:var(--on)}
+.thumb.r.on{background:var(--right);border-color:var(--right);color:var(--on)}
+.pad{display:grid;grid-template-columns:1fr 1fr 1fr .78fr;grid-template-rows:repeat(4,clamp(50px,8.4vh,66px));gap:6px;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.k{position:relative;border:0;border-radius:10px;background:var(--key);color:var(--ink);box-shadow:0 2px 0 var(--key-edge);font:600 22px var(--f-body);cursor:pointer;touch-action:manipulation;padding:0;display:flex;align-items:center;justify-content:center;gap:2px;transition:transform .05s}
+.k small{font-size:15px;color:var(--muted);font-weight:600}
+.k.zl{background:color-mix(in srgb,var(--left) 9%,var(--key))}
+.k.zr{background:color-mix(in srgb,var(--right) 9%,var(--key))}
+.k.fn{font-size:15px;color:var(--muted)}
+.k.tall{grid-row:span 2}
+.k.down{transform:translateY(2px);box-shadow:0 0 0 var(--key-edge)}
+.k.nl{background:var(--left);color:var(--on)} .k.nr{background:var(--right);color:var(--on)}
+.k.nl small,.k.nr small{color:var(--on);opacity:.85}
+.k .badge{position:absolute;top:3px;right:5px;font-size:10px;font-weight:700;opacity:.9}
+.k:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.foot{display:flex;gap:6px}
+.foot button{flex:1;font:600 13px var(--f-body);border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:7px;cursor:pointer}
+.sheet{position:fixed;inset:0;background:color-mix(in srgb,var(--bg) 70%,transparent);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:16px;z-index:20}
+.sheet>div{background:var(--surface);border-radius:16px;padding:20px;width:100%;max-width:360px;display:flex;flex-direction:column;gap:14px;box-shadow:0 10px 40px rgba(0,0,0,.18)}
+.sheet h2{font-family:var(--f-display);font-weight:400;font-size:26px;margin:0}
+.res{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.res div{background:var(--bg);border-radius:10px;padding:10px}
+.res span{font-size:12px;color:var(--muted)} .res strong{display:block;font-family:var(--f-display);font-weight:400;font-size:28px;font-variant-numeric:tabular-nums}
+.new{color:var(--ok);font-weight:700;font-size:13px}
+.sheet .row{display:flex;gap:8px}
+.sheet button{flex:1;font:600 15px var(--f-body);border-radius:10px;padding:11px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.sheet button.pri{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.help{font-size:13px;line-height:1.6;color:var(--ink)} .help p{margin:0 0 6px}
+.help code{font-family:var(--f-body);background:var(--bg);padding:1px 5px;border-radius:4px}
+@media (prefers-reduced-motion:reduce){.out .caret{animation:none}.bar i,.k,.thumb{transition:none}}
+.rhythm{display:flex;flex-wrap:wrap;gap:4px;align-items:center;min-height:12px}
+.rhythm i{width:8px;height:8px;border-radius:50%;opacity:.28;transition:opacity .1s,transform .1s}
+.rhythm i.l{background:var(--left)} .rhythm i.r{background:var(--right)}
+.rhythm i.d{opacity:.12}
+.rhythm i.a{opacity:1;background:transparent;box-shadow:inset 0 0 0 2px var(--left)} .rhythm i.r.a{box-shadow:inset 0 0 0 2px var(--right)}
+.rhythm i.n{opacity:1;transform:scale(1.6)}
+.k.al{box-shadow:0 2px 0 var(--key-edge),inset 0 0 0 2px var(--left);outline:1px dashed var(--left);outline-offset:-5px}
+.k.ar{box-shadow:0 2px 0 var(--key-edge),inset 0 0 0 2px var(--right);outline:1px dashed var(--right);outline-offset:-5px}
+.tabs button{font-size:13.5px}
+.ana{display:flex;flex-direction:column;gap:6px}
+.ana h3{margin:0;font-size:14px}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cmp div{border:1px solid var(--line);border-radius:10px;padding:8px}
+.cmp span{font-size:12px;color:var(--muted)} .cmp strong{display:block;font-size:20px;font-variant-numeric:tabular-nums}
+.note{margin:0;font-size:12.5px;color:var(--muted);line-height:1.5}
+.slow{display:flex;flex-wrap:wrap;gap:6px}
+.slow span{font-size:13px;background:var(--bg);border-radius:6px;padding:3px 8px}
+.slow b{color:var(--err);font-weight:600}
+.sheet>div{max-height:calc(100% - 24px);overflow:auto}
+#goWeak{width:100%}
+@media (prefers-reduced-motion:reduce){.rhythm i{transition:none}}
+.kbsw{display:flex;border:1px solid var(--line);border-radius:99px;overflow:hidden;background:var(--surface)}
+.kbsw a,.kbsw span{font:600 12.5px var(--f-body);padding:5px 11px;text-decoration:none;color:var(--muted)}
+.kbsw .cur{background:var(--ink);color:var(--bg)}
+.top .right{display:flex;gap:6px;align-items:center}
+/* 쿼티 자판: 20칸 격자, 키 하나가 2칸 */
+.pad{grid-template-columns:repeat(20,1fr);grid-template-rows:repeat(4,clamp(46px,7.4vh,58px));gap:5px 3px}
+.pad .k{grid-column:span 2;border-radius:7px;font-size:19px;flex-direction:column;gap:0;line-height:1.05}
+.pad .k small{font-size:10px;line-height:1}
+.pad .k.r2start{grid-column:2 / span 2}
+.pad .k.wide{grid-column:span 3;font-size:18px}
+.pad .k.space{grid-column:span 12;font-size:13px;color:var(--muted)}
+.pad .k.zb{background:var(--key)}
+.pad .k.on{background:var(--ink);color:var(--bg)}
+.pad .k .badge{top:1px;right:2px;font-size:8.5px}
+@media (max-width:360px){.pad .k{font-size:17px}}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <div class="top">
+      <h1><b>엄</b><i>지</i>타자</h1>
+      <div class="right"><nav class="kbsw" aria-label="자판"><a href="./#cji">천지인</a><span class="cur">쿼티</span></nav><button class="chip" id="helpBtn" type="button">사용법</button></div>
+    </div>
+    <div class="tabs" role="group" aria-label="연습 종류">
+      <button id="t-jamo" data-mode="jamo" type="button">자리</button>
+      <button id="t-word" data-mode="word" type="button">낱말</button>
+      <button id="t-sent" data-mode="sent" type="button">문장</button>
+      <button id="t-weak" data-mode="weak" type="button">약점</button>
+    </div>
+    <div class="sub" id="sub"></div>
+  </header>
+  <main>
+    <div class="stats">
+      <div class="stat"><span>속도 자/분</span><strong id="sSpeed">0</strong></div>
+      <div class="stat"><span>정확도</span><strong id="sAcc">100%</strong></div>
+      <div class="stat"><span>시간</span><strong id="sTime">0:00</strong></div>
+      <div class="stat"><span>최고 자/분</span><strong id="sBest">–</strong></div>
+    </div>
+    <section class="card" aria-live="polite">
+      <div class="prog"><span id="progT">1 / 20</span><span id="stageT"></span></div>
+      <div class="bar"><i id="progB" style="width:0"></i></div>
+      <div class="target" id="target"></div>
+      <div class="out" id="out"></div>
+      <div class="rhythm" id="rhythm" aria-label="엄지 순서"></div>
+      <div class="guide" id="guide"></div>
+    </section>
+  </main>
+  <div class="thumbs" aria-hidden="true"><span class="thumb l" id="thL">◀ 왼 엄지</span><span class="thumb r" id="thR">오른 엄지 ▶</span></div>
+  <div class="pad" id="pad"></div>
+  <div class="foot"><button id="retry" type="button">이 글자 다시</button><button id="skip" type="button">건너뛰기</button><button id="restart" type="button">처음부터</button></div>
+</div>
+<div class="sheet" id="sheet" hidden><div id="sheetBody"></div></div>
+
+<script>
+/*ENGINE*/
+const CHO='ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ',JUNG='ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ';
+const JONG=['','ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+const CL={'ㄱㅅ':'ㄳ','ㄴㅈ':'ㄵ','ㄴㅎ':'ㄶ','ㄹㄱ':'ㄺ','ㄹㅁ':'ㄻ','ㄹㅂ':'ㄼ','ㄹㅅ':'ㄽ','ㄹㅌ':'ㄾ','ㄹㅍ':'ㄿ','ㄹㅎ':'ㅀ','ㅂㅅ':'ㅄ'};
+const CLS={};for(const[k,v]of Object.entries(CL))CLS[v]=[k[0],k[1]];
+const VC={'ㅗㅏ':'ㅘ','ㅗㅐ':'ㅙ','ㅗㅣ':'ㅚ','ㅜㅓ':'ㅝ','ㅜㅔ':'ㅞ','ㅜㅣ':'ㅟ','ㅡㅣ':'ㅢ'};
+const VS={};for(const[k,v]of Object.entries(VC))VS[v]=[k[0],k[1]];
+// 두벌식 자판: 키 → [보통, 시프트]
+const QK={q:['ㅂ','ㅃ'],w:['ㅈ','ㅉ'],e:['ㄷ','ㄸ'],r:['ㄱ','ㄲ'],t:['ㅅ','ㅆ'],y:['ㅛ'],u:['ㅕ'],i:['ㅑ'],o:['ㅐ','ㅒ'],p:['ㅔ','ㅖ'],
+  a:['ㅁ'],s:['ㄴ'],d:['ㅇ'],f:['ㄹ'],g:['ㅎ'],h:['ㅗ'],j:['ㅓ'],k:['ㅏ'],l:['ㅣ'],
+  z:['ㅋ'],x:['ㅌ'],c:['ㅊ'],v:['ㅍ'],b:['ㅠ'],n:['ㅜ'],m:['ㅡ'],qu:['?'],cm:[','],SP:[' '],pd:['.'],ex:['!']};
+const J2K={};for(const[k,a]of Object.entries(QK))a.forEach((j,i)=>{J2K[j]={k,sh:i===1}});
+const isC=x=>!!x&&x.length===1&&CHO.includes(x),isV=x=>!!x&&x.length===1&&JUNG.includes(x);
+function assemble(a){let o='',i=0;while(i<a.length){const x=a[i];
+  if(isC(x)&&isV(a[i+1])){const cho=CHO.indexOf(x),ju=JUNG.indexOf(a[i+1]);i+=2;let jo=0;const c1=a[i];
+    if(isC(c1)&&JONG.indexOf(c1)>0&&!isV(a[i+1])){const cl=isC(a[i+1])&&CL[c1+a[i+1]];
+      if(cl&&!isV(a[i+2])){jo=JONG.indexOf(cl);i+=2}else{jo=JONG.indexOf(c1);i++}}
+    o+=String.fromCharCode(0xAC00+(cho*21+ju)*28+jo)}else{o+=x;i++}}return o}
+function combineV(t){const o=[];for(const x of t){const L=o[o.length-1];if(isV(x)&&L&&VC[L+x]&&(o.length<2||!isV(o[o.length-2])||true)){o[o.length-1]=VC[L+x]}else o.push(x)}return o}
+const render=t=>assemble(combineV(t));
+// 목표 글 → 입력할 자모 순서와 키 누름 순서
+function plan(str){const tok=[];
+  [...str].forEach((ch,ci)=>{const c=ch.charCodeAt(0);let jam=[];
+    if(c>=0xAC00&&c<=0xD7A3){const s=c-0xAC00,ju=JUNG[Math.floor(s%588/28)],jo=JONG[s%28];
+      jam=[CHO[Math.floor(s/588)],...(VS[ju]||[ju])];if(jo)jam.push(...(CLS[jo]||[jo]))}
+    else jam=[ch];
+    jam.forEach(j=>{if(J2K[j])tok.push({j,ci,...J2K[j]})})});
+  const P=[],C=[],TI=[];tok.forEach((t,ti)=>{t.a=P.length;if(t.sh){P.push('SH');C.push(t.ci);TI.push(ti)}P.push(t.k);C.push(t.ci);TI.push(ti);t.b=P.length});
+  return{tok,P,C,TI,final:render(tok.map(t=>t.j))}}
+/*END*/
+if(typeof module!=='undefined'){module.exports={plan,render};}
+else{
+const ROWS=[['q','w','e','r','t','y','u','i','o','p'],['a','s','d','f','g','h','j','k','l'],['SH','z','x','c','v','b','n','m','BK'],['qu','cm','SP','pd','ex']];
+const SIDE={};'qwertasdfgzxcv'.split('').concat(['SH','qu','cm']).forEach(k=>SIDE[k]='L');'yuiophjklbnm'.split('').concat(['BK','pd','ex']).forEach(k=>SIDE[k]='R');SIDE.SP='B';
+const POS={};ROWS[0].forEach((k,i)=>POS[k]=[0,i+.5]);ROWS[1].forEach((k,i)=>POS[k]=[1,i+1]);
+POS.SH=[2,.75];['z','x','c','v','b','n','m'].forEach((k,i)=>POS[k]=[2,i+2]);POS.BK=[2,9.25];
+POS.qu=[3,.5];POS.cm=[3,1.5];POS.SP=[3,5];POS.pd=[3,8.5];POS.ex=[3,9.5];
+const KL={SH:'⇧',BK:'⌫',SP:'띄움',qu:'?',cm:',',pd:'.',ex:'!'};for(const k in QK)if(!KL[k])KL[k]=QK[k][0];
+const DATA={
+ jamo:{r2:'ㅁㄴㅇㄹㅎㅗㅓㅏㅣ',r1:'ㅂㅈㄷㄱㅅㅛㅕㅑㅐㅔ',r3:'ㅋㅌㅊㅍㅠㅜㅡ',sh:'ㅃㅉㄸㄲㅆㅒㅖ'},
+ word:('사람 학교 친구 가족 오늘 내일 감사 사랑 행복 시간 전화 문자 사진 음식 김치 바다 하늘 나무 꽃밭 할머니 할아버지 어머니 아버지 선생님 병원 약국 은행 시장 회사 공원 날씨 우산 커피 우유 과일 사과 딸기 수박 강아지 고양이 자동차 버스 지하철 기차 비행기 컴퓨터 휴대폰 신문 책상 의자 창문 냉장고 세탁기 생일 축하 안녕 고마워 미안해 맛있다 재미있다 깨끗하다 따뜻하다 쌀쌀하다 읽다 앉다 많이 없다 닭갈비 떡볶이 짜장면 꿈 빵 왜 뭐 웬일 외국 의사 귀여운 예쁜 얘기 쉬다 뛰다 괜찮아 화요일 원숭이 횡단보도 뒤꿈치 왕관 쾌활한 '+
+   '회의 보고서 결재 출장 퇴근 출근 점심 저녁 아침 주말 휴가 여행 기념일 약속 연락 도착 출발 확인 감사합니다 수고하셨습니다 '+
+   '알겠습니다 부탁해요 좋아요 그래요 네 아니요 잠깐만 지금 나중에 오늘밤 내일모레 어제 그제 금요일 토요일 일요일 월요일 수요일 목요일 '+
+   '사무실 주차장 엘리베이터 계단 화장실 편의점 마트 식당 카페 미용실 우체국 도서관 운동장 놀이터 아파트 '+
+   '김밥 라면 비빔밥 된장찌개 불고기 삼겹살 치킨 피자 햄버거 아이스크림 케이크 초콜릿 사탕 빵집 '+
+   '하나 둘 셋 넷 다섯 여섯 일곱 여덟 아홉 열 백 천 만 '+
+   '봄 여름 가을 겨울 바람 눈 비 구름 햇빛 무지개 단풍 벚꽃').split(' '),
+ sent:['천 리 길도 한 걸음부터.','가는 말이 고와야 오는 말이 곱다.','낮말은 새가 듣고 밤말은 쥐가 듣는다.','세 살 버릇 여든까지 간다.','티끌 모아 태산.','백지장도 맞들면 낫다.','아니 땐 굴뚝에 연기 날까?','원숭이도 나무에서 떨어진다.','등잔 밑이 어둡다.','소 잃고 외양간 고친다.','고생 끝에 낙이 온다.','오늘 저녁에 뭐 먹을까?','지금 출발했어요. 곧 도착해요.','회의는 내일 오전 열 시에 시작합니다.','생일 축하해요! 행복한 하루 보내세요.','비가 오니까 우산 꼭 챙기세요.','점심 같이 먹을래요?','사진 잘 받았어요. 고마워요!','조금 늦을 것 같아요. 미안해요.','주말에 시간 괜찮으세요?','감기 조심하고 따뜻하게 입어요.','집에 도착하면 연락 주세요.','엄마, 오늘 저녁은 집에서 먹을게요.','길이 많이 막혀서 조금 늦어요.','다음 주에 같이 영화 보러 갈래?']};
+const STAGES={r2:'가운데 줄',r1:'윗줄',r3:'아랫줄',sh:'쌍자음·ㅒㅖ',mix:'섞어서'};
+const N={jamo:20,word:12,sent:5,weak:12};
+const MODE_NAME={jamo:'자리',word:'낱말',sent:'문장',weak:'약점'};
+const S={mode:'jamo',stage:'r2',hint:true,items:[],idx:0,typed:[],shift:false,pl:null,start:null,presses:0,wrong:0,chars:0,busy:false,tick:null,lastT:null,lastGood:false,iv:[]};
+const $=id=>document.getElementById(id);
+const store={get(k,d){try{const v=localStorage.getItem('qw-'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('qw-'+k,JSON.stringify(v))}catch(e){}}};
+try{localStorage.setItem('utj-kb','qwerty')}catch(e){}
+Object.assign(S,store.get('prefs',{}));if(!STAGES[S.stage])S.stage='r2';if(!MODE_NAME[S.mode])S.mode='jamo';
+const best=store.get('best',{}),pairs=store.get('pairs',{});
+const bestKey=()=>S.mode==='jamo'?'jamo-'+S.stage:S.mode;
+function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a}
+
+// 엄지 배정: 왼쪽 절반은 왼 엄지, 오른쪽 절반은 오른 엄지로 고정. 띄움(가운데)만
+// 앞뒤 키를 보고 같은 엄지 연속·이동이 가장 적은 쪽을 고른다.
+const dist=(a,b)=>Math.hypot(POS[a][0]-POS[b][0],(POS[a][1]-POS[b][1])*.9);
+function thumbs(P){if(!P.length)return[];
+  let cur=new Map([['-|f|j',{c:0,path:[]}]]);
+  P.forEach((k,i)=>{const nx=new Map(),opts=SIDE[k]==='B'?['L','R']:[SIDE[k]];
+    for(const[key,v]of cur){const[prev,lp,rp]=key.split('|');
+      for(const t of opts){const from=t==='L'?lp:rp,d=dist(from,k);let c;
+        if(prev==='-')c=d*.3;else if(t===prev)c=k===P[i-1]?.7:1+d*.5;else c=.45+Math.max(0,d-1)*.3;
+        const nk=t+'|'+(t==='L'?k:lp)+'|'+(t==='R'?k:rp),tot=v.c+c;
+        if(!nx.has(nk)||nx.get(nk).c>tot)nx.set(nk,{c:tot,path:v.path.concat(t)})}}
+    cur=nx});
+  let b=null;for(const v of cur.values())if(!b||v.c<b.c)b=v;return b.path}
+
+// 약점 분석
+const pairKey=(a,b)=>a+'>'+b;
+const pairLabel=pk=>{const[a,b]=pk.split('>');return a===b?KL[a]+' 연타':KL[a]+' → '+KL[b]};
+const pairAvg=pk=>{const v=pairs[pk];return v&&v[0]>=3?v[1]/v[0]:null};
+function globalAvg(){let n=0,s=0;for(const v of Object.values(pairs)){n+=v[0];s+=v[1]}return n?s/n:null}
+function pairCount(){let n=0;for(const v of Object.values(pairs))n+=v[0];return n}
+function slowPairs(lim){const g=globalAvg();if(!g)return[];return Object.keys(pairs).map(pk=>({pk,avg:pairAvg(pk)})).filter(x=>x.avg&&x.avg>g*1.1).sort((a,b)=>b.avg-a.avg).slice(0,lim)}
+function weakScore(w){const p=plan(w),g=globalAvg();let s=0;for(let i=1;i<p.P.length;i++){const a=pairAvg(pairKey(p.P[i-1],p.P[i]));if(a&&a>g)s+=a-g}return s/Math.sqrt(p.P.length)}
+
+function makeItems(){let out=[];
+  if(S.mode==='jamo'){const pool=[...(S.stage==='mix'?Object.values(DATA.jamo).join(''):DATA.jamo[S.stage])];
+    while(out.length<N.jamo){const x=pool[Math.random()*pool.length|0];if(x!==out[out.length-1])out.push(x)}}
+  else if(S.mode==='weak'){if(pairCount()<40)out=shuffle(DATA.word).slice(0,N.weak);
+    else{const sc=DATA.word.map(w=>({w,s:weakScore(w)})).sort((a,b)=>b.s-a.s);out=shuffle(sc.slice(0,24).map(x=>x.w)).slice(0,N.weak)}}
+  else out=shuffle(DATA[S.mode]).slice(0,N[S.mode]);return out}
+
+// 자판 그리기
+const pad=$('pad');
+ROWS.forEach((row,ri)=>row.forEach((k,ci)=>{const el=document.createElement('button');el.type='button';el.className='k';el.id='k-'+k;el.dataset.k=k;
+  el.classList.add(SIDE[k]==='L'?'zl':SIDE[k]==='R'?'zr':'zb');
+  if(k==='SH'||k==='BK'){el.classList.add('fn','wide');el.textContent=KL[k];el.setAttribute('aria-label',k==='SH'?'시프트':'지우기')}
+  else if(k==='SP'){el.classList.add('space');el.textContent='띄어쓰기';el.setAttribute('aria-label','띄어쓰기')}
+  else el.innerHTML='<span class="m">'+QK[k][0]+'</span>'+(QK[k][1]?'<small>'+QK[k][1]+'</small>':'');
+  if(ri===1&&ci===0)el.classList.add('r2start');
+  el.addEventListener('pointerdown',e=>{e.preventDefault();hit(k)});
+  el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();hit(k)}});
+  pad.appendChild(el)}));
+function paintShift(){$('k-SH').classList.toggle('on',S.shift);
+  for(const k in QK){if(!QK[k][1])continue;const el=$('k-'+k),m=el.querySelector('.m'),sm=el.querySelector('small');if(m)m.textContent=S.shift?QK[k][1]:QK[k][0];if(sm)sm.textContent=S.shift?QK[k][0]:QK[k][1]}}
+const CODE={Comma:'cm',Period:'pd',Space:'SP',Backspace:'BK',Slash:'qu',Digit1:'ex'};
+document.addEventListener('keydown',e=>{if(!$('sheet').hidden||e.target.tagName==='SELECT'||e.ctrlKey||e.metaKey||e.altKey)return;
+  let k=null;if(/^Key[A-Z]$/.test(e.code))k=e.code[3].toLowerCase();else k=CODE[e.code];
+  if(e.code==='Slash'&&!e.shiftKey)k=null;if(e.code==='Digit1'&&!e.shiftKey)k=null;
+  if(!k||!(k in QK||k==='BK'))return;e.preventDefault();
+  if(e.shiftKey&&QK[k]&&QK[k][1]&&!S.shift)hit('SH');hit(k)});
+function flash(k){const el=$('k-'+k);if(!el)return;el.classList.add('down');setTimeout(()=>el.classList.remove('down'),90)}
+
+// 현재 위치: 입력한 자모가 목표의 앞부분과 같으면 바름
+function okNow(){const t=S.pl.tok;if(S.typed.length>t.length)return false;for(let i=0;i<S.typed.length;i++)if(S.typed[i]!==t[i].j)return false;return true}
+function pIdx(){const t=S.pl.tok[S.typed.length];if(!t)return S.pl.P.length;return t.a+(S.shift&&t.sh?1:0)}
+function hit(k){if(S.busy||!$('sheet').hidden)return;flash(k);
+  const now=performance.now();if(!S.start){S.start=Date.now();S.tick=setInterval(stats,500)}
+  const wasOk=okNow(),before=wasOk?pIdx():null;
+  if(k==='SH'){S.shift=!S.shift}
+  else if(k==='BK'){if(S.shift)S.shift=false;else S.typed.pop()}
+  else{const j=(S.shift&&QK[k][1])?QK[k][1]:QK[k][0];S.shift=false;S.typed.push(j)}
+  if(k!=='BK')S.presses++;
+  const ok=okNow(),after=ok?pIdx():null;
+  const shiftWrong=S.shift&&ok&&(!S.pl.tok[S.typed.length]||!S.pl.tok[S.typed.length].sh);
+  if(k!=='BK'&&wasOk&&(!ok||shiftWrong))S.wrong++;
+  if(wasOk&&ok&&!shiftWrong&&k!=='BK'&&after===before+1&&before>=1&&S.lastT!=null&&S.lastGood){const dt=now-S.lastT;
+    if(dt>40&&dt<2500){const key=pairKey(S.pl.P[before-1],S.pl.P[before]);const v=pairs[key]||[0,0];if(v[0]>=60){v[0]*=.9;v[1]*=.9}v[0]++;v[1]+=dt;pairs[key]=v;
+      S.iv.push({dt,same:S.pl.th[before-1]===S.pl.th[before]})}}
+  S.lastT=now;S.lastGood=ok&&!shiftWrong&&k!=='BK';
+  paintShift();draw();
+  if(ok&&S.typed.length===S.pl.tok.length&&render(S.typed)===S.items[S.idx])complete()}
+function complete(){S.busy=true;S.chars+=S.items[S.idx].replace(/\s/g,'').length;stats();store.set('pairs',pairs);
+  $('target').querySelectorAll('span').forEach(s=>s.className='done');
+  setTimeout(()=>{S.busy=false;S.idx++;if(S.idx>=S.items.length)finish();else loadItem()},S.mode==='jamo'?160:380)}
+function elapsed(){return S.start?(Date.now()-S.start)/1000:0}
+function speed(){const t=elapsed();return t>2?Math.round(S.chars/(t/60)):0}
+function acc(){return S.presses?Math.max(0,Math.round(100*(1-S.wrong/S.presses))):100}
+function fmt(t){t=Math.floor(t);return Math.floor(t/60)+':'+String(t%60).padStart(2,'0')}
+function stats(){$('sSpeed').textContent=speed();$('sAcc').textContent=acc()+'%';$('sTime').textContent=fmt(elapsed());const b=best[bestKey()];$('sBest').textContent=b?b.speed:'–'}
+function loadItem(){S.typed=[];S.shift=false;S.lastT=null;S.lastGood=false;S.pl=plan(S.items[S.idx]);S.pl.th=thumbs(S.pl.P);paintShift();draw()}
+function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'})[c])}
+function draw(){const tgt=S.items[S.idx],pl=S.pl,out=render(S.typed),ok=okNow();
+  const shiftWrong=S.shift&&ok&&(!pl.tok[S.typed.length]||!pl.tok[S.typed.length].sh);
+  const k=ok?pIdx():-1;
+  $('progT').textContent=(S.idx+1)+' / '+S.items.length;$('progB').style.width=(S.idx/S.items.length*100)+'%';
+  $('stageT').textContent=S.mode==='jamo'?STAGES[S.stage]:MODE_NAME[S.mode];
+  const cur=ok?(k<pl.P.length?pl.C[k]:tgt.length):-1;
+  const tg=$('target');tg.className='target '+(S.mode==='jamo'?'jamo':S.mode==='sent'?'sent':'word');
+  const bad=ok?cur:Math.max(0,[...tgt].findIndex((c,i)=>c!==out[i]));
+  tg.innerHTML=[...tgt].map((c,i)=>'<span class="'+(i<bad?'done':i===bad?'cur':'todo')+'">'+(c===' '?'&nbsp;':esc(c))+'</span>').join('');
+  let oh;if(ok)oh=esc(out);else{let p=0;while(p<out.length&&out[p]===tgt[p])p++;oh=esc(out.slice(0,p))+'<span class="bad">'+esc(out.slice(p))+'</span>'}
+  $('out').innerHTML=oh+'<span class="caret"></span>';
+  const rh=$('rhythm');
+  if(S.hint){rh.hidden=false;rh.innerHTML=pl.th.map((t,i)=>'<i class="'+t.toLowerCase()+(i<k?' d':'')+(i===k?' n':(k>=0&&i>k&&i<=k+3)?' a':'')+'" title="'+KL[pl.P[i]]+'"></i>').join('')}else rh.hidden=true;
+  const g=$('guide');
+  if(!ok)g.innerHTML='<span class="warn">틀렸어요. ⌫ 로 지우고 다시 눌러 보세요.</span>';
+  else if(shiftWrong)g.innerHTML='<span class="warn">시프트가 켜져 있어요. ⇧ 를 한 번 더 눌러 끄세요.</span>';
+  else if(S.hint&&k<pl.P.length){const ci=pl.C[k],ts=pl.tok.filter(t=>t.ci===ci);
+    g.innerHTML='<span>「'+esc(tgt[ci]===' '?'띄움':tgt[ci])+'」</span>'+ts.map(t=>'<span class="step '+(t.b<=k?'past':t.a<=k?'now':'')+'">'+(t.sh?'⇧ ':'')+esc(t.j===' '?'띄움':t.j)+'</span>').join('')}
+  else g.innerHTML=S.hint?'':'<span>힌트 꺼짐</span>';
+  document.querySelectorAll('.k').forEach(el=>{el.classList.remove('nl','nr','al','ar');const b=el.querySelector('.badge');if(b)b.remove()});
+  let nk=null,th=null;
+  if(S.hint){if(!ok){nk='BK';th='R'}else if(shiftWrong){nk='SH';th='L'}else if(k<pl.P.length){nk=pl.P[k];th=pl.th[k]}}
+  if(nk){const el=$('k-'+nk);el.classList.add(th==='L'?'nl':'nr');const b=document.createElement('span');b.className='badge';b.textContent=th==='L'?'왼':'오';el.appendChild(b)}
+  if(S.hint&&ok&&!shiftWrong&&k+1<pl.P.length&&pl.P[k+1]!==nk)$('k-'+pl.P[k+1]).classList.add(pl.th[k+1]==='L'?'al':'ar');
+  $('thL').classList.toggle('on',th==='L');$('thR').classList.toggle('on',th==='R')}
+function avgMs(a){return a.length?Math.round(a.reduce((s,x)=>s+x.dt,0)/a.length):null}
+function analysisHTML(){const same=S.iv.filter(x=>x.same),alt=S.iv.filter(x=>!x.same),a=avgMs(alt),s=avgMs(same);
+  let h='<div class="ana"><h3>엄지 분석</h3><div class="cmp"><div><span>엄지 교대</span><strong>'+(a!=null?a+'ms':'–')+'</strong></div><div><span>같은 엄지 연속</span><strong>'+(s!=null?s+'ms':'–')+'</strong></div></div>';
+  if(a!=null&&s!=null)h+='<p class="note">'+(s>a?'같은 엄지로 연달아 칠 때가 '+Math.round((s/a-1)*100)+'% 느려요. 받침·겹모음처럼 한쪽으로 몰리는 곳을 연습해 보세요.':'엄지 교대가 아직 익숙하지 않아요. 자음(왼)·모음(오) 번갈아 치기를 의식해 보세요.')+'</p>';
+  const sp=slowPairs(3);
+  h+=sp.length?'<p class="note">느린 키 조합 (누적)</p><div class="slow">'+sp.map(x=>'<span>'+esc(pairLabel(x.pk))+' <b>'+Math.round(x.avg)+'ms</b></span>').join('')+'</div>':'<p class="note">기록이 더 쌓이면 느린 키 조합을 알려 드려요. ('+Math.round(pairCount())+' / 40타)</p>';
+  return h+'</div>'}
+function finish(){clearInterval(S.tick);store.set('pairs',pairs);const sp=speed(),ac=acc(),t=elapsed(),key=bestKey(),old=best[key];
+  const isNew=!old||sp>old.speed;if(isNew){best[key]={speed:sp,acc:ac};store.set('best',best)}
+  $('progB').style.width='100%';
+  const order=['r2','r1','r3','sh','mix'],nextStage=S.mode==='jamo'?order[Math.min(order.indexOf(S.stage)+1,order.length-1)]:null;
+  $('sheetBody').innerHTML='<h2>연습 끝!</h2>'+(isNew&&sp?'<div class="new">새 최고 기록이에요.</div>':'')+
+   '<div class="res"><div><span>속도</span><strong>'+sp+'<small style="font-size:14px"> 자/분</small></strong></div><div><span>정확도</span><strong>'+ac+'%</strong></div><div><span>걸린 시간</span><strong>'+fmt(t)+'</strong></div><div><span>최고 기록</span><strong>'+(best[key]?best[key].speed:sp)+'</strong></div></div>'+
+   (S.mode!=='jamo'?analysisHTML():'')+
+   '<div class="row"><button id="again" type="button">한 번 더</button>'+(nextStage&&nextStage!==S.stage?'<button class="pri" id="next" type="button">다음: '+STAGES[nextStage]+'</button>':'<button class="pri" id="next" type="button">새 문제로</button>')+'</div>'+
+   (S.mode!=='weak'&&S.mode!=='jamo'&&pairCount()>=40?'<button id="goWeak" type="button">약점 낱말로 연습하기</button>':'');
+  $('sheet').hidden=false;
+  $('again').onclick=()=>{$('sheet').hidden=true;newSession(false)};
+  $('next').onclick=()=>{$('sheet').hidden=true;if(nextStage)S.stage=nextStage;savePrefs();renderSub();newSession(true)};
+  if($('goWeak'))$('goWeak').onclick=()=>{$('sheet').hidden=true;S.mode='weak';savePrefs();renderSub();newSession(true)}}
+function newSession(fresh){clearInterval(S.tick);const keep=S.items;S.items=fresh||!keep.length?makeItems():keep;
+  Object.assign(S,{idx:0,start:null,presses:0,wrong:0,chars:0,busy:false,iv:[]});stats();loadItem()}
+function savePrefs(){store.set('prefs',{mode:S.mode,stage:S.stage,hint:S.hint})}
+function renderSub(){document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.mode===S.mode));
+  const sub=$('sub');let h='';
+  if(S.mode==='jamo')h+=Object.entries(STAGES).map(([k,v])=>'<button type="button" class="chip" data-st="'+k+'" aria-pressed="'+(S.stage===k)+'">'+v+'</button>').join('');
+  else if(S.mode==='weak')h+='<span>'+(pairCount()<40?'기록 '+Math.round(pairCount())+'/40타 · 지금은 섞어서 연습':'느린 키 조합이 많은 낱말 12개')+'</span>';
+  else h+='<span>'+(S.mode==='word'?'자주 쓰는 낱말 12개':'속담·생활 문장 5개')+'</span>';
+  h+='<span class="sp"></span><label><input type="checkbox" id="hintCk" '+(S.hint?'checked':'')+'> 힌트</label>';
+  sub.innerHTML=h;
+  sub.querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>{S.stage=b.dataset.st;savePrefs();renderSub();newSession(true)});
+  $('hintCk').onchange=e=>{S.hint=e.target.checked;savePrefs();draw()}}
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{S.mode=b.dataset.mode;savePrefs();renderSub();newSession(true)});
+$('retry').onclick=()=>{S.typed=[];S.shift=false;S.lastT=null;paintShift();draw()};
+$('skip').onclick=()=>{if(S.busy)return;S.idx++;if(S.idx>=S.items.length)finish();else loadItem()};
+$('restart').onclick=()=>newSession(true);
+$('helpBtn').onclick=()=>{$('sheetBody').innerHTML='<h2>사용법</h2><div class="help">'+
+ '<p><b>쿼티(두벌식)</b> — 휴대폰 쿼티 자판과 같은 배열이에요. 왼쪽 절반이 자음, 오른쪽 절반이 모음이라 두 엄지가 자연스럽게 번갈아 쳐요.</p>'+
+ '<p><b>두 엄지</b> — <span style="color:var(--left);font-weight:700">왼 엄지</span>는 ㅂㅈㄷㄱㅅ·ㅁㄴㅇㄹㅎ·ㅋㅌㅊㅍ와 ⇧, <span style="color:var(--right);font-weight:700">오른 엄지</span>는 모음과 ⌫를 맡아요. 띄어쓰기는 앞뒤 키를 보고 쉬고 있는 엄지로 골라 줘요.</p>'+
+ '<p><b>겹모음·겹받침</b> — ㅘ = ㅗ ㅏ, ㅝ = ㅜ ㅓ, ㅢ = ㅡ ㅣ처럼 두 번 나눠 쳐요. 받침 ㄺ = ㄹ ㄱ.</p>'+
+ '<p><b>⇧ 시프트</b> — 한 번 누르면 다음 한 글자만 쌍자음(ㄲ ㄸ ㅃ ㅆ ㅉ)이나 ㅒ ㅖ가 돼요.</p>'+
+ '<p><b>엄지 순서 줄</b> — 글자 아래 점이 칠 엄지 순서예요. 자판에서 다음 키는 색으로, 그다음 키는 점선 테두리로 보여요.</p>'+
+ '<p>PC에서는 키보드로도 칠 수 있어요(한/영 상관없음).</p></div><div class="row"><button class="pri" id="closeH" type="button">닫기</button></div>';
+ $('sheet').hidden=false;$('closeH').onclick=()=>{$('sheet').hidden=true}};
+renderSub();newSession(true);
+}
+if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+</script>
+</body>
+</html>

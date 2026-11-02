@@ -8,6 +8,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="엄지타자">
+<script>try{if(localStorage.getItem('utj-kb')==='qwerty'&&location.hash!=='#cji')location.replace('qwerty.html')}catch(e){}</script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -128,6 +129,10 @@ main{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:8p
 .sheet>div{max-height:calc(100% - 24px);overflow:auto}
 #goWeak{width:100%}
 @media (prefers-reduced-motion:reduce){.rhythm i{transition:none}}
+.kbsw{display:flex;border:1px solid var(--line);border-radius:99px;overflow:hidden;background:var(--surface)}
+.kbsw a,.kbsw span{font:600 12.5px var(--f-body);padding:5px 11px;text-decoration:none;color:var(--muted)}
+.kbsw .cur{background:var(--ink);color:var(--bg)}
+.top .right{display:flex;gap:6px;align-items:center}
 </style>
 </head>
 <body>
@@ -135,8 +140,8 @@ main{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:8p
 <div class="app">
   <header>
     <div class="top">
-      <h1><b>엄</b><i>지</i>타자 <small style="font-size:13px;color:var(--muted)">천지인</small></h1>
-      <button class="chip" id="helpBtn" type="button">사용법</button>
+      <h1><b>엄</b><i>지</i>타자</h1>
+      <div class="right"><nav class="kbsw" aria-label="자판"><span class="cur">천지인</span><a href="qwerty.html" id="toQw">쿼티</a></nav><button class="chip" id="helpBtn" type="button">사용법</button></div>
     </div>
     <div class="tabs" role="group" aria-label="연습 종류">
       <button id="t-jamo" data-mode="jamo" type="button">자모</button>
@@ -404,6 +409,7 @@ $('helpBtn').onclick=()=>{$('sheetBody').innerHTML='<h2>사용법</h2><div class
  '<p><b>리듬</b> — 왼·오를 번갈아 치는 비율이 높은 낱말로 교대 리듬을 익혀요. <b>약점</b> — 키와 키 사이 시간을 기록해 두었다가, 느린 조합이 많이 든 낱말을 골라 줘요.</p>'+
  '<p>PC에서는 숫자 1~0, 스페이스, 백스페이스, → 키로도 칠 수 있어요.</p></div><div class="row"><button class="pri" id="closeH" type="button">닫기</button></div>';
  $('sheet').hidden=false;$('closeH').onclick=()=>{$('sheet').hidden=true}};
+try{localStorage.setItem('utj-kb','cji')}catch(e){}
 renderSub();newSession(true);
 }
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
