@@ -1,0 +1,28 @@
+name: tmp-edit-notes
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  edit:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          T=smartclipboard-v1.1.1
+          gh release view $T --repo ${{ github.repository }} --json body -q .body > body.md
+          python3 - <<'PY'
+          s = open("body.md", encoding="utf-8").read()
+          new = ("### 1.1.1 에서 바뀐 점\n"
+                 "- **🔒 가린 항목 비밀번호:** 설정 → 「🔒 비밀번호」 탭에서 정하면, 가린 내용을 **보거나 · 풀거나 · 고칠 때** 비밀번호를 묻습니다.\n"
+                 "  - 한 번 넣으면 3분 동안(창을 숨기기 전까지) 다시 묻지 않고, 5번 틀리면 30초 동안 막힙니다.\n"
+                 "  - 「가린 항목을 붙여넣을 때도 비밀번호 묻기」를 켜면 붙여넣기 전에도 묻습니다. (기본은 붙여넣기는 바로)\n"
+                 "  - 비밀번호는 저장하지 않고 확인용 값만 암호화해 둡니다. 잊으면 되찾을 수 없으니 「잊어버렸어요…」로 가린 항목만 지우고 새로 정하세요.\n\n"
+                 "### 1.1.0 에서 바뀐 점\n"
+                 "- **✎ 메모 바로 추가 (Ctrl+N):** ★ 고정 목록 맨 위에 들어가 지워지지 않고, Enter로 바로 붙여넣기\n"
+                 "- **🔒 가리기 (Ctrl+H):** 비밀번호 등은 목록·미리보기에 ●●●●●●로 표시, 찾기는 제목으로만, 붙여넣기는 그대로")
+          old = "(바뀐 점은 여기에 적어 주세요)"
+          s = s.replace(old, new) if old in s else new + "\n\n" + s
+          open("body.md", "w", encoding="utf-8").write(s)
+          PY
+          gh release edit $T --repo ${{ github.repository }} --notes-file body.md
