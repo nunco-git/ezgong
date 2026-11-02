@@ -67,7 +67,8 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.3"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.4"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
 UPDATE_CHECK_HOURS = 12        # 새 버전 확인 간격
@@ -3084,6 +3085,10 @@ class SearchPane(tk.Frame):
         self.pin_label.bind("<Double-1>", lambda e: self.navigate(self.folder_var.get()))
         self.browse_btn = ttk.Button(r1, text="폴더…", width=6, command=self.browse)
         self.browse_btn.pack(side="left", padx=(4, 0))
+        self.hide_dirs = bool(st.get("hide_dirs", False))      # 목록에서 폴더 숨기기 (파일만 보기)
+        self.dir_btn = ttk.Button(r1, text="", command=self.toggle_dirs)
+        self.dir_btn.pack(side="left", padx=(2, 0))
+        self._dir_btn_text()
         self.pinned_var = tk.BooleanVar(value=st.get("pinned", False))
         self.pin_btn = ttk.Checkbutton(r1, text="📌 고정", variable=self.pinned_var, style="Toolbutton",
                                        command=self.apply_pin)
@@ -3225,6 +3230,7 @@ class SearchPane(tk.Frame):
             tab = 0
         return {"folder": self.folder_var.get(), "query": self.query_var.get(), "tab": tab,
                 "pinned": self.pinned_var.get(), "cwd": self.cwd or "", "preview_hidden": self.preview_hidden,
+                "hide_dirs": self.hide_dirs,
                 "fit": self.preview.fit_mode, "zoom": self.preview.zoom, "sash": self._sash_pos(),
                 "shell_fit": self.preview.shell_fit, "shell_zoom": self.preview.shell_zoom,
                 "types": {k: v.get() for k, v in self.type_vars.items()},
@@ -3349,6 +3355,20 @@ class SearchPane(tk.Frame):
         self.up_btn.state(["disabled" if at_root else "!disabled"])
         self.back_btn.state(["!disabled" if self.back_stack else "disabled"])
 
+    def _dir_btn_text(self):
+        self.dir_btn.configure(text="📁 보이기" if self.hide_dirs else "📁 숨기기")
+
+    def toggle_dirs(self):
+        """누르면 목록에서 폴더 숨기기 ↔ 다시 누르면 보이기"""
+        self.hide_dirs = not self.hide_dirs
+        self._dir_btn_text()
+        if self.mode == "browse" and self.cwd:
+            self.load_browse()
+        try:
+            self.app.schedule_save()
+        except Exception:
+            pass
+
     def browse(self):
         if self.pinned_var.get():
             return
@@ -3425,6 +3445,10 @@ class SearchPane(tk.Frame):
             self.status_var.set(f"폴더를 읽을 수 없습니다: {e}")
             return
         self._cwd_sig = self._dir_sig(self.cwd)
+        nd = sum(1 for h in items if h["is_dir"])
+        nf = len(items) - nd
+        if self.hide_dirs:                               # 폴더 숨기기: 파일만
+            items = [h for h in items if not h["is_dir"]]
         items.sort(key=lambda h: (not h["is_dir"], h["name"].lower()))
         keep_n = {os.path.normcase(p) for p in (keep or [])}
         sel = []
@@ -3442,8 +3466,8 @@ class SearchPane(tk.Frame):
             self.tree.see(sel[0])
         elif select is None:
             self.tree.yview_moveto(y)
-        nd = sum(1 for h in items if h["is_dir"])
-        self.status_var.set(f"폴더 {nd:,}개 · 파일 {len(items) - nd:,}개")
+        self.status_var.set(f"폴더 {nd:,}개 숨김 · 파일 {nf:,}개" if self.hide_dirs and nd
+                            else f"폴더 {nd:,}개 · 파일 {nf:,}개")
         if not sel:
             self.preview.clear()
             self._set_matches([])
@@ -5358,6 +5382,9 @@ class App:
         root.after(30000, self._autosave)
         root.after(5000, self.send_stats)
         self.update_info = None                          # 새 버전 정보 (있으면)
+        saved = self.s.get("update_avail")               # 지난번에 찾아 둔 새 버전 (12시간마다 확인하므로 기억)
+        if isinstance(saved, dict) and self._ver_tuple(saved.get("version", "0")) > self._ver_tuple(APP_VERSION):
+            self.update_info = saved
         root.after(8000, self.check_update)
         root.bind_all("<FocusIn>", self._focus_in, add="+")
         root.bind_all("<Control-f>", self._focus_query)
@@ -5445,10 +5472,12 @@ class App:
         ttk.Button(bar, text="ⓘ 사용 안내", command=self.show_guide).pack(side="right", padx=(0, 10))
         ttk.Button(bar, text="⚙ 환경설정", command=lambda: SettingsDialog(self)).pack(side="right", padx=(0, 4))
         self.update_var = tk.StringVar(value="")
-        ul = ttk.Label(bar, textvariable=self.update_var, foreground="#d0661f", cursor="hand2",
-                       font=(FONT[0], fsz(10), "bold"))
-        ul.pack(side="right", padx=(0, 10))
-        ul.bind("<Button-1>", lambda e: self.show_update())
+        self.update_slot = ttk.Frame(bar)                 # 새 버전이 있을 때만 [업데이트 필요] 버튼이 나타남
+        self.update_slot.pack(side="right", padx=(0, 10))
+        self.update_btn = tk.Button(self.update_slot, text="업데이트 필요", command=self.show_update,
+                                    bg="#e8590c", fg="white", activebackground="#c44a07", activeforeground="white",
+                                    relief="flat", bd=0, padx=10, pady=2, cursor="hand2",
+                                    font=(FONT[0], fsz(10), "bold"))
         self.root.after_idle(self._show_update_badge)
         self.index_var = tk.StringVar(value="")
         il = ttk.Label(bar, textvariable=self.index_var, foreground="#2f7a3a", cursor="hand2", font=(FONT[0], fsz(9)))
@@ -5870,21 +5899,26 @@ class App:
 
     def on_update(self, info, manual):
         self.s["update_checked"] = time.time()
+        self.s["update_avail"] = info
         self.schedule_save()
         self.update_info = info
         self._show_update_badge()
         if info and not manual and self.s.get("update_skip") != info["version"] \
                 and self.s.get("update_notified") != info["version"]:
             self.s["update_notified"] = info["version"]
-            self.tray.notify(f"새 버전 {info['version']}이(가) 나왔습니다. 위쪽 🔔 표시를 눌러 확인하세요.")
+            self.tray.notify(f"새 버전 {info['version']}이(가) 나왔습니다. 위쪽 [업데이트 필요] 버튼을 눌러 주세요.")
 
     def _show_update_badge(self):
         try:
             info = self.update_info
             if info and self.s.get("update_skip") != info["version"]:
-                self.update_var.set(f"🔔 새 버전 {info['version']}")
+                self.update_var.set(f"업데이트 필요 (v{info['version']})")
+                self.update_btn.configure(text=f"업데이트 필요 (v{info['version']})")
+                if not self.update_btn.winfo_ismapped():
+                    self.update_btn.pack()
             else:
                 self.update_var.set("")
+                self.update_btn.pack_forget()
         except Exception:
             pass
 
@@ -5905,8 +5939,10 @@ class App:
             tx.insert("1.0", info["notes"])
             tx.configure(state="disabled")
             tx.pack(fill="both", expand=True)
-        ttk.Label(f, text="받는 곳은 깃허브 공식 릴리스 페이지입니다. 다른 곳에서 받은 파일은 실행하지 마세요.",
-                  foreground="#b0412b").pack(anchor="w", pady=(8, 0))
+        ttk.Label(f, text="① [새 버전 내려받기]로 받은 SmartExplorer.exe 를 지금 쓰는 파일 자리에 바꿔 넣고 다시 실행하세요.\n"
+                          "    (설정·즐겨찾기는 그대로 이어집니다)\n"
+                          "② smartgong.kr 또는 깃허브 공식 릴리스에서 받은 파일만 실행하세요.",
+                  foreground="#b0412b", justify="left").pack(anchor="w", pady=(8, 0))
         bf = ttk.Frame(f)
         bf.pack(fill="x", pady=(10, 0))
 
@@ -5917,8 +5953,10 @@ class App:
             w.destroy()
         ttk.Button(bf, text="나중에", command=w.destroy).pack(side="right")
         ttk.Button(bf, text="이 버전 건너뛰기", command=skip).pack(side="right", padx=4)
-        ttk.Button(bf, text="깃허브에서 받기", style="Accent.TButton",
-                   command=lambda: (__import__("webbrowser").open(info["url"]), w.destroy())).pack(side="right")
+        ttk.Button(bf, text="깃허브에서 보기",
+                   command=lambda: (__import__("webbrowser").open(info["url"]), w.destroy())).pack(side="right", padx=4)
+        ttk.Button(bf, text="새 버전 내려받기", style="Accent.TButton",
+                   command=lambda: (__import__("webbrowser").open(DOWNLOAD_URL), w.destroy())).pack(side="right")
         center_on(w, self.root)
 
     def send_stats(self):
