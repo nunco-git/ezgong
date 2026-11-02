@@ -143,6 +143,7 @@ main{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:8p
 .pad .k.on{background:var(--ink);color:var(--bg)}
 .pad .k .badge{top:1px;right:2px;font-size:8.5px}
 @media (max-width:360px){.pad .k{font-size:17px}}
+a.chip.vs{text-decoration:none;background:var(--right);border-color:var(--right);color:var(--on)}
 </style>
 </head>
 <body>
@@ -151,7 +152,7 @@ main{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:8p
   <header>
     <div class="top">
       <h1><b>엄</b><i>지</i>타자</h1>
-      <div class="right"><nav class="kbsw" aria-label="자판"><a href="./#cji">천지인</a><span class="cur">쿼티</span></nav><button class="chip" id="helpBtn" type="button">사용법</button></div>
+      <div class="right"><nav class="kbsw" aria-label="자판"><a href="./#cji">천지인</a><span class="cur">쿼티</span></nav><a class="chip vs" href="battle.html">대결</a><button class="chip" id="helpBtn" type="button">사용법</button></div>
     </div>
     <div class="tabs" role="group" aria-label="연습 종류">
       <button id="t-jamo" data-mode="jamo" type="button">자리</button>
