@@ -107,6 +107,27 @@ main{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:8p
 .help{font-size:13px;line-height:1.6;color:var(--ink)} .help p{margin:0 0 6px}
 .help code{font-family:var(--f-body);background:var(--bg);padding:1px 5px;border-radius:4px}
 @media (prefers-reduced-motion:reduce){.out .caret{animation:none}.bar i,.k,.thumb{transition:none}}
+.rhythm{display:flex;flex-wrap:wrap;gap:4px;align-items:center;min-height:12px}
+.rhythm i{width:8px;height:8px;border-radius:50%;opacity:.28;transition:opacity .1s,transform .1s}
+.rhythm i.l{background:var(--left)} .rhythm i.r{background:var(--right)}
+.rhythm i.d{opacity:.12}
+.rhythm i.a{opacity:1;background:transparent;box-shadow:inset 0 0 0 2px var(--left)} .rhythm i.r.a{box-shadow:inset 0 0 0 2px var(--right)}
+.rhythm i.n{opacity:1;transform:scale(1.6)}
+.k.al{box-shadow:0 2px 0 var(--key-edge),inset 0 0 0 2px var(--left);outline:1px dashed var(--left);outline-offset:-5px}
+.k.ar{box-shadow:0 2px 0 var(--key-edge),inset 0 0 0 2px var(--right);outline:1px dashed var(--right);outline-offset:-5px}
+.tabs button{font-size:13.5px}
+.ana{display:flex;flex-direction:column;gap:6px}
+.ana h3{margin:0;font-size:14px}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cmp div{border:1px solid var(--line);border-radius:10px;padding:8px}
+.cmp span{font-size:12px;color:var(--muted)} .cmp strong{display:block;font-size:20px;font-variant-numeric:tabular-nums}
+.note{margin:0;font-size:12.5px;color:var(--muted);line-height:1.5}
+.slow{display:flex;flex-wrap:wrap;gap:6px}
+.slow span{font-size:13px;background:var(--bg);border-radius:6px;padding:3px 8px}
+.slow b{color:var(--err);font-weight:600}
+.sheet>div{max-height:calc(100% - 24px);overflow:auto}
+#goWeak{width:100%}
+@media (prefers-reduced-motion:reduce){.rhythm i{transition:none}}
 </style>
 </head>
 <body>
@@ -121,6 +142,8 @@ main{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:8p
       <button id="t-jamo" data-mode="jamo" type="button">자모</button>
       <button id="t-word" data-mode="word" type="button">낱말</button>
       <button id="t-sent" data-mode="sent" type="button">문장</button>
+      <button id="t-rhythm" data-mode="rhythm" type="button">리듬</button>
+      <button id="t-weak" data-mode="weak" type="button">약점</button>
     </div>
     <div class="sub" id="sub"></div>
   </header>
@@ -136,6 +159,7 @@ main{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:8p
       <div class="bar"><i id="progB" style="width:0"></i></div>
       <div class="target" id="target"></div>
       <div class="out" id="out"></div>
+      <div class="rhythm" id="rhythm" aria-label="엄지 순서"></div>
       <div class="guide" id="guide"></div>
     </section>
   </main>
@@ -190,6 +214,8 @@ function plan(str){const G=[];
 if(typeof module!=='undefined'){module.exports={press,render,plan,ser};}
 else{
 const COL={I:0,D:1,E:2,K1:0,K2:1,K3:2,K4:0,K5:1,K6:2,P:0,K7:1,SP:2,BK:3,NX:3};
+const POS={I:[0,0],D:[0,1],E:[0,2],BK:[.5,3],K1:[1,0],K2:[1,1],K3:[1,2],K4:[2,0],K5:[2,1],K6:[2,2],NX:[2.5,3],P:[3,0],K7:[3,1],SP:[3,2]};
+const KL={I:'ㅣ',D:'ㆍ',E:'ㅡ',K1:'ㄱ',K2:'ㄴ',K3:'ㄷ',K4:'ㅂ',K5:'ㅅ',K6:'ㅈ',K7:'ㅇ',P:'.,',SP:'띄움',NX:'→',BK:'⌫'};
 const PAD=[
  ['I','ㅣ',''],['D','ㆍ',''],['E','ㅡ',''],['BK','⌫','tall fn'],
  ['K1','ㄱ','ㅋ'],['K2','ㄴ','ㄹ'],['K3','ㄷ','ㅌ'],
@@ -197,25 +223,71 @@ const PAD=[
  ['P','.,','?!'],['K7','ㅇ','ㅁ'],['SP','␣','']];
 const DATA={
  jamo:{v1:'ㅏㅑㅓㅕㅗㅛㅜㅠㅡㅣ',v2:'ㅐㅒㅔㅖㅘㅙㅚㅝㅞㅟㅢ',c:'ㄱㅋㄲㄴㄹㄷㅌㄸㅂㅍㅃㅅㅎㅆㅈㅊㅉㅇㅁ'},
- word:'사람 학교 친구 가족 오늘 내일 감사 사랑 행복 시간 전화 문자 사진 음식 김치 바다 하늘 나무 꽃밭 할머니 할아버지 어머니 아버지 선생님 병원 약국 은행 시장 회사 공원 날씨 우산 커피 우유 과일 사과 딸기 수박 강아지 고양이 자동차 버스 지하철 기차 비행기 컴퓨터 휴대폰 신문 책상 의자 창문 냉장고 세탁기 생일 축하 안녕 고마워 미안해 맛있다 재미있다 깨끗하다 따뜻하다 쌀쌀하다 읽다 앉다 많이 없다 닭갈비 떡볶이 짜장면 꿈 빵 왜 뭐 웬일 외국 의사 귀여운 예쁜 얘기 쉬다 뛰다 괜찮아 화요일 원숭이 횡단보도 뒤꿈치 왕관 쾌활한'.split(' '),
+ word:('사람 학교 친구 가족 오늘 내일 감사 사랑 행복 시간 전화 문자 사진 음식 김치 바다 하늘 나무 꽃밭 할머니 할아버지 어머니 아버지 선생님 병원 약국 은행 시장 회사 공원 날씨 우산 커피 우유 과일 사과 딸기 수박 강아지 고양이 자동차 버스 지하철 기차 비행기 컴퓨터 휴대폰 신문 책상 의자 창문 냉장고 세탁기 생일 축하 안녕 고마워 미안해 맛있다 재미있다 깨끗하다 따뜻하다 쌀쌀하다 읽다 앉다 많이 없다 닭갈비 떡볶이 짜장면 꿈 빵 왜 뭐 웬일 외국 의사 귀여운 예쁜 얘기 쉬다 뛰다 괜찮아 화요일 원숭이 횡단보도 뒤꿈치 왕관 쾌활한 '+
+   '회의 보고서 결재 출장 퇴근 출근 점심 저녁 아침 주말 휴가 여행 기념일 약속 연락 도착 출발 확인 감사합니다 수고하셨습니다 '+
+   '알겠습니다 부탁해요 좋아요 그래요 네 아니요 잠깐만 지금 나중에 오늘밤 내일모레 어제 그제 금요일 토요일 일요일 월요일 수요일 목요일 '+
+   '사무실 주차장 엘리베이터 계단 화장실 편의점 마트 식당 카페 미용실 우체국 도서관 운동장 놀이터 아파트 '+
+   '김밥 라면 비빔밥 된장찌개 불고기 삼겹살 치킨 피자 햄버거 아이스크림 케이크 초콜릿 사탕 빵집 '+
+   '하나 둘 셋 넷 다섯 여섯 일곱 여덟 아홉 열 백 천 만 '+
+   '봄 여름 가을 겨울 바람 눈 비 구름 햇빛 무지개 단풍 벚꽃').split(' '),
  sent:['천 리 길도 한 걸음부터.','가는 말이 고와야 오는 말이 곱다.','낮말은 새가 듣고 밤말은 쥐가 듣는다.','세 살 버릇 여든까지 간다.','티끌 모아 태산.','백지장도 맞들면 낫다.','아니 땐 굴뚝에 연기 날까?','원숭이도 나무에서 떨어진다.','등잔 밑이 어둡다.','소 잃고 외양간 고친다.','고생 끝에 낙이 온다.','오늘 저녁에 뭐 먹을까?','지금 출발했어요. 곧 도착해요.','회의는 내일 오전 열 시에 시작합니다.','생일 축하해요! 행복한 하루 보내세요.','비가 오니까 우산 꼭 챙기세요.','점심 같이 먹을래요?','사진 잘 받았어요. 고마워요!','조금 늦을 것 같아요. 미안해요.','주말에 시간 괜찮으세요?','감기 조심하고 따뜻하게 입어요.','집에 도착하면 연락 주세요.','엄마, 오늘 저녁은 집에서 먹을게요.','길이 많이 막혀서 조금 늦어요.','다음 주에 같이 영화 보러 갈래?']};
 const STAGES={v1:'기본 모음',v2:'겹모음',c:'자음',mix:'섞어서'};
-const N={jamo:20,word:12,sent:5};
-const S={mode:'jamo',stage:'v1',hint:true,mid:'alt',items:[],idx:0,T:[],pl:null,start:null,presses:0,wrong:0,chars:0,ok:true,busy:false,tick:null};
+const RSTAGES={r1:'짧은 낱말',r2:'긴 낱말',r3:'짧은 문장'};
+const N={jamo:20,word:12,sent:5,rhythm:12,weak:12};
+const MODE_NAME={jamo:'자모',word:'낱말',sent:'문장',rhythm:'리듬',weak:'약점'};
+const S={mode:'jamo',stage:'v1',rstage:'r1',hint:true,mid:'auto',items:[],idx:0,T:[],pl:null,start:null,presses:0,wrong:0,chars:0,ok:true,busy:false,tick:null,lastT:null,iv:[]};
 const $=id=>document.getElementById(id);
 const store={get(k,d){try{const v=localStorage.getItem('cji-'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('cji-'+k,JSON.stringify(v))}catch(e){}}};
-Object.assign(S,store.get('prefs',{}));
+Object.assign(S,store.get('prefs',{}));if(S.mid==='alt')S.mid='auto';
 const best=store.get('best',{});
-const bestKey=()=>S.mode==='jamo'?'jamo-'+S.stage:S.mode;
+const pairs=store.get('pairs',{}); // "K1>I": [count, totalMs]
+const bestKey=()=>S.mode==='jamo'?'jamo-'+S.stage:S.mode==='rhythm'?'rhythm-'+S.rstage:S.mode;
 function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a}
+
+// ── 엄지 배정: 글자 전체 키 순서를 보고 비용이 가장 작은 왼/오 배정을 찾는다 ──
+// 비용 = 같은 엄지로 연달아 누르기(가장 느림) + 엄지 이동 거리. 다른 엄지로 넘기면
+// 그 엄지는 앞 타를 치는 동안 미리 움직일 수 있어 이동 비용을 덜 받는다.
+const dist=(a,b)=>Math.hypot(POS[a][0]-POS[b][0],POS[a][1]-POS[b][1]);
+function allowed(k){const c=COL[k];if(c===0)return['L'];if(c>=2)return['R'];if(S.mid==='L'||S.mid==='R')return[S.mid];return['L','R']}
+function thumbs(P){if(!P.length)return[];
+  let cur=new Map([['-|K1|K3',{c:0,path:[]}]]); // 시작: 왼 엄지 ㄱ 근처, 오른 엄지 ㄷ 근처
+  P.forEach((k,i)=>{const nx=new Map();
+    for(const[key,v]of cur){const[prev,lp,rp]=key.split('|');
+      for(const t of allowed(k)){
+        if(i>0&&k===P[i-1]&&t!==prev)continue; // 같은 키 연타는 같은 엄지로
+        const from=t==='L'?lp:rp,d=dist(from,k);let c;
+        if(prev==='-')c=d*.4;
+        else if(t===prev)c=k===P[i-1]?.7:1+d*.6;   // 같은 엄지 연속
+        else c=.45+Math.max(0,d-1)*.35;           // 엄지 교대(이동을 미리 해 둘 수 있음)
+        const nk=t+'|'+(t==='L'?k:lp)+'|'+(t==='R'?k:rp),tot=v.c+c;
+        if(!nx.has(nk)||nx.get(nk).c>tot)nx.set(nk,{c:tot,path:v.path.concat(t)})}}
+    cur=nx});
+  let bestV=null;for(const v of cur.values())if(!bestV||v.c<bestV.c)bestV=v;return bestV.path}
+const altRatio=p=>{const th=thumbs(p.P);let s=0;for(let i=1;i<th.length;i++)if(th[i]!==th[i-1])s++;return th.length>1?s/(th.length-1):0};
+
+// ── 약점 분석 ──
+const pairKey=(a,b)=>a+'>'+b;
+const pairLabel=pk=>{const[a,b]=pk.split('>');return a===b?KL[a]+' 연타':KL[a]+' → '+KL[b]};
+function pairAvg(pk){const v=pairs[pk];return v&&v[0]>=3?v[1]/v[0]:null}
+function globalAvg(){let n=0,s=0;for(const v of Object.values(pairs)){n+=v[0];s+=v[1]}return n?s/n:null}
+function pairCount(){let n=0;for(const v of Object.values(pairs))n+=v[0];return n}
+function slowPairs(lim){const g=globalAvg();if(!g)return[];
+  return Object.keys(pairs).map(pk=>({pk,avg:pairAvg(pk)})).filter(x=>x.avg&&x.avg>g*1.1).sort((a,b)=>b.avg-a.avg).slice(0,lim)}
+function weakScore(w){const p=plan(w),g=globalAvg();let s=0;
+  for(let i=1;i<p.P.length;i++){const a=pairAvg(pairKey(p.P[i-1],p.P[i]));if(a&&a>g)s+=(a-g)}return s/Math.sqrt(p.P.length)}
+
 function makeItems(){let out=[];
   if(S.mode==='jamo'){const pool=[...(S.stage==='mix'?DATA.jamo.v1+DATA.jamo.v2+DATA.jamo.c:DATA.jamo[S.stage])];
     while(out.length<N.jamo){const x=pool[Math.random()*pool.length|0];if(x!==out[out.length-1])out.push(x)}}
+  else if(S.mode==='rhythm'){
+    let pool=S.rstage==='r3'?DATA.sent:DATA.word.filter(w=>S.rstage==='r1'?w.length<=2:w.length>=3);
+    const scored=pool.map(w=>({w,r:altRatio(plan(w))})).sort((a,b)=>b.r-a.r);
+    const n=S.rstage==='r3'?5:N.rhythm;out=shuffle(scored.slice(0,Math.max(n*2,n)).map(x=>x.w)).slice(0,n)}
+  else if(S.mode==='weak'){
+    if(pairCount()<40)out=shuffle(DATA.word).slice(0,N.weak);
+    else{const sc=DATA.word.map(w=>({w,s:weakScore(w)})).sort((a,b)=>b.s-a.s);out=shuffle(sc.slice(0,24).map(x=>x.w)).slice(0,N.weak)}}
   else out=shuffle(DATA[S.mode]).slice(0,N[S.mode]);return out}
-// thumbs along the planned sequence
-function thumbs(P){let prev=null,pk=null;return P.map(k=>{let t;const c=COL[k];
-  if(c===0)t='L';else if(c>=2)t='R';else if(k===pk)t=prev;else if(S.mid==='L'||S.mid==='R')t=S.mid;else t=prev==='L'?'R':'L';
-  prev=t;pk=k;return t})}
+
 // pad
 const pad=$('pad');
 PAD.forEach(([k,a,b])=>{const el=document.createElement('button');el.type='button';el.className='k';el.id='k-'+k;el.dataset.k=k;
@@ -230,29 +302,42 @@ const KB={'1':'I','2':'D','3':'E','4':'K1','5':'K2','6':'K3','7':'K4','8':'K5','
 document.addEventListener('keydown',e=>{if(!$('sheet').hidden||e.target.tagName==='SELECT')return;const k=KB[e.key];if(k){e.preventDefault();hit(k)}});
 function flash(k){const el=$('k-'+k);if(!el)return;el.classList.add('down');setTimeout(()=>el.classList.remove('down'),90)}
 function hit(k){if(S.busy||!$('sheet').hidden)return;flash(k);
+  const now=performance.now();
   if(!S.start){S.start=Date.now();S.tick=setInterval(stats,500)}
-  const was=S.ok;press(S.T,k);if(k!=='BK')S.presses++;
-  S.ok=S.pl.states.has(ser(S.T));if(!S.ok&&k!=='BK'&&was)S.wrong++;
+  const was=S.ok,pk=was?S.pl.states.get(ser(S.T)):null;
+  press(S.T,k);if(k!=='BK')S.presses++;
+  const nk=S.pl.states.get(ser(S.T));S.ok=nk!==undefined;if(!S.ok&&k!=='BK'&&was)S.wrong++;
+  // 키 사이 시간 기록: 바르게 한 타 나아갔을 때만
+  if(was&&S.ok&&k!=='BK'&&pk>=1&&nk===pk+1&&S.lastT!=null&&S.lastGood){const dt=now-S.lastT;
+    if(dt>40&&dt<2500){const key=pairKey(S.pl.P[pk-1],S.pl.P[pk]);const v=pairs[key]||[0,0];
+      if(v[0]>=60){v[0]*=.9;v[1]*=.9}v[0]++;v[1]+=dt;pairs[key]=v;
+      S.iv.push({dt,same:S.pl.th[pk-1]===S.pl.th[pk],key})}}
+  S.lastT=now;S.lastGood=S.ok&&k!=='BK';
   draw();if(render(S.T)===S.items[S.idx])complete()}
 function complete(){S.busy=true;S.chars+=S.items[S.idx].replace(/\s/g,'').length;stats();
-  $('target').querySelectorAll('span').forEach(s=>s.className='done');
+  $('target').querySelectorAll('span').forEach(s=>s.className='done');store.set('pairs',pairs);
   setTimeout(()=>{S.busy=false;S.idx++;if(S.idx>=S.items.length)finish();else loadItem()},S.mode==='jamo'?160:380)}
 function elapsed(){return S.start?(Date.now()-S.start)/1000:0}
 function speed(){const t=elapsed();return t>2?Math.round(S.chars/(t/60)):0}
 function acc(){return S.presses?Math.max(0,Math.round(100*(1-S.wrong/S.presses))):100}
 function fmt(t){t=Math.floor(t);return Math.floor(t/60)+':'+String(t%60).padStart(2,'0')}
 function stats(){$('sSpeed').textContent=speed();$('sAcc').textContent=acc()+'%';$('sTime').textContent=fmt(elapsed());const b=best[bestKey()];$('sBest').textContent=b?b.speed:'–'}
-function loadItem(){S.T=[];S.ok=true;S.pl=plan(S.items[S.idx]);S.pl.th=thumbs(S.pl.P);draw()}
+function loadItem(){S.T=[];S.ok=true;S.lastT=null;S.lastGood=false;S.pl=plan(S.items[S.idx]);S.pl.th=thumbs(S.pl.P);draw()}
 function draw(){const tgt=S.items[S.idx],pl=S.pl,out=render(S.T);
   const k=S.ok?pl.states.get(ser(S.T)):null;
   $('progT').textContent=(S.idx+1)+' / '+S.items.length;$('progB').style.width=(S.idx/S.items.length*100)+'%';
-  $('stageT').textContent=S.mode==='jamo'?STAGES[S.stage]:S.mode==='word'?'낱말':'문장';
+  $('stageT').textContent=S.mode==='jamo'?STAGES[S.stage]:S.mode==='rhythm'?'리듬 · '+RSTAGES[S.rstage]:MODE_NAME[S.mode];
   const cur=k!=null&&k<pl.P.length?pl.C[k]:(k===pl.P.length?tgt.length:-1);
-  const tg=$('target');tg.className='target '+S.mode;
+  const tg=$('target');tg.className='target '+(S.mode==='jamo'?'jamo':(S.mode==='sent'||(S.mode==='rhythm'&&S.rstage==='r3'))?'sent':'word');
   const lastGood=S.ok?cur:[...tgt].findIndex((c,i)=>c!==out[i]);
   tg.innerHTML=[...tgt].map((c,i)=>'<span class="'+(i<(S.ok?cur:Math.max(lastGood,0))?'done':i===(S.ok?cur:lastGood)?'cur':'todo')+'">'+(c===' '?'&nbsp;':esc(c))+'</span>').join('');
   let oh;if(S.ok)oh=esc(out);else{let p=0;while(p<out.length&&out[p]===tgt[p])p++;oh=esc(out.slice(0,p))+'<span class="bad">'+esc(out.slice(p))+'</span>'}
   $('out').innerHTML=oh+'<span class="caret"></span>';
+  // 엄지 리듬 줄
+  const rh=$('rhythm');
+  if(S.hint){const kk=S.ok?k:-1;rh.hidden=false;
+    rh.innerHTML=pl.th.map((t,i)=>'<i class="'+t.toLowerCase()+(i<kk?' d':'')+(i===kk?' n':(kk>=0&&i>kk&&i<=kk+3)?' a':'')+'" title="'+KL[pl.P[i]]+'"></i>').join('')}
+  else rh.hidden=true;
   // guide
   const g=$('guide');
   if(!S.ok)g.innerHTML='<span class="warn">틀렸어요. ⌫ 로 지우고 다시 눌러 보세요.</span>';
@@ -260,43 +345,63 @@ function draw(){const tgt=S.items[S.idx],pl=S.pl,out=render(S.T);
     g.innerHTML='<span>「'+esc(tgt[pl.C[k]]===' '?'띄움':tgt[pl.C[k]])+'」</span>'+groups.map(x=>'<span class="step '+(x.b<=k?'past':x.a<=k?'now':'')+'">'+esc(x.label)+'</span>').join('')}
   else g.innerHTML=S.hint?'':'<span>힌트 꺼짐</span>';
   // keys
-  document.querySelectorAll('.k').forEach(el=>{el.classList.remove('nl','nr');const b=el.querySelector('.badge');if(b)b.remove()});
+  document.querySelectorAll('.k').forEach(el=>{el.classList.remove('nl','nr','al','ar');const b=el.querySelector('.badge');if(b)b.remove()});
   let nk=null,th=null;if(S.hint){if(!S.ok){nk='BK';th='R'}else if(k<pl.P.length){nk=pl.P[k];th=pl.th[k]}}
   if(nk){const el=$('k-'+nk);el.classList.add(th==='L'?'nl':'nr');const b=document.createElement('span');b.className='badge';b.textContent=th==='L'?'왼':'오';el.appendChild(b)}
+  if(S.hint&&S.ok&&k+1<pl.P.length&&pl.P[k+1]!==nk)$('k-'+pl.P[k+1]).classList.add(pl.th[k+1]==='L'?'al':'ar');
   $('thL').classList.toggle('on',th==='L');$('thR').classList.toggle('on',th==='R')}
 function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'})[c])}
-function finish(){clearInterval(S.tick);const sp=speed(),ac=acc(),t=elapsed(),key=bestKey(),old=best[key];
+function avgMs(a){return a.length?Math.round(a.reduce((s,x)=>s+x.dt,0)/a.length):null}
+function analysisHTML(){const same=S.iv.filter(x=>x.same),alt=S.iv.filter(x=>!x.same);
+  let h='<div class="ana"><h3>엄지 분석</h3>';
+  const a=avgMs(alt),s=avgMs(same);
+  h+='<div class="cmp"><div><span>엄지 교대</span><strong>'+(a!=null?a+'ms':'–')+'</strong></div><div><span>같은 엄지 연속</span><strong>'+(s!=null?s+'ms':'–')+'</strong></div></div>';
+  if(a!=null&&s!=null)h+='<p class="note">'+(s>a?'같은 엄지로 연달아 칠 때가 '+Math.round((s/a-1)*100)+'% 느려요. 색 표시대로 엄지를 바꿔 치면 빨라져요.':'엄지 교대가 아직 익숙하지 않아요. 리듬 연습으로 번갈아 치기를 익혀 보세요.')+'</p>';
+  const sp=slowPairs(3);
+  if(sp.length)h+='<p class="note">느린 키 조합 (누적)</p><div class="slow">'+sp.map(x=>'<span>'+esc(pairLabel(x.pk))+' <b>'+Math.round(x.avg)+'ms</b></span>').join('')+'</div>';
+  else h+='<p class="note">기록이 더 쌓이면 느린 키 조합을 알려 드려요. ('+Math.round(pairCount())+' / 40타)</p>';
+  return h+'</div>'}
+function finish(){clearInterval(S.tick);store.set('pairs',pairs);const sp=speed(),ac=acc(),t=elapsed(),key=bestKey(),old=best[key];
   const isNew=!old||sp>old.speed;if(isNew){best[key]={speed:sp,acc:ac};store.set('best',best)}
   $('progB').style.width='100%';
-  const nextStage=S.mode==='jamo'?{v1:'v2',v2:'c',c:'mix',mix:'mix'}[S.stage]:null;
+  const nextStage=S.mode==='jamo'?{v1:'v2',v2:'c',c:'mix',mix:'mix'}[S.stage]:S.mode==='rhythm'?{r1:'r2',r2:'r3',r3:'r3'}[S.rstage]:null;
+  const cur=S.mode==='jamo'?S.stage:S.rstage,nn=S.mode==='jamo'?STAGES[nextStage]:RSTAGES[nextStage];
   $('sheetBody').innerHTML='<h2>연습 끝!</h2>'+(isNew&&sp?'<div class="new">새 최고 기록이에요.</div>':'')+
    '<div class="res"><div><span>속도</span><strong>'+sp+'<small style="font-size:14px"> 자/분</small></strong></div><div><span>정확도</span><strong>'+ac+'%</strong></div><div><span>걸린 시간</span><strong>'+fmt(t)+'</strong></div><div><span>최고 기록</span><strong>'+(best[key]?best[key].speed:sp)+'</strong></div></div>'+
-   '<div class="row"><button id="again" type="button">한 번 더</button>'+(nextStage&&nextStage!==S.stage?'<button class="pri" id="next" type="button">다음: '+STAGES[nextStage]+'</button>':'<button class="pri" id="next" type="button">새 문제로</button>')+'</div>';
+   (S.mode!=='jamo'?analysisHTML():'')+
+   '<div class="row"><button id="again" type="button">한 번 더</button>'+(nextStage&&nextStage!==cur?'<button class="pri" id="next" type="button">다음: '+nn+'</button>':'<button class="pri" id="next" type="button">새 문제로</button>')+'</div>'+
+   (S.mode!=='weak'&&S.mode!=='jamo'&&pairCount()>=40?'<button id="goWeak" type="button">약점 낱말로 연습하기</button>':'');
   $('sheet').hidden=false;
   $('again').onclick=()=>{$('sheet').hidden=true;newSession(false)};
-  $('next').onclick=()=>{$('sheet').hidden=true;if(nextStage)S.stage=nextStage;savePrefs();renderSub();newSession(true)}}
+  $('next').onclick=()=>{$('sheet').hidden=true;if(nextStage){if(S.mode==='jamo')S.stage=nextStage;else S.rstage=nextStage}savePrefs();renderSub();newSession(true)};
+  if($('goWeak'))$('goWeak').onclick=()=>{$('sheet').hidden=true;S.mode='weak';savePrefs();renderSub();newSession(true)}}
 function newSession(fresh){clearInterval(S.tick);const keep=S.items;S.items=fresh||!keep.length?makeItems():keep;
-  Object.assign(S,{idx:0,start:null,presses:0,wrong:0,chars:0,busy:false});stats();loadItem()}
-function savePrefs(){store.set('prefs',{mode:S.mode,stage:S.stage,hint:S.hint,mid:S.mid})}
+  Object.assign(S,{idx:0,start:null,presses:0,wrong:0,chars:0,busy:false,iv:[]});stats();loadItem()}
+function savePrefs(){store.set('prefs',{mode:S.mode,stage:S.stage,rstage:S.rstage,hint:S.hint,mid:S.mid})}
 function renderSub(){document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.mode===S.mode));
   const sub=$('sub');let h='';
   if(S.mode==='jamo')h+=Object.entries(STAGES).map(([k,v])=>'<button type="button" class="chip" data-st="'+k+'" aria-pressed="'+(S.stage===k)+'">'+v+'</button>').join('');
+  else if(S.mode==='rhythm')h+=Object.entries(RSTAGES).map(([k,v])=>'<button type="button" class="chip" data-rs="'+k+'" aria-pressed="'+(S.rstage===k)+'">'+v+'</button>').join('');
+  else if(S.mode==='weak')h+='<span>'+(pairCount()<40?'기록 '+Math.round(pairCount())+'/40타 · 지금은 섞어서 연습':'느린 키 조합이 많은 낱말 12개')+'</span>';
   else h+='<span>'+(S.mode==='word'?'자주 쓰는 낱말 12개':'속담·생활 문장 5개')+'</span>';
   h+='<span class="sp"></span><label><input type="checkbox" id="hintCk" '+(S.hint?'checked':'')+'> 힌트</label>'+
-     '<label>가운데 키 <select id="midSel"><option value="alt">번갈아</option><option value="L">왼 엄지</option><option value="R">오른 엄지</option></select></label>';
+     '<label>가운데 키 <select id="midSel"><option value="auto">자동</option><option value="L">왼 엄지</option><option value="R">오른 엄지</option></select></label>';
   sub.innerHTML=h;$('midSel').value=S.mid;
   sub.querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>{S.stage=b.dataset.st;savePrefs();renderSub();newSession(true)});
+  sub.querySelectorAll('[data-rs]').forEach(b=>b.onclick=()=>{S.rstage=b.dataset.rs;savePrefs();renderSub();newSession(true)});
   $('hintCk').onchange=e=>{S.hint=e.target.checked;savePrefs();draw()};
   $('midSel').onchange=e=>{S.mid=e.target.value;savePrefs();S.pl.th=thumbs(S.pl.P);draw()}}
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{S.mode=b.dataset.mode;savePrefs();renderSub();newSession(true)});
-$('retry').onclick=()=>{S.T=[];S.ok=true;draw()};
+$('retry').onclick=()=>{S.T=[];S.ok=true;S.lastT=null;draw()};
 $('skip').onclick=()=>{if(S.busy)return;S.idx++;if(S.idx>=S.items.length)finish();else loadItem()};
 $('restart').onclick=()=>newSession(true);
 $('helpBtn').onclick=()=>{$('sheetBody').innerHTML='<h2>사용법</h2><div class="help">'+
  '<p><b>천지인 모음</b> — <code>ㅣ</code><code>ㆍ</code><code>ㅡ</code>를 순서대로 눌러 만들어요. ㅏ = ㅣㆍ, ㅓ = ㆍㅣ, ㅗ = ㆍㅡ, ㅜ = ㅡㆍ, ㅐ = ㅣㆍㅣ, ㅘ = ㆍㅡㅣㆍ</p>'+
  '<p><b>자음</b> — 같은 키를 더 누르면 바뀌어요. ㄱ → ㅋ → ㄲ, ㄴ → ㄹ, ㅇ → ㅁ</p>'+
  '<p><b>→ 넘김</b> — 같은 키 자음을 연달아 쓸 때 눌러요. 예) 각기 = ㄱ ㅣㆍ ㄱ <code>→</code> ㄱ ㅣ</p>'+
- '<p><b>두 엄지</b> — 왼쪽 줄은 <span style="color:var(--left);font-weight:700">왼 엄지</span>, 오른쪽 줄은 <span style="color:var(--right);font-weight:700">오른 엄지</span>. 가운데 줄은 기본으로 두 엄지가 번갈아 맡아요. 다음 누를 키가 그 엄지 색으로 켜져요.</p>'+
+ '<p><b>두 엄지</b> — 왼쪽 줄은 <span style="color:var(--left);font-weight:700">왼 엄지</span>, 오른쪽 줄은 <span style="color:var(--right);font-weight:700">오른 엄지</span>. 가운데 줄(ㆍ ㄴ ㅅ ㅇ)은 글자 전체의 키 순서를 보고, 같은 엄지로 연달아 치는 일과 엄지 이동이 가장 적은 쪽을 자동으로 골라 줘요.</p>'+
+ '<p><b>엄지 순서 줄</b> — 글자 아래 점이 이 낱말을 칠 엄지 순서예요. 큰 점이 지금 칠 키, 테두리 점이 다음 세 타예요. 자판에서도 다음 키는 색으로 채워지고, 그다음 키는 점선 테두리로 보여요.</p>'+
+ '<p><b>리듬</b> — 왼·오를 번갈아 치는 비율이 높은 낱말로 교대 리듬을 익혀요. <b>약점</b> — 키와 키 사이 시간을 기록해 두었다가, 느린 조합이 많이 든 낱말을 골라 줘요.</p>'+
  '<p>PC에서는 숫자 1~0, 스페이스, 백스페이스, → 키로도 칠 수 있어요.</p></div><div class="row"><button class="pri" id="closeH" type="button">닫기</button></div>';
  $('sheet').hidden=false;$('closeH').onclick=()=>{$('sheet').hidden=true}};
 renderSub();newSession(true);
