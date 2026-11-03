@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>중국어 학습 - 간체자 꼬리잡기 - 스마트공</title>
+<meta name="description" content="간판·거리·신문에 자주 나오는 간체자를 비슷한 모양·발음으로 묶어 꼬리에 꼬리를 물고 익히는 중국어 학습 앱.">
+<link rel="icon" href="/smartgong_logo_icon.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Noto+Sans+SC:wght@400;700;900&family=Noto+Sans:wght@400;600;700&display=swap">
+<style>
+/* 레이아웃: 파란 도로표지판 느낌의 글자판 + 꼬리잡기 사슬 + 연결 칩 */
+:root{
+  --bg:#eceff3; --surface:#ffffff; --ink:#14202c; --muted:#556271; --line:#d3dae2;
+  --sign:#0d4f8b; --sign-ink:#ffffff; --red:#c4301c; --soft:#e3edf7;
+  --t1:#1d62c9; --t2:#1b7a43; --t3:#9a5700; --t4:#c4301c; --t5:#667381; --ok:#1b7a43;
+  --f-han:'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;
+  --f-kr:'Noto Sans KR','Malgun Gothic','Apple SD Gothic Neo',system-ui,sans-serif;
+  --f-py:'Noto Sans','Segoe UI',system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f161d; --surface:#18222c; --ink:#e8eef4; --muted:#9fadbb; --line:#2b3947;
+  --sign:#1a63aa; --red:#ff7a64; --soft:#14283a;
+  --t1:#74acff; --t2:#5fcf8a; --t3:#f2b445; --t4:#ff7a64; --t5:#9fadbb; --ok:#5fcf8a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f161d; --surface:#18222c; --ink:#e8eef4; --muted:#9fadbb; --line:#2b3947;
+  --sign:#1a63aa; --red:#ff7a64; --soft:#14283a;
+  --t1:#74acff; --t2:#5fcf8a; --t3:#f2b445; --t4:#ff7a64; --t5:#9fadbb; --ok:#5fcf8a; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 var(--f-kr);padding-block:0 56px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:10}
+.wrap{max-width:1000px;margin:0 auto}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+.top{display:flex;gap:16px;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;padding:22px 0 14px}
+h1{margin:0;font-size:1.7rem;font-weight:900;letter-spacing:-.01em;text-wrap:balance}
+.sub{margin:2px 0 0;color:var(--muted);font-size:.92rem}
+.prog{min-width:190px;font-size:.85rem;color:var(--muted)}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:5px}
+.bar i{display:block;height:100%;background:var(--red)}
+.tabs{display:flex;gap:2px;border-bottom:2px solid var(--line);overflow-x:auto;position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:5}
+.tabs{scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}
+.tabs button{background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-2px;padding:12px 11px;font-size:.95rem;font-weight:700;color:var(--muted);white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--red)}
+.trail{display:flex;align-items:center;gap:4px;overflow-x:auto;padding:14px 0 6px}
+.trail .tr{flex:none;width:42px;height:42px;border:1px solid var(--line);background:var(--surface);border-radius:8px;font:700 1.25rem var(--f-han)}
+.trail .tr[aria-current="true"]{background:var(--sign);border-color:var(--sign);color:#fff}
+.trail .ar{flex:none;color:var(--muted)}
+.trail .lab{flex:none;font-size:.8rem;color:var(--muted);margin-right:6px}
+.trail .clr{flex:none;margin-left:8px;background:none;border:0;color:var(--muted);text-decoration:underline;font-size:.85rem}
+.study{display:grid;grid-template-columns:minmax(220px,290px) minmax(0,1fr);gap:22px;align-items:start;margin-top:10px}
+.plate{background:var(--sign);padding:10px;border-radius:14px}
+.plate-in{border:3px solid #fff;border-radius:8px;aspect-ratio:1/1;display:grid;place-items:center;color:#fff}
+.big{font:900 clamp(110px,24vw,170px)/1 var(--f-han)}
+.plate-foot{color:#fff;font-size:.82rem;text-align:center;padding-top:8px}
+.py{font:600 2.1rem/1.2 var(--f-py)}
+.py i{font-style:normal;color:var(--muted);padding:0 4px}
+.t1{color:var(--t1)}.t2{color:var(--t2)}.t3{color:var(--t3)}.t4{color:var(--t4)}.t5{color:var(--t5)}
+.meta{display:grid;gap:4px;margin:8px 0 12px}
+.meta b{display:inline-block;min-width:6.4em;color:var(--muted);font-weight:500;font-size:.85rem}
+.mean{font-size:1.2rem;font-weight:700}
+.tip{margin:10px 0 0;padding:10px 12px;background:var(--soft);border-radius:8px;font-size:.92rem}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 14px;font-weight:700}
+.btn.pri{background:var(--red);border-color:var(--red);color:#fff}
+.btn.on{border-color:var(--ok);color:var(--ok)}
+.no-tts .say{display:none}
+.btn.say{margin-left:0}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:14px}
+.box h2{margin:0 0 10px;font-size:.95rem;color:var(--muted);font-weight:700}
+.wd{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 14px;padding:8px 0;border-top:1px solid var(--line)}
+.wd:first-of-type{border-top:0}
+.wz{font:700 1.5rem var(--f-han)}
+.wz button:not(.say),.sent button:not(.say){background:none;border:0;border-bottom:2px dotted var(--sign);padding:0;font:inherit;color:inherit}
+.wz mark,.sent mark{background:var(--soft);color:inherit;border-radius:3px}
+.wp{font-family:var(--f-py);font-weight:600}
+.wm{grid-column:2;color:var(--muted);font-size:.92rem}
+.sent{font:500 1.5rem/1.7 var(--f-han)}
+.sp{font-family:var(--f-py);color:var(--muted);margin-top:2px}
+.sk{margin-top:2px}
+.say{margin-left:8px;border:1px solid var(--line);background:none;border-radius:6px;padding:0 8px;font-size:.78rem;color:var(--muted)}
+.rel{margin-top:18px}
+.rel h3{margin:0 0 4px;font-size:1rem;padding-left:10px;border-left:5px solid var(--rc)}
+.rel p{margin:0 0 8px 15px;color:var(--muted);font-size:.88rem}
+.chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:8px}
+.chip{display:flex;gap:12px;align-items:center;text-align:left;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.chip:hover{border-color:var(--sign)}
+.chip .cc{font:700 1.9rem/1 var(--f-han);min-width:1.1em}
+.chip .ct{display:grid;min-width:0}
+.chip .cp{font:600 .95rem var(--f-py)}
+.chip .cm{color:var(--muted);font-size:.85rem;overflow-wrap:anywhere}
+.chip .cw{font-size:.75rem;color:var(--muted)}
+.chip.done{border-color:var(--ok)}
+.hint{color:var(--muted);font-size:.9rem;margin:14px 0 0}
+.grp{margin-top:14px}
+.grp .gt{font-weight:700;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.tag{font-size:.75rem;font-weight:700;border:1px solid var(--line);border-radius:999px;padding:0 8px;color:var(--muted)}
+.gn{margin:4px 0 10px;color:var(--muted);font-size:.92rem}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:14px 0 10px}
+input[type=search]{font:inherit;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);min-width:0;flex:1 1 180px}
+.fb{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 12px;font-size:.88rem}
+.fb[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px}
+.tile{position:relative;display:grid;gap:0;justify-items:center;padding:10px 6px;border:1px solid var(--line);background:var(--surface);border-radius:10px}
+.tile:hover{border-color:var(--sign)}
+.tile .tc{font:700 2rem/1.2 var(--f-han)}
+.tile .tp{font:600 .9rem var(--f-py)}
+.tile .tm{font-size:.78rem;color:var(--muted);text-align:center;overflow-wrap:anywhere}
+.tile.done{border-color:var(--ok)}
+.tile .ck{position:absolute;top:4px;right:6px;font-size:.7rem;color:var(--ok);font-weight:700}
+.qbig{font:900 7rem/1.1 var(--f-han);text-align:center;color:#fff;background:var(--sign);border-radius:14px;padding:10px 0;margin-bottom:14px}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+.opt{padding:12px;border:2px solid var(--line);background:var(--surface);border-radius:10px;font-weight:700;font-size:1.05rem}
+.opt.right{border-color:var(--ok);background:var(--soft)}
+.opt.wrong{border-color:var(--red)}
+.fb2{margin:12px 0;font-weight:700}
+.score{color:var(--muted);font-size:.9rem}
+@media (max-width:700px){.study{grid-template-columns:minmax(0,1fr)}.plate{max-width:300px}.py{font-size:1.8rem}}
+@media (prefers-reduced-motion:no-preference){.chip,.tile,.btn{transition:border-color .15s}}
+</style>
+</head>
+<body>
+<style>
+.zhbar{max-width:1000px;margin:0 auto;padding:10px 0 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.85rem}
+.zhbar a{color:var(--muted);text-decoration:none}
+.zhbar a.home:hover{color:var(--ink)}
+.zhbar .sw{display:flex;gap:4px;margin-left:auto;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px}
+.zhbar .sw a{padding:6px 14px;border-radius:999px;font-weight:700;color:var(--muted)}
+.zhbar .sw a[aria-current="page"]{background:var(--sign);color:#fff}
+.zhbar a:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+</style>
+<div class="zhbar"><a class="home" href="/">← 스마트공 홈</a><a class="home" href="/more/">기타 앱</a>
+<nav class="sw" aria-label="중국어 학습 메뉴"><a href="/chinese/hanzi.html" aria-current="page">간체자</a><a href="/chinese/">HSK 1~5급</a></nav></div>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>간체자 꼬리잡기</h1>
+      <p class="sub">간판·거리·신문에 자주 나오는 글자를 모양, 소리, 단어로 이어 배워요</p>
+    </div>
+    <div class="prog" id="prog"></div>
+  </header>
+  <nav class="tabs" id="tabs" aria-label="학습 메뉴"></nav>
+  <main id="app"></main>
+</div>
+<script>
+// ---- 데이터 도우미 ----
+// C(글자, 병음, 한자음, 뜻, 번체, [[단어, 병음(음절별 띄어쓰기), 뜻]...], [예문, 병음, 번역], 팁)
+const D=[]; let CAT='';
+function cat(n){CAT=n}
+function C(ch,py,kr,mean,trad,words,ex,tip){
+  D.push({ch,py,kr,mean,trad,words:words.map(w=>({w:w[0],py:w[1],m:w[2]})),ex:{z:ex[0],py:ex[1],k:ex[2]},tip:tip||'',cat:CAT});
+}
+// g(종류, 제목, 글자들, 설명) 종류: shape(모양/부품) | pair(짝·반대말)
+const G=[];
+function g(type,title,chars,note){G.push({type,title,chars:[...chars],note})}
+cat('기본 표지');
+C("门","mén","문","문","門",[["大门","dà mén","대문, 정문"],["门口","mén kǒu","문 앞, 입구"]],["门口有一家咖啡店。","Ménkǒu yǒu yì jiā kāfēidiàn.","입구에 커피숍이 하나 있다."],"네모난 문틀 모양이에요. 问·间·闻 같은 글자의 문틀(门) 부분이기도 해요.");
+C("开","kāi","개","열다, 켜다","開",[["开门","kāi mén","문을 열다"],["开业","kāi yè","개업하다"]],["商店九点开门。","Shāngdiàn jiǔ diǎn kāi mén.","가게는 9시에 문을 연다."],"간판의 '开' = 영업 중. 반대말은 关(닫다)이에요.");
+C("关","guān","관","닫다, 끄다","關",[["关门","guān mén","문을 닫다"],["关闭","guān bì","폐쇄하다"]],["晚上十点关门。","Wǎnshang shí diǎn guān mén.","저녁 10시에 문을 닫는다."],"开와 모양도 닮았고 뜻은 반대예요. 关于(~에 관하여)는 신문에 아주 자주 나와요.");
+C("出","chū","출","나가다, 나오다","",[["出口","chū kǒu","출구"],["出发","chū fā","출발하다"]],["请从这个出口出去。","Qǐng cóng zhège chūkǒu chūqù.","이 출구로 나가 주세요."],"출구 표지의 '出口'. 반대는 入口(입구).");
+C("入","rù","입","들어가다","",[["入口","rù kǒu","입구"],["收入","shōu rù","수입"]],["入口在大楼的左边。","Rùkǒu zài dàlóu de zuǒbian.","입구는 건물 왼쪽에 있다."],"人과 닮았지만 뜻은 '안으로 들어가다'예요.");
+C("口","kǒu","구","입, 출입구","",[["门口","mén kǒu","문 앞, 입구"],["人口","rén kǒu","인구"]],["这个城市的人口很多。","Zhège chéngshì de rénkǒu hěn duō.","이 도시는 인구가 많다."],"입 모양이에요. 출입구(出口·入口)도 '口'라고 불러요.");
+C("人","rén","인","사람","",[["人口","rén kǒu","인구"],["工人","gōng rén","노동자"]],["这里有很多人。","Zhèlǐ yǒu hěn duō rén.","여기에는 사람이 많다."],"사람이 서 있는 옆모습이에요.");
+C("八","bā","팔","여덟","",[["八月","bā yuè","8월"],["十八","shí bā","18"]],["我家在八楼。","Wǒ jiā zài bā lóu.","우리 집은 8층이다."],"人·入과 헷갈리기 쉬워요. 八는 숫자 8이에요.");
+C("大","dà","대","크다","",[["大门","dà mén","대문, 정문"],["大学","dà xué","대학"]],["这家超市很大。","Zhè jiā chāoshì hěn dà.","이 슈퍼마켓은 아주 크다."],"사람(人)이 팔다리를 크게 벌린 모양이에요.");
+C("太","tài","태","너무, 매우","",[["太大","tài dà","너무 크다"],["太阳","tài yáng","태양"]],["这个太贵了。","Zhège tài guì le.","이건 너무 비싸다."],"大 아래에 점 하나. '太…了'는 '너무 ~하다'예요.");
+C("天","tiān","천","하늘, 날","",[["今天","jīn tiān","오늘"],["天气","tiān qì","날씨"]],["今天天气很好。","Jīntiān tiānqì hěn hǎo.","오늘 날씨가 좋다."],"大 위에 하늘(一)이 있는 모양이에요.");
+C("今","jīn","금","지금, 오늘","",[["今天","jīn tiān","오늘"],["今年","jīn nián","올해"]],["今年的夏天很热。","Jīnnián de xiàtiān hěn rè.","올해 여름은 덥다."],"金·紧과 소리가 같아요(jin).");
+C("金","jīn","금","금, 돈","",[["现金","xiàn jīn","현금"],["黄金","huáng jīn","황금"]],["这里可以用现金。","Zhèlǐ kěyǐ yòng xiànjīn.","여기서는 현금을 쓸 수 있다."],"全과 모양이 닮았고 今과 소리가 같아요.");
+C("全","quán","전","전부, 온전하다","",[["安全","ān quán","안전"],["全国","quán guó","전국"]],["请注意安全。","Qǐng zhùyì ānquán.","안전에 유의해 주세요."],"金과 닮았지만 아래에 점이 없어요.");
+C("小","xiǎo","소","작다","",[["小心","xiǎo xīn","조심하다"],["小学","xiǎo xué","초등학교"]],["小心地滑。","Xiǎoxīn dì huá.","바닥이 미끄러우니 조심하세요."],"少와 모양이 닮았어요. 小 + 삐침 = 少");
+C("少","shǎo","소","적다 (shào: 젊다)","",[["多少","duō shao","얼마, 몇"],["少年","shào nián","소년"]],["这里的人不少。","Zhèlǐ de rén bù shǎo.","여기는 사람이 적지 않다."],"다음자: '적다'는 shǎo, '젊다'는 shào(少年).");
+C("多","duō","다","많다","",[["多少","duō shao","얼마, 몇"],["很多","hěn duō","아주 많다"]],["这个多少钱？","Zhège duōshao qián?","이건 얼마예요?"],"多少钱? 은 가장 많이 쓰는 가격 질문이에요.");
+C("左","zuǒ","좌","왼쪽","",[["左边","zuǒ bian","왼쪽"],["左右","zuǒ yòu","좌우, 안팎"]],["洗手间在左边。","Xǐshǒujiān zài zuǒbian.","화장실은 왼쪽에 있다."],"左는 工(공구)을 들고, 右는 口(입)로 먹는 손으로 기억해요.");
+C("右","yòu","우","오른쪽","",[["右边","yòu bian","오른쪽"],["右转","yòu zhuǎn","우회전"]],["前面请右转。","Qiánmiàn qǐng yòuzhuǎn.","앞에서 우회전하세요."],"左와 모양이 닮았어요. 아래가 口이면 오른쪽(右).");
+C("上","shàng","상","위, 오르다","",[["上班","shàng bān","출근하다"],["上车","shàng chē","차에 타다"]],["请先下后上。","Qǐng xiān xià hòu shàng.","먼저 내린 뒤에 타 주세요."],"지하철 승강장의 '先下后上' 표어에 나와요.");
+C("下","xià","하","아래, 내리다","",[["下车","xià chē","차에서 내리다"],["下班","xià bān","퇴근하다"]],["我在下一站下车。","Wǒ zài xià yí zhàn xiàchē.","나는 다음 정류장에서 내린다."],"上의 반대말이에요.");
+C("中","zhōng","중","가운데, 중앙","",[["中国","Zhōng guó","중국"],["中午","zhōng wǔ","점심, 정오"]],["欢迎来中国。","Huānyíng lái Zhōngguó.","중국에 오신 것을 환영합니다."],"다음자: 中奖(당첨)에서는 zhòng으로 읽어요.");
+C("东","dōng","동","동쪽","東",[["东门","dōng mén","동문"],["东方","dōng fāng","동방, 동쪽"]],["地铁站在东门旁边。","Dìtiězhàn zài dōngmén pángbiān.","지하철역은 동문 옆에 있다."],"东西(dōngxi)는 '물건'이라는 뜻이에요.");
+C("南","nán","남","남쪽","",[["南门","nán mén","남문"],["南方","nán fāng","남쪽 지방"]],["我们从南门进去。","Wǒmen cóng nánmén jìnqù.","우리는 남문으로 들어간다."],"男(남자)와 소리가 같아요.");
+C("西","xī","서","서쪽","",[["西门","xī mén","서문"],["东西","dōng xi","물건"]],["我想买东西。","Wǒ xiǎng mǎi dōngxi.","물건을 사고 싶다."],"东西는 '동쪽·서쪽'일 때 dōngxī, '물건'일 때 dōngxi(가볍게)로 읽어요.");
+C("北","běi","북","북쪽","",[["北门","běi mén","북문"],["北方","běi fāng","북쪽 지방"]],["北门现在关闭。","Běimén xiànzài guānbì.","북문은 지금 닫혀 있다."],"出口 안내판에는 东门·南门·西门·北门이 자주 나와요.");
+C("前","qián","전","앞","",[["前门","qián mén","앞문"],["前方","qián fāng","앞쪽, 전방"]],["前方施工，请绕行。","Qiánfāng shīgōng, qǐng ràoxíng.","앞쪽 공사 중이니 우회해 주세요."],"钱(돈)과 소리가 같아요(qian).");
+C("后","hòu","후","뒤","後",[["后门","hòu mén","뒷문"],["以后","yǐ hòu","이후"]],["请从后门上车。","Qǐng cóng hòumén shàngchē.","뒷문으로 승차해 주세요."],"前의 반대말이에요.");
+C("正","zhèng","정","바르다, 마침 ~하는 중","",[["正门","zhèng mén","정문"],["正在","zhèng zài","~하는 중이다"]],["商店正在装修。","Shāngdiàn zhèngzài zhuāngxiū.","가게는 수리 중이다."],"政과 소리가 같아요(zheng).");
+C("止","zhǐ","지","멈추다, 그치다","",[["禁止","jìn zhǐ","금지하다"],["停止","tíng zhǐ","중지하다"]],["禁止入内。","Jìnzhǐ rùnèi.","출입 금지."],"正과 모양이 닮았어요. 止는 '멈추다'예요.");
+C("禁","jìn","금","금지하다","",[["禁止","jìn zhǐ","금지하다"],["禁烟","jìn yān","금연"]],["这里禁止停车。","Zhèlǐ jìnzhǐ tíngchē.","여기는 주차 금지다."],"표지판 필수 글자: 禁止 + 하지 말아야 할 행동.");
+cat('장소·교통');
+C("站","zhàn","참","정거장, 서다","",[["车站","chē zhàn","정거장"],["地铁站","dì tiě zhàn","지하철역"]],["前面是公交车站。","Qiánmiàn shì gōngjiāo chēzhàn.","앞이 버스 정류장이다."],"立(서다) + 占. 店·点과 같은 부품 占이 들어 있어요.");
+C("店","diàn","점","가게","",[["饭店","fàn diàn","식당, 호텔"],["商店","shāng diàn","상점"]],["这家店的面很好吃。","Zhè jiā diàn de miàn hěn hǎochī.","이 가게의 면 요리는 맛있다."],"广(건물) + 占. 간판 끝에 가장 많이 붙는 글자예요.");
+C("点","diǎn","점","점, 시(時), 주문하다","點",[["点菜","diǎn cài","음식을 주문하다"],["地点","dì diǎn","장소"]],["现在三点。","Xiànzài sān diǎn.","지금 3시다."],"占 + 灬(불 점). 시각을 말할 때는 숫자 + 点이에요.");
+C("馆","guǎn","관","(공공) 건물, 식당","館",[["饭馆","fàn guǎn","식당"],["图书馆","tú shū guǎn","도서관"]],["图书馆下午五点关门。","Túshūguǎn xiàwǔ wǔ diǎn guānmén.","도서관은 오후 5시에 문을 닫는다."],"饣(먹다) + 官. 管과 같은 부품 官이 들어 있어요.");
+C("管","guǎn","관","관리하다, 관","",[["管理","guǎn lǐ","관리하다"],["保管","bǎo guǎn","보관하다"]],["请保管好您的钱包。","Qǐng bǎoguǎn hǎo nín de qiánbāo.","지갑을 잘 보관해 주세요."],"竹(대나무) + 官. 대나무 관(管)에서 '관리'까지 뜻이 넓어졌어요.");
+C("院","yuàn","원","(큰) 건물, 기관","",[["医院","yī yuàn","병원"],["电影院","diàn yǐng yuàn","영화관"]],["医院在地铁站旁边。","Yīyuàn zài dìtiězhàn pángbiān.","병원은 지하철역 옆에 있다."],"병원·영화관처럼 담장 둘러친 큰 시설 이름에 붙어요.");
+C("医","yī","의","의학, 치료하다","醫",[["医生","yī shēng","의사"],["医院","yī yuàn","병원"]],["我想找医生。","Wǒ xiǎng zhǎo yīshēng.","의사를 만나고 싶다."],"병원 표지 '医院'은 꼭 알아 두세요.");
+C("药","yào","약","약","藥",[["药房","yào fáng","약국"],["药品","yào pǐn","의약품"]],["药房晚上也开门。","Yàofáng wǎnshang yě kāimén.","약국은 밤에도 문을 연다."],"약국 간판의 '药房'.");
+C("房","fáng","방","방, 집","",[["房间","fáng jiān","방"],["药房","yào fáng","약국"]],["我订了一个房间。","Wǒ dìng le yí ge fángjiān.","방을 하나 예약했다."],"호텔·숙소 안내에 자주 나와요.");
+C("路","lù","로","길","",[["马路","mǎ lù","큰길"],["公路","gōng lù","도로"]],["过马路要小心。","Guò mǎlù yào xiǎoxīn.","길을 건널 때는 조심해야 한다."],"足(발) + 各. 各·格·客과 같은 부품 各이 들어 있어요.");
+C("各","gè","각","각각","",[["各位","gè wèi","여러분"],["各种","gè zhǒng","각종"]],["各位乘客，请注意。","Gèwèi chéngkè, qǐng zhùyì.","승객 여러분, 주의해 주세요."],"路·格·客에 공통으로 들어가는 부품이에요.");
+C("格","gé","격","격식, 칸","",[["价格","jià gé","가격"],["合格","hé gé","합격"]],["这里的价格很合理。","Zhèlǐ de jiàgé hěn hélǐ.","여기 가격은 합리적이다."],"木 + 各. 가격표의 '价格'.");
+C("客","kè","객","손님","",[["客人","kè rén","손님"],["客厅","kè tīng","거실"]],["欢迎各位客人。","Huānyíng gèwèi kèrén.","손님 여러분을 환영합니다."],"宀(집) + 各. 집에 찾아온 손님이에요.");
+C("车","chē","차","차, 수레","車",[["汽车","qì chē","자동차"],["停车","tíng chē","주차하다"]],["这里不能停车。","Zhèlǐ bù néng tíngchē.","여기는 주차할 수 없다."],"한국 한자음은 '차' 또는 '거'예요(車).");
+C("铁","tiě","철","쇠, 철","鐵",[["地铁","dì tiě","지하철"],["高铁","gāo tiě","고속철도"]],["我坐地铁去上班。","Wǒ zuò dìtiě qù shàngbān.","나는 지하철로 출근한다."],"钅(쇠 금)이 들어간 글자는 금속과 관련 있어요(钱·银·铁).");
+C("地","dì","지","땅, 장소","",[["地铁","dì tiě","지하철"],["地方","dì fang","곳, 장소"]],["这个地方很安静。","Zhège dìfang hěn ānjìng.","이곳은 아주 조용하다."],"小心地滑(바닥 조심)에도 나와요.");
+C("公","gōng","공","공공의, 공적인","",[["公园","gōng yuán","공원"],["公共","gōng gòng","공공"]],["公园里有很多人。","Gōngyuán lǐ yǒu hěn duō rén.","공원에 사람이 많다."],"公共汽车(시내버스)의 앞 두 글자예요.");
+C("共","gòng","공","함께, 모두","",[["共同","gòng tóng","공동"],["一共","yí gòng","모두 합쳐"]],["一共多少钱？","Yígòng duōshao qián?","모두 얼마예요?"],"一共 뒤에 多少钱을 붙이면 계산할 때 쓰는 말이 돼요.");
+C("工","gōng","공","일, 공사","",[["施工","shī gōng","공사하다"],["工作","gōng zuò","일, 일하다"]],["前面正在施工。","Qiánmiàn zhèngzài shīgōng.","앞쪽에서 공사 중이다."],"도로 공사 표지판의 '施工'. 公·共과 소리가 같아요(gong).");
+C("厅","tīng","청","홀, 큰 방","廳",[["餐厅","cān tīng","식당"],["大厅","dà tīng","로비, 홀"]],["餐厅在二楼。","Cāntīng zài èr lóu.","식당은 2층에 있다."],"호텔·쇼핑몰 안내판의 '餐厅'.");
+C("餐","cān","찬","식사","",[["餐厅","cān tīng","식당"],["早餐","zǎo cān","아침 식사"]],["早餐从七点开始。","Zǎocān cóng qī diǎn kāishǐ.","아침 식사는 7시부터 시작한다."],"用餐(식사하다), 餐厅(식당)처럼 식사 관련 말에 써요.");
+C("市","shì","시","시장, 도시","",[["超市","chāo shì","슈퍼마켓"],["城市","chéng shì","도시"]],["这个城市有很多超市。","Zhège chéngshì yǒu hěn duō chāoshì.","이 도시에는 슈퍼마켓이 많다."],"'시장'과 '도시' 두 뜻이 있어요.");
+C("超","chāo","초","넘다, 뛰어넘다","",[["超市","chāo shì","슈퍼마켓"],["超过","chāo guò","초과하다"]],["超市二十四小时营业。","Chāoshì èrshísì xiǎoshí yíngyè.","슈퍼마켓은 24시간 영업한다."],"超市 = 슈퍼마켓. 超级(슈퍼)의 超예요.");
+C("银","yín","은","은","銀",[["银行","yín háng","은행"],["银色","yín sè","은색"]],["银行在超市对面。","Yínháng zài chāoshì duìmiàn.","은행은 슈퍼마켓 맞은편에 있다."],"钅(쇠 금) + 艮. 银行은 háng으로 읽는 것에 주의!");
+C("行","xíng/háng","행","가다, 괜찮다 / 줄, 점포","",[["银行","yín háng","은행"],["旅行","lǚ xíng","여행"]],["这里不行。","Zhèlǐ bù xíng.","여기는 안 된다."],"다음자: 银行·行业는 háng, 旅行·不行·行走는 xíng.");
+C("票","piào","표","표, 티켓","",[["售票","shòu piào","매표"],["车票","chē piào","승차권"]],["请先买票再上车。","Qǐng xiān mǎi piào zài shàngchē.","먼저 표를 사고 승차해 주세요."],"기차·지하철 매표소에서 자주 봐요.");
+C("售","shòu","수","팔다","",[["售票","shòu piào","매표"],["销售","xiāo shòu","판매"]],["售票处在二楼。","Shòupiàochù zài èr lóu.","매표소는 2층에 있다."],"卖(mài)와 뜻은 비슷하지만 간판에서는 售票·售货처럼 써요.");
+cat('상점·결제');
+C("买","mǎi","매","사다","買",[["买单","mǎi dān","계산하다"],["买东西","mǎi dōng xi","물건을 사다"]],["买二送一。","Mǎi èr sòng yī.","2개 사면 1개를 더 준다."],"买 위에 十을 얹으면 卖(팔다)가 돼요.");
+C("卖","mài","매","팔다","賣",[["卖完","mài wán","다 팔리다"],["热卖","rè mài","인기리에 판매"]],["这个已经卖完了。","Zhège yǐjīng mài wán le.","이건 이미 다 팔렸다."],"买와 모양·소리가 닮았어요. 성조로 구분해요: 买 mǎi(3성), 卖 mài(4성).");
+C("价","jià","가","값, 가격","價",[["价格","jià gé","가격"],["特价","tè jià","특가"]],["今天全场特价。","Jīntiān quánchǎng tèjià.","오늘 전 매장 특가."],"가격표·할인 간판에 자주 나와요.");
+C("折","zhé","절","꺾다, 할인","",[["打折","dǎ zhé","할인하다"],["八折","bā zhé","정가의 80%(20% 할인)"]],["全场八折。","Quánchǎng bāzhé.","전 매장 20% 할인."],"주의: 八折는 '80% 가격'이에요. 숫자가 작을수록 더 싸요.");
+C("免","miǎn","면","면하다, 면제","",[["免费","miǎn fèi","무료"],["免税","miǎn shuì","면세"]],["停车免费。","Tíngchē miǎnfèi.","주차 무료."],"免费(무료)는 간판 최고 빈출어예요.");
+C("费","fèi","비","비용","費",[["免费","miǎn fèi","무료"],["收费","shōu fèi","요금을 받다"]],["这个服务不收费。","Zhège fúwù bù shōufèi.","이 서비스는 요금을 받지 않는다."],"收费(유료)와 免费(무료)를 함께 외워 두세요.");
+C("优","yōu","우","우수하다, 넉넉하다","優",[["优惠","yōu huì","혜택, 할인"],["优秀","yōu xiù","우수하다"]],["新客人有优惠。","Xīn kèrén yǒu yōuhuì.","신규 손님은 혜택이 있다."],"优惠(우대·할인)는 가게 광고의 단골이에요.");
+C("惠","huì","혜","은혜, 혜택","",[["优惠","yōu huì","혜택, 할인"],["实惠","shí huì","실속 있다"]],["这里的价格很实惠。","Zhèlǐ de jiàgé hěn shíhuì.","여기 가격은 실속 있다."],"优惠·实惠 모두 가격이 좋다는 뜻으로 써요.");
+C("特","tè","특","특별하다","",[["特价","tè jià","특가"],["特色","tè sè","특색"]],["这是我们的特色菜。","Zhè shì wǒmen de tèsè cài.","이건 우리 가게의 대표 요리다."],"特价(특가)는 가격 표지에 많이 나와요.");
+C("新","xīn","신","새롭다","",[["新闻","xīn wén","뉴스"],["新年","xīn nián","새해"]],["新年快乐！","Xīnnián kuàilè!","새해 복 많이 받으세요."],"新闻(뉴스)은 신문·방송 이름에 자주 나와요.");
+C("电","diàn","전","전기","電",[["电话","diàn huà","전화"],["电影","diàn yǐng","영화"]],["我想看电影。","Wǒ xiǎng kàn diànyǐng.","영화를 보고 싶다."],"店(diàn)과 소리가 같아요. 电影院 = 영화관.");
+C("话","huà","화","말, 이야기","話",[["电话","diàn huà","전화"],["会话","huì huà","회화"]],["请留下电话号码。","Qǐng liúxià diànhuà hàomǎ.","전화번호를 남겨 주세요."],"讠(말씀 언)이 들어가 말과 관련된 글자예요.");
+C("号","hào","호","번호, 일(날짜)","號",[["号码","hào mǎ","번호"],["三号","sān hào","3일, 3호"]],["今天五月五号。","Jīntiān wǔ yuè wǔ hào.","오늘은 5월 5일이다."],"지하철 '1号线'(1호선)에도 나와요.");
+C("码","mǎ","마","숫자, 코드","碼",[["二维码","èr wéi mǎ","QR코드"],["密码","mì mǎ","비밀번호"]],["请扫码支付。","Qǐng sǎo mǎ zhīfù.","QR코드를 스캔해 결제해 주세요."],"石 + 马. 소리는 马(mǎ)에서 왔어요.");
+C("马","mǎ","마","말(동물)","馬",[["马路","mǎ lù","큰길"],["马上","mǎ shàng","곧, 바로"]],["我马上就到。","Wǒ mǎshàng jiù dào.","곧 도착해요."],"妈·吗·码의 소리 부분이에요.");
+C("妈","mā","마","엄마","媽",[["妈妈","mā ma","엄마"],["大妈","dà mā","아주머니"]],["我妈妈在超市工作。","Wǒ māma zài chāoshì gōngzuò.","우리 엄마는 슈퍼마켓에서 일한다."],"女(여자) + 马(소리).");
+C("吗","ma","마","~입니까? (의문 조사)","嗎",[["好吗","hǎo ma","좋아요?"],["是吗","shì ma","그래요?"]],["这里可以拍照吗？","Zhèlǐ kěyǐ pāizhào ma?","여기서 사진 찍어도 되나요?"],"口(입) + 马(소리). 문장 끝에 붙여 의문문을 만들어요.");
+C("扫","sǎo","소","쓸다, 스캔하다","掃",[["扫码","sǎo mǎ","코드를 스캔하다"],["打扫","dǎ sǎo","청소하다"]],["扫一扫，关注我们。","Sǎo yi sǎo, guānzhù wǒmen.","스캔하고 팔로우하세요."],"결제·팔로우 안내에서 '扫码'를 많이 봐요.");
+C("支","zhī","지","지탱하다, 지불하다","",[["支付","zhī fù","지불하다"],["支持","zhī chí","지지하다"]],["支持手机支付。","Zhīchí shǒujī zhīfù.","휴대폰 결제를 지원합니다."],"결제 수단 안내(支付宝 등)에 나와요.");
+C("付","fù","부","지불하다","",[["付款","fù kuǎn","결제하다"],["支付","zhī fù","지불하다"]],["请到前台付款。","Qǐng dào qiántái fùkuǎn.","카운터에서 결제해 주세요."],"附·府와 같은 부품 付가 들어 있고 소리가 같아요(fù).");
+C("附","fù","부","붙다, 덧붙이다","",[["附近","fù jìn","근처"],["附件","fù jiàn","첨부 파일"]],["附近有一家药房。","Fùjìn yǒu yì jiā yàofáng.","근처에 약국이 하나 있다."],"阝(언덕) + 付. 附近 = '가까이에 붙은 곳'.");
+C("府","fǔ","부","관청, 관아","",[["政府","zhèng fǔ","정부"],["首府","shǒu fǔ","(자치구·성의) 중심 도시"]],["政府发布了新的规定。","Zhèngfǔ fābù le xīn de guīdìng.","정부가 새 규정을 발표했다."],"广(건물) + 付. 신문에서는 政府(정부)로 가장 많이 만나요.");
+C("微","wēi","미","작다, 미세하다","",[["微信","Wēi xìn","위챗"],["微笑","wēi xiào","미소"]],["请关注我们的微信。","Qǐng guānzhù wǒmen de Wēixìn.","우리 위챗을 팔로우해 주세요."],"微信(WeChat)은 중국 간판에 늘 나와요.");
+C("信","xìn","신","믿다, 편지","",[["信用","xìn yòng","신용"],["短信","duǎn xìn","문자 메시지"]],["我给你发了短信。","Wǒ gěi nǐ fā le duǎnxìn.","내가 너에게 문자를 보냈다."],"亻(사람) + 言(말). 사람의 말은 믿을 수 있어야 해요.");
+C("网","wǎng","망","그물, 인터넷","網",[["网站","wǎng zhàn","웹사이트"],["网络","wǎng luò","네트워크, 인터넷"]],["这里有免费网络。","Zhèlǐ yǒu miǎnfèi wǎngluò.","여기에 무료 인터넷이 있다."],"카페·호텔에서 무료 와이파이 안내에 나와요.");
+C("营","yíng","영","경영하다","營",[["营业","yíng yè","영업하다"],["经营","jīng yíng","경영하다"]],["营业时间：上午九点到晚上九点。","Yíngyè shíjiān: shàngwǔ jiǔ diǎn dào wǎnshang jiǔ diǎn.","영업시간: 오전 9시~저녁 9시."],"迎·赢·影과 소리가 같아요(ying).");
+C("业","yè","업","일, 업종","業",[["营业","yíng yè","영업"],["工业","gōng yè","공업"]],["本店今天正常营业。","Běndiàn jīntiān zhèngcháng yíngyè.","본점은 오늘 정상 영업합니다."],"营业中(영업 중) 표지가 대표적이에요.");
+C("时","shí","시","때, 시간","時",[["时间","shí jiān","시간"],["小时","xiǎo shí","시간(단위)"]],["请注意营业时间。","Qǐng zhùyì yíngyè shíjiān.","영업시간을 확인해 주세요."],"士·市·食·事·十과 소리가 같아요(shi).");
+C("间","jiān","간","사이, 칸","間",[["房间","fáng jiān","방"],["洗手间","xǐ shǒu jiān","화장실"]],["请问，洗手间在哪里？","Qǐngwèn, xǐshǒujiān zài nǎlǐ?","실례지만 화장실이 어디예요?"],"门(문) 안에 日(해)가 들어와 '사이'. 洗手间·卫生间은 화장실이에요.");
+C("迎","yíng","영","맞이하다","",[["欢迎","huān yíng","환영하다"],["迎接","yíng jiē","맞이하다"]],["欢迎光临！","Huānyíng guānglín!","어서 오세요."],"가게 입구의 '欢迎光临'에 나와요.");
+C("欢","huān","환","기뻐하다","歡",[["欢迎","huān yíng","환영하다"],["喜欢","xǐ huan","좋아하다"]],["我喜欢这家餐厅。","Wǒ xǐhuan zhè jiā cāntīng.","나는 이 식당이 좋다."],"欢迎光临의 첫 글자예요.");
+C("光","guāng","광","빛","",[["光临","guāng lín","왕림하다"],["光线","guāng xiàn","빛"]],["这里光线很好。","Zhèlǐ guāngxiàn hěn hǎo.","여기는 빛이 좋다."],"欢迎光临 = 환영합니다, 어서 오세요.");
+C("临","lín","림","다가오다, 임하다","臨",[["光临","guāng lín","왕림하다"],["临时","lín shí","임시"]],["这是临时停车场。","Zhè shì línshí tíngchēchǎng.","이곳은 임시 주차장이다."],"临时(임시) 표지는 공사·행사장에서 봐요.");
+C("位","wèi","위","자리, 분","",[["座位","zuò wèi","좌석"],["位置","wèi zhi","위치"]],["请问几位？","Qǐngwèn jǐ wèi?","몇 분이세요?"],"식당에서 '几位?'는 '몇 분이세요?'예요.");
+C("味","wèi","미","맛","",[["味道","wèi dào","맛"],["美味","měi wèi","맛있는 음식"]],["这个味道很好。","Zhège wèidào hěn hǎo.","이 맛이 아주 좋다."],"口(입) + 未. 소리는 未에서 왔어요.");
+C("卫","wèi","위","지키다","衛",[["卫生","wèi shēng","위생"],["卫生间","wèi shēng jiān","화장실"]],["请保持卫生。","Qǐng bǎochí wèishēng.","위생을 지켜 주세요."],"卫生间 = 화장실. 洗手间과 같은 말이에요.");
+C("未","wèi","미","아직 ~하지 않다","",[["未成年","wèi chéng nián","미성년"],["未来","wèi lái","미래"]],["未成年人禁止入内。","Wèichéngnián rén jìnzhǐ rùnèi.","미성년자 출입 금지."],"末(mò)와 모양이 닮았어요: 未는 위 가로획이 짧고, 末는 위 가로획이 길어요.");
+cat('생활·음식');
+C("饭","fàn","반","밥, 식사","飯",[["米饭","mǐ fàn","쌀밥"],["饭店","fàn diàn","식당, 호텔"]],["我们去饭店吃饭吧。","Wǒmen qù fàndiàn chīfàn ba.","우리 식당에 가서 밥 먹자."],"饣(먹다) + 反. 反·返과 같은 부품 反이 들어 있어요.");
+C("反","fǎn","반","반대하다, 거꾸로","",[["反对","fǎn duì","반대하다"],["反应","fǎn yìng","반응"]],["很多人反对这个计划。","Hěn duō rén fǎnduì zhège jìhuà.","많은 사람이 이 계획에 반대한다."],"饭(fàn)과 소리가 거의 같고 성조만 달라요.");
+C("手","shǒu","수","손","",[["洗手","xǐ shǒu","손을 씻다"],["手机","shǒu jī","휴대폰"]],["请洗手后再用餐。","Qǐng xǐshǒu hòu zài yòngcān.","손을 씻은 뒤 식사해 주세요."],"洗手间(화장실)에 들어 있어요.");
+C("洗","xǐ","세","씻다","",[["洗手间","xǐ shǒu jiān","화장실"],["洗衣店","xǐ yī diàn","세탁소"]],["洗衣店在银行旁边。","Xǐyīdiàn zài yínháng pángbiān.","세탁소는 은행 옆에 있다."],"洗手间 = 손 씻는 공간 = 화장실.");
+C("厕","cè","측","변소, 화장실","廁",[["厕所","cè suǒ","화장실"],["公厕","gōng cè","공중화장실"]],["公厕在公园北门。","Gōngcè zài gōngyuán běimén.","공중화장실은 공원 북문에 있다."],"男厕·女厕 = 남자·여자 화장실.");
+C("所","suǒ","소","곳, 바","",[["厕所","cè suǒ","화장실"],["所有","suǒ yǒu","모든"]],["所有商品都打折。","Suǒyǒu shāngpǐn dōu dǎzhé.","모든 상품이 할인된다."],"厕所(화장실)에서 가장 먼저 만나요.");
+C("生","shēng","생","낳다, 살다, 날것","",[["学生","xué sheng","학생"],["生日","shēng rì","생일"]],["今天是我的生日。","Jīntiān shì wǒ de shēngrì.","오늘은 내 생일이다."],"医生(의사)·卫生(위생)에도 들어가요.");
+C("学","xué","학","배우다","學",[["学校","xué xiào","학교"],["大学","dà xué","대학"]],["学校离这里很近。","Xuéxiào lí zhèlǐ hěn jìn.","학교는 여기서 가깝다."],"학교 근처 표지판 '学校'.");
+C("男","nán","남","남자","",[["男生","nán shēng","남학생, 남자"],["男厕","nán cè","남자 화장실"]],["男厕在左边，女厕在右边。","Náncè zài zuǒbian, nǚcè zài yòubian.","남자 화장실은 왼쪽, 여자 화장실은 오른쪽이다."],"南(남쪽)과 소리가 같아요.");
+C("女","nǚ","녀","여자","",[["女生","nǚ shēng","여학생, 여자"],["女士","nǚ shì","여사, 숙녀분"]],["女士优先。","Nǚshì yōuxiān.","여성분 먼저."],"妈·好·她에 들어 있는 부수예요.");
+C("烟","yān","연","연기, 담배","煙",[["吸烟","xī yān","흡연하다"],["禁烟","jìn yān","금연"]],["室内禁止吸烟。","Shìnèi jìnzhǐ xīyān.","실내 금연."],"火(불) + 因. 禁止吸烟 표지가 대표적이에요.");
+C("吸","xī","흡","빨아들이다","",[["吸烟","xī yān","흡연하다"],["吸收","xī shōu","흡수하다"]],["请不要在这里吸烟。","Qǐng búyào zài zhèlǐ xīyān.","여기서 담배 피우지 마세요."],"西·洗와 소리가 같아요(xi).");
+C("安","ān","안","편안하다","",[["安全","ān quán","안전"],["安静","ān jìng","조용하다"]],["请保持安静。","Qǐng bǎochí ānjìng.","조용히 해 주세요."],"宀(집) 아래 女. 집에 있으면 편안해요.");
+C("急","jí","급","급하다","",[["紧急","jǐn jí","긴급"],["着急","zháo jí","조급해하다"]],["紧急出口。","Jǐnjí chūkǒu.","비상구."],"紧急出口(비상구)는 꼭 알아 두세요.");
+C("紧","jǐn","긴","팽팽하다, 긴박하다","緊",[["紧急","jǐn jí","긴급"],["紧张","jǐn zhāng","긴장하다"]],["别紧张，慢慢来。","Bié jǐnzhāng, mànmàn lái.","긴장하지 말고 천천히 해."],"今·金과 소리가 비슷해요(jin).");
+C("水","shuǐ","수","물","",[["矿泉水","kuàng quán shuǐ","생수"],["水果","shuǐ guǒ","과일"]],["请给我一杯水。","Qǐng gěi wǒ yì bēi shuǐ.","물 한 잔 주세요."],"氵(삼수변)은 물과 관련된 글자에 붙어요.");
+C("酒","jiǔ","주","술","",[["酒店","jiǔ diàn","호텔"],["啤酒","pí jiǔ","맥주"]],["酒店前台在一楼。","Jiǔdiàn qiántái zài yī lóu.","호텔 프런트는 1층에 있다."],"중국에서 酒店은 흔히 호텔을 뜻해요. 술집은 酒吧예요.");
+C("九","jiǔ","구","아홉","",[["九月","jiǔ yuè","9월"],["九点","jiǔ diǎn","9시"]],["九号线马上到站。","Jiǔ hào xiàn mǎshàng dào zhàn.","9호선이 곧 도착한다."],"久·酒와 소리가 같아요(jiu).");
+C("久","jiǔ","구","오래","",[["好久","hǎo jiǔ","오랫동안"],["永久","yǒng jiǔ","영구"]],["好久不见！","Hǎojiǔ bú jiàn!","오랜만이에요."],"九와 모양도 소리도 닮았어요. 好久不见(오랜만이에요)은 인사말로 자주 써요.");
+C("就","jiù","취","곧, 바로","",[["就是","jiù shì","바로 ~이다"],["就近","jiù jìn","가까운 곳에서"]],["地铁站就在前面。","Dìtiězhàn jiù zài qiánmiàn.","지하철역은 바로 앞에 있다."],"酒·九·久와 소리가 비슷해요(jiu).");
+C("茶","chá","다","차","",[["茶馆","chá guǎn","찻집"],["奶茶","nǎi chá","밀크티"]],["我想喝一杯奶茶。","Wǒ xiǎng hē yì bēi nǎichá.","밀크티 한 잔 마시고 싶다."],"찻집 간판에서 자주 봐요.");
+C("面","miàn","면","국수 / 얼굴, 방면","麵·面",[["面条","miàn tiáo","국수"],["前面","qián miàn","앞쪽"]],["我要一碗牛肉面。","Wǒ yào yì wǎn niúròu miàn.","소고기 국수 한 그릇 주세요."],"국수는 번체 麵, 얼굴·방향은 面. 간체자에서는 하나로 합쳐졌어요.");
+C("米","mǐ","미","쌀","",[["米饭","mǐ fàn","쌀밥"],["大米","dà mǐ","쌀"]],["请再来一碗米饭。","Qǐng zài lái yì wǎn mǐfàn.","밥 한 공기 더 주세요."],"쌀알이 흩어진 모양이에요. 미터(m)도 米예요.");
+C("肉","ròu","육","고기","",[["牛肉","niú ròu","소고기"],["猪肉","zhū ròu","돼지고기"]],["我不吃牛肉。","Wǒ bù chī niúròu.","나는 소고기를 먹지 않는다."],"메뉴판에서 가장 먼저 찾아야 할 글자예요.");
+C("鱼","yú","어","물고기","魚",[["鱼肉","yú ròu","생선살"],["烤鱼","kǎo yú","생선구이"]],["今天的鱼很新鲜。","Jīntiān de yú hěn xīnxiān.","오늘 생선은 신선하다."],"于(yú)와 소리가 같아요.");
+C("牛","niú","우","소","",[["牛肉","niú ròu","소고기"],["牛奶","niú nǎi","우유"]],["早餐有牛奶和面包。","Zǎocān yǒu niúnǎi hé miànbāo.","아침 식사에는 우유와 빵이 있다."],"午(wǔ)와 모양이 닮았어요.");
+C("食","shí","식","먹다, 음식","",[["食品","shí pǐn","식품"],["食堂","shí táng","구내식당"]],["食堂中午十一点开门。","Shítáng zhōngwǔ shíyī diǎn kāimén.","식당은 점심 11시에 문을 연다."],"饣(먹다)의 원래 모양이 食이에요.");
+C("事","shì","사","일, 사건","",[["事故","shì gù","사고"],["事情","shì qing","일"]],["有事请按铃。","Yǒu shì qǐng àn líng.","일이 있으면 벨을 눌러 주세요."],"士·市·时와 소리가 같아요(shi).");
+C("十","shí","십","열","",[["十月","shí yuè","10월"],["十分","shí fēn","매우, 10분"]],["现在十点十分。","Xiànzài shí diǎn shí fēn.","지금 10시 10분이다."],"十字(십자) 모양이에요.");
+C("士","shì","사","선비, 전문직","",[["护士","hù shi","간호사"],["女士","nǚ shì","여사"]],["护士在医院工作。","Hùshi zài yīyuàn gōngzuò.","간호사는 병원에서 일한다."],"土(tǔ)와 닮았어요: 士는 위 가로획이 길고, 土는 아래 가로획이 길어요.");
+cat('신문·시간·숫자');
+C("报","bào","보","알리다, 신문","報",[["报纸","bào zhǐ","신문"],["报道","bào dào","보도"]],["他每天早上看报纸。","Tā měitiān zǎoshang kàn bàozhǐ.","그는 매일 아침 신문을 본다."],"○○日报처럼 신문 이름 끝에 자주 나와요.");
+C("书","shū","서","책","書",[["书店","shū diàn","서점"],["图书","tú shū","도서"]],["我想去书店买一本书。","Wǒ xiǎng qù shūdiàn mǎi yì běn shū.","서점에 가서 책을 한 권 사고 싶다."],"书店 = 서점. 图书馆의 书예요.");
+C("国","guó","국","나라","國",[["国家","guó jiā","국가"],["中国","Zhōng guó","중국"]],["这个国家很大。","Zhège guójiā hěn dà.","이 나라는 아주 크다."],"큰 테두리(囗) 안에 玉이 있는 모양이에요.");
+C("家","jiā","가","집, 가정","",[["国家","guó jiā","국가"],["家人","jiā rén","가족"]],["我家附近有一家书店。","Wǒ jiā fùjìn yǒu yì jiā shūdiàn.","우리 집 근처에 서점이 하나 있다."],"가게를 셀 때 양사로도 써요: 一家店.");
+C("政","zhèng","정","정치","",[["政府","zhèng fǔ","정부"],["政策","zhèng cè","정책"]],["政府公布了新政策。","Zhèngfǔ gōngbù le xīn zhèngcè.","정부가 새 정책을 발표했다."],"正(zhèng)과 소리가 같아요. 신문 1면 단골 글자예요.");
+C("经","jīng","경","지나다, 경영하다","經",[["经济","jīng jì","경제"],["已经","yǐ jīng","이미"]],["经济正在发展。","Jīngjì zhèngzài fāzhǎn.","경제가 발전하고 있다."],"纟(실)이 들어간 글자: 经·线.");
+C("济","jì","제","구제하다","濟",[["经济","jīng jì","경제"],["救济","jiù jì","구제"]],["今年的经济增长很快。","Jīnnián de jīngjì zēngzhǎng hěn kuài.","올해 경제 성장이 빠르다."],"经济는 경제 기사에서 거의 매일 봐요.");
+C("发","fā","발","보내다, 발생하다","發",[["发展","fā zhǎn","발전하다"],["出发","chū fā","출발하다"]],["火车马上要出发了。","Huǒchē mǎshàng yào chūfā le.","기차가 곧 출발한다."],"头发(머리카락)에서는 fà로 읽어요.");
+C("展","zhǎn","전","펼치다","",[["展览","zhǎn lǎn","전시회"],["发展","fā zhǎn","발전하다"]],["展览免费开放。","Zhǎnlǎn miǎnfèi kāifàng.","전시는 무료로 개방된다."],"站(zhàn)과 소리가 비슷해요.");
+C("记","jì","기","기록하다","記",[["记者","jì zhě","기자"],["日记","rì jì","일기"]],["记者正在采访。","Jìzhě zhèngzài cǎifǎng.","기자가 취재 중이다."],"讠(말씀 언) + 己.");
+C("者","zhě","자","사람(~하는 이)","",[["记者","jì zhě","기자"],["读者","dú zhě","독자"]],["欢迎读者来信。","Huānyíng dúzhě láixìn.","독자의 투고를 환영합니다."],"'~하는 사람'을 뜻해요: 记者(기자)·读者(독자).");
+C("问","wèn","문","묻다","問",[["问题","wèn tí","문제, 질문"],["请问","qǐng wèn","실례지만"]],["请问，银行怎么走？","Qǐngwèn, yínháng zěnme zǒu?","실례지만 은행은 어떻게 가나요?"],"门(문) 앞에서 口(입)로 묻는 모양이에요.");
+C("闻","wén","문","듣다, 소식","聞",[["新闻","xīn wén","뉴스"],["闻名","wén míng","유명하다"]],["我每天看新闻。","Wǒ měitiān kàn xīnwén.","나는 매일 뉴스를 본다."],"门(문)에 耳(귀)를 대고 소식을 듣는 모양이에요.");
+C("题","tí","제","제목, 문제","題",[["问题","wèn tí","문제"],["题目","tí mù","제목"]],["这个问题很重要。","Zhège wèntí hěn zhòngyào.","이 문제는 아주 중요하다."],"기사 제목은 标题(biāotí)라고 해요.");
+C("日","rì","일","해, 날","",[["日本","Rì běn","일본"],["生日","shēng rì","생일"]],["今天是几月几日？","Jīntiān shì jǐ yuè jǐ rì?","오늘은 몇 월 며칠이니?"],"白·目과 모양이 닮았어요.");
+C("月","yuè","월","달, 월","",[["一月","yī yuè","1월"],["月亮","yuè liang","달"]],["本月二十日开始。","Běnyuè èrshí rì kāishǐ.","이번 달 20일에 시작한다."],"날짜는 月(달) + 日/号(일)로 말해요.");
+C("用","yòng","용","쓰다","",[["使用","shǐ yòng","사용하다"],["用餐","yòng cān","식사하다"]],["这个可以用手机付款。","Zhège kěyǐ yòng shǒujī fùkuǎn.","이건 휴대폰으로 결제할 수 있다."],"月과 모양이 닮았지만 가운데 세로선이 있어요.");
+C("目","mù","목","눈, 항목","",[["题目","tí mù","제목"],["项目","xiàng mù","항목, 프로젝트"]],["这个项目已经开始了。","Zhège xiàngmù yǐjīng kāishǐ le.","이 프로젝트는 이미 시작되었다."],"눈 모양을 세로로 세운 글자예요.");
+C("白","bái","백","희다","",[["白色","bái sè","흰색"],["白酒","bái jiǔ","바이주(증류주)"]],["请在白线后等候。","Qǐng zài báixiàn hòu děnghòu.","흰 선 뒤에서 기다려 주세요."],"日 위에 삐침이 붙은 모양이에요.");
+C("木","mù","목","나무","",[["木头","mù tou","나무, 목재"],["木材","mù cái","목재"]],["这张桌子是木头做的。","Zhè zhāng zhuōzi shì mùtou zuò de.","이 책상은 나무로 만들었다."],"本·末·未에 모두 들어 있어요.");
+C("本","běn","본","근본, 책(양사), 이(此)","",[["日本","Rì běn","일본"],["本店","běn diàn","본점"]],["本店只收现金。","Běndiàn zhǐ shōu xiànjīn.","본점은 현금만 받는다."],"木의 뿌리 부분에 한 획을 더한 글자예요.");
+C("末","mò","말","끝","",[["周末","zhōu mò","주말"],["末班车","mò bān chē","막차"]],["周末营业到晚上十点。","Zhōumò yíngyè dào wǎnshang shí diǎn.","주말에는 밤 10시까지 영업한다."],"未와 닮았어요: 末는 위 가로획이 길고, 未는 아래 가로획이 길어요.");
+C("土","tǔ","토","흙","",[["土地","tǔ dì","토지"],["土豆","tǔ dòu","감자"]],["土豆很便宜。","Tǔdòu hěn piányi.","감자가 아주 싸다."],"士와 닮았어요: 土는 아래 가로획이 길어요.");
+C("己","jǐ","기","자기","",[["自己","zì jǐ","자기, 스스로"],["知己","zhī jǐ","마음이 통하는 친구"]],["请带好自己的东西。","Qǐng dài hǎo zìjǐ de dōngxi.","자기 물건을 잘 챙기세요."],"已(yǐ)와 닮았어요: 己는 아래가 열려 있어요.");
+C("已","yǐ","이","이미","",[["已经","yǐ jīng","이미"],["已婚","yǐ hūn","기혼"]],["商店已经关门了。","Shāngdiàn yǐjīng guānmén le.","가게는 이미 문을 닫았다."],"己와 닮았어요: 已는 아래가 반쯤 닫혀 있어요.");
+C("主","zhǔ","주","주인, 주요","",[["主要","zhǔ yào","주요하다"],["主人","zhǔ rén","주인"]],["这是主要的出口。","Zhè shì zhǔyào de chūkǒu.","이것이 주요 출구다."],"住·注에 소리 부분으로 들어 있어요.");
+C("住","zhù","주","살다, 묵다","",[["住宿","zhù sù","숙박"],["居住","jū zhù","거주하다"]],["我住在三楼。","Wǒ zhù zài sān lóu.","나는 3층에 산다."],"亻(사람) + 主. 사람이 사는 곳.");
+C("注","zhù","주","붓다, 주의하다","",[["注意","zhù yì","주의하다"],["注册","zhù cè","등록하다"]],["请注意台阶。","Qǐng zhùyì táijiē.","계단 턱을 조심하세요."],"氵(물) + 主. 注意(주의)는 안내문에 아주 많이 나와요.");
+C("请","qǐng","청","청하다, ~해 주세요","請",[["请问","qǐng wèn","실례지만"],["请勿","qǐng wù","~하지 마세요"]],["请勿吸烟。","Qǐng wù xīyān.","흡연하지 마세요."],"讠(말씀 언) + 青. 请勿 + 동작 = 금지 안내예요.");
+C("清","qīng","청","맑다, 깨끗하다","",[["清洁","qīng jié","청결하다"],["清楚","qīng chu","분명하다"]],["请保持清洁。","Qǐng bǎochí qīngjié.","청결을 유지해 주세요."],"氵(물) + 青. 물이 맑다.");
+C("青","qīng","청","푸르다, 젊다","",[["青年","qīng nián","청년"],["青菜","qīng cài","푸른 채소"]],["这家店的青菜很新鲜。","Zhè jiā diàn de qīngcài hěn xīnxiān.","이 가게의 채소는 신선하다."],"请·清·情에 소리 부분으로 들어 있어요.");
+C("情","qíng","정","감정, 상황","",[["热情","rè qíng","친절하다, 열정적이다"],["情况","qíng kuàng","상황"]],["这里的服务很热情。","Zhèlǐ de fúwù hěn rèqíng.","여기 서비스는 친절하다."],"忄(마음) + 青. 마음의 상태를 뜻해요.");
+C("钱","qián","전","돈","錢",[["钱包","qián bāo","지갑"],["多少钱","duō shao qián","얼마예요?"]],["我没带钱。","Wǒ méi dài qián.","나는 돈을 안 가져왔다."],"钅(쇠 금) + 戋. 线·浅과 같은 부품 戋이 들어 있어요.");
+C("线","xiàn","선","선, 노선","線",[["线路","xiàn lù","노선"],["白线","bái xiàn","흰 선"]],["请乘坐地铁二号线。","Qǐng chéngzuò dìtiě èr hào xiàn.","지하철 2호선을 이용해 주세요."],"纟(실) + 戋. 钱과 같은 부품이 들어 있어요.");
+C("一","yī","일","하나","",[["一楼","yī lóu","1층"],["一起","yì qǐ","함께"]],["我们一起去吧。","Wǒmen yìqǐ qù ba.","우리 같이 가자."],"뒤 글자 성조에 따라 yī가 yí·yì로 바뀌어요: 一个 yí ge, 一起 yìqǐ.");
+C("二","èr","이","둘","",[["二楼","èr lóu","2층"],["二维码","èr wéi mǎ","QR코드"]],["请扫二维码。","Qǐng sǎo èrwéimǎ.","QR코드를 스캔해 주세요."],"'두 개'를 말할 때는 二 대신 两(liǎng)을 써요.");
+C("三","sān","삼","셋","",[["三楼","sān lóu","3층"],["三月","sān yuè","3월"]],["三号线在前面换乘。","Sān hào xiàn zài qiánmiàn huànchéng.","3호선은 앞에서 갈아탄다."],"지하철 노선 번호에 많이 써요.");
+C("四","sì","사","넷","",[["四月","sì yuè","4월"],["四季","sì jì","사계절"]],["一年有四个季节。","Yì nián yǒu sì ge jìjié.","일 년에는 네 계절이 있다."],"死(sǐ)와 발음이 비슷해 꺼리는 숫자라서, 4층을 빼는 건물도 있어요.");
+C("五","wǔ","오","다섯","",[["五月","wǔ yuè","5월"],["五星","wǔ xīng","5성급"]],["这是一家五星酒店。","Zhè shì yì jiā wǔxīng jiǔdiàn.","이곳은 5성급 호텔이다."],"午(wǔ)와 소리가 같아요.");
+C("六","liù","륙","여섯","",[["六月","liù yuè","6월"],["六点","liù diǎn","6시"]],["晚上六点以后不营业。","Wǎnshang liù diǎn yǐhòu bù yíngyè.","저녁 6시 이후에는 영업하지 않는다."],"한국 한자음은 '륙(육)'이에요.");
+C("七","qī","칠","일곱","",[["七月","qī yuè","7월"],["七天","qī tiān","7일"]],["七天内可以退货。","Qī tiān nèi kěyǐ tuìhuò.","7일 이내에 반품할 수 있다."],"退货 가능 기간 안내에 자주 나와요.");
+C("午","wǔ","오","정오","",[["中午","zhōng wǔ","점심, 정오"],["下午","xià wǔ","오후"]],["下午三点开始。","Xiàwǔ sān diǎn kāishǐ.","오후 3시에 시작한다."],"牛·年과 모양이 닮았고, 五와 소리가 같아요.");
+C("年","nián","년","해, 년","",[["今年","jīn nián","올해"],["新年","xīn nián","새해"]],["这家店开了十年。","Zhè jiā diàn kāi le shí nián.","이 가게는 10년 동안 문을 열었다."],"午·牛와 모양이 닮았어요.");
+C("于","yú","우","~에, ~에서","於",[["关于","guān yú","~에 관하여"],["由于","yóu yú","~때문에"]],["这是关于新政策的报道。","Zhè shì guānyú xīn zhèngcè de bàodào.","이는 새 정책에 관한 보도다."],"关于·由于·对于는 신문 기사의 대표적인 연결 표현이에요.");
+// ---- 모양이 닮았거나 같은 부품을 가진 묶음 ----
+g('shape','人 · 入 · 八','人入八','세 글자 모두 갈라진 선 모양이라 헷갈려요. 人은 사람, 入은 들어가다(入口), 八은 숫자 8이에요.');
+g('shape','大 · 太 · 天','大太天','大에 점을 찍으면 太(너무), 大 위에 가로획을 얹으면 天(하늘)이에요.');
+g('shape','日 · 白 · 目','日白目','日 위에 삐침이 붙으면 白, 日을 세로로 세운 모양은 目(눈)이에요.');
+g('shape','木 · 本 · 末 · 未','木本末未','木에 가로획을 더해 만든 글자들이에요. 本은 뿌리에 획을 더했고, 末는 위 가로획이 길고, 未는 아래 가로획이 길어요.');
+g('shape','土 · 士','土士','土는 아래 가로획이 길고, 士는 위 가로획이 길어요.');
+g('shape','己 · 已','己已','己는 아래가 열려 있고, 已는 반쯤 닫혀 있어요.');
+g('shape','午 · 牛 · 年','午牛年','모양이 비슷한 세 글자예요. 午(정오), 牛(소), 年(해).');
+g('shape','小 · 少','小少','小에 삐침 하나를 더하면 少가 돼요.');
+g('shape','正 · 止','正止','正에서 위 가로획을 빼면 止예요. 正(바르다), 止(멈추다).');
+g('shape','全 · 金','全金','비슷하게 생겨서 헷갈려요. 金은 돈·금속, 全은 전부로 구분해요. 今(jīn)은 金과 소리가 같아요.');
+g('shape','九 · 久','九久','모양도 소리도 닮았어요. 둘 다 jiǔ로 읽어요.');
+g('shape','主 · 住 · 注','主住注','主가 소리 힌트예요. 住는 사람(亻), 注는 물(氵)을 붙인 글자로, 모두 zhu로 읽어요.');
+g('shape','店 · 点 · 站','店点站','세 글자에 모두 占이 들어 있어요. 같은 부품을 알아보면 한 가족 글자라는 걸 눈치챌 수 있어요.');
+g('shape','路 · 各 · 格 · 客','路各格客','모두 各을 품고 있어요. 路(足), 格(木), 客(宀)처럼 부수만 달라져요.');
+g('shape','饭 · 反','饭反','饭 = 饣(먹다) + 反. 反이 소리 힌트라서 fàn과 fǎn이 비슷해요.');
+g('shape','馆 · 管','馆管','官이 공통 부품이에요. 馆 = 饣 + 官, 管 = 竹 + 官.');
+g('shape','马 · 妈 · 吗 · 码','马妈吗码','马가 소리 힌트예요. 妈(女), 吗(口), 码(石)처럼 부수가 뜻을 알려줘요.');
+g('shape','请 · 清 · 青 · 情','请清青情','青이 소리 힌트예요. 请(讠 말), 清(氵 물), 情(忄 마음)으로 뜻이 갈려요.');
+g('shape','钱 · 线','钱线','戋이 공통 부품이에요. 钱(钅 쇠), 线(纟 실)처럼 부수가 뜻을 알려줘요.');
+g('shape','付 · 附 · 府','付附府','付가 소리 힌트예요. 附(阝 언덕), 府(广 건물)를 붙인 글자예요.');
+g('shape','门 · 问 · 间 · 闻','门问间闻','문틀 门 안에 口(입), 日(해), 耳(귀)가 들어간 글자들이에요.');
+// ---- 짝꿍·반대말·함께 쓰는 말 묶음 ----
+g('pair','开 · 关','开关','모양이 닮았고 뜻은 반대예요. 开门(문을 열다) ↔ 关门(문을 닫다).');
+g('pair','出 · 入','出入','出口(출구) ↔ 入口(입구). 표지판에서 짝으로 나와요.');
+g('pair','买 · 卖','买卖','买 위에 十을 얹으면 卖예요. 사다(mǎi) ↔ 팔다(mài).');
+g('pair','上 · 下','上下','위 ↔ 아래. 上车(승차) ↔ 下车(하차).');
+g('pair','左 · 右','左右','왼쪽 ↔ 오른쪽. 모양도 닮았어요.');
+g('pair','前 · 后','前后','앞 ↔ 뒤. 前门(앞문) ↔ 后门(뒷문).');
+g('pair','男 · 女','男女','화장실 표지의 필수 글자예요. 男(남자) ↔ 女(여자).');
+g('pair','大 · 小 · 多 · 少','大小多少','크기와 양을 나타내는 글자들이에요. 多少钱?(얼마예요?)에 나와요.');
+g('pair','东 · 南 · 西 · 北','东南西北','네 방향이에요. 출입문 이름(东门·南门…)으로 자주 나와요.');
+g('pair','多少钱?','多少钱','가격을 물을 때 가장 많이 쓰는 말이에요.');
+g('pair','欢迎光临','欢迎光临','가게 입구의 인사말: 어서 오세요.');
+g('pair','营业时间','营业时间','영업시간 안내문에 나오는 말이에요.');
+g('pair','禁止吸烟','禁止吸烟','금연 표지판. 禁止 + 하지 말아야 할 행동이에요.');
+g('pair','紧急出口','紧急出口','비상구 표지판이에요.');
+g('pair','免费 · 优惠 · 特价','免费优惠特价','가게 할인 광고에 나오는 말이에요.');
+g('pair','扫码支付','扫码支付','QR코드 결제 안내문이에요.');
+g('pair','화장실 3종','洗手间卫生厕所','洗手间·卫生间·厕所는 모두 화장실이에요.');
+g('pair','银行 · 医院 · 药房','银行医院药房','생활 시설 간판에 자주 나와요.');
+g('pair','餐厅 · 饭店 · 酒店','餐厅饭店酒','음식점과 호텔 간판에 자주 나와요.');
+g('pair','地铁 · 车站','地铁车站','교통 안내판에 나오는 말이에요.');
+g('pair','新闻 · 报纸 · 记者','新闻报记者','신문 기사의 기본 말들이에요.');
+g('pair','政府 · 经济 · 发展','政府经济发展','신문 1면에 자주 나오는 말들이에요.');
+g('pair','年 · 月 · 日','年月日','날짜는 年 → 月 → 日(号) 순서로 말해요.');
+g('pair','上午 · 中午 · 下午','上中下午','하루의 때를 나누는 말이에요.');
+g('pair','숫자 一 ~ 十','一二三四五六七八九十','숫자 열 개예요. 층수·호선·날짜에 모두 써요.');
+g('pair','水 · 茶 · 酒','水茶酒','마실 것을 나타내는 글자예요. 水(물), 茶(차), 酒(술).');
+g('pair','메뉴판 기본 글자','米面肉鱼牛饭','밥·국수·고기·생선 등 메뉴판에서 가장 먼저 찾는 글자예요.');
+g('pair','전화 · 인터넷 · 위챗','电话号码网微信','연락처와 온라인 안내에 자주 나오는 글자예요.');
+g('pair','쇼핑 간판','超市店买卖价','가게와 쇼핑 간판에 자주 나오는 글자예요.');
+g('pair','안전 안내','安全注禁止','안전 표지판에 자주 나오는 글자예요.');
+g('pair','서점 · 도서관 · 신문','书店馆报','책과 신문을 다루는 곳의 간판 글자예요.');
+g('pair','질문 · 제목 · 소식','问题闻目','묻고 알리는 글자예요. 신문 기사에도 많이 나와요.');
+g('pair','표 · 매표 · 구매','票售买','표를 사고파는 곳에서 자주 봐요.');
+g('pair','할인 표시','折价特免费','가격 할인 광고에 자주 나오는 글자예요.');
+g('pair','관계를 나타내는 말','于已经','关于·由于·已经처럼 기사 문장을 이어 주는 글자예요.');
+g('pair','사용 · 결제','用支付付','결제 안내에 자주 나오는 글자예요.');
+g('pair','话 · 说 · 问','话问记','말하고 묻고 적는 글자들이에요. 讠(말씀 언)이 들어간 글자와 연결돼요.');
+g('pair','주말 · 이전과 이후','末后前','때와 순서를 나타내는 글자예요.');
+g('pair','土 · 木 · 水','土木水','자연 재료 글자예요.');
+(function(){
+const $=s=>document.querySelector(s);
+const MAP=new Map(D.map(d=>[d.ch,d]));
+const TM={'āēīōūǖ':1,'áéíóúǘ':2,'ǎěǐǒǔǚ':3,'àèìòùǜ':4};
+function tone(s){for(const c of s){for(const k in TM){if(k.includes(c))return TM[k]}}return 5}
+function base(s){return s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase()}
+function pyH(py){return py.split(' ').map(p=>p.split('/').map(s=>`<span class="t${tone(s)}">${s}</span>`).join('<i>/</i>')).join(' ')}
+const main=d=>d.py.split('/')[0];
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const GR=G.map(x=>({...x,chars:x.chars.filter(c=>MAP.has(c))})).filter(x=>x.chars.length>1);
+const REL=[
+ ['shape','모양이 닮았어요','같은 부품을 쓰거나 생김새가 비슷해서 헷갈리기 쉬운 글자들','var(--t1)'],
+ ['pair','짝꿍 · 함께 나오는 글자','반대말이거나 한 묶음으로 같이 보이는 글자들','var(--t3)'],
+ ['sound','소리가 같아요','병음이 같거나 성조만 다른 글자들','var(--t2)'],
+ ['word','같은 단어에서 만나요','이 글자가 들어간 단어 속에서 함께 나오는 글자들','var(--t4)'],
+ ['topic','같은 분야 글자','연결이 적은 글자는 같은 주제로 모아 둔 이웃 글자로 이어가요','var(--t5)']];
+const LS='hz-kkori-v1';
+const S={tab:'study',cur:null,trail:[],learned:new Set(),q:'',cat:'전체',onlyNew:false,mode:'mean',pool:'all',quiz:null,score:{ok:0,n:0}};
+try{const j=JSON.parse(localStorage.getItem(LS)||'{}');
+  if(Array.isArray(j.learned))S.learned=new Set(j.learned.filter(c=>MAP.has(c)));
+  if(j.cur&&MAP.has(j.cur))S.cur=j.cur}catch(e){}
+if(!S.cur)S.cur=D[0].ch;
+S.trail=[S.cur];
+function save(){try{localStorage.setItem(LS,JSON.stringify({learned:[...S.learned],cur:S.cur}))}catch(e){}}
+
+function uniq(list){const m=new Map();for(const x of list){if(m.has(x.c))m.get(x.c).push(x.why);else m.set(x.c,[x.why])}
+  return [...m].map(([c,w])=>({c,why:[...new Set(w)].join(' · ')}))}
+function nbrs(ch){
+  const d=MAP.get(ch),o={shape:[],pair:[],sound:[],word:[],topic:[]};
+  for(const x of GR){if(!x.chars.includes(ch))continue;for(const c of x.chars){if(c!==ch)o[x.type].push({c,why:x.title})}}
+  const b=base(main(d)),t=tone(main(d));
+  for(const e of D){if(e.ch===ch)continue;if(base(main(e))===b)o.sound.push({c:e.ch,why:tone(main(e))===t?'병음·성조 모두 같음':'성조만 다름'})}
+  for(const w of d.words)for(const c of w.w)if(c!==ch&&MAP.has(c))o.word.push({c,why:w.w});
+  for(const e of D){if(e.ch===ch)continue;for(const w of e.words)if(w.w.includes(ch))o.word.push({c:e.ch,why:w.w})}
+  for(const k in o)o[k]=uniq(o[k]);
+  const have=new Set([ch,...o.shape,...o.pair,...o.sound,...o.word].map(x=>x.c||x));
+  if(have.size<7){const i=D.indexOf(d);for(let k=1;k<8&&o.topic.length<6;k++)for(const j of [i-k,i+k]){const e=D[j];if(e&&e.cat===d.cat&&!have.has(e.ch)&&o.topic.length<6)o.topic.push({c:e.ch,why:d.cat})}}
+  return o}
+function allN(ch){const o=nbrs(ch);return [...new Set([...o.shape,...o.pair,...o.sound,...o.word,...o.topic].map(x=>x.c))]}
+
+function go(ch){S.cur=ch;if(S.trail[S.trail.length-1]!==ch){S.trail.push(ch);if(S.trail.length>40)S.trail.shift()}save()}
+function pickNext(){
+  const n=allN(S.cur);
+  let c=n.filter(x=>!S.trail.includes(x)&&!S.learned.has(x));
+  if(!c.length)c=n.filter(x=>!S.trail.includes(x));
+  if(!c.length)c=D.map(d=>d.ch).filter(x=>!S.learned.has(x)&&x!==S.cur);
+  if(!c.length)c=D.map(d=>d.ch).filter(x=>x!==S.cur);
+  return c[Math.floor(Math.random()*c.length)]}
+function say(t){try{const u=new SpeechSynthesisUtterance(t);u.lang='zh-CN';u.rate=.8;speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
+
+function chip(x){const d=MAP.get(x.c);
+  return `<button class="chip${S.learned.has(x.c)?' done':''}" data-go="${x.c}"><span class="cc">${x.c}</span><span class="ct"><span class="cp">${pyH(d.py)}</span><span class="cm">${d.mean}</span><span class="cw">${x.why}</span></span></button>`}
+function tile(c){const d=MAP.get(c),L=S.learned.has(c);
+  return `<button class="tile${L?' done':''}" data-go="${c}">${L?'<span class="ck">익힘</span>':''}<span class="tc">${c}</span><span class="tp">${pyH(d.py)}</span><span class="tm">${d.mean}</span></button>`}
+
+function trailH(){return `<div class="trail" aria-label="지금까지 이어 온 글자"><span class="lab">꼬리</span>${S.trail.map((c,i)=>`${i?'<span class="ar" aria-hidden="true">›</span>':''}<button class="tr" data-tr="${i}"${c===S.cur?' aria-current="true"':''}>${c}</button>`).join('')}${S.trail.length>1?'<button class="clr" data-act="clear">꼬리 지우기</button>':''}</div>`}
+
+function study(){
+  const d=MAP.get(S.cur),n=nbrs(S.cur),L=S.learned.has(S.cur);
+  const clk=t=>[...t].map(c=>c===S.cur?`<mark>${c}</mark>`:MAP.has(c)?`<button data-go="${c}" aria-label="${c} 글자로 이동">${c}</button>`:c).join('');
+  const words=d.words.map(w=>`<div class="wd"><div class="wz" lang="zh-CN">${clk(w.w)}<button class="say" data-say="${w.w}">듣기</button></div><div class="wp">${pyH(w.py)}</div><div class="wm">${w.m}</div></div>`).join('');
+  const rels=REL.map(([k,t,s,col])=>n[k].length?`<section class="rel" style="--rc:${col}"><h3>${t} <span class="tag">${n[k].length}</span></h3><p>${s}</p><div class="chips">${n[k].map(chip).join('')}</div></section>`:'').join('');
+  return `${trailH()}
+  <article class="study">
+    <div><div class="plate"><div class="plate-in"><div class="big" lang="zh-CN">${d.ch}</div></div><div class="plate-foot">${d.trad&&d.trad!==d.ch?'번체 '+d.trad:'번체도 같은 글자'} · ${d.cat}</div></div></div>
+    <div>
+      <div class="py">${pyH(d.py)}</div>
+      <div class="meta"><div><b>한국 한자음</b>${d.kr}</div><div class="mean"><b>뜻</b>${d.mean}</div></div>
+      ${d.tip?`<p class="tip">${d.tip}</p>`:''}
+      <div class="acts"><button class="btn say" data-say="${d.ch}">글자 듣기</button><button class="btn${L?' on':''}" data-act="learn" aria-pressed="${L}">${L?'익힘 완료':'익혔어요'}</button><button class="btn pri" data-act="next">이어서 한 글자 더</button></div>
+    </div>
+  </article>
+  <div class="box"><h2>이 글자가 쓰인 단어 (밑줄 글자를 누르면 그 글자로 이어져요)</h2>${words}</div>
+  <div class="box"><h2>예문</h2><div class="sent" lang="zh-CN">${clk(d.ex.z)}<button class="say" data-say="${d.ex.z}">듣기</button></div><div class="sp">${d.ex.py}</div><div class="sk">${d.ex.k}</div></div>
+  ${rels}`}
+
+function groups(){
+  const sec=(type,title,desc)=>{const l=GR.filter(x=>x.type===type);
+    return `<h2 style="margin:22px 0 2px;font-size:1.15rem">${title}</h2><p class="gn">${desc}</p>`+l.map(x=>`<section class="grp"><div class="gt">${x.title}<span class="tag">${x.chars.length}자</span></div><p class="gn">${x.note}</p><div class="grid">${x.chars.map(tile).join('')}</div></section>`).join('')};
+  return sec('shape','모양이 닮은 글자 묶음','헷갈리기 쉬운 글자를 한자리에 모았어요. 글자를 누르면 이어 배우기로 넘어가요.')+sec('pair','짝꿍 · 함께 나오는 글자 묶음','반대말이나 간판·신문에서 자주 붙어 다니는 말이에요.')}
+
+function matches(d){
+  if(S.cat!=='전체'&&d.cat!==S.cat)return false;
+  if(S.onlyNew&&S.learned.has(d.ch))return false;
+  const q=S.q.trim().toLowerCase();if(!q)return true;
+  return d.ch.includes(q)||base(d.py).includes(q)||d.kr.includes(q)||d.mean.toLowerCase().includes(q)||(d.trad&&d.trad.includes(q))||d.words.some(w=>w.w.includes(q)||w.m.includes(q))}
+function gridH(){const l=D.filter(matches);return l.length?l.map(d=>tile(d.ch)).join(''):'<p class="hint">조건에 맞는 글자가 없어요.</p>'}
+function list(){
+  const cats=['전체',...new Set(D.map(d=>d.cat))];
+  return `<div class="row"><input type="search" id="q" placeholder="글자, 병음(예: men), 한글 뜻으로 찾기" value="${S.q.replace(/"/g,'&quot;')}" aria-label="글자 찾기"></div>
+  <div class="row">${cats.map(c=>`<button class="fb" data-cat="${c}" aria-pressed="${S.cat===c}">${c}</button>`).join('')}<button class="fb" data-act="onlynew" aria-pressed="${S.onlyNew}">아직 안 익힌 것만</button></div>
+  <div class="grid" id="grid">${gridH()}</div>`}
+
+function newQ(){
+  const pool=S.pool==='learned'&&S.learned.size>=4?D.filter(d=>S.learned.has(d.ch)):D;
+  const t=pool[Math.floor(Math.random()*pool.length)],key=S.mode==='mean'?'mean':'py';
+  const wrong=[];
+  for(const c of shuffle(allN(t.ch))){const v=MAP.get(c)[key];if(v!==t[key]&&!wrong.includes(v))wrong.push(v);if(wrong.length>=3)break}
+  for(const x of shuffle(D)){if(wrong.length>=3)break;if(x[key]!==t[key]&&!wrong.includes(x[key]))wrong.push(x[key])}
+  return {t,key,opts:shuffle([t[key],...wrong]),pick:null}}
+function quiz(){
+  if(!S.quiz)S.quiz=newQ();
+  const Q=S.quiz,done=Q.pick!==null,ok=done&&Q.opts[Q.pick]===Q.t[Q.key];
+  const canL=S.learned.size>=4;
+  return `<div class="row"><button class="fb" data-mode="mean" aria-pressed="${S.mode==='mean'}">뜻 맞히기</button><button class="fb" data-mode="py" aria-pressed="${S.mode==='py'}">병음·성조 맞히기</button>
+  <button class="fb" data-pool="all" aria-pressed="${S.pool==='all'}">전체 글자</button><button class="fb" data-pool="learned" aria-pressed="${S.pool==='learned'}"${canL?'':' disabled'}>${canL?'익힌 글자만':'익힌 글자 4개부터'}</button>
+  <span class="score">맞힌 문제 ${S.score.ok} / ${S.score.n}</span></div>
+  <div class="qbig" lang="zh-CN">${Q.t.ch}</div>
+  <p style="margin:0 0 10px;font-weight:700">${S.mode==='mean'?'이 글자의 뜻은?':'이 글자의 병음(성조 포함)은?'}</p>
+  <div class="opts">${Q.opts.map((o,i)=>`<button class="opt${done?(o===Q.t[Q.key]?' right':i===Q.pick?' wrong':''):''}" data-opt="${i}"${done?' disabled':''}>${o}</button>`).join('')}</div>
+  ${done?`<p class="fb2">${ok?'정답이에요!':'아쉬워요. 정답은 “'+Q.t[Q.key]+'”'}</p><div class="acts"><button class="btn pri" data-act="qnext">다음 문제</button><button class="btn" data-go="${Q.t.ch}">이 글자 이어 배우기</button></div>`:''}
+  <p class="hint">오답 보기는 이 글자와 모양·소리가 비슷한 글자에서 골라서, 헷갈리는 글자를 구분하는 연습이 돼요.</p>`}
+
+const TABS=[['study','이어 배우기'],['groups','묶음 모아보기'],['list','전체 글자'],['quiz','퀴즈']];
+function render(){
+  $('#tabs').innerHTML=TABS.map(([k,t])=>`<button role="tab" data-tab="${k}" aria-selected="${S.tab===k}">${t}</button>`).join('');
+  const n=S.learned.size;
+  $('#prog').innerHTML=`${n} / ${D.length}자 익힘<div class="bar"><i style="width:${Math.round(n/D.length*100)}%"></i></div>`;
+  $('#app').innerHTML=S.tab==='study'?study():S.tab==='groups'?groups():S.tab==='list'?list():quiz();
+  const q=$('#q');if(q)q.addEventListener('input',()=>{S.q=q.value;$('#grid').innerHTML=gridH()});
+  const t=$('.trail');if(t)t.scrollLeft=t.scrollWidth}
+function top(){try{$('#tabs').scrollIntoView({block:'start'})}catch(e){}}
+
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  const D2=b.dataset;
+  if(D2.tab){S.tab=D2.tab;render();return}
+  if(D2.say){say(D2.say);return}
+  if(D2.go){go(D2.go);S.tab='study';render();top();return}
+  if(D2.tr!==undefined){const i=+D2.tr;S.cur=S.trail[i];S.trail=S.trail.slice(0,i+1);save();render();return}
+  if(D2.cat){S.cat=D2.cat;render();return}
+  if(D2.mode){S.mode=D2.mode;S.quiz=null;render();return}
+  if(D2.pool){S.pool=D2.pool;S.quiz=null;render();return}
+  if(D2.opt!==undefined){const Q=S.quiz;if(Q.pick!==null)return;Q.pick=+D2.opt;S.score.n++;if(Q.opts[Q.pick]===Q.t[Q.key])S.score.ok++;render();return}
+  const a=D2.act;if(!a)return;
+  if(a==='learn'){S.learned.has(S.cur)?S.learned.delete(S.cur):S.learned.add(S.cur);save();render()}
+  else if(a==='next'){go(pickNext());render();top()}
+  else if(a==='clear'){S.trail=[S.cur];render()}
+  else if(a==='onlynew'){S.onlyNew=!S.onlyNew;render()}
+  else if(a==='qnext'){S.quiz=newQ();render()}
+});
+if(!('speechSynthesis' in window))document.body.classList.add('no-tts');
+render();
+})();
+</script></body></html>
