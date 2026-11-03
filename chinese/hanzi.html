@@ -450,7 +450,19 @@ function pickNext(){
   if(!c.length)c=D.map(d=>d.ch).filter(x=>!S.learned.has(x)&&x!==S.cur);
   if(!c.length)c=D.map(d=>d.ch).filter(x=>x!==S.cur);
   return c[Math.floor(Math.random()*c.length)]}
-function say(t){try{const u=new SpeechSynthesisUtterance(t);u.lang='zh-CN';u.rate=.8;speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
+const TTS={a:null,warm:false};
+function zhVoice(){try{const v=speechSynthesis.getVoices();return v.find(x=>/^zh[-_]?CN/i.test(x.lang))||v.find(x=>/^zh/i.test(x.lang))||v.find(x=>/chinese|中文|普通话|mandarin/i.test(x.name))||null}catch(e){return null}}
+function sayToast(m){let t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.setAttribute('role','status');t.style.cssText='position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#14202c;color:#fff;padding:10px 16px;border-radius:10px;font-size:.9rem;z-index:50;max-width:90vw;text-align:center';document.body.appendChild(t)}t.textContent=m;t.hidden=false;clearTimeout(t._h);t._h=setTimeout(()=>{t.hidden=true},3500)}
+function sayOnline(t){const urls=['https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=zh-CN&q='+encodeURIComponent(t),'https://fanyi.baidu.com/gettts?lan=zh&spd=5&source=web&text='+encodeURIComponent(t)];let i=0;
+  const tryNext=()=>{if(i>=urls.length){sayToast('이 기기에서는 중국어 음성을 재생할 수 없어요. 기기 설정에서 중국어 음성(TTS)을 설치해 보세요.');return}
+    try{if(TTS.a){TTS.a.pause()}const a=new Audio(urls[i++]);TTS.a=a;a.onerror=tryNext;const p=a.play();if(p&&p.catch)p.catch(tryNext)}catch(e){tryNext()}};
+  tryNext()}
+function say(t){
+  try{if('speechSynthesis' in window){const v=zhVoice();
+    if(v){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.voice=v;u.lang=v.lang;u.rate=.85;let ok=false;u.onstart=()=>{ok=true};u.onerror=()=>{if(!ok)sayOnline(t)};
+      setTimeout(()=>speechSynthesis.speak(u),40);return}}}catch(e){}
+  sayOnline(t)}
+try{if('speechSynthesis' in window){speechSynthesis.getVoices();speechSynthesis.addEventListener&&speechSynthesis.addEventListener('voiceschanged',()=>{})}}catch(e){}
 
 function chip(x){const d=MAP.get(x.c);
   return `<button class="chip${S.learned.has(x.c)?' done':''}" data-go="${x.c}"><span class="cc">${x.c}</span><span class="ct"><span class="cp">${pyH(d.py)}</span><span class="cm">${d.mean}</span><span class="cw">${x.why}</span></span></button>`}
@@ -545,7 +557,6 @@ document.addEventListener('click',e=>{
   else if(a==='onlynew'){S.onlyNew=!S.onlyNew;render()}
   else if(a==='qnext'){S.quiz=newQ();render()}
 });
-if(!('speechSynthesis' in window))document.body.classList.add('no-tts');
 render();
 })();
 
