@@ -122,6 +122,13 @@ input[type=search]{font:inherit;padding:8px 12px;border:1px solid var(--line);bo
 .score{color:var(--muted);font-size:.9rem}
 @media (max-width:700px){.study{grid-template-columns:minmax(0,1fr)}.plate{max-width:300px}.py{font-size:1.8rem}}
 @media (prefers-reduced-motion:no-preference){.chip,.tile,.btn{transition:border-color .15s}}
+
+.chip .cc,.tile .tc{cursor:pointer}
+.hint2{margin:6px 0 0;color:var(--muted);font-size:.82rem}
+.sl{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px;font-size:.85rem;color:var(--muted)}
+.sl button,.wl button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 10px;font:600 .9rem var(--f-py);min-height:32px}
+.wl{display:flex;flex-wrap:wrap;gap:6px;grid-column:1/-1;align-items:center;font-size:.8rem;color:var(--muted)}
+.wz button:not(.say),.sent button:not(.say){cursor:pointer}
 </style>
 </head>
 <body>
@@ -140,7 +147,7 @@ input[type=search]{font:inherit;padding:8px 12px;border:1px solid var(--line);bo
   <header class="top">
     <div>
       <h1>HSK 5급 꼬리잡기</h1>
-      <p class="sub">HSK 5급 신출 1298단어를 같은 글자, 반대말, 주제, 예문으로 이어 배워요</p>
+      <p class="sub">HSK 5급 신출 1298단어를 같은 글자, 반대말, 주제, 예문으로 이어 배워요<br>한자를 누르면 발음이 나오고, 병음을 누르면 그 단어로 이동해요</p>
     </div>
     <div class="prog" id="prog"></div>
   </header>
@@ -1642,7 +1649,8 @@ const FS=[0,150,110,78,62,52,44];
 
 function study(){
   const d=MAP.get(S.cur),n=nbrs(S.cur),L=S.learned.has(S.cur),len=[...d.w].length;
-  const sent=seg(d.ex.z).map(x=>x.t===d.w?`<mark>${x.t}</mark>`:x.w?`<button data-go="${x.t}" aria-label="${x.t} 단어로 이동">${x.t}</button>`:x.t).join('');
+  const sent=seg(d.ex.z).map(x=>x.t===d.w?`<mark>${x.t}</mark>`:x.w?`<button data-say="${x.t}" aria-label="${x.t} 듣기">${x.t}</button>`:x.t).join('');
+  const sl=[...new Set(seg(d.ex.z).filter(x=>x.w&&x.t!==d.w).map(x=>x.t))].map(t=>`<button data-go="${t}" aria-label="${t} 단어로 이동">${pyH(MAP.get(t).py)}</button>`).join('');
   const rels=REL.map(([k,t,s,col])=>n[k].length?`<section class="rel" style="--rc:${col}"><h3>${t} <span class="tag">${n[k].length}</span></h3><p>${s}</p><div class="chips">${n[k].map(chip).join('')}</div></section>`:'').join('');
   return `${trailH()}
   <article class="study">
@@ -1654,7 +1662,7 @@ function study(){
       <div class="acts"><button class="btn say" data-say="${d.w}">단어 듣기</button><button class="btn${L?' on':''}" data-act="learn" aria-pressed="${L}">${L?'익힘 완료':'익혔어요'}</button><button class="btn pri" data-act="next">이어서 한 단어 더</button></div>
     </div>
   </article>
-  <div class="box"><h2>예문 (밑줄 단어를 누르면 그 단어로 이어져요)</h2><div class="sent" lang="zh-CN">${sent}<button class="say" data-say="${d.ex.z}">듣기</button></div><div class="sp">${d.ex.py}</div><div class="sk">${d.ex.k}</div></div>
+  <div class="box"><h2>예문 (밑줄 단어를 누르면 발음, 아래 병음을 누르면 그 단어로 이어져요)</h2><div class="sent" lang="zh-CN">${sent}<button class="say" data-say="${d.ex.z}">듣기</button></div>${sl?`<div class="sl">단어로 이동 ›${sl}</div>`:''}<div class="sp">${d.ex.py}</div><div class="sk">${d.ex.k}</div></div>
   ${rels}`}
 
 
@@ -1724,6 +1732,7 @@ document.addEventListener('click',e=>{
   const x=b.dataset;
   if(x.tab){S.tab=x.tab;render();return}
   if(x.say){say(x.say);return}
+  if(x.go&&e.target.closest('.cc,.tc')){say(x.go);return}
   if(x.go){go(x.go);S.tab='study';render();top();return}
   if(x.tr!==undefined){const i=+x.tr;S.cur=S.trail[i];S.trail=S.trail.slice(0,i+1);save();render();return}
   if(x.lvf!==undefined){S.lvf=+x.lvf;render();return}

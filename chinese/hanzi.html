@@ -117,6 +117,12 @@ input[type=search]{font:inherit;padding:8px 12px;border:1px solid var(--line);bo
 .score{color:var(--muted);font-size:.9rem}
 @media (max-width:700px){.study{grid-template-columns:minmax(0,1fr)}.plate{max-width:300px}.py{font-size:1.8rem}}
 @media (prefers-reduced-motion:no-preference){.chip,.tile,.btn{transition:border-color .15s}}
+
+.chip .cc,.tile .tc{cursor:pointer}
+.sl{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px;font-size:.85rem;color:var(--muted)}
+.sl button,.wl button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 10px;font:600 .9rem var(--f-py);min-height:32px}
+.wl{display:flex;flex-wrap:wrap;gap:6px;grid-column:1/-1;align-items:center;font-size:.8rem;color:var(--muted)}
+.wz button:not(.say),.sent button:not(.say){cursor:pointer}
 </style>
 </head>
 <body>
@@ -135,7 +141,7 @@ input[type=search]{font:inherit;padding:8px 12px;border:1px solid var(--line);bo
   <header class="top">
     <div>
       <h1>간체자 꼬리잡기</h1>
-      <p class="sub">간판·거리·신문에 자주 나오는 글자를 모양, 소리, 단어로 이어 배워요</p>
+      <p class="sub">간판·거리·신문에 자주 나오는 글자를 모양, 소리, 단어로 이어 배워요<br>한자를 누르면 발음이 나오고, 병음을 누르면 그 글자로 이동해요</p>
     </div>
     <div class="prog" id="prog"></div>
   </header>
@@ -455,8 +461,9 @@ function trailH(){return `<div class="trail" aria-label="지금까지 이어 온
 
 function study(){
   const d=MAP.get(S.cur),n=nbrs(S.cur),L=S.learned.has(S.cur);
-  const clk=t=>[...t].map(c=>c===S.cur?`<mark>${c}</mark>`:MAP.has(c)?`<button data-go="${c}" aria-label="${c} 글자로 이동">${c}</button>`:c).join('');
-  const words=d.words.map(w=>`<div class="wd"><div class="wz" lang="zh-CN">${clk(w.w)}<button class="say" data-say="${w.w}">듣기</button></div><div class="wp">${pyH(w.py)}</div><div class="wm">${w.m}</div></div>`).join('');
+  const clk=t=>[...t].map(c=>c===S.cur?`<mark>${c}</mark>`:MAP.has(c)?`<button data-say="${c}" aria-label="${c} 듣기">${c}</button>`:c).join('');
+  const wl=t=>{const o=[...t].filter(c=>c!==S.cur&&MAP.has(c)).map(c=>`<button data-go="${c}" aria-label="${c} 글자로 이동">${pyH(MAP.get(c).py)}</button>`).join('');return o?`<div class="wl">글자로 이동 ›${o}</div>`:''};
+  const words=d.words.map(w=>`<div class="wd"><div class="wz" lang="zh-CN">${clk(w.w)}<button class="say" data-say="${w.w}">듣기</button></div><div class="wp">${pyH(w.py)}</div><div class="wm">${w.m}</div>${wl(w.w)}</div>`).join('');
   const rels=REL.map(([k,t,s,col])=>n[k].length?`<section class="rel" style="--rc:${col}"><h3>${t} <span class="tag">${n[k].length}</span></h3><p>${s}</p><div class="chips">${n[k].map(chip).join('')}</div></section>`:'').join('');
   return `${trailH()}
   <article class="study">
@@ -524,6 +531,7 @@ document.addEventListener('click',e=>{
   const D2=b.dataset;
   if(D2.tab){S.tab=D2.tab;render();return}
   if(D2.say){say(D2.say);return}
+  if(D2.go&&e.target.closest('.cc,.tc')){say(D2.go);return}
   if(D2.go){go(D2.go);S.tab='study';render();top();return}
   if(D2.tr!==undefined){const i=+D2.tr;S.cur=S.trail[i];S.trail=S.trail.slice(0,i+1);save();render();return}
   if(D2.cat){S.cat=D2.cat;render();return}
