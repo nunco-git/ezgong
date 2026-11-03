@@ -1,0 +1,1745 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>HSK 5급 꼬리잡기 - 스마트공</title>
+<meta name="description" content="HSK 5급 단어를 같은 글자·반대말·주제·예문으로 꼬리에 꼬리를 물고 익히는 중국어 학습 앱.">
+<link rel="icon" href="/smartgong_logo_icon.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Noto+Sans+SC:wght@400;700;900&family=Noto+Sans:wght@400;600;700&display=swap">
+<style>
+/* 레이아웃: 파란 도로표지판 느낌의 글자판 + 꼬리잡기 사슬 + 연결 칩 */
+:root{
+  --bg:#eceff3; --surface:#ffffff; --ink:#14202c; --muted:#556271; --line:#d3dae2;
+  --sign:#0d4f8b; --sign-ink:#ffffff; --red:#c4301c; --soft:#e3edf7;
+  --t1:#1d62c9; --t2:#1b7a43; --t3:#9a5700; --t4:#c4301c; --t5:#667381; --ok:#1b7a43;
+  --f-han:'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;
+  --f-kr:'Noto Sans KR','Malgun Gothic','Apple SD Gothic Neo',system-ui,sans-serif;
+  --f-py:'Noto Sans','Segoe UI',system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f161d; --surface:#18222c; --ink:#e8eef4; --muted:#9fadbb; --line:#2b3947;
+  --sign:#1a63aa; --red:#ff7a64; --soft:#14283a;
+  --t1:#74acff; --t2:#5fcf8a; --t3:#f2b445; --t4:#ff7a64; --t5:#9fadbb; --ok:#5fcf8a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f161d; --surface:#18222c; --ink:#e8eef4; --muted:#9fadbb; --line:#2b3947;
+  --sign:#1a63aa; --red:#ff7a64; --soft:#14283a;
+  --t1:#74acff; --t2:#5fcf8a; --t3:#f2b445; --t4:#ff7a64; --t5:#9fadbb; --ok:#5fcf8a; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 var(--f-kr);padding-block:0 56px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:10}
+.wrap{max-width:1000px;margin:0 auto}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+.top{display:flex;gap:16px;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;padding:22px 0 14px}
+h1{margin:0;font-size:1.7rem;font-weight:900;letter-spacing:-.01em;text-wrap:balance}
+.sub{margin:2px 0 0;color:var(--muted);font-size:.92rem}
+.prog{min-width:190px;font-size:.85rem;color:var(--muted)}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:5px}
+.bar i{display:block;height:100%;background:var(--red)}
+.tabs{display:flex;gap:2px;border-bottom:2px solid var(--line);overflow-x:auto;position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:5}
+.tabs{scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}
+.tabs button{background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-2px;padding:12px 11px;font-size:.95rem;font-weight:700;color:var(--muted);white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--red)}
+.trail{display:flex;align-items:center;gap:4px;overflow-x:auto;padding:14px 0 6px}
+.trail .tr{flex:none;min-width:42px;height:42px;padding:0 8px;white-space:nowrap;border:1px solid var(--line);background:var(--surface);border-radius:8px;font:700 1.25rem var(--f-han)}
+.trail .tr[aria-current="true"]{background:var(--sign);border-color:var(--sign);color:#fff}
+.trail .ar{flex:none;color:var(--muted)}
+.trail .lab{flex:none;font-size:.8rem;color:var(--muted);margin-right:6px}
+.trail .clr{flex:none;margin-left:8px;background:none;border:0;color:var(--muted);text-decoration:underline;font-size:.85rem}
+.study{display:grid;grid-template-columns:minmax(220px,290px) minmax(0,1fr);gap:22px;align-items:start;margin-top:10px}
+.plate{background:var(--sign);padding:10px;border-radius:14px}
+.plate-in{border:3px solid #fff;border-radius:8px;aspect-ratio:1/1;display:grid;place-items:center;color:#fff}
+.big{font-weight:900;line-height:1.1;font-family:var(--f-han);text-align:center;padding:0 6px}
+.plate-foot{color:#fff;font-size:.82rem;text-align:center;padding-top:8px}
+.py{font:600 2.1rem/1.2 var(--f-py)}
+.py i{font-style:normal;color:var(--muted);padding:0 4px}
+.t1{color:var(--t1)}.t2{color:var(--t2)}.t3{color:var(--t3)}.t4{color:var(--t4)}.t5{color:var(--t5)}
+.meta{display:grid;gap:4px;margin:8px 0 12px}
+.meta b{display:inline-block;min-width:6.4em;color:var(--muted);font-weight:500;font-size:.85rem}
+.mean{font-size:1.2rem;font-weight:700}
+.kbox{margin:10px 0 0;padding:10px 12px;border-radius:8px;font-size:.92rem;border:1px solid var(--line);line-height:1.5}
+.kbox b{display:block;margin-bottom:2px}
+.kbox.same{background:var(--soft)}
+.kbox.diff{background:var(--soft);border-left:4px solid var(--t4)}
+.tip{margin:10px 0 0;padding:10px 12px;background:var(--soft);border-radius:8px;font-size:.92rem}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 14px;font-weight:700}
+.btn.pri{background:var(--red);border-color:var(--red);color:#fff}
+.btn.on{border-color:var(--ok);color:var(--ok)}
+.no-tts .say{display:none}
+.btn.say{margin-left:0}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:14px}
+.box h2{margin:0 0 10px;font-size:.95rem;color:var(--muted);font-weight:700}
+.wd{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 14px;padding:8px 0;border-top:1px solid var(--line)}
+.wd:first-of-type{border-top:0}
+.wz{font:700 1.5rem var(--f-han)}
+.wz button:not(.say),.sent button:not(.say){background:none;border:0;border-bottom:2px dotted var(--sign);padding:0;font:inherit;color:inherit}
+.wz mark,.sent mark{background:var(--soft);color:inherit;border-radius:3px}
+.wp{font-family:var(--f-py);font-weight:600}
+.wm{grid-column:2;color:var(--muted);font-size:.92rem}
+.sent{font:500 1.5rem/1.7 var(--f-han)}
+.sp{font-family:var(--f-py);color:var(--muted);margin-top:2px}
+.sk{margin-top:2px}
+.say{margin-left:8px;border:1px solid var(--line);background:none;border-radius:6px;padding:0 8px;font-size:.78rem;color:var(--muted)}
+.rel{margin-top:18px}
+.rel h3{margin:0 0 4px;font-size:1rem;padding-left:10px;border-left:5px solid var(--rc)}
+.rel p{margin:0 0 8px 15px;color:var(--muted);font-size:.88rem}
+.chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:8px}
+.chip{display:flex;gap:12px;align-items:center;text-align:left;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.chip:hover{border-color:var(--sign)}
+.chip .cc{font:700 1.4rem/1.1 var(--f-han);min-width:2.2em;max-width:5.5em;overflow-wrap:anywhere}
+.chip .ct{display:grid;min-width:0}
+.chip .cp{font:600 .95rem var(--f-py)}
+.chip .cm{color:var(--muted);font-size:.85rem;overflow-wrap:anywhere}
+.chip .cw{font-size:.75rem;color:var(--muted)}
+.chip.done{border-color:var(--ok)}
+.hint{color:var(--muted);font-size:.9rem;margin:14px 0 0}
+.grp{margin-top:14px}
+.grp .gt{font-weight:700;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.lvl{font-size:.75rem;font-weight:700;border-radius:999px;padding:1px 10px;background:var(--soft);color:var(--ink);margin-right:6px}
+.tag{font-size:.75rem;font-weight:700;border:1px solid var(--line);border-radius:999px;padding:0 8px;color:var(--muted)}
+.gn{margin:4px 0 10px;color:var(--muted);font-size:.92rem}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:14px 0 10px}
+input[type=search]{font:inherit;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);min-width:0;flex:1 1 180px}
+.fb{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 12px;font-size:.88rem}
+.fb[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px}
+.tile{position:relative;display:grid;gap:0;justify-items:center;padding:10px 6px;border:1px solid var(--line);background:var(--surface);border-radius:10px}
+.tile:hover{border-color:var(--sign)}
+.tile .tc{font:700 1.5rem/1.3 var(--f-han);text-align:center}
+.tile .tp{font:600 .9rem var(--f-py)}
+.tile .tm{font-size:.78rem;color:var(--muted);text-align:center;overflow-wrap:anywhere}
+.tile.done{border-color:var(--ok)}
+.tile .ck{position:absolute;top:4px;right:6px;font-size:.7rem;color:var(--ok);font-weight:700}
+.qbig{font-family:var(--f-han);font-weight:900;font-size:3.6rem;line-height:1.2;text-align:center;color:#fff;background:var(--sign);border-radius:14px;padding:14px 8px;margin-bottom:14px;overflow-wrap:anywhere}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+.opt{padding:12px;border:2px solid var(--line);background:var(--surface);border-radius:10px;font-weight:700;font-size:1.05rem}
+.opt.right{border-color:var(--ok);background:var(--soft)}
+.opt.wrong{border-color:var(--red)}
+.fb2{margin:12px 0;font-weight:700}
+.score{color:var(--muted);font-size:.9rem}
+@media (max-width:700px){.study{grid-template-columns:minmax(0,1fr)}.plate{max-width:300px}.py{font-size:1.8rem}}
+@media (prefers-reduced-motion:no-preference){.chip,.tile,.btn{transition:border-color .15s}}
+</style>
+</head>
+<body>
+<style>
+.zhbar{max-width:1000px;margin:0 auto;padding:10px 0 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.85rem}
+.zhbar a{color:var(--muted);text-decoration:none}
+.zhbar a.home:hover{color:var(--ink)}
+.zhbar .sw{display:flex;gap:2px;margin-left:auto;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px;overflow-x:auto;max-width:100%}
+.zhbar .sw a{padding:7px 12px;border-radius:999px;font-weight:700;color:var(--muted);white-space:nowrap}
+.zhbar .sw a[aria-current="page"]{background:var(--sign);color:#fff}
+.zhbar a:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+</style>
+<div class="zhbar"><a class="home" href="/">← 스마트공 홈</a><a class="home" href="/more/">기타 앱</a>
+<nav class="sw" aria-label="중국어 학습 메뉴"><a href="/chinese/hanzi.html">간체자</a><a href="/chinese/hsk12.html">HSK 1·2급</a><a href="/chinese/hsk3.html">3급</a><a href="/chinese/hsk4.html">4급</a><a href="/chinese/hsk5.html" aria-current="page">5급</a></nav></div>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>HSK 5급 꼬리잡기</h1>
+      <p class="sub">HSK 5급 신출 1298단어를 같은 글자, 반대말, 주제, 예문으로 이어 배워요</p>
+    </div>
+    <div class="prog" id="prog"></div>
+  </header>
+  <nav class="tabs" id="tabs" aria-label="학습 메뉴"></nav>
+  <main id="app"></main>
+</div>
+<script>
+// W(단어, 병음(음절마다 띄어쓰기), 품사, 뜻, [예문, 병음, 번역], 팁)
+const D=[]; let LV=1, TH='';
+function lv(n){LV=n}
+function th(n){TH=n}
+function W(w,py,pos,mean,ex,tip){D.push({w,py,pos,mean,ex:{z:ex[0],py:ex[1],k:ex[2]},tip:tip||'',lv:LV,th:TH})}
+// P(단어A, 단어B, 관계 이름) : 반대말·짝
+const PR=[];
+function P(a,b,label){PR.push({a,b,label:label||'반대말'})}
+
+lv(5);
+th("사람·직업·관계");
+W("班主任","bān zhǔ rèn","명사","담임 교사",["我们的班主任很年轻。","wǒ men de bān zhǔ rèn hěn nián qīng。","우리 담임 선생님은 아주 젊어요."]);
+W("彼此","bǐ cǐ","대명사","서로",["我们彼此都很了解。","wǒ men bǐ cǐ dōu hěn liǎo jiě。","우리는 서로를 잘 알아요."]);
+W("吵架","chǎo jià","동사","다투다",["他们又吵架了。","tā men yòu chǎo jià le。","그들은 또 다퉜어요."]);
+W("称呼","chēng hu","동사","부르다, 호칭",["你怎么称呼他？","nǐ zěn me chēng hū tā？","그를 어떻게 불러요?"]);
+W("打交道","dǎ jiāo dào","동사","교제하다, 상대하다",["我常常跟外国人打交道。","wǒ cháng cháng gēn wài guó rén dǎ jiāo dào。","저는 외국인과 자주 접해요."]);
+W("打招呼","dǎ zhāo hu","동사","인사하다",["他跟我打招呼了。","tā gēn wǒ dǎ zhāo hu le。","그가 저에게 인사했어요."]);
+W("胆小鬼","dǎn xiǎo guǐ","명사","겁쟁이",["你别做胆小鬼。","nǐ bié zuò dǎn xiǎo guǐ。","겁쟁이가 되지 마세요."]);
+W("导演","dǎo yǎn","명사","감독",["这部电影的导演很有名。","zhè bù diàn yǐng de dǎo yǎn hěn yǒu míng。","이 영화의 감독은 아주 유명해요."]);
+W("对方","duì fāng","명사","상대방",["你要听听对方的意见。","nǐ yào tīng tīng duì fāng de yì jiàn。","상대방의 의견을 들어 봐야 해요."]);
+W("对手","duì shǒu","명사","상대, 적수",["他是我最强的对手。","tā shì wǒ zuì qiáng de duì shǒu。","그는 제 가장 강한 상대예요."]);
+W("对象","duì xiàng","명사","대상, 연애 상대",["他在找结婚对象。","tā zài zhǎo jié hūn duì xiàng。","그는 결혼 상대를 찾고 있어요."]);
+W("房东","fáng dōng","명사","집주인",["房东来收房租了。","fáng dōng lái shōu fáng zū le。","집주인이 월세를 받으러 왔어요."]);
+W("妇女","fù nǚ","명사","부녀자",["这里的妇女都很勤劳。","zhè lǐ de fù nǚ dōu hěn qín láo。","이곳 여성들은 모두 부지런해요."]);
+W("告别","gào bié","동사","작별하다",["他向大家告别了。","tā xiàng dà jiā gào bié le。","그는 모두에게 작별 인사를 했어요."]);
+W("个人","gè rén","명사","개인",["这是我个人的看法。","zhè shì wǒ gè rén de kàn fǎ。","이것은 제 개인적인 의견이에요."]);
+W("各自","gè zì","대명사","각자",["大家各自回家了。","dà jiā gè zì huí jiā le。","모두 각자 집에 갔어요."]);
+W("工程师","gōng chéng shī","명사","엔지니어",["他是一名工程师。","tā shì yī míng gōng chéng shī。","그는 엔지니어예요."]);
+W("工人","gōng rén","명사","노동자",["工人们正在工厂里干活。","gōng rén men zhèng zài gōng chǎng lǐ gàn huó。","노동자들이 공장에서 일하고 있어요."]);
+W("公主","gōng zhǔ","명사","공주",["这个故事里有一位公主。","zhè ge gù shì lǐ yǒu yī wèi gōng zhǔ。","이 이야기에는 공주가 한 명 나와요."]);
+W("沟通","gōu tōng","동사","소통하다",["我们要多沟通。","wǒ men yào duō gōu tōng。","우리는 소통을 많이 해야 해요."]);
+W("姑姑","gū gu","명사","고모",["姑姑住在北京。","gū gū zhù zài běi jīng。","고모는 베이징에 살아요."]);
+W("姑娘","gū niang","명사","아가씨",["那个姑娘很漂亮。","nà ge gū niáng hěn piào liàng。","저 아가씨는 아주 예뻐요."]);
+W("光临","guāng lín","동사","왕림하다",["欢迎光临！","huān yíng guāng lín！","어서 오세요!"]);
+W("华裔","Huá yì","명사","화교 후손",["他是美国华裔。","tā shì měi guó huá yì。","그는 미국 화교예요."]);
+W("皇帝","huáng dì","명사","황제",["古代中国有很多皇帝。","gǔ dài zhōng guó yǒu hěn duō huáng dì。","고대 중국에는 황제가 많았어요."]);
+W("皇后","huáng hòu","명사","황후",["皇后住在宫殿里。","huáng hòu zhù zài gōng diàn lǐ。","황후는 궁전에 살아요."]);
+W("婚礼","hūn lǐ","명사","결혼식",["我参加了朋友的婚礼。","wǒ cān jiā le péng yǒu de hūn lǐ。","저는 친구의 결혼식에 참석했어요."]);
+W("婚姻","hūn yīn","명사","혼인",["他们的婚姻很幸福。","tā men de hūn yīn hěn xìng fú。","그들의 결혼 생활은 행복해요."]);
+W("伙伴","huǒ bàn","명사","동료, 파트너",["他是我的好伙伴。","tā shì wǒ de hǎo huǒ bàn。","그는 저의 좋은 동료예요."]);
+W("家庭","jiā tíng","명사","가정",["他有一个幸福的家庭。","tā yǒu yí gè xìng fú de jiā tíng。","그는 행복한 가정을 가졌어요."]);
+W("嘉宾","jiā bīn","명사","귀빈",["今天来了很多嘉宾。","jīn tiān lái le hěn duō jiā bīn。","오늘 귀빈이 많이 오셨어요."]);
+W("嫁","jià","동사","시집가다",["她嫁给了一位医生。","tā jià gěi le yī wèi yī shēng。","그녀는 의사에게 시집갔어요."]);
+W("交际","jiāo jì","동사","사교",["他很善于交际。","tā hěn shàn yú jiāo jì。","그는 사교에 능해요."]);
+W("教练","jiào liàn","명사","코치, 감독",["他是篮球教练。","tā shì lán qiú jiào liàn。","그는 농구 코치예요."]);
+W("接待","jiē dài","동사","접대하다",["我们热情地接待了客人。","wǒ men rè qíng dì jiē dài le kè rén。","우리는 손님을 정성껏 맞이했어요."]);
+W("解说员","jiě shuō yuán","명사","해설자",["他是一名足球解说员。","tā shì yī míng zú qiú jiě shuō yuán。","그는 축구 해설자예요."]);
+W("舅舅","jiù jiu","명사","외삼촌",["舅舅给我买了一份礼物。","jiù jiù gěi wǒ mǎi le yī fèn lǐ wù。","외삼촌이 저에게 선물을 사 주셨어요."]);
+W("聚会","jù huì","동사","모임",["周末我们有一个聚会。","zhōu mò wǒ men yǒu yí gè jù huì。","주말에 우리 모임이 있어요."]);
+W("劳驾","láo jià","동사","실례합니다",["劳驾，请问洗手间在哪儿？","láo jià， qǐng wèn xǐ shǒu jiān zài nǎ ér？","실례지만 화장실이 어디예요?"]);
+W("老百姓","lǎo bǎi xìng","명사","서민",["老百姓的生活越来越好。","lǎo bǎi xìng de shēng huó yuè lái yuè hǎo。","서민의 생활이 갈수록 나아져요."]);
+W("老板","lǎo bǎn","명사","사장",["我们的老板很年轻。","wǒ men de lǎo bǎn hěn nián qīng。","우리 사장님은 아주 젊어요."]);
+W("姥姥","lǎo lao","명사","외할머니",["姥姥住在乡下。","lǎo lao zhù zài xiāng xià。","외할머니는 시골에 사세요."]);
+W("离婚","lí hūn","동사","이혼하다",["他们去年离婚了。","tā men qù nián lí hūn le。","그들은 작년에 이혼했어요."]);
+W("恋爱","liàn ài","동사","연애하다",["他们在谈恋爱。","tā men zài tán liàn ài。","그들은 연애 중이에요."]);
+W("秘书","mì shū","명사","비서",["她是经理的秘书。","tā shì jīng lǐ de mì shū。","그녀는 매니저의 비서예요."]);
+W("明星","míng xīng","명사","스타",["她是一位电影明星。","tā shì yī wèi diàn yǐng míng xīng。","그녀는 영화배우 스타예요."]);
+W("年纪","nián jì","명사","나이",["他年纪很大了。","tā nián jì hěn dà le。","그는 나이가 많아요."]);
+W("农民","nóng mín","명사","농민",["农民在田里干活。","nóng mín zài tián lǐ gàn huó。","농민이 밭에서 일해요."]);
+W("女士","nǚ shì","명사","여사, 부인",["女士们，先生们，大家好！","nǚ shì men， xiān shēng men， dà jiā hǎo！","신사 숙녀 여러분 안녕하세요!"]);
+W("青少年","qīng shào nián","명사","청소년",["青少年要多运动。","qīng shào nián yào duō yùn dòng。","청소년은 운동을 많이 해야 해요."]);
+W("球迷","qiú mí","명사","축구·구기 팬",["球迷们都很兴奋。","qiú mí men dōu hěn xīng fèn。","팬들은 모두 들떠 있어요."]);
+W("娶","qǔ","동사","장가가다",["他娶了一位老师。","tā qǔ le yī wèi lǎo shī。","그는 선생님과 결혼했어요."]);
+W("去世","qù shì","동사","세상을 떠나다",["他的爷爷去年去世了。","tā de yé yé qù nián qù shì le。","그의 할아버지는 작년에 돌아가셨어요."]);
+W("人才","rén cái","명사","인재",["公司需要很多人才。","gōng sī xū yào hěn duō rén cái。","회사는 인재가 많이 필요해요."]);
+W("人物","rén wù","명사","인물",["他是一个重要人物。","tā shì yí gè zhòng yào rén wù。","그는 중요한 인물이에요."]);
+W("人员","rén yuán","명사","인원",["工作人员都来了。","gōng zuò rén yuán dōu lái le。","직원들이 모두 왔어요."]);
+W("身份","shēn fèn","명사","신분",["请出示你的身份证。","qǐng chū shì nǐ de shēn fèn zhèng。","신분증을 보여 주세요."]);
+W("士兵","shì bīng","명사","병사",["士兵们站在门口。","shì bīng men zhàn zài mén kǒu。","병사들이 문 앞에 서 있어요."]);
+W("双方","shuāng fāng","명사","쌍방",["双方都同意了。","shuāng fāng dōu tóng yì le。","양측 모두 동의했어요."]);
+W("太太","tài tai","명사","부인",["他太太是一位医生。","tā tài tài shì yī wèi yī shēng。","그의 부인은 의사예요."]);
+W("退休","tuì xiū","동사","퇴직하다",["爷爷已经退休了。","yé yé yǐ jīng tuì xiū le。","할아버지는 이미 퇴직하셨어요."]);
+W("王子","wáng zǐ","명사","왕자",["故事里有一位王子。","gù shì lǐ yǒu yī wèi wáng zǐ。","이야기에 왕자가 한 명 나와요."]);
+W("问候","wèn hòu","동사","안부를 묻다",["请代我问候你的父母。","qǐng dài wǒ wèn hòu nǐ de fù mǔ。","부모님께 제 안부를 전해 주세요."]);
+W("相处","xiāng chǔ","동사","함께 지내다",["他们相处得很好。","tā men xiāng chǔ dé hěn hǎo。","그들은 사이좋게 지내요."]);
+W("小伙子","xiǎo huǒ zi","명사","청년",["这个小伙子很能干。","zhè ge xiǎo huǒ zi hěn néng gàn。","이 청년은 아주 유능해요."]);
+W("小偷","xiǎo tōu","명사","도둑",["小偷被警察抓住了。","xiǎo tōu bèi jǐng chá zhuā zhù le。","도둑이 경찰에게 잡혔어요."]);
+W("孝顺","xiào shùn","동사","효도하다",["他对父母很孝顺。","tā duì fù mǔ hěn xiào shùn。","그는 부모님께 효도해요."]);
+W("行人","xíng rén","명사","행인",["行人要走人行道。","xíng rén yào zǒu rén xíng dào。","행인은 인도로 다녀야 해요."]);
+W("兄弟","xiōng dì","명사","형제",["他们是兄弟。","tā men shì xiōng dì。","그들은 형제예요."]);
+W("英雄","yīng xióng","명사","영웅",["他是大家心中的英雄。","tā shì dà jiā xīn zhōng de yīng xióng。","그는 모두의 마음속 영웅이에요."]);
+W("招待","zhāo dài","동사","대접하다",["我们热情地招待客人。","wǒ men rè qíng dì zhāo dài kè rén。","우리는 손님을 정성껏 대접해요."]);
+W("主人","zhǔ rén","명사","주인",["主人热情地招待客人。","zhǔ rén rè qíng dì zhāo dài kè rén。","주인이 손님을 정성껏 대접해요."]);
+W("专家","zhuān jiā","명사","전문가",["他是这方面的专家。","tā shì zhè fāng miàn de zhuān jiā。","그는 이 분야의 전문가예요."]);
+W("总裁","zǒng cái","명사","총재, 회장",["他是公司的总裁。","tā shì gōng sī de zǒng cái。","그는 회사의 총재예요."]);
+W("祖先","zǔ xiān","명사","조상",["我们的祖先住在这里。","wǒ men de zǔ xiān zhù zài zhè lǐ。","우리 조상은 이곳에 살았어요."]);
+th("생활·집·물건");
+W("包裹","bāo guǒ","명사","소포",["我收到了一个包裹。","wǒ shōu dào le yí gè bāo guǒ。","저는 소포를 하나 받았어요."]);
+W("宝贝","bǎo bèi","명사","보물, 귀염둥이",["她把孩子当成宝贝。","tā bǎ hái zi dàng chéng bǎo bèi。","그녀는 아이를 보물처럼 여겨요."]);
+W("被子","bèi zi","명사","이불",["晚上冷，要盖被子。","wǎn shàng lěng， yào gài bèi zi。","밤에 추우니 이불을 덮어야 해요."]);
+W("鞭炮","biān pào","명사","폭죽",["春节的时候人们放鞭炮。","chūn jié de shí hòu rén men fàng biān pào。","설에는 사람들이 폭죽을 터뜨려요."]);
+W("玻璃","bō li","명사","유리",["玻璃杯很容易破。","bō lí bēi hěn róng yì pò。","유리컵은 잘 깨져요."]);
+W("布","bù","명사","천, 베",["这块布很漂亮。","zhè kuài bù hěn piào liàng。","이 천은 아주 예뻐요."]);
+W("叉子","chā zi","명사","포크",["我不会用筷子，用叉子吧。","wǒ bú huì yòng kuài zi， yòng chā zi ba。","저는 젓가락을 못 써서 포크를 쓸게요."]);
+W("尺子","chǐ zi","명사","자(도구)",["请借我一把尺子。","qǐng jiè wǒ yī bǎ chǐ zi。","자 좀 빌려 주세요."]);
+W("抽屉","chōu ti","명사","서랍",["钥匙在抽屉里。","yào shi zài chōu tì lǐ。","열쇠는 서랍 안에 있어요."]);
+W("窗帘","chuāng lián","명사","커튼",["请把窗帘拉上。","qǐng bǎ chuāng lián lā shàng。","커튼을 쳐 주세요."]);
+W("地毯","dì tǎn","명사","카펫",["房间里铺着一块地毯。","fáng jiān lǐ pù zhe yī kuài dì tǎn。","방에 카펫이 하나 깔려 있어요."]);
+W("肥皂","féi zào","명사","비누",["洗手要用肥皂。","xǐ shǒu yào yòng féi zào。","손을 씻을 때는 비누를 써야 해요."]);
+W("服装","fú zhuāng","명사","의상",["这家店的服装很漂亮。","zhè jiā diàn de fú zhuāng hěn piào liàng。","이 가게의 의상은 아주 예뻐요."]);
+W("管子","Guǎn zǐ","명사","관, 파이프",["这根管子漏水了。","zhè gēn guǎn zi lòu shuǐ le。","이 관에서 물이 새요."]);
+W("锅","guō","명사","솥, 냄비",["锅里正在煮饭。","guō lǐ zhèng zài zhǔ fàn。","솥에서 밥을 짓고 있어요."]);
+W("壶","hú","양사","주전자",["桌子上有一壶茶。","zhuō zi shàng yǒu yī hú chá。","탁자에 차 주전자가 하나 있어요."]);
+W("灰尘","huī chén","명사","먼지",["桌子上有很多灰尘。","zhuō zi shàng yǒu hěn duō huī chén。","책상 위에 먼지가 많아요."]);
+W("火柴","huǒ chái","명사","성냥",["我用火柴点着了蜡烛。","wǒ yòng huǒ chái diǎn zháo le là zhú。","저는 성냥으로 초에 불을 붙였어요."]);
+W("夹子","jiā zi","명사","집게",["请用夹子夹住。","qǐng yòng jiā zi jiā zhù。","집게로 집어 주세요."]);
+W("家务","jiā wù","명사","집안일",["我周末做家务。","wǒ zhōu mò zuò jiā wù。","저는 주말에 집안일을 해요."]);
+W("剪刀","jiǎn dāo","명사","가위",["请借我一把剪刀。","qǐng jiè wǒ yī bǎ jiǎn dāo。","가위 좀 빌려 주세요."]);
+W("胶水","jiāo shuǐ","명사","풀",["请借我一点胶水。","qǐng jiè wǒ yì diǎn jiāo shuǐ。","풀 좀 빌려 주세요."]);
+W("戒指","jiè zhi","명사","반지",["她戴着一枚戒指。","tā dài zhe yī méi jiè zhǐ。","그녀는 반지를 하나 끼고 있어요."]);
+W("蜡烛","là zhú","명사","초",["生日的时候我们点蜡烛。","shēng rì de shí hòu wǒ men diǎn là zhú。","생일에 우리는 촛불을 켜요."]);
+W("毛","Máo","명사","털, 마오(화폐 단위)",["这只猫的毛很软。","zhè zhǐ māo de máo hěn ruǎn。","이 고양이의 털은 아주 부드러워요."]);
+W("明信片","míng xìn piàn","명사","엽서",["我给朋友寄了一张明信片。","wǒ gěi péng yǒu jì le yī zhāng míng xìn piàn。","저는 친구에게 엽서를 한 장 부쳤어요."]);
+W("木头","mù tou","명사","나무, 목재",["这张桌子是木头做的。","zhè zhāng zhuō zi shì mù tou zuò de。","이 책상은 나무로 만들었어요."]);
+W("牛仔裤","niú zǎi kù","명사","청바지",["我喜欢穿牛仔裤。","wǒ xǐ huān chuān niú zǎi kù。","저는 청바지 입는 걸 좋아해요."]);
+W("盆","pén","명사","대야, 화분",["桌子上有一盆花。","zhuō zi shàng yǒu yī pén huā。","탁자 위에 화분이 하나 있어요."]);
+W("皮鞋","pí xié","명사","구두",["他穿着一双黑皮鞋。","tā chuān zhe yī shuāng hēi pí xié。","그는 검은 구두를 신고 있어요."]);
+W("日历","rì lì","명사","달력",["墙上挂着一本日历。","qiáng shàng guà zhe yī běn rì lì。","벽에 달력이 걸려 있어요."]);
+W("日用品","rì yòng pǐn","명사","일용품",["超市里有很多日用品。","chāo shì lǐ yǒu hěn duō rì yòng pǐn。","슈퍼마켓에 일용품이 많아요."]);
+W("扇子","shàn zi","명사","부채",["夏天我常用扇子。","xià tiān wǒ cháng yòng shàn zi。","여름에 저는 부채를 자주 써요."]);
+W("勺子","sháo zi","명사","숟가락",["请给我一把勺子。","qǐng gěi wǒ yī bǎ sháo zi。","숟가락 하나 주세요."]);
+W("绳子","shéng zi","명사","줄, 끈",["请给我一根绳子。","qǐng gěi wǒ yī gēn shéng zi。","줄 하나 주세요."]);
+W("手工","shǒu gōng","명사","수공, 손으로 하는",["这是手工做的。","zhè shì shǒu gōng zuò de。","이것은 수작업으로 만들었어요."]);
+W("手套","shǒu tào","명사","장갑",["冬天要戴手套。","dōng tiān yào dài shǒu tào。","겨울에는 장갑을 껴야 해요."]);
+W("书架","shū jià","명사","책꽂이",["书架上有很多书。","shū jià shàng yǒu hěn duō shū。","책꽂이에 책이 많아요."]);
+W("梳子","shū zi","명사","빗",["请借我一把梳子。","qǐng jiè wǒ yī bǎ shū zi。","빗 좀 빌려 주세요."]);
+W("丝绸","sī chóu","명사","비단",["这件衣服是丝绸做的。","zhè jiàn yī fú shì sī chóu zuò de。","이 옷은 비단으로 만들었어요."]);
+W("玩具","wán jù","명사","장난감",["孩子有很多玩具。","hái zi yǒu hěn duō wán jù。","아이에게 장난감이 많아요."]);
+W("围巾","wéi jīn","명사","목도리",["冬天我戴围巾。","dōng tiān wǒ dài wéi jīn。","겨울에 저는 목도리를 해요."]);
+W("文具","wén jù","명사","문구",["这家店卖文具。","zhè jiā diàn mài wén jù。","이 가게는 문구를 팔아요."]);
+W("项链","xiàng liàn","명사","목걸이",["她戴着一条项链。","tā dài zhe yī tiáo xiàng liàn。","그녀는 목걸이를 하고 있어요."]);
+W("橡皮","xiàng pí","명사","지우개",["请借我一块橡皮。","qǐng jiè wǒ yī kuài xiàng pí。","지우개 좀 빌려 주세요."]);
+W("信封","xìn fēng","명사","편지 봉투",["请给我一个信封。","qǐng gěi wǒ yí gè xìn fēng。","봉투 하나 주세요."]);
+W("样式","yàng shì","명사","모양, 스타일",["这件衣服的样式很新。","zhè jiàn yī fú de yàng shì hěn xīn。","이 옷의 디자인은 새로워요."]);
+W("枕头","zhěn tou","명사","베개",["我的枕头太高了。","wǒ de zhěn tou tài gāo le。","제 베개는 너무 높아요."]);
+W("钟","Zhōng","명사","종, 시계",["墙上挂着一个钟。","qiáng shàng guà zhe yí gè zhōng。","벽에 시계가 걸려 있어요."]);
+th("음식");
+W("包子","bāo zi","명사","속을 넣은 찐빵",["我早上吃了两个包子。","wǒ zǎo shàng chī le liǎng gè bāo zi。","저는 아침에 찐빵을 두 개 먹었어요."]);
+W("炒","chǎo","동사","볶다",["我喜欢吃炒饭。","wǒ xǐ huān chī chǎo fàn。","저는 볶음밥을 좋아해요."]);
+W("醋","cù","명사","식초",["我喜欢在饺子里蘸醋。","wǒ xǐ huān zài jiǎo zi lǐ zhàn cù。","저는 교자를 식초에 찍어 먹어요."]);
+W("点心","diǎn xin","명사","간식, 디저트",["下午我们吃点心。","xià wǔ wǒ men chī diǎn xīn。","오후에 우리는 간식을 먹어요."]);
+W("豆腐","dòu fu","명사","두부",["我喜欢吃豆腐。","wǒ xǐ huān chī dòu fǔ。","저는 두부를 좋아해요."]);
+W("罐头","guàn tou","명사","통조림",["我买了几个罐头。","wǒ mǎi le jǐ gè guàn tou。","저는 통조림을 몇 개 샀어요."]);
+W("海鲜","hǎi xiān","명사","해산물",["我很喜欢吃海鲜。","wǒ hěn xǐ huān chī hǎi xiān。","저는 해산물을 아주 좋아해요."]);
+W("花生","huā shēng","명사","땅콩",["我对花生过敏。","wǒ duì huā shēng guò mǐn。","저는 땅콩 알레르기가 있어요."]);
+W("黄瓜","huáng guā","명사","오이",["我喜欢吃黄瓜。","wǒ xǐ huān chī huáng guā。","저는 오이를 좋아해요."]);
+W("煎","jiān","동사","부치다, 지지다",["我早上煎了两个鸡蛋。","wǒ zǎo shàng jiān le liǎng gè jī dàn。","저는 아침에 달걀 두 개를 부쳤어요."]);
+W("酱油","jiàng yóu","명사","간장",["做这个菜要放一点酱油。","zuò zhè ge cài yào fàng yì diǎn jiàng yóu。","이 요리에는 간장을 조금 넣어야 해요."]);
+W("桔子","jú zi","명사","귤",["这个桔子很甜。","zhè ge jú zi hěn tián。","이 귤은 아주 달아요."]);
+W("烤鸭","kǎo yā","명사","오리구이",["北京烤鸭很有名。","běi jīng kǎo yā hěn yǒu míng。","베이징 오리구이는 아주 유명해요."]);
+W("口味","kǒu wèi","명사","입맛",["这个菜不太合我的口味。","zhè ge cài bù tài hé wǒ de kǒu wèi。","이 요리는 제 입맛에 별로 안 맞아요."]);
+W("矿泉水","kuàng quán shuǐ","명사","생수",["请给我一瓶矿泉水。","qǐng gěi wǒ yī píng kuàng quán shuǐ。","생수 한 병 주세요."]);
+W("辣椒","là jiāo","명사","고추",["他很喜欢吃辣椒。","tā hěn xǐ huān chī là jiāo。","그는 고추를 아주 좋아해요."]);
+W("梨","lí","명사","배(과일)",["这个梨又大又甜。","zhè ge lí yòu dà yòu tián。","이 배는 크고 달아요."]);
+W("粮食","liáng shi","명사","식량",["今年的粮食很多。","jīn nián de liáng shí hěn duō。","올해는 식량이 많아요."]);
+W("零食","líng shí","명사","간식",["孩子喜欢吃零食。","hái zi xǐ huān chī líng shí。","아이들은 간식 먹는 걸 좋아해요."]);
+W("馒头","mán tou","명사","만터우(밀가루 찐빵)",["我早上吃了一个馒头。","wǒ zǎo shàng chī le yí gè mán tou。","저는 아침에 만터우를 하나 먹었어요."]);
+W("清淡","qīng dàn","형용사","담백하다",["我喜欢吃清淡的菜。","wǒ xǐ huān chī qīng dàn de cài。","저는 담백한 요리를 좋아해요."]);
+W("食物","shí wù","명사","음식물",["这里的食物很新鲜。","zhè lǐ de shí wù hěn xīn xiān。","이곳의 음식은 신선해요."]);
+W("蔬菜","shū cài","명사","채소",["我多吃蔬菜。","wǒ duō chī shū cài。","저는 채소를 많이 먹어요."]);
+W("桃","táo","명사","복숭아",["这个桃很甜。","zhè ge táo hěn tián。","이 복숭아는 아주 달아요."]);
+W("土豆","tǔ dòu","명사","감자",["我喜欢吃土豆。","wǒ xǐ huān chī tǔ dòu。","저는 감자를 좋아해요."]);
+W("小吃","xiǎo chī","명사","간식, 먹거리",["这里有很多特色小吃。","zhè lǐ yǒu hěn duō tè sè xiǎo chī。","이곳에는 특색 있는 먹거리가 많아요."]);
+W("小麦","xiǎo mài","명사","밀",["北方人爱吃小麦做的面食。","běi fāng rén ài chī xiǎo mài zuò de miàn shí。","북쪽 사람들은 밀가루 음식을 즐겨 먹어요."]);
+W("营养","yíng yǎng","명사","영양",["这个菜很有营养。","zhè ge cài hěn yǒu yíng yǎng。","이 요리는 영양가가 높아요."]);
+W("油炸","yóu zhá","명사","기름에 튀기다",["这个菜是油炸的。","zhè ge cài shì yóu zhá de。","이 요리는 튀긴 거예요."]);
+W("玉米","yù mǐ","명사","옥수수",["我喜欢吃玉米。","wǒ xǐ huān chī yù mǐ。","저는 옥수수를 좋아해요."]);
+W("煮","zhǔ","동사","삶다, 끓이다",["我煮了一碗面条。","wǒ zhǔ le yī wǎn miàn tiáo。","저는 국수를 한 그릇 끓였어요."]);
+th("몸·건강");
+W("背","bēi","동사","등, 업다, 외우다",["他背着一个大书包。","tā bèi zhe yí gè dà shū bāo。","그는 큰 가방을 메고 있어요."]);
+W("表情","biǎo qíng","명사","표정",["她脸上的表情很开心。","tā liǎn shàng de biǎo qíng hěn kāi xīn。","그녀 얼굴의 표정이 아주 즐거워 보여요."]);
+W("病毒","bìng dú","명사","바이러스",["电脑里有病毒。","diàn nǎo lǐ yǒu bìng dú。","컴퓨터에 바이러스가 있어요."]);
+W("脖子","bó zi","명사","목",["我的脖子很疼。","wǒ de bó zi hěn téng。","제 목이 아파요."]);
+W("传染","chuán rǎn","동사","전염되다",["感冒会传染。","gǎn mào huì chuán rǎn。","감기는 전염돼요."]);
+W("打喷嚏","dǎ pēn tì","동사","재채기하다",["我感冒了，一直打喷嚏。","wǒ gǎn mào le， yì zhí dǎ pēn tì。","저는 감기에 걸려서 계속 재채기를 해요."]);
+W("发抖","fā dǒu","동사","떨다",["他冷得发抖。","tā lěng dé fā dǒu。","그는 추워서 덜덜 떨어요."]);
+W("肺","fèi","명사","폐",["抽烟对肺不好。","chōu yān duì fèi bù hǎo。","흡연은 폐에 좋지 않아요."]);
+W("胳膊","gē bo","명사","팔",["他的胳膊很粗。","tā de gē bó hěn cū。","그의 팔은 굵어요."]);
+W("骨头","gǔ tou","명사","뼈",["他的腿骨头断了。","tā de tuǐ gǔ tou duàn le。","그는 다리뼈가 부러졌어요."]);
+W("挂号","guà hào","동사","접수하다(병원)",["我去医院挂号。","wǒ qù yī yuàn guà hào。","저는 병원에 접수하러 가요."]);
+W("过敏","guò mǐn","동사","알레르기",["我对花粉过敏。","wǒ duì huā fěn guò mǐn。","저는 꽃가루 알레르기가 있어요."]);
+W("呼吸","hū xī","동사","호흡하다",["这里的空气很好，呼吸很舒服。","zhè lǐ de kōng qì hěn hǎo， hū xī hěn shū fú。","여기는 공기가 좋아서 숨쉬기 편해요."]);
+W("胡须","hú xū","명사","수염",["他留着长长的胡须。","tā liú zhe cháng cháng de hú xū。","그는 긴 수염을 기르고 있어요."]);
+W("肌肉","jī ròu","명사","근육",["他的肌肉很发达。","tā de jī ròu hěn fā dá。","그는 근육이 발달했어요."]);
+W("肩膀","jiān bǎng","명사","어깨",["他的肩膀很宽。","tā de jiān bǎng hěn kuān。","그의 어깨는 넓어요."]);
+W("戒烟","jiè yān","동사","담배를 끊다",["他决定戒烟。","tā jué dìng jiè yān。","그는 담배를 끊기로 했어요."]);
+W("精力","jīng lì","명사","정력, 기운",["他的精力很旺盛。","tā de jīng lì hěn wàng shèng。","그는 기운이 넘쳐요."]);
+W("眉毛","méi mao","명사","눈썹",["她的眉毛很长。","tā de méi máo hěn zhǎng。","그녀의 눈썹은 길어요."]);
+W("苗条","miáo tiao","형용사","날씬하다",["她的身材很苗条。","tā de shēn cái hěn miáo tiáo。","그녀는 몸매가 날씬해요."]);
+W("脑袋","nǎo dai","명사","머리",["他摇了摇脑袋。","tā yáo le yáo nǎo dài。","그는 고개를 저었어요."]);
+W("内科","nèi kē","명사","내과",["我去医院的内科看病。","wǒ qù yī yuàn de nèi kē kàn bìng。","저는 병원 내과에 진료를 받으러 가요."]);
+W("疲劳","pí láo","형용사","피로하다",["他工作一天很疲劳。","tā gōng zuò yī tiān hěn pí láo。","그는 하루 종일 일해서 피곤해요."]);
+W("嗓子","sǎng zi","명사","목구멍, 목소리",["我嗓子疼。","wǒ sǎng zi téng。","목이 아파요."]);
+W("舌头","shé tou","명사","혀",["他的舌头被烫了一下。","tā de shé tou bèi tàng le yī xià。","그는 혀를 데었어요."]);
+W("身材","shēn cái","명사","몸매",["她的身材很好。","tā de shēn cái hěn hǎo。","그녀는 몸매가 좋아요."]);
+W("神经","shén jīng","명사","신경",["他的神经很紧张。","tā de shén jīng hěn jǐn zhāng。","그는 신경이 날카로워요."]);
+W("失眠","shī mián","동사","불면",["他最近常常失眠。","tā zuì jìn cháng cháng shī mián。","그는 요즘 자주 잠을 못 자요."]);
+W("手术","shǒu shù","명사","수술",["他明天要做手术。","tā míng tiān yào zuò shǒu shù。","그는 내일 수술을 받아요."]);
+W("手指","shǒu zhǐ","명사","손가락",["他的手指很长。","tā de shǒu zhǐ hěn zhǎng。","그의 손가락은 길어요."]);
+W("寿命","shòu mìng","명사","수명",["现在人的寿命越来越长。","xiàn zài rén de shòu mìng yuè lái yuè zhǎng。","요즘 사람들의 수명은 갈수록 길어져요."]);
+W("受伤","shòu shāng","동사","다치다",["他在比赛中受伤了。","tā zài bǐ sài zhōng shòu shāng le。","그는 경기 중에 다쳤어요."]);
+W("胃","wèi","명사","위(장기)",["我的胃有点儿疼。","wǒ de wèi yǒu diǎn ér téng。","제 위가 좀 아파요."]);
+W("消化","xiāo huà","동사","소화하다",["吃得太多不容易消化。","chī dé tài duō bù róng yì xiāo huà。","너무 많이 먹으면 소화가 잘 안 돼요."]);
+W("心脏","xīn zàng","명사","심장",["他的心脏不好。","tā de xīn zàng bù hǎo。","그의 심장이 좋지 않아요."]);
+W("痒","yǎng","형용사","가렵다",["我的手有点儿痒。","wǒ de shǒu yǒu diǎn ér yǎng。","제 손이 좀 가려워요."]);
+W("腰","yāo","명사","허리",["我的腰有点儿疼。","wǒ de yāo yǒu diǎn ér téng。","제 허리가 좀 아파요."]);
+W("预防","yù fáng","동사","예방하다",["要预防感冒。","yào yù fáng gǎn mào。","감기를 예방해야 해요."]);
+W("晕","yūn","동사","어지럽다",["我坐船会晕。","wǒ zuò chuán huì yūn。","저는 배를 타면 어지러워요."]);
+W("着凉","zháo liáng","동사","감기 들다, 몸이 차가워지다",["小心别着凉了。","xiǎo xīn bié zháo liáng le。","감기 들지 않게 조심하세요."]);
+W("诊断","zhěn duàn","동사","진단하다",["医生诊断他得了感冒。","yī shēng zhěn duàn tā dé le gǎn mào。","의사는 그가 감기에 걸렸다고 진단했어요."]);
+W("治疗","zhì liáo","동사","치료하다",["医生在治疗他的病。","yī shēng zài zhì liáo tā de bìng。","의사가 그의 병을 치료하고 있어요."]);
+W("姿势","zī shì","명사","자세",["他的姿势很标准。","tā de zī shì hěn biāo zhǔn。","그의 자세는 아주 정확해요."]);
+W("醉","zuì","동사","취하다",["他喝醉了。","tā hē zuì le。","그는 취했어요."]);
+W("胸","xiōng","명사","가슴",["他的胸很宽。","tā de xiōng hěn kuān。","그의 가슴은 넓어요."]);
+th("자연·동식물");
+W("岸","àn","명사","물가, 기슭",["河岸上有很多人在钓鱼。","hé àn shàng yǒu hěn duō rén zài diào yú。","강가에 낚시하는 사람이 많아요."]);
+W("彩虹","cǎi hóng","명사","무지개",["雨后天空出现了彩虹。","yǔ hòu tiān kōng chū xiàn le cǎi hóng。","비 온 뒤 하늘에 무지개가 나타났어요."]);
+W("池子","chí zi","명사","연못, 수영장",["池子里有很多鱼。","chí zi lǐ yǒu hěn duō yú。","연못에 물고기가 많아요."]);
+W("翅膀","chì bǎng","명사","날개",["小鸟张开了翅膀。","xiǎo niǎo zhāng kāi le chì bǎng。","작은 새가 날개를 폈어요."]);
+W("宠物","chǒng wù","명사","애완동물",["我家养了一只宠物狗。","wǒ jiā yǎng le yī zhī chǒng wù gǒu。","우리 집에는 애완견이 한 마리 있어요."]);
+W("大象","dà xiàng","명사","코끼리",["大象的鼻子很长。","dà xiàng de bí zi hěn zhǎng。","코끼리는 코가 길어요."]);
+W("岛","dǎo","명사","섬",["这个岛很小。","zhè ge dǎo hěn xiǎo。","이 섬은 아주 작아요."]);
+W("地震","dì zhèn","명사","지진",["这里发生了地震。","zhè lǐ fā shēng le dì zhèn。","이곳에 지진이 났어요."]);
+W("滴","dī","동사","방울, 떨어지다",["水一滴一滴地往下掉。","shuǐ yī dī yī dī dì wǎng xià diào。","물이 한 방울씩 떨어져요."]);
+W("顶","dǐng","동사","꼭대기, 떠받치다",["山顶上的风景很美。","shān dǐng shàng de fēng jǐng hěn měi。","산꼭대기의 경치가 아름다워요."]);
+W("冻","dòng","동사","얼다",["河水冻住了。","hé shuǐ dòng zhù le。","강물이 얼었어요."]);
+W("洞","dòng","명사","구멍, 동굴",["墙上有一个洞。","qiáng shàng yǒu yí gè dòng。","벽에 구멍이 하나 있어요."]);
+W("分布","fēn bù","동사","분포하다",["这种植物分布在南方。","zhè zhòng zhí wù fēn bù zài nán fāng。","이 식물은 남쪽에 분포해요."]);
+W("鸽子","gē zi","명사","비둘기",["广场上有很多鸽子。","guǎng chǎng shàng yǒu hěn duō gē zi。","광장에 비둘기가 많아요."]);
+W("根","gēn","양사","뿌리, 가닥",["这棵树的根很深。","zhè kē shù de gēn hěn shēn。","이 나무의 뿌리는 깊어요."]);
+W("果实","guǒ shí","명사","열매",["这棵树的果实很甜。","zhè kē shù de guǒ shí hěn tián。","이 나무의 열매는 아주 달아요."]);
+W("蝴蝶","hú dié","명사","나비",["花园里有很多蝴蝶。","huā yuán lǐ yǒu hěn duō hú dié。","정원에 나비가 많아요."]);
+W("景色","jǐng sè","명사","경치",["这里的景色很美。","zhè lǐ de jǐng sè hěn měi。","이곳의 경치는 아름다워요."]);
+W("狼","láng","명사","늑대",["山里有狼。","shān lǐ yǒu láng。","산에는 늑대가 있어요."]);
+W("老鼠","lǎo shǔ","명사","쥐",["家里有一只老鼠。","jiā lǐ yǒu yī zhī lǎo shǔ。","집에 쥐가 한 마리 있어요."]);
+W("雷","Léi","명사","천둥",["外面打雷了。","wài miàn dǎ léi le。","밖에서 천둥이 쳐요."]);
+W("龙","Lóng","명사","용",["龙是中国的象征。","lóng shì zhōng guó de xiàng zhēng。","용은 중국의 상징이에요."]);
+W("陆地","lù dì","명사","육지",["船靠近了陆地。","chuán kào jìn le lù dì。","배가 육지에 가까워졌어요."]);
+W("煤炭","méi tàn","명사","석탄",["煤炭是一种能源。","méi tàn shì yī zhǒng néng yuán。","석탄은 에너지원의 하나예요."]);
+W("蜜蜂","mì fēng","명사","꿀벌",["花园里有很多蜜蜂。","huā yuán lǐ yǒu hěn duō mì fēng。","정원에 꿀벌이 많아요."]);
+W("棉花","mián hua","명사","면화, 솜",["这件衣服是棉花做的。","zhè jiàn yī fú shì mián huā zuò de。","이 옷은 면으로 만들었어요."]);
+W("能源","néng yuán","명사","에너지원",["石油是一种重要的能源。","shí yóu shì yī zhǒng zhòng yào de néng yuán。","석유는 중요한 에너지원이에요."]);
+W("品种","pǐn zhǒng","명사","품종",["这里有很多品种的花。","zhè lǐ yǒu hěn duō pǐn zhǒng de huā。","여기에는 품종이 다양한 꽃이 있어요."]);
+W("燃烧","rán shāo","동사","타다",["木头在火里燃烧。","mù tou zài huǒ lǐ rán shāo。","나무가 불 속에서 타요."]);
+W("融化","róng huà","동사","녹다",["冰在太阳下融化了。","bīng zài tài yáng xià róng huà le。","얼음이 햇볕에 녹았어요."]);
+W("沙漠","shā mò","명사","사막",["沙漠里很热。","shā mò lǐ hěn rè。","사막은 아주 더워요."]);
+W("沙滩","shā tān","명사","모래사장",["我们在沙滩上玩。","wǒ men zài shā tān shàng wán。","우리는 모래사장에서 놀아요."]);
+W("闪电","shǎn diàn","명사","번개",["天空出现了闪电。","tiān kōng chū xiàn le shǎn diàn。","하늘에 번개가 쳤어요."]);
+W("蛇","shé","명사","뱀",["山里有蛇。","shān lǐ yǒu shé。","산에는 뱀이 있어요."]);
+W("石头","shí tou","명사","돌",["路上有一块大石头。","lù shàng yǒu yī kuài dà shí tou。","길에 큰 돌이 있어요."]);
+W("天空","tiān kōng","명사","하늘",["天空很蓝。","tiān kōng hěn lán。","하늘이 아주 파래요."]);
+W("田野","tián yě","명사","들판",["田野里一片绿色。","tián yě lǐ yī piàn lǜ sè。","들판이 온통 초록빛이에요."]);
+W("土地","tǔ dì","명사","토지",["这里的土地很好。","zhè lǐ de tǔ dì hěn hǎo。","이곳의 땅은 비옥해요."]);
+W("兔子","tù zi","명사","토끼",["兔子喜欢吃草。","tù zi xǐ huān chī cǎo。","토끼는 풀 먹는 걸 좋아해요."]);
+W("尾巴","wěi ba","명사","꼬리",["小狗摇着尾巴。","xiǎo gǒu yáo zhe wěi ba。","강아지가 꼬리를 흔들어요."]);
+W("雾","wù","명사","안개",["今天早上有大雾。","jīn tiān zǎo shàng yǒu dà wù。","오늘 아침에 짙은 안개가 꼈어요."]);
+W("影子","yǐng zi","명사","그림자",["太阳下有他的影子。","tài yáng xià yǒu tā de yǐng zi。","햇볕 아래 그의 그림자가 있어요."]);
+W("宇宙","yǔ zhòu","명사","우주",["宇宙非常大。","yǔ zhòu fēi cháng dà。","우주는 아주 커요."]);
+W("预报","yù bào","동사","예보(하다)",["天气预报说明天有雨。","tiān qì yù bào shuō míng tiān yǒu yǔ。","일기예보에서 내일 비가 온다고 해요."]);
+W("灾害","zāi hài","명사","재해",["这里经常有自然灾害。","zhè lǐ jīng cháng yǒu zì rán zāi hài。","이곳은 자연재해가 자주 일어나요."]);
+W("竹子","zhú zi","명사","대나무",["熊猫爱吃竹子。","xióng māo ài chī zhú zi。","판다는 대나무를 좋아해요."]);
+W("资源","Zī yuán","명사","자원",["水是重要的资源。","shuǐ shì zhòng yào de zī yuán。","물은 중요한 자원이에요."]);
+th("장소·교통·건물");
+W("博物馆","bó wù guǎn","명사","박물관",["我们周末去博物馆。","wǒ men zhōu mò qù bó wù guǎn。","우리는 주말에 박물관에 가요."]);
+W("餐厅","cān tīng","명사","식당",["这家餐厅的菜很好吃。","zhè jiā cān tīng de cài hěn hǎo chī。","이 식당은 요리가 맛있어요."]);
+W("操场","cāo chǎng","명사","운동장",["学生们在操场上跑步。","xué shēng men zài cāo chǎng shàng pǎo bù。","학생들이 운동장에서 달리고 있어요."]);
+W("厕所","cè suǒ","명사","화장실",["请问，厕所在哪儿？","qǐng wèn， cè suǒ zài nǎ ér？","실례지만 화장실이 어디예요?"]);
+W("朝","Cháo","전치사","~을 향해, 왕조",["他朝我走过来。","tā cháo wǒ zǒu guò lái。","그는 저를 향해 걸어왔어요."]);
+W("车库","chē kù","명사","차고",["他把车开进了车库。","tā bǎ chē kāi jìn le chē kù。","그는 차를 차고에 넣었어요."]);
+W("车厢","chē xiāng","명사","(기차) 객실, 칸",["我的座位在第三节车厢。","wǒ de zuò wèi zài dì sān jié chē xiāng。","제 자리는 세 번째 칸에 있어요."]);
+W("乘","Chéng","동사","타다, 곱하다",["我乘飞机去北京。","wǒ chéng fēi jī qù běi jīng。","저는 비행기를 타고 베이징에 가요."]);
+W("到达","dào dá","동사","도착하다",["飞机下午三点到达北京。","fēi jī xià wǔ sān diǎn dào dá běi jīng。","비행기는 오후 3시에 베이징에 도착해요."]);
+W("地区","dì qū","명사","지역",["这个地区的天气很好。","zhè ge dì qū de tiān qì hěn hǎo。","이 지역은 날씨가 좋아요."]);
+W("登机牌","dēng jī pái","명사","탑승권",["请出示您的登机牌。","qǐng chū shì nín de dēng jī pái。","탑승권을 보여 주세요."]);
+W("隔壁","gé bì","명사","옆집",["隔壁住着一位老人。","gé bì zhù zhe yī wèi lǎo rén。","옆집에 어르신이 한 분 사세요."]);
+W("工厂","gōng chǎng","명사","공장",["他在一家工厂工作。","tā zài yī jiā gōng chǎng gōng zuò。","그는 공장에서 일해요."]);
+W("公寓","gōng yù","명사","아파트(주택)",["他住在一个小公寓里。","tā zhù zài yí gè xiǎo gōng yù lǐ。","그는 작은 아파트에 살아요."]);
+W("广场","guǎng chǎng","명사","광장",["广场上有很多人。","guǎng chǎng shàng yǒu hěn duō rén。","광장에 사람이 많아요."]);
+W("柜台","guì tái","명사","카운터",["请到柜台付款。","qǐng dào guì tái fù kuǎn。","카운터에서 결제해 주세요."]);
+W("胡同","hú tòng","명사","골목(베이징)",["北京有很多老胡同。","běi jīng yǒu hěn duō lǎo hú tòng。","베이징에는 오래된 골목이 많아요."]);
+W("家乡","jiā xiāng","명사","고향",["我很想念我的家乡。","wǒ hěn xiǎng niàn wǒ de jiā xiāng。","저는 고향이 아주 그리워요."]);
+W("建筑","jiàn zhù","명사","건축(물)",["这是一座古老的建筑。","zhè shì yī zuò gǔ lǎo de jiàn zhù。","이것은 오래된 건축물이에요."]);
+W("健身房","jiàn shēn fáng","명사","헬스장",["我周末去健身房。","wǒ zhōu mò qù jiàn shēn fáng。","저는 주말에 헬스장에 가요."]);
+W("郊区","jiāo qū","명사","교외",["他住在郊区。","tā zhù zài jiāo qū。","그는 교외에 살아요."]);
+W("酒吧","jiǔ bā","명사","바",["我们去酒吧坐坐。","wǒ men qù jiǔ bā zuò zuò。","우리 바에 가서 좀 앉아 있어요."]);
+W("俱乐部","jù lè bù","명사","클럽",["他参加了一个足球俱乐部。","tā cān jiā le yí gè zú qiú jù lè bù。","그는 축구 클럽에 가입했어요."]);
+W("客厅","kè tīng","명사","거실",["客厅里有一个大沙发。","kè tīng lǐ yǒu yí gè dà shā fā。","거실에 큰 소파가 하나 있어요."]);
+W("名胜","míng shèng","명사","명승지",["这是一个著名的名胜古迹。","zhè shì yí gè zhù míng de míng shèng gǔ jì。","이곳은 유명한 명승고적이에요."]);
+W("寺庙","sì miào","명사","사찰",["山上有一座寺庙。","shān shàng yǒu yī zuò sì miào。","산 위에 절이 하나 있어요."]);
+W("宿舍","sù shè","명사","기숙사",["我住在学校宿舍。","wǒ zhù zài xué xiào sù shè。","저는 학교 기숙사에 살아요."]);
+W("塔","tǎ","명사","탑",["这座塔很高。","zhè zuò tǎ hěn gāo。","이 탑은 아주 높아요."]);
+W("台阶","tái jiē","명사","계단, 층계",["房子前面有几级台阶。","fáng zi qián miàn yǒu jǐ jí tái jiē。","집 앞에 계단이 몇 개 있어요."]);
+W("往返","wǎng fǎn","동사","왕복하다",["往返机票多少钱？","wǎng fǎn jī piào duō shǎo qián？","왕복 항공권은 얼마예요?"]);
+W("卫生间","wèi shēng jiān","명사","화장실",["卫生间在二楼。","wèi shēng jiān zài èr lóu。","화장실은 2층에 있어요."]);
+W("位置","wèi zhi","명사","위치",["这个位置很好。","zhè ge wèi zhì hěn hǎo。","이 위치는 아주 좋아요."]);
+W("卧室","wò shì","명사","침실",["卧室里有一张大床。","wò shì lǐ yǒu yī zhāng dà chuáng。","침실에 큰 침대가 있어요."]);
+W("屋子","wū zi","명사","방, 집",["屋子里很暖和。","wū zi lǐ hěn nuǎn huo。","방 안이 따뜻해요."]);
+W("阳台","yáng tái","명사","발코니",["他在阳台上晒太阳。","tā zài yáng tái shàng shài tài yáng。","그는 발코니에서 햇볕을 쬐요."]);
+W("邮局","yóu jú","명사","우체국",["我去邮局寄信。","wǒ qù yóu jú jì xìn。","저는 우체국에 편지를 부치러 가요."]);
+W("幼儿园","yòu ér yuán","명사","유치원",["孩子在上幼儿园。","hái zi zài shàng yòu ér yuán。","아이는 유치원에 다녀요."]);
+W("中心","zhōng xīn","명사","중심",["商店在城市的中心。","shāng diàn zài chéng shì de zhōng xīn。","가게는 도시 중심에 있어요."]);
+th("학교·언어·문화");
+W("本科","běn kē","명사","(대학) 학부",["他在读本科。","tā zài dú běn kē。","그는 학부 과정에 다니고 있어요."]);
+W("辩论","biàn lùn","동사","토론, 변론하다",["同学们在辩论这个问题。","tóng xué men zài biàn lùn zhè ge wèn tí。","학생들이 이 문제를 놓고 토론해요."]);
+W("标点","biāo diǎn","명사","문장 부호",["写句子要注意标点。","xiě jù zi yào zhù yì biāo diǎn。","문장을 쓸 때는 문장 부호에 주의해야 해요."]);
+W("参考","cān kǎo","동사","참고하다",["请参考这本书。","qǐng cān kǎo zhè běn shū。","이 책을 참고하세요."]);
+W("册","cè","양사","책, 권",["这套书一共有三册。","zhè tào shū yī gòng yǒu sān cè。","이 책은 모두 세 권이에요."]);
+W("测验","cè yàn","동사","테스트, 시험",["明天有一个数学测验。","míng tiān yǒu yí gè shù xué cè yàn。","내일 수학 시험이 있어요."]);
+W("常识","cháng shí","명사","상식",["这是一个基本的常识。","zhè shì yí gè jī běn de cháng shí。","이것은 기본 상식이에요."]);
+W("抄","chāo","동사","베끼다",["不要抄别人的作业。","bú yào chāo bié rén de zuò yè。","다른 사람의 숙제를 베끼지 마세요."]);
+W("朝代","cháo dài","명사","왕조 시대",["中国有很多朝代。","zhōng guó yǒu hěn duō cháo dài。","중국에는 왕조가 많았어요."]);
+W("成语","chéng yǔ","명사","성어(사자성어)",["我在学习中国成语。","wǒ zài xué xí zhōng guó chéng yǔ。","저는 중국 성어를 배우고 있어요."]);
+W("出版","chū bǎn","동사","출판하다",["这本书是去年出版的。","zhè běn shū shì qù nián chū bǎn de。","이 책은 작년에 출판됐어요."]);
+W("初级","chū jí","형용사","초급",["我在学初级汉语。","wǒ zài xué chū jí hàn yǔ。","저는 초급 중국어를 배워요."]);
+W("传说","chuán shuō","명사","전설",["这是一个古老的传说。","zhè shì yí gè gǔ lǎo de chuán shuō。","이것은 오래된 전설이에요."]);
+W("传统","chuán tǒng","명사","전통",["春节是中国的传统节日。","chūn jié shì zhōng guó de chuán tǒng jié rì。","설은 중국의 전통 명절이에요."]);
+W("单元","dān yuán","명사","단원, 동(아파트)",["我们学完了第一单元。","wǒ men xué wán le dì yī dān yuán。","우리는 1단원을 다 배웠어요."]);
+W("地理","dì lǐ","명사","지리",["我喜欢学地理。","wǒ xǐ huān xué dì lǐ。","저는 지리 배우는 걸 좋아해요."]);
+W("动画片","dòng huà piàn","명사","애니메이션",["孩子们爱看动画片。","hái zi men ài kàn dòng huà piàn。","아이들은 만화영화 보는 걸 좋아해요."]);
+W("发表","fā biǎo","동사","발표하다",["他发表了一篇文章。","tā fā biǎo le yì piān wén zhāng。","그는 글을 한 편 발표했어요."]);
+W("发言","fā yán","동사","발언하다",["他在会上发言了。","tā zài huì shàng fā yán le。","그는 회의에서 발언했어요."]);
+W("废话","fèi huà","명사","쓸데없는 말",["别说废话了。","bié shuō fèi huà le。","쓸데없는 말은 그만하세요."]);
+W("分析","fēn xī","동사","분석하다",["请分析一下这个问题。","qǐng fēn xī yī xià zhè ge wèn tí。","이 문제를 분석해 보세요."]);
+W("风俗","fēng sú","명사","풍속",["每个地方的风俗都不一样。","měi gè dì fāng de fēng sú dōu bù yí yàng。","지역마다 풍속이 달라요."]);
+W("讽刺","fěng cì","동사","풍자하다",["他的话很讽刺。","tā de huà hěn fěng cì。","그의 말은 아주 비꼬는 투예요."]);
+W("辅导","fǔ dǎo","동사","지도하다, 과외",["老师在辅导学生做作业。","lǎo shī zài fǔ dǎo xué shēng zuò zuò yè。","선생님이 학생의 숙제를 지도해요."]);
+W("概括","gài kuò","동사","요약하다",["请概括一下这篇文章的意思。","qǐng gài kuò yī xià zhè piān wén zhāng de yì si。","이 글의 뜻을 요약해 보세요."]);
+W("功夫","gōng fu","명사","쿵후, 재주, 시간",["他会中国功夫。","tā huì zhōng guó gōng fu。","그는 중국 쿵후를 할 줄 알아요."]);
+W("古典","gǔ diǎn","형용사","고전적인",["我喜欢古典音乐。","wǒ xǐ huān gǔ diǎn yīn yuè。","저는 클래식 음악을 좋아해요."]);
+W("冠军","guàn jūn","명사","우승자, 챔피언",["他得了比赛的冠军。","tā dé le bǐ sài de guàn jūn。","그는 시합에서 우승했어요."]);
+W("胡说","hú shuō","동사","허튼소리를 하다",["你别胡说。","nǐ bié hú shuō。","허튼소리 하지 마세요."]);
+W("化学","huà xué","명사","화학",["他的化学成绩很好。","tā de huà xué chéng jì hěn hǎo。","그의 화학 성적은 아주 좋아요."]);
+W("话题","huà tí","명사","화제",["我们换个话题吧。","wǒ men huàn gè huà tí ba。","우리 화제를 바꿔요."]);
+W("及格","jí gé","동사","합격점을 따다",["他的数学考试及格了。","tā de shù xué kǎo shì jí gé le。","그는 수학 시험에서 합격점을 받았어요."]);
+W("纪录","jì lù","명사","기록(스포츠)",["他打破了世界纪录。","tā dǎ pò le shì jiè jì lù。","그는 세계 기록을 깼어요."]);
+W("讲座","jiǎng zuò","명사","강좌, 강연",["今天下午有一个讲座。","jīn tiān xià wǔ yǒu yí gè jiǎng zuò。","오늘 오후에 강연이 있어요."]);
+W("角色","jué sè","명사","역할, 배역",["他在电影里演一个重要角色。","tā zài diàn yǐng lǐ yǎn yí gè zhòng yào jué sè。","그는 영화에서 중요한 역할을 맡았어요."]);
+W("教材","jiào cái","명사","교재",["这本教材很好。","zhè běn jiào cái hěn hǎo。","이 교재는 좋아요."]);
+W("经典","jīng diǎn","명사","고전, 명작",["这是一部经典电影。","zhè shì yī bù jīng diǎn diàn yǐng。","이것은 명작 영화예요."]);
+W("决赛","jué sài","동사","결승전",["我们进入了决赛。","wǒ men jìn rù le jué sài。","우리는 결승에 진출했어요."]);
+W("开幕式","kāi mù shì","명사","개막식",["今晚有运动会开幕式。","jīn wǎn yǒu yùn dòng huì kāi mù shì。","오늘 밤 운동회 개막식이 있어요."]);
+W("课程","kè chéng","명사","교과과정",["这门课程很有意思。","zhè mén kè chéng hěn yǒu yì si。","이 과목은 아주 재미있어요."]);
+W("理论","lǐ lùn","명사","이론",["他学过很多理论。","tā xué guò hěn duō lǐ lùn。","그는 이론을 많이 배웠어요."]);
+W("连续剧","lián xù jù","명사","연속극",["我爱看电视连续剧。","wǒ ài kàn diàn shì lián xù jù。","저는 TV 드라마 보는 걸 좋아해요."]);
+W("录取","lù qǔ","동사","합격시키다",["他被北京大学录取了。","tā bèi běi jīng dà xué lù qǔ le。","그는 베이징대학에 합격했어요."]);
+W("论文","lùn wén","명사","논문",["他在写毕业论文。","tā zài xiě bì yè lùn wén。","그는 졸업 논문을 쓰고 있어요."]);
+W("逻辑","luó ji","명사","논리",["他说话很有逻辑。","tā shuō huà hěn yǒu luó jí。","그는 말에 논리가 있어요."]);
+W("美术","měi shù","명사","미술",["他在学美术。","tā zài xué měi shù。","그는 미술을 배워요."]);
+W("谜语","mí yǔ","명사","수수께끼",["孩子们在猜谜语。","hái zi men zài cāi mí yǔ。","아이들이 수수께끼를 맞히고 있어요."]);
+W("描写","miáo xiě","동사","묘사하다",["这篇文章描写了春天的景色。","zhè piān wén zhāng miáo xiě le chūn tiān de jǐng sè。","이 글은 봄 경치를 묘사했어요."]);
+W("目录","mù lù","명사","목록, 목차",["请看一下这本书的目录。","qǐng kàn yī xià zhè běn shū de mù lù。","이 책의 목차를 봐 주세요."]);
+W("排球","pái qiú","명사","배구",["我喜欢打排球。","wǒ xǐ huān dǎ pái qiú。","저는 배구를 좋아해요."]);
+W("培养","péi yǎng","동사","기르다, 양성하다",["学校培养了很多人才。","xué xiào péi yǎng le hěn duō rén cái。","학교가 인재를 많이 길러 냈어요."]);
+W("强调","qiáng diào","동사","강조하다",["老师强调了这个问题。","lǎo shī qiáng diào le zhè ge wèn tí。","선생님이 이 문제를 강조했어요."]);
+W("射击","shè jī","동사","사격하다",["他喜欢射击运动。","tā xǐ huān shè jī yùn dòng。","그는 사격을 좋아해요."]);
+W("摄影","shè yǐng","동사","사진 촬영",["他喜欢摄影。","tā xǐ huān shè yǐng。","그는 사진 찍는 걸 좋아해요."]);
+W("神话","shén huà","명사","신화",["我喜欢听神话故事。","wǒ xǐ huān tīng shén huà gù shì。","저는 신화 이야기 듣는 걸 좋아해요."]);
+W("声调","shēng diào","명사","성조",["汉语有四个声调。","hàn yǔ yǒu sì gè shēng diào。","중국어에는 성조가 네 개 있어요."]);
+W("省略","shěng lu:è","동사","생략하다",["这个字可以省略。","zhè ge zì kě yǐ shěng lüè。","이 글자는 생략할 수 있어요."]);
+W("胜利","shèng lì","동사","승리",["我们取得了胜利。","wǒ men qǔ dé le shèng lì。","우리는 승리했어요."]);
+W("诗","Shī","명사","시",["他喜欢读诗。","tā xǐ huān dú shī。","그는 시 읽는 걸 좋아해요."]);
+W("实话","shí huà","명사","사실대로의 말",["你说实话吧。","nǐ shuō shí huà ba。","사실대로 말해 보세요."]);
+W("实习","shí xí","동사","실습하다",["他在公司实习。","tā zài gōng sī shí xí。","그는 회사에서 실습해요."]);
+W("实验","shí yàn","동사","실험",["他在做化学实验。","tā zài zuò huà xué shí yàn。","그는 화학 실험을 하고 있어요."]);
+W("试卷","shì juàn","명사","시험지",["老师在发试卷。","lǎo shī zài fā shì juàn。","선생님이 시험지를 나눠 주고 있어요."]);
+W("太极拳","tài jí quán","명사","태극권",["公园里有人打太极拳。","gōng yuán lǐ yǒu rén dǎ tài jí quán。","공원에서 태극권을 하는 사람이 있어요."]);
+W("提纲","tí gāng","명사","개요",["请写一个文章提纲。","qǐng xiě yí gè wén zhāng tí gāng。","글의 개요를 써 보세요."]);
+W("提问","tí wèn","동사","질문하다",["同学们可以提问。","tóng xué men kě yǐ tí wèn。","학생들은 질문해도 돼요."]);
+W("题目","tí mù","명사","제목, 문제",["这个题目很难。","zhè ge tí mù hěn nán。","이 문제는 어려워요."]);
+W("文学","wén xué","명사","문학",["他喜欢中国文学。","tā xǐ huān zhōng guó wén xué。","그는 중국 문학을 좋아해요."]);
+W("武术","wǔ shù","명사","무술",["他会中国武术。","tā huì zhōng guó wǔ shù。","그는 중국 무술을 할 줄 알아요."]);
+W("物理","wù lǐ","명사","물리",["我的物理成绩很好。","wǒ de wù lǐ chéng jì hěn hǎo。","제 물리 성적은 좋아요."]);
+W("戏剧","xì jù","명사","연극",["他喜欢看戏剧。","tā xǐ huān kàn xì jù。","그는 연극 보는 걸 좋아해요."]);
+W("象棋","xiàng qí","명사","장기",["他喜欢下象棋。","tā xǐ huān xià xiàng qí。","그는 장기 두는 걸 좋아해요."]);
+W("形容","xíng róng","동사","묘사하다",["请形容一下他的样子。","qǐng xíng róng yī xià tā de yàng zi。","그의 모습을 묘사해 보세요."]);
+W("叙述","xù shù","동사","서술하다",["请叙述一下事情的经过。","qǐng xù shù yī xià shì qíng de jīng guò。","일의 경과를 서술해 보세요."]);
+W("学期","xué qī","명사","학기",["新学期开始了。","xīn xué qī kāi shǐ le。","새 학기가 시작됐어요."]);
+W("学术","xué shù","명사","학술",["他在做学术研究。","tā zài zuò xué shù yán jiū。","그는 학술 연구를 해요."]);
+W("学问","xué wèn","명사","학문, 지식",["他很有学问。","tā hěn yǒu xué wèn。","그는 학식이 깊어요."]);
+W("议论","yì lùn","동사","논의하다",["大家都在议论这件事。","dà jiā dōu zài yì lùn zhè jiàn shì。","모두가 이 일을 논의하고 있어요."]);
+W("语气","yǔ qì","명사","말투",["他说话的语气很温和。","tā shuō huà de yǔ qì hěn wēn hé。","그의 말투는 온화해요."]);
+W("展览","zhǎn lǎn","동사","전시(하다)",["我们去看展览吧。","wǒ men qù kàn zhǎn lǎn ba。","우리 전시회 보러 가요."]);
+W("哲学","zhé xué","명사","철학",["他在学哲学。","tā zài xué zhé xué。","그는 철학을 배워요."]);
+W("争论","zhēng lùn","동사","논쟁하다",["他们在争论这个问题。","tā men zài zhēng lùn zhè ge wèn tí。","그들은 이 문제로 논쟁 중이에요."]);
+W("指导","zhǐ dǎo","동사","지도하다",["老师指导我们写论文。","lǎo shī zhǐ dǎo wǒ men xiě lùn wén。","선생님이 논문 쓰는 걸 지도해 주세요."]);
+W("资料","zī liào","명사","자료",["我在查资料。","wǒ zài chá zī liào。","저는 자료를 찾고 있어요."]);
+W("字幕","zì mù","명사","자막",["这个电影有中文字幕。","zhè ge diàn yǐng yǒu zhōng wén zì mù。","이 영화에는 중국어 자막이 있어요."]);
+W("宗教","zōng jiào","명사","종교",["他有宗教信仰。","tā yǒu zōng jiào xìn yǎng。","그는 종교적 신앙이 있어요."]);
+W("作品","zuò pǐn","명사","작품",["这是他的作品。","zhè shì tā de zuò pǐn。","이것은 그의 작품이에요."]);
+W("作文","zuò wén","명사","작문",["他的作文写得很好。","tā de zuò wén xiě dé hěn hǎo。","그의 작문은 아주 잘 썼어요."]);
+th("경제·직장·사업");
+W("办理","bàn lǐ","동사","처리하다, 수속하다",["我去银行办理手续。","wǒ qù yín háng bàn lǐ shǒu xù。","저는 은행에 가서 수속을 밟아요."]);
+W("保险","bǎo xiǎn","명사","보험, 안전하다",["我买了一份保险。","wǒ mǎi le yī fèn bǎo xiǎn。","저는 보험을 하나 들었어요."]);
+W("报告","bào gào","명사","보고(하다)",["经理让我写一份报告。","jīng lǐ ràng wǒ xiě yī fèn bào gào。","매니저가 저에게 보고서를 쓰라고 했어요."]);
+W("编辑","biān jí","명사","편집(하다), 편집자",["他是一家杂志的编辑。","tā shì yī jiā zá zhì de biān jí。","그는 한 잡지의 편집자예요."]);
+W("部门","bù mén","명사","부서",["你在哪个部门工作？","nǐ zài nǎ ge bù mén gōng zuò？","어느 부서에서 일해요?"]);
+W("财产","cái chǎn","명사","재산",["他有很多财产。","tā yǒu hěn duō cái chǎn。","그는 재산이 많아요."]);
+W("采访","cǎi fǎng","동사","취재하다",["记者去采访那位老人。","jì zhě qù cǎi fǎng nà wèi lǎo rén。","기자가 그 어르신을 취재하러 갔어요."]);
+W("产品","chǎn pǐn","명사","제품",["这个公司的产品很好。","zhè ge gōng sī de chǎn pǐn hěn hǎo。","이 회사의 제품은 아주 좋아요."]);
+W("承担","chéng dān","동사","떠맡다, 부담하다",["他承担了所有的费用。","tā chéng dān le suǒ yǒu de fèi yòng。","그가 모든 비용을 부담했어요."]);
+W("吃亏","chī kuī","형용사","손해를 보다",["做生意不能吃亏。","zuò shēng yì bù néng chī kuī。","장사는 손해를 보면 안 돼요."]);
+W("出口","chū kǒu","동사","출구, 수출하다",["出口在那边。","chū kǒu zài nà biān。","출구는 저쪽이에요."]);
+W("辞职","cí zhí","동사","사직하다",["他辞职了。","tā cí zhí le。","그는 사직했어요."]);
+W("从事","cóng shì","동사","종사하다",["他从事教育工作。","tā cóng shì jiào yù gōng zuò。","그는 교육 일에 종사해요."]);
+W("存","cún","동사","저장하다, 맡기다",["我把钱存在银行里。","wǒ bǎ qián cún zài yín háng lǐ。","저는 돈을 은행에 맡겨요."]);
+W("打工","dǎ gōng","동사","아르바이트하다",["他在假期打工。","tā zài jià qī dǎ gōng。","그는 방학에 아르바이트를 해요."]);
+W("待遇","dài yù","명사","대우",["这个公司的待遇不错。","zhè ge gōng sī de dài yù bù cuò。","이 회사의 대우는 괜찮아요."]);
+W("贷款","dài kuǎn","명사","대출(하다)",["他向银行贷款买房子。","tā xiàng yín háng dài kuǎn mǎi fáng zi。","그는 은행 대출로 집을 샀어요."]);
+W("单位","dān wèi","명사","직장, 단위",["我们单位在市中心。","wǒ men dān wèi zài shì zhōng xīn。","우리 직장은 시내 중심에 있어요."]);
+W("担任","dān rèn","동사","맡다",["他担任我们的班主任。","tā dān rèn wǒ men de bān zhǔ rèn。","그가 우리 담임을 맡고 있어요."]);
+W("发票","fā piào","명사","영수증, 세금계산서",["请给我一张发票。","qǐng gěi wǒ yī zhāng fā piào。","영수증을 한 장 주세요."]);
+W("费用","fèi yòng","명사","비용",["这次旅游的费用很高。","zhè cì lǚ yóu de fèi yòng hěn gāo。","이번 여행 비용이 높아요."]);
+W("分配","fēn pèi","동사","분배하다",["老师给我们分配了任务。","lǎo shī gěi wǒ men fēn pèi le rèn wù。","선생님이 우리에게 임무를 나눠 줬어요."]);
+W("风险","fēng xiǎn","명사","위험, 리스크",["投资有风险。","tóu zī yǒu fēng xiǎn。","투자에는 위험이 따라요."]);
+W("付款","fù kuǎn","동사","돈을 지불하다",["请到前面付款。","qǐng dào qián miàn fù kuǎn。","앞에서 결제해 주세요."]);
+W("干活儿","gàn huó r","동사","일하다",["他在工地干活儿。","tā zài gōng dì gàn huó ér。","그는 공사장에서 일해요."]);
+W("工业","gōng yè","명사","공업",["这个城市的工业很发达。","zhè ge chéng shì de gōng yè hěn fā dá。","이 도시는 공업이 발달했어요."]);
+W("股票","gǔ piào","명사","주식",["他在炒股票。","tā zài chǎo gǔ piào。","그는 주식을 해요."]);
+W("雇佣","gù yōng","동사","고용하다",["公司雇佣了很多新员工。","gōng sī gù yōng le hěn duō xīn yuán gōng。","회사가 신입 직원을 많이 고용했어요."]);
+W("合同","hé tong","명사","계약(서)",["我们签了一份合同。","wǒ men qiān le yī fèn hé tóng。","우리는 계약서에 서명했어요."]);
+W("合作","hé zuò","동사","협력하다",["我们和他们合作很愉快。","wǒ men hé tā men hé zuò hěn yú kuài。","우리는 그들과 즐겁게 협력해요."]);
+W("黄金","huáng jīn","명사","황금",["黄金很贵。","huáng jīn hěn guì。","황금은 비싸요."]);
+W("汇率","huì lǜ","명사","환율",["今天的汇率是多少？","jīn tiān de huì lǜ shì duō shǎo？","오늘 환율이 얼마예요?"]);
+W("会计","kuài jì","명사","회계(사)",["她是一名会计。","tā shì yī míng kuài jì。","그녀는 회계사예요."]);
+W("简历","jiǎn lì","명사","이력서",["请把你的简历发给我。","qǐng bǎ nǐ de jiǎn lì fā gěi wǒ。","이력서를 저에게 보내 주세요."]);
+W("节省","jié shěng","동사","절약하다",["我们要节省时间。","wǒ men yào jié shěng shí jiān。","우리는 시간을 아껴야 해요."]);
+W("结账","jié zhàng","동사","계산하다",["服务员，结账！","fú wù yuán， jié zhàng！","여기요, 계산해 주세요!"]);
+W("进口","jìn kǒu","동사","수입(하다)",["这个水果是进口的。","zhè ge shuǐ guǒ shì jìn kǒu de。","이 과일은 수입산이에요."]);
+W("经营","jīng yíng","동사","경영하다",["他经营着一家饭店。","tā jīng yíng zhe yī jiā fàn diàn。","그는 식당을 하나 운영해요."]);
+W("开发","kāi fā","동사","개발하다",["公司在开发新产品。","gōng sī zài kāi fā xīn chǎn pǐn。","회사가 신제품을 개발하고 있어요."]);
+W("劳动","láo dòng","동사","노동하다",["劳动是光荣的。","láo dòng shì guāng róng de。","노동은 영광스러워요."]);
+W("利润","lì rùn","명사","이윤",["这个生意的利润很高。","zhè ge shēng yì de lì rùn hěn gāo。","이 장사는 이윤이 높아요."]);
+W("利息","lì xī","명사","이자",["银行存款有利息。","yín háng cún kuǎn yǒu lì xī。","은행 예금에는 이자가 붙어요."]);
+W("利益","lì yì","명사","이익",["我们要保护大家的利益。","wǒ men yào bǎo hù dà jiā de lì yì。","우리는 모두의 이익을 지켜야 해요."]);
+W("零钱","líng qián","명사","잔돈",["我没有零钱。","wǒ méi yǒu líng qián。","저는 잔돈이 없어요."]);
+W("贸易","mào yì","동사","무역",["两国之间的贸易越来越多。","liǎng guó zhī jiān de mào yì yuè lái yuè duō。","두 나라 사이의 무역이 갈수록 늘어요."]);
+W("名牌","míng pái","명사","유명 브랜드",["他喜欢买名牌衣服。","tā xǐ huān mǎi míng pái yī fú。","그는 명품 옷 사는 걸 좋아해요."]);
+W("名片","míng piàn","명사","명함",["这是我的名片。","zhè shì wǒ de míng piàn。","이것은 제 명함이에요."]);
+W("农业","nóng yè","명사","농업",["中国的农业很发达。","zhōng guó de nóng yè hěn fā dá。","중국의 농업은 발달했어요."]);
+W("破产","pò chǎn","동사","파산하다",["那家公司破产了。","nà jiā gōng sī pò chǎn le。","그 회사가 파산했어요."]);
+W("企业","qǐ yè","명사","기업",["他在一家大企业工作。","tā zài yī jiā dà qǐ yè gōng zuò。","그는 큰 기업에서 일해요."]);
+W("签字","qiān zì","동사","서명하다",["请在这里签字。","qǐng zài zhè lǐ qiān zì。","여기에 서명해 주세요."]);
+W("欠","qiàn","동사","빚지다",["我欠他一百块钱。","wǒ qiàn tā yì bǎi kuài qián。","저는 그에게 100위안을 빚졌어요."]);
+W("人事","rén shì","명사","인사(업무)",["他在人事部工作。","tā zài rén shì bù gōng zuò。","그는 인사팀에서 일해요."]);
+W("商品","shāng pǐn","명사","상품",["这个商店的商品很多。","zhè ge shāng diàn de shāng pǐn hěn duō。","이 가게는 상품이 많아요."]);
+W("商业","shāng yè","명사","상업",["这里是商业区。","zhè lǐ shì shāng yè qū。","이곳은 상업 지구예요."]);
+W("生产","shēng chǎn","동사","생산하다",["这个工厂生产汽车。","zhè ge gōng chǎng shēng chǎn qì chē。","이 공장은 자동차를 생산해요."]);
+W("失业","shī yè","동사","실업",["他失业了。","tā shī yè le。","그는 실직했어요."]);
+W("收据","shōu jù","명사","영수증",["请给我一张收据。","qǐng gěi wǒ yī zhāng shōu jù。","영수증을 한 장 주세요."]);
+W("税","shuì","명사","세금",["我们要交税。","wǒ men yào jiāo shuì。","우리는 세금을 내야 해요."]);
+W("损失","sǔn shī","명사","손실",["这次的损失很大。","zhè cì de sǔn shī hěn dà。","이번 손실이 커요."]);
+W("投资","tóu zī","동사","투자(하다)",["他在投资股票。","tā zài tóu zī gǔ piào。","그는 주식에 투자해요."]);
+W("推广","tuī guǎng","동사","보급하다",["公司在推广新产品。","gōng sī zài tuī guǎng xīn chǎn pǐn。","회사가 신제품을 보급하고 있어요."]);
+W("委托","wěi tuō","동사","위탁하다",["我委托朋友帮我买票。","wǒ wěi tuō péng yǒu bāng wǒ mǎi piào。","저는 친구에게 표를 사 달라고 부탁했어요."]);
+W("文件","wén jiàn","명사","문서, 파일",["请把文件发给我。","qǐng bǎ wén jiàn fā gěi wǒ。","문서를 저에게 보내 주세요."]);
+W("现金","xiàn jīn","명사","현금",["我只有现金。","wǒ zhǐ yǒu xiàn jīn。","저는 현금밖에 없어요."]);
+W("项目","xiàng mù","명사","항목, 프로젝트",["我们在做一个新项目。","wǒ men zài zuò yí gè xīn xiàng mù。","우리는 새 프로젝트를 하고 있어요."]);
+W("消费","xiāo fèi","동사","소비하다",["现在人们消费很高。","xiàn zài rén men xiāo fèi hěn gāo。","요즘 사람들의 소비가 높아요."]);
+W("销售","xiāo shòu","동사","판매하다",["他在销售部工作。","tā zài xiāo shòu bù gōng zuò。","그는 판매팀에서 일해요."]);
+W("行业","háng yè","명사","업종",["你在哪个行业工作？","nǐ zài nǎ ge háng yè gōng zuò？","어느 업종에서 일해요?"]);
+W("宣传","xuān chuán","동사","선전하다",["公司在宣传新产品。","gōng sī zài xuān chuán xīn chǎn pǐn。","회사가 신제품을 홍보하고 있어요."]);
+W("业务","yè wù","명사","업무",["他熟悉公司的业务。","tā shú xī gōng sī de yè wù。","그는 회사 업무에 익숙해요."]);
+W("应聘","yìng pìn","동사","지원하다(구직)",["他去那个公司应聘。","tā qù nà ge gōng sī yìng pìn。","그는 그 회사에 지원했어요."]);
+W("营业","yíng yè","동사","영업하다",["商店晚上十点停止营业。","shāng diàn wǎn shàng shí diǎn tíng zhǐ yíng yè。","가게는 밤 10시에 영업을 마쳐요."]);
+W("硬币","yìng bì","명사","동전",["我有一个一元的硬币。","wǒ yǒu yí gè yī yuán de yìng bì。","저는 1위안짜리 동전이 하나 있어요."]);
+W("优惠","yōu huì","동사","우대, 할인",["这家店有优惠。","zhè jiā diàn yǒu yōu huì。","이 가게는 할인이 있어요."]);
+W("预订","yù dìng","동사","예약하다",["我想预订一个房间。","wǒ xiǎng yù dìng yí gè fáng jiān。","저는 방을 하나 예약하고 싶어요."]);
+W("运输","yùn shū","동사","운송하다",["这辆车是运输货物的。","zhè liàng chē shì yùn shū huò wù de。","이 차는 화물을 운송해요."]);
+W("账户","zhàng hù","명사","계좌",["请告诉我你的账户号码。","qǐng gào sù wǒ nǐ de zhàng hù hào mǎ。","계좌 번호를 알려 주세요."]);
+W("挣钱","zhèng qián","동사","돈을 벌다",["他努力挣钱养家。","tā nǔ lì zhèng qián yǎng jiā。","그는 가족을 부양하려고 열심히 돈을 벌어요."]);
+W("证件","zhèng jiàn","명사","증명서",["请出示你的证件。","qǐng chū shì nǐ de zhèng jiàn。","증명서를 보여 주세요."]);
+W("支票","zhī piào","명사","수표",["他开了一张支票。","tā kāi le yī zhāng zhī piào。","그는 수표를 한 장 끊었어요."]);
+W("中介","zhōng jiè","명사","중개",["我通过中介找房子。","wǒ tōng guò zhōng jiè zhǎo fáng zi。","저는 중개인을 통해 집을 찾아요."]);
+W("资金","zī jīn","명사","자금",["公司缺少资金。","gōng sī quē shǎo zī jīn。","회사가 자금이 부족해요."]);
+th("사회·법·정치");
+W("参与","cān yù","동사","참여하다",["大家都参与了这个活动。","dà jiā dōu cān yù le zhè ge huó dòng。","모두가 이 행사에 참여했어요."]);
+W("残疾","cán jí","명사","장애",["他是一个残疾人。","tā shì yí gè cán jí rén。","그는 장애인이에요."]);
+W("成立","chéng lì","동사","설립하다",["公司是去年成立的。","gōng sī shì qù nián chéng lì de。","회사는 작년에 설립됐어요."]);
+W("出席","chū xí","동사","출석하다",["经理出席了这次会议。","jīng lǐ chū xí le zhè cì huì yì。","매니저가 이번 회의에 참석했어요."]);
+W("传播","chuán bō","동사","퍼뜨리다",["消息传播得很快。","xiāo xī chuán bō dé hěn kuài。","소식이 빠르게 퍼져요."]);
+W("措施","cuò shī","명사","조치",["政府采取了新的措施。","zhèng fǔ cǎi qǔ le xīn de cuò shī。","정부가 새 조치를 취했어요."]);
+W("道德","dào dé","명사","도덕",["我们要有道德。","wǒ men yào yǒu dào dé。","우리는 도덕적이어야 해요."]);
+W("地位","dì wèi","명사","지위",["他在公司的地位很高。","tā zài gōng sī de dì wèi hěn gāo。","그는 회사에서 지위가 높아요."]);
+W("登记","dēng jì","동사","등록하다",["请在这里登记。","qǐng zài zhè lǐ dēng jì。","여기에서 등록해 주세요."]);
+W("敌人","dí rén","명사","적",["他们是我们的敌人。","tā men shì wǒ men de dí rén。","그들은 우리의 적이에요."]);
+W("罚款","fá kuǎn","동사","벌금(을 물리다)",["开车超速会被罚款。","kāi chē chāo sù huì bèi fá kuǎn。","과속하면 벌금을 물어요."]);
+W("法院","fǎ yuàn","명사","법원",["他去法院了。","tā qù fǎ yuàn le。","그는 법원에 갔어요."]);
+W("繁荣","fán róng","형용사","번영하다",["这个城市越来越繁荣。","zhè ge chéng shì yuè lái yuè fán róng。","이 도시는 갈수록 번영해요."]);
+W("服从","fú cóng","동사","복종하다",["我们要服从规定。","wǒ men yào fú cóng guī dìng。","우리는 규정에 따라야 해요."]);
+W("改革","gǎi gé","동사","개혁",["国家进行了经济改革。","guó jiā jìn xíng le jīng jì gǎi gé。","나라가 경제 개혁을 했어요."]);
+W("革命","gé mìng","동사","혁명",["这是一场伟大的革命。","zhè shì yī cháng wěi dà de gé mìng。","이것은 위대한 혁명이에요."]);
+W("公布","gōng bù","동사","공포하다, 발표하다",["学校公布了考试成绩。","xué xiào gōng bù le kǎo shì chéng jì。","학교가 시험 성적을 발표했어요."]);
+W("公开","gōng kāi","동사","공개(하다)",["这件事不能公开。","zhè jiàn shì bù néng gōng kāi。","이 일은 공개할 수 없어요."]);
+W("公平","gōng píng","형용사","공평하다",["这样做不公平。","zhè yàng zuò bù gōng píng。","이렇게 하는 건 공평하지 않아요."]);
+W("贡献","gòng xiàn","명사","공헌(하다)",["他对社会作出了很大的贡献。","tā duì shè huì zuò chū le hěn dà de gòng xiàn。","그는 사회에 큰 공헌을 했어요."]);
+W("官","Guān","명사","관리, 관직",["他是一个大官。","tā shì yí gè dà guān。","그는 높은 관리예요."]);
+W("规矩","guī ju","명사","규칙, 예의 바르다",["孩子要懂规矩。","hái zi yào dǒng guī jǔ。","아이는 예의범절을 알아야 해요."]);
+W("规则","guī zé","명사","규칙",["比赛有比赛规则。","bǐ sài yǒu bǐ sài guī zé。","시합에는 규칙이 있어요."]);
+W("国籍","guó jí","명사","국적",["请填写你的国籍。","qǐng tián xiě nǐ de guó jí。","국적을 적어 주세요."]);
+W("海关","hǎi guān","명사","세관",["在海关要检查护照。","zài hǎi guān yào jiǎn chá hù zhào。","세관에서는 여권을 검사해요."]);
+W("合法","hé fǎ","형용사","합법적이다",["这样做是合法的。","zhè yàng zuò shì hé fǎ de。","이렇게 하는 건 합법적이에요."]);
+W("和平","Hé píng","명사","평화",["我们都希望世界和平。","wǒ men dōu xī wàng shì jiè hé píng。","우리 모두 세계 평화를 바라요."]);
+W("集体","jí tǐ","명사","집단",["这是我们集体的成果。","zhè shì wǒ men jí tǐ de chéng guǒ。","이것은 우리 모두의 성과예요."]);
+W("纪律","jì lǜ","명사","규율",["学生要遵守纪律。","xué shēng yào zūn shǒu jì lǜ。","학생은 규율을 지켜야 해요."]);
+W("建设","jiàn shè","동사","건설하다",["国家正在建设新城市。","guó jiā zhèng zài jiàn shè xīn chéng shì。","나라가 새 도시를 건설하고 있어요."]);
+W("解放","jiě fàng","동사","해방하다",["机器解放了人的双手。","jī qì jiě fàng le rén de shuāng shǒu。","기계가 사람의 손을 해방시켰어요."]);
+W("捐","juān","동사","기부하다",["他捐了很多钱。","tā juān le hěn duō qián。","그는 돈을 많이 기부했어요."]);
+W("军事","jūn shì","명사","군사",["他喜欢看军事新闻。","tā xǐ huān kàn jūn shì xīn wén。","그는 군사 뉴스 보는 걸 좋아해요."]);
+W("开放","kāi fàng","동사","개방하다",["这个公园全天开放。","zhè ge gōng yuán quán tiān kāi fàng。","이 공원은 종일 개방해요."]);
+W("抗议","kàng yì","동사","항의하다",["大家对这个决定提出抗议。","dà jiā duì zhè ge jué dìng tí chū kàng yì。","모두가 이 결정에 항의했어요."]);
+W("联合","lián hé","동사","연합하다",["两个公司联合起来了。","liǎng gè gōng sī lián hé qǐ lái le。","두 회사가 연합했어요."]);
+W("领导","lǐng dǎo","명사","지도자, 이끌다",["他是我们的领导。","tā shì wǒ men de lǐng dǎo。","그는 우리의 상사예요."]);
+W("流传","liú chuán","동사","퍼지다, 전해지다",["这个故事流传了很多年。","zhè ge gù shì liú chuán le hěn duō nián。","이 이야기는 여러 해 동안 전해졌어요."]);
+W("民主","mín zhǔ","형용사","민주(적이다)",["这个国家很民主。","zhè ge guó jiā hěn mín zhǔ。","이 나라는 아주 민주적이에요."]);
+W("命令","mìng lìng","명사","명령(하다)",["他命令大家马上离开。","tā mìng lìng dà jiā mǎ shàng lí kāi。","그는 모두에게 즉시 떠나라고 명령했어요."]);
+W("派","pài","동사","파견하다, 파벌",["公司派他去北京出差。","gōng sī pài tā qù běi jīng chū chāi。","회사가 그를 베이징으로 출장 보냈어요."]);
+W("赔偿","péi cháng","동사","배상하다",["他赔偿了我的损失。","tā péi cháng le wǒ de sǔn shī。","그가 제 손해를 배상했어요."]);
+W("批准","pī zhǔn","동사","승인하다",["经理批准了我的假。","jīng lǐ pī zhǔn le wǒ de jiǎ。","매니저가 제 휴가를 승인했어요."]);
+W("平等","píng děng","형용사","평등하다",["人人都应该平等。","rén rén dōu yīng gāi píng děng。","모든 사람은 평등해야 해요."]);
+W("侵略","qīn lu:è","동사","침략하다",["这个国家被侵略过。","zhè ge guó jiā bèi qīn lüè guò。","이 나라는 침략당한 적이 있어요."]);
+W("权力","quán lì","명사","권력",["他有很大的权力。","tā yǒu hěn dà de quán lì。","그는 큰 권력을 가졌어요."]);
+W("权利","quán lì","명사","권리",["每个人都有受教育的权利。","měi gè rén dōu yǒu shòu jiào yù de quán lì。","누구나 교육받을 권리가 있어요."]);
+W("人口","rén kǒu","명사","인구",["这个城市的人口很多。","zhè ge chéng shì de rén kǒu hěn duō。","이 도시는 인구가 많아요."]);
+W("人类","rén lèi","명사","인류",["人类需要保护地球。","rén lèi xū yào bǎo hù dì qiú。","인류는 지구를 보호해야 해요."]);
+W("手续","shǒu xù","명사","수속",["办理手续很麻烦。","bàn lǐ shǒu xù hěn má fán。","수속을 밟는 게 번거로워요."]);
+W("私人","sī rén","명사","개인의",["这是私人的事。","zhè shì sī rén de shì。","이것은 개인적인 일이에요."]);
+W("谈判","tán pàn","동사","협상하다",["两个公司正在谈判。","liǎng gè gōng sī zhèng zài tán pàn。","두 회사가 협상 중이에요."]);
+W("提倡","tí chàng","동사","제창하다",["学校提倡大家多运动。","xué xiào tí chàng dà jiā duō yùn dòng。","학교는 모두가 운동을 많이 하도록 권장해요."]);
+W("统一","tǒng yī","동사","통일하다",["大家的意见统一了。","dà jiā de yì jiàn tǒng yī liǎo。","모두의 의견이 통일됐어요."]);
+W("统治","tǒng zhì","동사","통치하다",["他统治了这个国家很多年。","tā tǒng zhì le zhè ge guó jiā hěn duō nián。","그는 이 나라를 여러 해 통치했어요."]);
+W("团","tuán","명사","덩어리, 단체",["他参加了旅行团。","tā cān jiā le lǚ xíng tuán。","그는 여행단에 참가했어요."]);
+W("外交","wài jiāo","명사","외교",["他在外交部工作。","tā zài wài jiāo bù gōng zuò。","그는 외교부에서 일해요."]);
+W("危害","wēi hài","동사","해를 끼치다",["抽烟危害健康。","chōu yān wēi hài jiàn kāng。","흡연은 건강을 해쳐요."]);
+W("威胁","wēi xié","동사","위협(하다)",["这对我们是一个威胁。","zhè duì wǒ men shì yí gè wēi xié。","이것은 우리에게 위협이에요."]);
+W("违反","wéi fǎn","동사","위반하다",["不能违反规定。","bù néng wéi fǎn guī dìng。","규정을 위반하면 안 돼요."]);
+W("文明","wén míng","명사","문명, 교양 있다",["我们要做文明的人。","wǒ men yào zuò wén míng de rén。","우리는 교양 있는 사람이 돼야 해요."]);
+W("县","xiàn","명사","현(행정구역)",["他家在一个小县城。","tā jiā zài yí gè xiǎo xiàn chéng。","그의 집은 작은 현에 있어요."]);
+W("宣布","xuān bù","동사","선포하다",["学校宣布明天放假。","xué xiào xuān bù míng tiān fàng jià。","학교는 내일 쉰다고 발표했어요."]);
+W("选举","xuǎn jǔ","동사","선거",["他在选举中获胜了。","tā zài xuǎn jǔ zhōng huò shèng le。","그는 선거에서 이겼어요."]);
+W("宴会","yàn huì","명사","연회",["今晚有一个宴会。","jīn wǎn yǒu yí gè yàn huì。","오늘 밤 연회가 있어요."]);
+W("移民","yí mín","명사","이민",["他们移民到了美国。","tā men yí mín dào le měi guó。","그들은 미국으로 이민 갔어요."]);
+W("义务","yì wù","명사","의무",["交税是我们的义务。","jiāo shuì shì wǒ men de yì wù。","세금을 내는 것은 우리의 의무예요."]);
+W("战争","zhàn zhēng","명사","전쟁",["人们希望没有战争。","rén men xī wàng méi yǒu zhàn zhēng。","사람들은 전쟁이 없기를 바라요."]);
+W("召开","zhào kāi","동사","소집하다, 개최하다",["会议在明天召开。","huì yì zài míng tiān zhào kāi。","회의는 내일 열려요."]);
+W("证据","zhèng jù","명사","증거",["警察找到了证据。","jǐng chá zhǎo dào le zhèng jù。","경찰이 증거를 찾았어요."]);
+W("政策","zhèng cè","명사","정책",["政府制定了新政策。","zhèng fǔ zhì dìng le xīn zhèng cè。","정부가 새 정책을 만들었어요."]);
+W("政府","zhèng fǔ","명사","정부",["政府的新政策受到欢迎。","zhèng fǔ de xīn zhèng cè shòu dào huān yíng。","정부의 새 정책이 환영받아요."]);
+W("政治","zhèng zhì","명사","정치",["他对政治很感兴趣。","tā duì zhèng zhì hěn gǎn xìng qù。","그는 정치에 관심이 많아요."]);
+W("执行","zhí xíng","동사","집행하다",["我们要执行这个决定。","wǒ men yào zhí xíng zhè ge jué dìng。","우리는 이 결정을 집행해야 해요."]);
+W("执照","zhí zhào","명사","면허증",["开店要有执照。","kāi diàn yào yǒu zhí zhào。","가게를 열려면 허가증이 있어야 해요."]);
+W("制定","zhì dìng","동사","제정하다",["学校制定了新规定。","xué xiào zhì dìng le xīn guī dìng。","학교가 새 규정을 만들었어요."]);
+W("制度","zhì dù","명사","제도",["这个制度很合理。","zhè ge zhì dù hěn hé lǐ。","이 제도는 합리적이에요."]);
+W("秩序","zhì xù","명사","질서",["大家要遵守秩序。","dà jiā yào zūn shǒu zhì xù。","모두 질서를 지켜야 해요."]);
+W("主席","zhǔ xí","명사","의장, 주석",["他是会议的主席。","tā shì huì yì de zhǔ xí。","그는 회의의 의장이에요."]);
+W("注册","zhù cè","동사","등록하다",["请先注册一个账号。","qǐng xiān zhù cè yí gè zhàng hào。","먼저 계정을 하나 등록해 주세요."]);
+W("资格","zī gé","명사","자격",["他有这个资格。","tā yǒu zhè ge zī gé。","그는 이 자격이 있어요."]);
+W("自愿","zì yuàn","동사","자원하다",["他自愿参加。","tā zì yuàn cān jiā。","그는 자원해서 참가했어요."]);
+W("总理","zǒng lǐ","명사","총리",["总理发表了讲话。","zǒng lǐ fà biǎo le jiǎng huà。","총리가 연설을 발표했어요."]);
+W("总统","zǒng tǒng","명사","대통령",["总统来了。","zǒng tǒng lái le。","대통령이 왔어요."]);
+W("祖国","zǔ guó","명사","조국",["他热爱自己的祖国。","tā rè ài zì jǐ de zǔ guó。","그는 자기 조국을 사랑해요."]);
+W("罪犯","zuì fàn","명사","범인",["罪犯被抓住了。","zuì fàn bèi zhuā zhù le。","범인이 잡혔어요."]);
+W("遵守","zūn shǒu","동사","준수하다",["我们要遵守规定。","wǒ men yào zūn shǒu guī dìng。","우리는 규정을 지켜야 해요."]);
+th("감정·성격·태도");
+W("唉","āi","감탄사","(대답·탄식) 아, 어",["唉，我又忘了带钥匙。","āi， wǒ yòu wàng le dài yào shi。","아, 또 열쇠 챙기는 걸 잊었어요."]);
+W("爱护","ài hù","동사","아끼고 보호하다",["我们要爱护公共财产。","wǒ men yào ài hù gōng gòng cái chǎn。","우리는 공공 재산을 아껴야 해요."]);
+W("爱惜","ài xī","동사","소중히 여기다",["他很爱惜自己的书。","tā hěn ài xī zì jǐ de shū。","그는 자기 책을 아주 소중히 여겨요."]);
+W("爱心","ài xīn","명사","사랑하는 마음",["她是一个很有爱心的人。","tā shì yí gè hěn yǒu ài xīn de rén。","그녀는 사랑하는 마음이 큰 사람이에요."]);
+W("安慰","ān wèi","동사","위로하다",["朋友们都来安慰他。","péng yǒu men dōu lái ān wèi tā。","친구들이 모두 와서 그를 위로했어요."]);
+W("悲观","bēi guān","형용사","비관적이다",["你不要太悲观。","nǐ bú yào tài bēi guān。","너무 비관하지 마세요."]);
+W("不安","bù ān","형용사","불안하다",["他心里很不安。","tā xīn lǐ hěn bù ān。","그는 마음이 아주 불안해요."]);
+W("不好意思","bù hǎo yì si","동사","미안하다, 쑥스럽다",["不好意思，我来晚了。","bù hǎo yì sī， wǒ lái wǎn le。","죄송해요, 제가 늦었어요."]);
+W("不耐烦","bù nài fán","형용사","짜증스럽다",["他不耐烦地走了。","tā bù nài fán dì zǒu le。","그는 짜증이 나서 가 버렸어요."]);
+W("惭愧","cán kuì","형용사","부끄럽다",["我对自己的错误感到惭愧。","wǒ duì zì jǐ de cuò wù gǎn dào cán kuì。","저는 제 잘못이 부끄러워요."]);
+W("操心","cāo xīn","동사","걱정하다, 신경 쓰다",["你不用为我操心。","nǐ bù yòng wèi wǒ cāo xīn。","저를 걱정하지 않으셔도 돼요."]);
+W("沉默","chén mò","형용사","침묵하다",["他一直沉默不说话。","tā yì zhí chén mò bù shuō huà。","그는 계속 침묵하며 말이 없어요."]);
+W("称赞","chēng zàn","동사","칭찬하다",["老师称赞了他。","lǎo shī chēng zàn le tā。","선생님이 그를 칭찬했어요."]);
+W("承受","chéng shòu","동사","견디다",["她承受了很大的压力。","tā chéng shòu le hěn dà de yā lì。","그녀는 큰 스트레스를 견뎠어요."]);
+W("诚恳","chéng kěn","형용사","진실하다",["他的态度很诚恳。","tā de tài dù hěn chéng kěn。","그의 태도는 아주 진실돼요."]);
+W("刺激","cì jī","동사","자극(하다)",["这个电影很刺激。","zhè ge diàn yǐng hěn cì jī。","이 영화는 아주 짜릿해요."]);
+W("大方","dà fāng","형용사","시원시원하다, 넉넉하다",["她很大方，常常请客。","tā hěn dà fāng， cháng cháng qǐng kè。","그녀는 통이 커서 자주 한턱내요."]);
+W("呆","dāi","동사","멍하다, 머물다",["他呆呆地看着窗外。","tā dāi dāi dì kàn zhe chuāng wài。","그는 멍하니 창밖을 바라봤어요."]);
+W("单纯","dān chún","형용사","순수하다",["她是一个单纯的人。","tā shì yí gè dān chún de rén。","그녀는 순수한 사람이에요."]);
+W("倒霉","dǎo méi","형용사","재수 없다",["今天真倒霉，又下雨了。","jīn tiān zhēn dǎo méi， yòu xià yǔ le。","오늘 정말 재수 없네요, 또 비가 와요."]);
+W("调皮","tiáo pí","형용사","장난스럽다",["这个孩子很调皮。","zhè ge hái zi hěn tiáo pí。","이 아이는 아주 장난꾸러기예요."]);
+W("发愁","fā chóu","동사","걱정하다",["你别发愁，办法总会有的。","nǐ bié fā chóu， bàn fǎ zǒng huì yǒu de。","걱정 마세요, 방법은 늘 있어요."]);
+W("放松","fàng sōng","동사","긴장을 풀다",["周末我想好好放松一下。","zhōu mò wǒ xiǎng hǎo hǎo fàng sōng yī xià。","주말에 저는 푹 쉬고 싶어요."]);
+W("愤怒","fèn nù","형용사","분노하다",["他愤怒地离开了。","tā fèn nù dì lí kāi le。","그는 분노하며 떠났어요."]);
+W("疯狂","fēng kuáng","형용사","미치다, 열광하다",["球迷们疯狂地喊叫。","qiú mí men fēng kuáng dì hǎn jiào。","축구 팬들이 열광적으로 소리쳤어요."]);
+W("感激","gǎn jī","동사","감사하게 여기다",["我非常感激你的帮助。","wǒ fēi cháng gǎn jī nǐ de bāng zhù。","도와주셔서 정말 감사해요."]);
+W("感受","gǎn shòu","동사","느끼다, 느낌",["你有什么感受？","nǐ yǒu shén me gǎn shòu？","어떤 느낌이 들어요?"]);
+W("感想","gǎn xiǎng","명사","감상, 소감",["请谈谈你的感想。","qǐng tán tán nǐ de gǎn xiǎng。","소감을 말씀해 주세요."]);
+W("个性","gè xìng","명사","개성",["她的个性很强。","tā de gè xìng hěn qiáng。","그녀는 개성이 뚜렷해요."]);
+W("鼓舞","gǔ wǔ","동사","고무하다",["这个消息鼓舞了大家。","zhè ge xiāo xī gǔ wǔ le dà jiā。","이 소식이 모두를 북돋웠어요."]);
+W("乖","guāi","형용사","착하다",["这个孩子很乖。","zhè ge hái zi hěn guāi。","이 아이는 아주 착해요."]);
+W("关怀","guān huái","동사","관심을 갖고 돌보다",["谢谢大家的关怀。","xiè xiè dà jiā de guān huái。","모두의 관심과 배려에 감사해요."]);
+W("光荣","guāng róng","형용사","영광스럽다",["能参加比赛，我感到很光荣。","néng cān jiā bǐ sài， wǒ gǎn dào hěn guāng róng。","시합에 참가하게 돼서 영광이에요."]);
+W("哈","Hā","형용사","하하(웃음소리)",["哈哈，太好笑了。","hā hā， tài hǎo xiào le。","하하, 너무 웃겨요."]);
+W("好奇","hào qí","형용사","호기심이 많다",["孩子对什么都很好奇。","hái zi duì shén me dōu hěn hào qí。","아이는 모든 것에 호기심이 많아요."]);
+W("恨","hèn","동사","미워하다",["他恨自己没有努力。","tā hèn zì jǐ méi yǒu nǔ lì。","그는 자신이 노력하지 않은 것을 한스러워해요."]);
+W("怀念","huái niàn","동사","그리워하다",["我很怀念小时候。","wǒ hěn huái niàn xiǎo shí hòu。","저는 어린 시절이 그리워요."]);
+W("幻想","huàn xiǎng","명사","환상, 공상하다",["他常常幻想自己是英雄。","tā cháng cháng huàn xiǎng zì jǐ shì yīng xióng。","그는 자기가 영웅이라고 자주 공상해요."]);
+W("慌张","huāng zhāng","형용사","당황하다",["他慌张地跑了出去。","tā huāng zhāng dì pǎo le chū qù。","그는 당황해서 뛰쳐나갔어요."]);
+W("灰心","huī xīn","형용사","낙담하다",["不要灰心，再试一次。","bú yào huī xīn， zài shì yī cì。","낙담하지 말고 한 번 더 해 봐요."]);
+W("寂寞","jì mò","형용사","외롭다",["一个人在家很寂寞。","yí gè rén zài jiā hěn jì mò。","혼자 집에 있으면 외로워요."]);
+W("坚决","jiān jué","형용사","단호하다",["我坚决反对这个办法。","wǒ jiān jué fǎn duì zhè ge bàn fǎ。","저는 이 방법에 단호히 반대해요."]);
+W("坚强","jiān qiáng","형용사","굳세다",["她是一个坚强的女孩。","tā shì yí gè jiān qiáng de nǚ hái。","그녀는 굳센 소녀예요."]);
+W("狡猾","jiǎo huá","형용사","교활하다",["狐狸很狡猾。","hú lí hěn jiǎo huá。","여우는 교활해요."]);
+W("谨慎","jǐn shèn","형용사","신중하다",["开车要谨慎。","kāi chē yào jǐn shèn。","운전할 때는 신중해야 해요."]);
+W("敬爱","jìng ài","동사","존경하고 사랑하다",["他是我最敬爱的老师。","tā shì wǒ zuì jìng ài de lǎo shī。","그는 제가 가장 존경하고 사랑하는 선생님이에요."]);
+W("决心","jué xīn","명사","결심",["他下了决心要学好汉语。","tā xià le jué xīn yào xué hǎo hàn yǔ。","그는 중국어를 잘 배우겠다고 결심했어요."]);
+W("开心","kāi xīn","형용사","즐겁다",["今天我们玩得很开心。","jīn tiān wǒ men wán dé hěn kāi xīn。","오늘 우리는 아주 즐겁게 놀았어요."]);
+W("看不起","kàn bu qǐ","동사","얕보다",["你不要看不起别人。","nǐ bú yào kàn bù qǐ bié rén。","다른 사람을 얕보지 마세요."]);
+W("刻苦","kè kǔ","형용사","고생을 마다 않다",["他学习很刻苦。","tā xué xí hěn kè kǔ。","그는 공부를 아주 열심히 해요."]);
+W("恐怖","kǒng bù","형용사","공포스럽다",["他讲了一个恐怖的故事。","tā jiǎng le yí gè kǒng bù de gù shì。","그는 무서운 이야기를 했어요."]);
+W("夸","kuā","동사","칭찬하다, 과장하다",["老师夸他学习认真。","lǎo shī kuā tā xué xí rèn zhēn。","선생님은 그가 열심히 공부한다고 칭찬했어요."]);
+W("老实","lǎo shi","형용사","정직하다",["他是一个老实人。","tā shì yí gè lǎo shí rén。","그는 정직한 사람이에요."]);
+W("乐观","lè guān","형용사","낙관적이다",["他对将来很乐观。","tā duì jiāng lái hěn lè guān。","그는 앞날에 대해 낙관적이에요."]);
+W("满足","mǎn zú","동사","만족시키다",["他对现在的生活很满足。","tā duì xiàn zài de shēng huó hěn mǎn zú。","그는 지금 생활에 아주 만족해요."]);
+W("魅力","mèi lì","명사","매력",["她很有魅力。","tā hěn yǒu mèi lì。","그녀는 매력이 있어요."]);
+W("陌生","mò shēng","형용사","낯설다",["这里对我很陌生。","zhè lǐ duì wǒ hěn mò shēng。","이곳은 저에게 낯설어요."]);
+W("盼望","pàn wàng","동사","간절히 바라다",["我盼望你早点儿回来。","wǒ pàn wàng nǐ zǎo diǎn ér huí lái。","저는 당신이 일찍 돌아오길 바라요."]);
+W("佩服","pèi fú","동사","감탄하다",["我很佩服他的勇气。","wǒ hěn pèi fú tā de yǒng qì。","저는 그의 용기에 감탄해요."]);
+W("平静","píng jìng","형용사","평온하다",["湖面很平静。","hú miàn hěn píng jìng。","호수 면이 아주 평온해요."]);
+W("期待","qī dài","동사","기대하다",["我很期待你的来信。","wǒ hěn qī dài nǐ de lái xìn。","저는 당신의 편지를 기대하고 있어요."]);
+W("谦虚","qiān xū","형용사","겸손하다",["他很谦虚，从不骄傲。","tā hěn qiān xū， cóng bù jiāo ào。","그는 겸손해서 절대 거만하지 않아요."]);
+W("亲爱","qīn ài","형용사","친애하는",["亲爱的朋友，你好！","qīn ài de péng yǒu， nǐ hǎo！","친애하는 친구여, 안녕!"]);
+W("亲切","qīn qiè","형용사","친절하다, 정겹다",["他对人很亲切。","tā duì rén hěn qīn qiè。","그는 사람들에게 친절해요."]);
+W("勤奋","qín fèn","형용사","근면하다",["他学习很勤奋。","tā xué xí hěn qín fèn。","그는 공부를 아주 열심히 해요."]);
+W("勤劳","qín láo","형용사","부지런하다",["农民是勤劳的人。","nóng mín shì qín láo de rén。","농민은 부지런한 사람들이에요."]);
+W("轻视","qīng shì","동사","경시하다",["不要轻视别人。","bú yào qīng shì bié rén。","다른 사람을 얕보지 마세요."]);
+W("情绪","qíng xù","명사","기분, 감정",["他今天的情绪不太好。","tā jīn tiān de qíng xù bù tài hǎo。","그는 오늘 기분이 별로 안 좋아요."]);
+W("热爱","rè ài","동사","열렬히 사랑하다",["他热爱自己的工作。","tā rè ài zì jǐ de gōng zuò。","그는 자기 일을 열렬히 사랑해요."]);
+W("热烈","rè liè","형용사","열렬하다",["大家热烈地鼓掌。","dà jiā rè liè dì gǔ zhǎng。","모두 열렬히 박수쳤어요."]);
+W("热心","rè xīn","형용사","열성적이다",["他对大家很热心。","tā duì dà jiā hěn rè xīn。","그는 모두에게 열성적이에요."]);
+W("忍不住","rěn bu zhù","동사","참을 수 없다",["我忍不住笑了起来。","wǒ rěn bú zhù xiào le qǐ lái。","저는 참지 못하고 웃음이 터졌어요."]);
+W("荣幸","róng xìng","형용사","영광이다",["能认识您，我很荣幸。","néng rèn shí nín， wǒ hěn róng xìng。","뵙게 되어 영광이에요."]);
+W("傻","shǎ","형용사","어리석다",["你真傻，怎么不告诉我？","nǐ zhēn shǎ， zěn me bù gào sù wǒ？","참 바보 같네요, 왜 말 안 했어요?"]);
+W("善良","shàn liáng","형용사","선량하다",["她是一个善良的人。","tā shì yí gè shàn liáng de rén。","그녀는 선량한 사람이에요."]);
+W("舍不得","shě bu de","동사","아까워하다, 헤어지기 아쉽다",["我舍不得离开这里。","wǒ shě bù dé lí kāi zhè lǐ。","저는 이곳을 떠나는 게 아쉬워요."]);
+W("坦率","tǎn shuài","형용사","솔직하다",["他说话很坦率。","tā shuō huà hěn tǎn shuài。","그는 말을 솔직하게 해요."]);
+W("疼爱","téng ài","동사","귀여워하다",["奶奶很疼爱孙子。","nǎi nǎi hěn téng ài sūn zi。","할머니는 손자를 매우 아끼세요."]);
+W("体贴","tǐ tiē","동사","자상하다",["他对妻子很体贴。","tā duì qī zǐ hěn tǐ tiē。","그는 아내에게 자상해요."]);
+W("天真","tiān zhēn","형용사","천진하다",["孩子们很天真。","hái zi men hěn tiān zhēn。","아이들은 천진해요."]);
+W("痛苦","tòng kǔ","형용사","고통스럽다",["他很痛苦。","tā hěn tòng kǔ。","그는 고통스러워해요."]);
+W("痛快","tòng kuài","형용사","통쾌하다",["我们玩得很痛快。","wǒ men wán dé hěn tòng kuài。","우리는 시원하게 놀았어요."]);
+W("微笑","wēi xiào","동사","미소(짓다)",["她对我微笑了一下。","tā duì wǒ wēi xiào le yī xià。","그녀가 저에게 미소를 지었어요."]);
+W("委屈","wěi qu","형용사","억울하다",["他觉得很委屈。","tā jué de hěn wěi qū。","그는 몹시 억울해해요."]);
+W("温暖","wēn nuǎn","형용사","따뜻하다",["这个房间很温暖。","zhè ge fáng jiān hěn wēn nuǎn。","이 방은 아주 따뜻해요."]);
+W("温柔","wēn róu","형용사","부드럽다, 상냥하다",["她说话很温柔。","tā shuō huà hěn wēn róu。","그녀는 말씨가 상냥해요."]);
+W("无奈","wú nài","부사","어쩔 수 없다",["他无奈地笑了笑。","tā wú nài dì xiào le xiào。","그는 어쩔 수 없다는 듯 웃었어요."]);
+W("吓","hè","동사","놀라게 하다",["你吓了我一跳。","nǐ xià le wǒ yī tiào。","당신 때문에 깜짝 놀랐어요."]);
+W("享受","xiǎng shòu","동사","누리다",["我们享受生活。","wǒ men xiǎng shòu shēng huó。","우리는 삶을 즐겨요."]);
+W("想念","xiǎng niàn","동사","그리워하다",["我很想念家人。","wǒ hěn xiǎng niàn jiā rén。","저는 가족이 아주 그리워요."]);
+W("小气","xiǎo qì","형용사","인색하다",["他很小气。","tā hěn xiǎo qì。","그는 인색해요."]);
+W("幸运","xìng yùn","형용사","운이 좋다",["我很幸运。","wǒ hěn xìng yùn。","저는 운이 좋아요."]);
+W("虚心","xū xīn","형용사","겸허하다",["他很虚心。","tā hěn xū xīn。","그는 아주 겸허해요."]);
+W("遗憾","yí hàn","형용사","유감스럽다",["不能去，我很遗憾。","bù néng qù， wǒ hěn yí hàn。","못 가서 유감이에요."]);
+W("拥抱","yōng bào","동사","포옹하다",["他们高兴地拥抱在一起。","tā men gāo xìng dì yōng bào zài yì qǐ。","그들은 기뻐서 서로 껴안았어요."]);
+W("勇气","yǒng qì","명사","용기",["他有很大的勇气。","tā yǒu hěn dà de yǒng qì。","그는 큰 용기가 있어요."]);
+W("犹豫","yóu yù","형용사","망설이다",["他犹豫了很久。","tā yóu yù le hěn jiǔ。","그는 오래 망설였어요."]);
+W("愿望","yuàn wàng","명사","소원, 바람",["这是我的愿望。","zhè shì wǒ de yuàn wàng。","이것은 제 소원이에요."]);
+W("赞美","zàn měi","동사","찬미하다",["大家都赞美她的歌声。","dà jiā dōu zàn měi tā de gē shēng。","모두가 그녀의 노래를 찬미했어요."]);
+W("珍惜","zhēn xī","동사","소중히 여기다",["我们要珍惜时间。","wǒ men yào zhēn xī shí jiān。","우리는 시간을 소중히 여겨야 해요."]);
+W("周到","zhōu dào","형용사","세심하다",["他考虑得很周到。","tā kǎo lǜ dé hěn zhōu dào。","그는 아주 세심하게 생각해요."]);
+W("祝福","zhù fú","동사","축복(하다)",["祝福你们幸福。","zhù fú nǐ men xìng fú。","두 분의 행복을 빌어요."]);
+W("专心","zhuān xīn","형용사","전념하다",["上课要专心。","shàng kè yào zhuān xīn。","수업 시간에는 집중해야 해요."]);
+W("自豪","zì háo","형용사","자랑스럽다",["我为你感到自豪。","wǒ wèi nǐ gǎn dào zì háo。","저는 당신이 자랑스러워요."]);
+W("自觉","zì jué","형용사","자각하다, 스스로 하다",["他学习很自觉。","tā xué xí hěn zì jué。","그는 스스로 공부해요."]);
+W("自私","zì sī","형용사","이기적이다",["他是一个很自私的人。","tā shì yí gè hěn zì sī de rén。","그는 아주 이기적인 사람이에요."]);
+W("自信","zì xìn","동사","자신감",["你要有自信。","nǐ yào yǒu zì xìn。","자신감을 가져야 해요."]);
+W("尊敬","zūn jìng","동사","존경하다",["我很尊敬我的老师。","wǒ hěn zūn jìng wǒ de lǎo shī。","저는 선생님을 매우 존경해요."]);
+th("동작·행동");
+W("摆","bǎi","동사","놓다, 진열하다",["桌子上摆着很多水果。","zhuō zi shàng bǎi zhe hěn duō shuǐ guǒ。","책상 위에 과일이 많이 놓여 있어요."]);
+W("保持","bǎo chí","동사","유지하다",["请保持安静。","qǐng bǎo chí ān jìng。","조용히 해 주세요."]);
+W("保存","bǎo cún","동사","보존하다, 저장하다",["请把文件保存好。","qǐng bǎ wén jiàn bǎo cún hǎo。","파일을 잘 저장해 주세요."]);
+W("保留","bǎo liú","동사","남겨 두다, 보류하다",["我们保留了这张照片。","wǒ men bǎo liú le zhè zhāng zhào piān。","우리는 이 사진을 남겨 뒀어요."]);
+W("避免","bì miǎn","동사","피하다",["我们要避免犯同样的错误。","wǒ men yào bì miǎn fàn tóng yàng de cuò wù。","우리는 같은 실수를 피해야 해요."]);
+W("表现","biǎo xiàn","동사","표현하다, 태도",["他在学校表现得很好。","tā zài xué xiào biǎo xiàn dé hěn hǎo。","그는 학교에서 아주 잘 행동해요."]);
+W("补充","bǔ chōng","동사","보충하다",["请补充一下你的意见。","qǐng bǔ chōng yī xià nǐ de yì jiàn。","당신의 의견을 보충해 주세요."]);
+W("采取","cǎi qǔ","동사","(방법을) 취하다",["我们要采取办法解决问题。","wǒ men yào cǎi qǔ bàn fǎ jiě jué wèn tí。","우리는 방법을 취해 문제를 해결해야 해요."]);
+W("踩","cǎi","동사","밟다",["对不起，我踩到你的脚了。","duì bù qǐ， wǒ cǎi dào nǐ de jiǎo le。","죄송해요, 발을 밟았어요."]);
+W("插","chā","동사","꽂다, 끼우다",["请把花插在花瓶里。","qǐng bǎ huā chā zài huā píng lǐ。","꽃을 꽃병에 꽂아 주세요."]);
+W("拆","chāi","동사","뜯다, 해체하다",["他拆开了那个包裹。","tā chāi kāi le nà ge bāo guǒ。","그는 그 소포를 뜯었어요."]);
+W("冲","chōng","동사","돌진하다, 헹구다",["孩子们冲进了教室。","hái zi men chōng jìn le jiào shì。","아이들이 교실로 뛰어 들어갔어요."]);
+W("处理","chǔ lǐ","동사","처리하다",["这件事你来处理吧。","zhè jiàn shì nǐ lái chǔ lǐ ba。","이 일은 당신이 처리하세요."]);
+W("传递","chuán dì","동사","전달하다",["请把这个消息传递给大家。","qǐng bǎ zhè ge xiāo xī chuán dì gěi dà jiā。","이 소식을 모두에게 전해 주세요."]);
+W("闯","chuǎng","동사","뛰어들다, 돌진하다",["他闯进了房间。","tā chuǎng jìn le fáng jiān。","그가 방으로 뛰어 들어왔어요."]);
+W("吹","chuī","동사","불다",["风吹得很大。","fēng chuī dé hěn dà。","바람이 세게 불어요."]);
+W("催","cuī","동사","재촉하다",["妈妈催我快点儿起床。","mā mā cuī wǒ kuài diǎn ér qǐ chuáng。","엄마가 빨리 일어나라고 재촉해요."]);
+W("答应","dā ying","동사","대답하다, 승낙하다",["他答应明天来。","tā dā yìng míng tiān lái。","그는 내일 오겠다고 약속했어요."]);
+W("打听","dǎ ting","동사","알아보다, 묻다",["我想打听一下这件事。","wǒ xiǎng dǎ tīng yī xià zhè jiàn shì。","이 일을 좀 알아보고 싶어요."]);
+W("耽误","dān wu","동사","(시간을) 지체하다",["对不起，耽误你的时间了。","duì bù qǐ， dān wù nǐ de shí jiān le。","죄송해요, 시간을 뺏었네요."]);
+W("挡","dǎng","동사","막다",["大树挡住了阳光。","dà shù dǎng zhù le yáng guāng。","큰 나무가 햇빛을 가렸어요."]);
+W("倒","dǎo","동사","넘어지다, 거꾸로",["大树被风吹倒了。","dà shù bèi fēng chuī dào le。","큰 나무가 바람에 쓰러졌어요."]);
+W("等待","děng dài","동사","기다리다",["我们在等待好消息。","wǒ men zài děng dài hǎo xiāo xī。","우리는 좋은 소식을 기다려요."]);
+W("等候","děng hòu","동사","기다리다",["请在这儿等候。","qǐng zài zhè ér děng hòu。","여기서 기다려 주세요."]);
+W("递","dì","동사","건네다",["请把盐递给我。","qǐng bǎ yán dì gěi wǒ。","소금 좀 건네 주세요."]);
+W("点头","diǎn tóu","동사","고개를 끄덕이다",["他点头同意了。","tā diǎn tóu tóng yì le。","그는 고개를 끄덕여 동의했어요."]);
+W("钓","diào","동사","낚다",["他喜欢去河边钓鱼。","tā xǐ huān qù hé biān diào yú。","그는 강가에 낚시하러 가는 걸 좋아해요."]);
+W("调整","tiáo zhěng","동사","조정하다",["公司调整了价格。","gōng sī tiáo zhěng le jià gé。","회사가 가격을 조정했어요."]);
+W("逗","dòu","동사","놀리다, 웃기다",["这个孩子很会逗人笑。","zhè ge hái zi hěn huì dòu rén xiào。","이 아이는 사람을 잘 웃겨요."]);
+W("堆","duī","양사","쌓다, 더미",["桌子上堆着很多书。","zhuō zi shàng duī zhe hěn duō shū。","책상 위에 책이 많이 쌓여 있어요."]);
+W("对待","duì dài","동사","대하다",["你要认真对待这件事。","nǐ yào rèn zhēn duì dài zhè jiàn shì。","이 일을 진지하게 대해야 해요."]);
+W("蹲","dūn","동사","쪼그려 앉다",["他蹲在地上看蚂蚁。","tā dūn zài dì shàng kàn mǎ yǐ。","그는 바닥에 쪼그리고 앉아 개미를 봐요."]);
+W("躲藏","duǒ cáng","동사","숨다",["小猫躲藏在桌子下面。","xiǎo māo duǒ cáng zài zhuō zi xià miàn。","고양이가 책상 밑에 숨어 있어요."]);
+W("发挥","fā huī","동사","발휘하다",["他在比赛中发挥得很好。","tā zài bǐ sài zhōng fā huī dé hěn hǎo。","그는 경기에서 실력을 잘 발휘했어요."]);
+W("翻","fān","동사","뒤집다, 넘기다",["请翻到第十页。","qǐng fān dào dì shí yè。","10쪽을 펴 주세요."]);
+W("反复","fǎn fù","부사","반복하다",["我反复读了好几遍。","wǒ fǎn fù dú le hǎo jǐ biàn。","저는 여러 번 반복해서 읽었어요."]);
+W("妨碍","fáng ài","동사","방해하다",["请不要妨碍别人。","qǐng bú yào fáng ài bié rén。","다른 사람을 방해하지 마세요."]);
+W("奋斗","fèn dòu","동사","분투하다",["他为理想努力奋斗。","tā wèi lǐ xiǎng nǔ lì fèn dòu。","그는 꿈을 위해 열심히 분투해요."]);
+W("扶","fú","동사","부축하다",["他扶着老人过马路。","tā fú zhe lǎo rén guò mǎ lù。","그는 어르신을 부축해 길을 건너요."]);
+W("改进","gǎi jìn","동사","개선하다",["我们要改进工作方法。","wǒ men yào gǎi jìn gōng zuò fāng fǎ。","우리는 업무 방식을 개선해야 해요."]);
+W("改善","gǎi shàn","동사","개선하다",["他们的生活条件改善了。","tā men de shēng huó tiáo jiàn gǎi shàn le。","그들의 생활 여건이 나아졌어요."]);
+W("改正","gǎi zhèng","동사","고치다",["请改正这个错误。","qǐng gǎi zhèng zhè ge cuò wù。","이 잘못을 고쳐 주세요."]);
+W("盖","Gě","동사","덮다, 짓다",["他们在盖一座新楼。","tā men zài gài yī zuò xīn lóu。","그들은 새 건물을 짓고 있어요."]);
+W("搞","gǎo","동사","하다, 꾸미다",["你在搞什么？","nǐ zài gǎo shén me？","당신 뭐 하고 있어요?"]);
+W("拐弯","guǎi wān","동사","모퉁이를 돌다",["车在前面拐弯了。","chē zài qián miàn guǎi wān le。","차가 앞에서 모퉁이를 돌았어요."]);
+W("关闭","guān bì","동사","닫다, 폐쇄하다",["商店晚上十点关闭。","shāng diàn wǎn shàng shí diǎn guān bì。","가게는 밤 10시에 문을 닫아요."]);
+W("观察","guān chá","동사","관찰하다",["他在观察小鸟。","tā zài guān chá xiǎo niǎo。","그는 새를 관찰하고 있어요."]);
+W("滚","gǔn","동사","구르다",["球滚到桌子下面去了。","qiú gǔn dào zhuō zi xià miàn qù le。","공이 책상 밑으로 굴러갔어요."]);
+W("喊","hǎn","동사","외치다",["他大声喊我的名字。","tā dà shēng hǎn wǒ de míng zì。","그가 큰 소리로 제 이름을 불렀어요."]);
+W("合影","hé yǐng","명사","단체 사진(을 찍다)",["我们在门口合影。","wǒ men zài mén kǒu hé yǐng。","우리는 문 앞에서 단체 사진을 찍었어요."]);
+W("忽视","hū shì","동사","소홀히 하다",["不能忽视这个问题。","bù néng hū shì zhè ge wèn tí。","이 문제를 소홀히 해서는 안 돼요."]);
+W("滑冰","huá bīng","동사","스케이트를 타다",["冬天我们去滑冰。","dōng tiān wǒ men qù huá bīng。","겨울에 우리는 스케이트를 타러 가요."]);
+W("划船","huá chuán","동사","배를 젓다",["我们在湖上划船。","wǒ men zài hú shàng huá chuán。","우리는 호수에서 배를 저어요."]);
+W("缓解","huǎn jiě","동사","완화하다",["听音乐可以缓解压力。","tīng yīn yuè kě yǐ huǎn jiě yā lì。","음악을 들으면 스트레스를 풀 수 있어요."]);
+W("恢复","huī fù","동사","회복하다",["他的身体恢复得很快。","tā de shēn tǐ huī fù dé hěn kuài。","그의 몸은 빠르게 회복됐어요."]);
+W("挥","huī","동사","흔들다",["他向我挥了挥手。","tā xiàng wǒ huī le huī shǒu。","그는 저에게 손을 흔들었어요."]);
+W("集中","jí zhōng","동사","집중하다",["上课要集中注意力。","shàng kè yào jí zhōng zhù yì lì。","수업 시간에는 집중해야 해요."]);
+W("计算","jì suàn","동사","계산하다",["请计算一下总数。","qǐng jì suàn yī xià zǒng shù。","합계를 계산해 보세요."]);
+W("记录","jì lù","명사","기록(하다)",["请把他的话记录下来。","qǐng bǎ tā de huà jì lù xià lái。","그의 말을 기록해 주세요."]);
+W("纪念","jì niàn","동사","기념하다",["我们买了一个纪念品。","wǒ men mǎi le yí gè jì niàn pǐn。","우리는 기념품을 하나 샀어요."]);
+W("假装","jiǎ zhuāng","동사","~인 척하다",["他假装没看见我。","tā jiǎ zhuāng méi kàn jiàn wǒ。","그는 저를 못 본 척했어요."]);
+W("驾驶","jià shǐ","동사","운전하다",["他驾驶技术很好。","tā jià shǐ jì shù hěn hǎo。","그는 운전 기술이 좋아요."]);
+W("捡","jiǎn","동사","줍다",["他在路上捡到了一个钱包。","tā zài lù shàng jiǎn dào le yí gè qián bāo。","그는 길에서 지갑을 주웠어요."]);
+W("建立","jiàn lì","동사","세우다, 구축하다",["我们建立了良好的关系。","wǒ men jiàn lì le liáng hǎo de guān xì。","우리는 좋은 관계를 맺었어요."]);
+W("建议","jiàn yì","명사","제안(하다)",["我建议你早点休息。","wǒ jiàn yì nǐ zǎo diǎn xiū xī。","일찍 쉬길 권해요."]);
+W("降落","jiàng luò","동사","착륙하다",["飞机马上就要降落了。","fēi jī mǎ shàng jiù yào jiàng luò le。","비행기가 곧 착륙해요."]);
+W("交换","jiāo huàn","동사","교환하다",["我们交换了电话号码。","wǒ men jiāo huàn le diàn huà hào mǎ。","우리는 전화번호를 교환했어요."]);
+W("浇","jiāo","동사","(물을) 주다, 붓다",["我每天给花浇水。","wǒ měi tiān gěi huā jiāo shuǐ。","저는 매일 꽃에 물을 줘요."]);
+W("接触","jiē chù","동사","접촉하다",["我很少接触这方面的东西。","wǒ hěn shǎo jiē chù zhè fāng miàn de dōng xī。","저는 이쪽 분야를 접할 일이 별로 없어요."]);
+W("接近","jiē jìn","동사","가까워지다",["天气接近三十度。","tiān qì jiē jìn sān shí dù。","기온이 30도에 가까워요."]);
+W("尽力","jìn lì","부사","힘을 다하다",["我会尽力帮你。","wǒ huì jìn lì bāng nǐ。","힘닿는 데까지 도울게요."]);
+W("救","jiù","동사","구하다",["他救了一个孩子。","tā jiù le yí gè hái zi。","그는 아이 하나를 구했어요."]);
+W("举","jǔ","동사","들다",["请举手回答问题。","qǐng jǔ shǒu huí dá wèn tí。","손을 들고 질문에 답하세요."]);
+W("具备","jù bèi","동사","갖추다",["他具备这个工作的条件。","tā jù bèi zhè ge gōng zuò de tiáo jiàn。","그는 이 일의 조건을 갖췄어요."]);
+W("卷","juǎn","양사","말다, 두루마리",["他把地图卷起来了。","tā bǎ dì tú juǎn qǐ lái le。","그는 지도를 둘둘 말았어요."]);
+W("砍","kǎn","동사","베다",["他在山上砍树。","tā zài shān shàng kǎn shù。","그는 산에서 나무를 베요."]);
+W("克服","kè fú","동사","극복하다",["他克服了很多困难。","tā kè fú le hěn duō kùn nán。","그는 많은 어려움을 극복했어요."]);
+W("控制","kòng zhì","동사","통제하다",["你要控制自己的情绪。","nǐ yào kòng zhì zì jǐ de qíng xù。","자신의 감정을 통제해야 해요."]);
+W("拦","lán","동사","막다",["警察拦住了那辆车。","jǐng chá lán zhù le nà liàng chē。","경찰이 그 차를 막아 세웠어요."]);
+W("利用","lì yòng","동사","이용하다",["他利用周末学习汉语。","tā lì yòng zhōu mò xué xí hàn yǔ。","그는 주말을 이용해 중국어를 공부해요."]);
+W("浏览","liú lǎn","동사","훑어보다",["我在网上浏览新闻。","wǒ zài wǎng shàng liú lǎn xīn wén。","저는 인터넷에서 뉴스를 훑어봐요."]);
+W("漏","lòu","동사","새다",["屋顶漏雨了。","wū dǐng lòu yǔ le。","지붕에서 비가 새요."]);
+W("露","Lù","동사","드러나다",["他露出了笑容。","tā lù chū le xiào róng。","그는 웃음을 보였어요."]);
+W("轮流","lún liú","동사","번갈아",["我们轮流照顾孩子。","wǒ men lún liú zhào gù hái zi。","우리는 번갈아 아이를 돌봐요."]);
+W("骂","mà","동사","욕하다",["不要骂人。","bú yào mà rén。","욕하지 마세요."]);
+W("冒险","mào xiǎn","동사","모험하다",["他喜欢冒险。","tā xǐ huān mào xiǎn。","그는 모험을 좋아해요."]);
+W("迷路","mí lù","동사","길을 잃다",["我在城市里迷路了。","wǒ zài chéng shì lǐ mí lù le。","저는 도시에서 길을 잃었어요."]);
+W("面对","miàn duì","동사","마주하다",["我们要勇敢地面对困难。","wǒ men yào yǒng gǎn dì miàn duì kùn nán。","우리는 어려움에 용감히 맞서야 해요."]);
+W("面临","miàn lín","동사","직면하다",["公司面临很大的困难。","gōng sī miàn lín hěn dà de kùn nán。","회사가 큰 어려움에 직면했어요."]);
+W("摸","mō","동사","만지다",["请不要摸这个东西。","qǐng bú yào mō zhè ge dōng xī。","이 물건을 만지지 마세요."]);
+W("模仿","mó fǎng","동사","모방하다",["孩子喜欢模仿大人。","hái zi xǐ huān mó fǎng dà rén。","아이들은 어른을 따라 하는 걸 좋아해요."]);
+W("念","niàn","동사","읽다, 그리워하다",["请念一下这个句子。","qǐng niàn yī xià zhè ge jù zi。","이 문장을 읽어 보세요."]);
+W("拍","pāi","동사","치다, 찍다",["他拍了一张照片。","tā pāi le yī zhāng zhào piān。","그는 사진을 한 장 찍었어요."]);
+W("排队","pái duì","동사","줄을 서다",["大家请排队。","dà jiā qǐng pái duì。","모두 줄을 서 주세요."]);
+W("配合","pèi hé","동사","협력하다, 호응하다",["请大家配合我们的工作。","qǐng dà jiā pèi hé wǒ men de gōng zuò。","저희 업무에 협조해 주세요."]);
+W("碰见","pèng jiàn","동사","마주치다",["我在路上碰见了老同学。","wǒ zài lù shàng pèng jiàn le lǎo tóng xué。","저는 길에서 옛 동창을 마주쳤어요."]);
+W("披","pī","동사","걸치다",["她肩上披着一条围巾。","tā jiān shàng pī zhe yī tiáo wéi jīn。","그녀는 어깨에 목도리를 두르고 있어요."]);
+W("飘","piāo","동사","나부끼다",["雪花在空中飘。","xuě huā zài kōng zhōng piāo。","눈송이가 공중에서 날려요."]);
+W("破坏","pò huài","동사","파괴하다",["不要破坏公共财物。","bú yào pò huài gōng gòng cái wù。","공공 재물을 훼손하지 마세요."]);
+W("企图","qǐ tú","동사","꾀하다",["他企图逃跑。","tā qǐ tú táo pǎo。","그는 도망치려고 꾀했어요."]);
+W("牵","qiān","동사","이끌다",["妈妈牵着孩子的手。","mā mā qiān zhe hái zi de shǒu。","엄마가 아이의 손을 잡고 있어요."]);
+W("抢","qiāng","동사","빼앗다, 다투다",["孩子们在抢玩具。","hái zi men zài qiǎng wán jù。","아이들이 장난감을 다투고 있어요."]);
+W("瞧","qiáo","동사","보다",["你瞧，下雪了！","nǐ qiáo， xià xuě le！","보세요, 눈이 와요!"]);
+W("切","qiē","동사","썰다",["请把西瓜切成小块。","qǐng bǎ xī guā qiè chéng xiǎo kuài。","수박을 작은 조각으로 썰어 주세요."]);
+W("请求","qǐng qiú","동사","요청(하다)",["他请求我帮他一个忙。","tā qǐng qiú wǒ bāng tā yí gè máng。","그는 저에게 도움을 청했어요."]);
+W("庆祝","qìng zhù","동사","경축하다",["我们一起庆祝他的生日。","wǒ men yì qǐ qìng zhù tā de shēng rì。","우리는 함께 그의 생일을 축하해요."]);
+W("取消","qǔ xiāo","동사","취소하다",["比赛因为下雨取消了。","bǐ sài yīn wèi xià yǔ qǔ xiāo le。","시합이 비 때문에 취소됐어요."]);
+W("劝","quàn","동사","권하다",["我劝他不要抽烟。","wǒ quàn tā bú yào chōu yān。","저는 그에게 담배를 피우지 말라고 권했어요."]);
+W("确定","què dìng","동사","확정하다",["时间还没有确定。","shí jiān hái méi yǒu què dìng。","시간이 아직 확정되지 않았어요."]);
+W("确认","què rèn","동사","확인하다",["请确认一下你的名字。","qǐng què rèn yī xià nǐ de míng zì。","이름을 확인해 주세요."]);
+W("嚷","rǎng","동사","소리치다",["别在这儿嚷。","bié zài zhè ér rǎng。","여기서 소리치지 마세요."]);
+W("绕","rào","동사","돌다, 감다",["我们绕过那座山。","wǒ men rào guò nà zuò shān。","우리는 저 산을 돌아서 갔어요."]);
+W("洒","sǎ","동사","뿌리다, 쏟다",["水洒在地上了。","shuǐ sǎ zài dì shàng le。","물이 바닥에 쏟아졌어요."]);
+W("杀","shā","동사","죽이다",["不要杀小动物。","bú yào shā xiǎo dòng wù。","작은 동물을 죽이지 마세요."]);
+W("晒","shài","동사","햇볕을 쬐다",["她在院子里晒衣服。","tā zài yuàn zi lǐ shài yī fú。","그녀는 마당에서 빨래를 말려요."]);
+W("上当","shàng dàng","동사","속다",["你上当了。","nǐ shàng dàng le。","속으셨어요."]);
+W("伸","shēn","동사","펴다, 내밀다",["他伸出手来。","tā shēn chū shǒu lái。","그는 손을 내밀었어요."]);
+W("升","shēng","동사","오르다, 리터",["太阳升起来了。","tài yáng shēng qǐ lái le。","해가 떠올랐어요."]);
+W("实践","shí jiàn","동사","실천하다",["理论要和实践结合。","lǐ lùn yào hé shí jiàn jié hé。","이론은 실천과 결합해야 해요."]);
+W("实现","shí xiàn","동사","실현하다",["他终于实现了自己的理想。","tā zhōng yú shí xiàn le zì jǐ de lǐ xiǎng。","그는 마침내 자신의 꿈을 이뤘어요."]);
+W("实行","shí xíng","동사","실행하다",["这个办法已经开始实行了。","zhè ge bàn fǎ yǐ jīng kāi shǐ shí xíng le。","이 방법은 이미 시행되기 시작했어요."]);
+W("使劲儿","shǐ jìn r","명사","힘을 쓰다",["请再使劲儿推一下。","qǐng zài shǐ jìn ér tuī yī xià。","한 번 더 힘껏 밀어 주세요."]);
+W("摔","shuāi","동사","넘어지다, 내던지다",["他不小心摔倒了。","tā bù xiǎo xīn shuāi dǎo le。","그는 조심하지 않아 넘어졌어요."]);
+W("甩","shuǎi","동사","뿌리치다, 휘두르다",["他把头发甩到后面。","tā bǎ tóu fā shuǎi dào hòu miàn。","그는 머리카락을 뒤로 넘겼어요."]);
+W("说服","shuō fú","동사","설득하다",["我说服了他。","wǒ shuō fú le tā。","저는 그를 설득했어요."]);
+W("撕","sī","동사","찢다",["他把纸撕了。","tā bǎ zhǐ sī le。","그는 종이를 찢었어요."]);
+W("碎","suì","형용사","부서지다",["杯子掉在地上碎了。","bēi zi diào zài dì shàng suì le。","컵이 바닥에 떨어져 깨졌어요."]);
+W("缩短","suō duǎn","동사","단축하다",["新的路缩短了时间。","xīn de lù suō duǎn le shí jiān。","새 길이 시간을 줄여 줬어요."]);
+W("缩小","suō xiǎo","동사","축소하다",["请把照片缩小一点儿。","qǐng bǎ zhào piān suō xiǎo yì diǎn ér。","사진을 조금 줄여 주세요."]);
+W("锁","suǒ","동사","잠그다, 자물쇠",["请把门锁好。","qǐng bǎ mén suǒ hǎo。","문을 잘 잠가 주세요."]);
+W("逃","táo","동사","도망치다",["小偷逃跑了。","xiǎo tōu táo pǎo le。","도둑이 도망갔어요."]);
+W("逃避","táo bì","동사","회피하다",["你不能逃避问题。","nǐ bù néng táo bì wèn tí。","문제를 회피하면 안 돼요."]);
+W("提","dī","동사","들다, 제기하다",["他提着一个大包。","tā tí zhe yí gè dà bāo。","그는 큰 가방을 들고 있어요."]);
+W("体验","tǐ yàn","동사","체험하다",["我想体验一下当地的生活。","wǒ xiǎng tǐ yàn yī xià dāng dì de shēng huó。","저는 현지 생활을 체험해 보고 싶어요."]);
+W("吐","tǔ","동사","토하다, 뱉다",["不要随地吐痰。","bú yào suí dì tǔ tán。","아무 데나 침을 뱉지 마세요."]);
+W("推辞","tuī cí","동사","사양하다",["他推辞了我的邀请。","tā tuī cí le wǒ de yāo qǐng。","그는 제 초대를 사양했어요."]);
+W("推荐","tuī jiàn","동사","추천하다",["你能推荐一本书吗？","nǐ néng tuī jiàn yī běn shū ma？","책 한 권 추천해 주실래요?"]);
+W("退","tuì","동사","물러나다, 반품하다",["这件衣服可以退吗？","zhè jiàn yī fú kě yǐ tuì ma？","이 옷은 반품할 수 있어요?"]);
+W("退步","tuì bù","동사","퇴보하다",["他的成绩退步了。","tā de chéng jì tuì bù le。","그의 성적이 떨어졌어요."]);
+W("围绕","wéi rào","동사","둘러싸다, 중심으로 하다",["大家围绕这个问题进行了讨论。","dà jiā wéi rào zhè ge wèn tí jìn xíng le tǎo lùn。","모두가 이 문제를 놓고 토론했어요."]);
+W("维护","wéi hù","동사","유지·보호하다",["我们要维护公共秩序。","wǒ men yào wéi hù gōng gòng zhì xù。","우리는 공공질서를 지켜야 해요."]);
+W("闻","Wén","동사","냄새를 맡다",["你闻一闻，这个很香。","nǐ wén yī wén， zhè ge hěn xiāng。","맡아 보세요, 이거 향기로워요."]);
+W("吻","wěn","동사","입맞추다",["他吻了她一下。","tā wěn le tā yī xià。","그가 그녀에게 입을 맞췄어요."]);
+W("吸收","xī shōu","동사","흡수하다",["植物吸收水分。","zhí wù xī shōu shuǐ fèn。","식물은 수분을 흡수해요."]);
+W("系","xì","동사","매다, 계통, 학과",["请系好安全带。","qǐng jì hǎo ān quán dài。","안전벨트를 매 주세요."]);
+W("系领带","xì lǐng dài","명사","넥타이를 매다",["他今天系领带了。","tā jīn tiān xì le yī tiáo hóng lǐng dài。","그는 오늘 빨간 넥타이를 맸어요."]);
+W("瞎","xiā","부사","눈이 멀다, 함부로",["别瞎说。","bié xiā shuō。","함부로 말하지 마세요."]);
+W("显得","xiǎn de","동사","~해 보이다",["她穿这件衣服显得很年轻。","tā chuān zhè jiàn yī fú xiǎn de hěn nián qīng。","그녀는 이 옷을 입으면 젊어 보여요."]);
+W("显示","xiǎn shì","동사","나타내다, 표시하다",["屏幕上显示了时间。","píng mù shàng xiǎn shì le shí jiān。","화면에 시간이 표시됐어요."]);
+W("消灭","xiāo miè","동사","없애다",["要消灭这种病毒。","yào xiāo miè zhè zhǒng bìng dú。","이 바이러스를 없애야 해요."]);
+W("消失","xiāo shī","동사","사라지다",["他的身影消失了。","tā de shēn yǐng xiāo shī le。","그의 모습이 사라졌어요."]);
+W("歇","xiē","동사","쉬다",["我们歇一会儿吧。","wǒ men xiē yī huì er ba。","우리 잠깐 쉬어요."]);
+W("协调","xié tiáo","동사","조화시키다",["我们要协调好各部门的关系。","wǒ men yào xié tiáo hǎo gè bù mén de guān xì。","우리는 각 부서의 관계를 조율해야 해요."]);
+W("欣赏","xīn shǎng","동사","감상하다",["我们一起欣赏音乐。","wǒ men yì qǐ xīn shǎng yīn yuè。","우리는 함께 음악을 감상해요."]);
+W("行动","xíng dòng","동사","행동(하다)",["我们要马上行动。","wǒ men yào mǎ shàng xíng dòng。","우리는 바로 행동해야 해요."]);
+W("修改","xiū gǎi","동사","수정하다",["请修改一下这篇文章。","qǐng xiū gǎi yī xià zhè piān wén zhāng。","이 글을 수정해 주세요."]);
+W("寻找","xún zhǎo","동사","찾다",["我在寻找我的钥匙。","wǒ zài xún zhǎo wǒ de yào shi。","저는 열쇠를 찾고 있어요."]);
+W("询问","xún wèn","동사","문의하다",["我去询问一下。","wǒ qù xún wèn yī xià。","제가 가서 물어볼게요."]);
+W("训练","xùn liàn","동사","훈련(하다)",["他每天训练两个小时。","tā měi tiān xùn liàn liǎng gè xiǎo shí。","그는 매일 두 시간씩 훈련해요."]);
+W("延长","Yán cháng","동사","연장하다",["会议延长了一个小时。","huì yì yán cháng le yí gè xiǎo shí。","회의가 한 시간 연장됐어요."]);
+W("摇","Yáo","동사","흔들다",["他摇了摇头。","tā yáo le yáo tóu。","그는 고개를 저었어요."]);
+W("咬","yǎo","동사","물다",["小狗咬了他一口。","xiǎo gǒu yǎo le tā yī kǒu。","강아지가 그를 한 번 물었어요."]);
+W("移动","yí dòng","동사","이동하다",["请把桌子移动一下。","qǐng bǎ zhuō zi yí dòng yī xià。","탁자를 좀 옮겨 주세요."]);
+W("应付","yìng fu","동사","대처하다",["我能应付这个问题。","wǒ néng yìng fù zhè ge wèn tí。","저는 이 문제에 대처할 수 있어요."]);
+W("迎接","yíng jiē","동사","맞이하다",["我们去机场迎接客人。","wǒ men qù jī chǎng yíng jiē kè rén。","우리는 손님을 맞으러 공항에 가요."]);
+W("游览","yóu lǎn","동사","유람하다",["我们游览了很多名胜古迹。","wǒ men yóu lǎn le hěn duō míng shèng gǔ jì。","우리는 명승고적을 많이 둘러봤어요."]);
+W("运用","yùn yòng","동사","운용하다, 활용하다",["要把学到的知识运用起来。","yào bǎ xué dào de zhī shí yùn yòng qǐ lái。","배운 지식을 활용해야 해요."]);
+W("赞成","zàn chéng","동사","찬성하다",["我赞成你的意见。","wǒ zàn chéng nǐ de yì jiàn。","저는 당신 의견에 찬성해요."]);
+W("责备","zé bèi","동사","나무라다",["老师责备了他。","lǎo shī zé bèi le tā。","선생님이 그를 나무랐어요."]);
+W("摘","zhāi","동사","따다",["他在树上摘了一个苹果。","tā zài shù shàng zhāi le yí gè píng guǒ。","그는 나무에서 사과를 하나 땄어요."]);
+W("展开","zhǎn kāi","동사","펼치다, 전개하다",["请把地图展开。","qǐng bǎ dì tú zhǎn kāi。","지도를 펼쳐 주세요."]);
+W("涨","zhǎng","동사","오르다",["最近物价涨了。","zuì jìn wù jià zhǎng le。","요즘 물가가 올랐어요."]);
+W("掌握","zhǎng wò","동사","파악하다, 숙달하다",["他已经掌握了这个技术。","tā yǐ jīng zhǎng wò le zhè ge jì shù。","그는 이미 이 기술을 익혔어요."]);
+W("振动","zhèn dòng","동사","진동하다",["手机在桌子上振动。","shǒu jī zài zhuō zi shàng zhèn dòng。","휴대폰이 책상 위에서 진동해요."]);
+W("争取","zhēng qǔ","동사","쟁취하다",["我们要争取早点儿完成。","wǒ men yào zhēng qǔ zǎo diǎn ér wán chéng。","우리는 일찍 끝내도록 노력해야 해요."]);
+W("征求","zhēng qiú","동사","구하다",["老师征求大家的意见。","lǎo shī zhēng qiú dà jiā de yì jiàn。","선생님이 모두의 의견을 구했어요."]);
+W("睁","zhēng","동사","(눈을) 뜨다",["他慢慢睁开了眼睛。","tā màn màn zhēng kāi le yǎn jīng。","그는 천천히 눈을 떴어요."]);
+W("指挥","zhǐ huī","동사","지휘하다",["他在指挥交通。","tā zài zhǐ huī jiāo tōng。","그는 교통을 정리하고 있어요."]);
+W("制作","zhì zuò","동사","제작하다",["他在制作一部电影。","tā zài zhì zuò yī bù diàn yǐng。","그는 영화를 한 편 제작하고 있어요."]);
+W("重","chóng","형용사","거듭하다, 겹치다",["这个字重了一次。","zhè ge zì zhòng le yī cì。","이 글자가 한 번 겹쳤어요."]);
+W("重复","chóng fù","동사","반복하다",["请不要重复同样的错误。","qǐng bú yào chóng fù tóng yàng de cuò wù。","같은 잘못을 반복하지 마세요."]);
+W("主持","zhǔ chí","동사","주관하다, 사회를 보다",["他主持了这次会议。","tā zhǔ chí le zhè cì huì yì。","그가 이번 회의를 주재했어요."]);
+W("嘱咐","zhǔ fù","동사","당부하다",["妈妈嘱咐我要注意安全。","mā mā zhǔ fù wǒ yào zhù yì ān quán。","엄마가 저에게 안전에 주의하라고 당부했어요."]);
+W("抓紧","zhuā jǐn","동사","꼭 쥐다, 서두르다",["请抓紧时间。","qǐng zhuā jǐn shí jiān。","시간을 아껴 주세요."]);
+W("转变","zhuǎn biàn","동사","바뀌다",["他的态度转变了。","tā de tài dù zhuǎn biàn le。","그의 태도가 바뀌었어요."]);
+W("转告","zhuǎn gào","동사","전해 주다",["请你转告他一下。","qǐng nǐ zhuǎn gào tā yī xià。","그에게 전해 주세요."]);
+W("装","zhuāng","동사","담다, 설치하다, ~인 척하다",["请把书装进包里。","qǐng bǎ shū zhuāng jìn bāo lǐ。","책을 가방에 넣어 주세요."]);
+W("装饰","zhuāng shì","명사","장식하다",["他们在装饰房间。","tā men zài zhuāng shì fáng jiān。","그들은 방을 장식하고 있어요."]);
+W("追求","zhuī qiú","동사","추구하다",["他在追求自己的理想。","tā zài zhuī qiú zì jǐ de lǐ xiǎng。","그는 자신의 꿈을 추구하고 있어요."]);
+W("咨询","zī xún","동사","상담하다",["我想咨询一个问题。","wǒ xiǎng zī xún yí gè wèn tí。","저는 문제를 하나 상담하고 싶어요."]);
+W("阻止","zǔ zhǐ","동사","저지하다",["他阻止了我。","tā zǔ zhǐ le wǒ。","그가 저를 막았어요."]);
+W("组合","zǔ hé","동사","조합(하다)",["这两个词可以组合在一起。","zhè liǎng gè cí kě yǐ zǔ hé zài yì qǐ。","이 두 단어는 합칠 수 있어요."]);
+th("상태·성질");
+W("棒","bàng","형용사","훌륭하다, 막대",["你的汉语说得真棒！","nǐ de hàn yǔ shuō dé zhēn bàng！","당신 중국어 정말 훌륭해요!"]);
+W("薄","Bó","형용사","얇다",["这件衣服太薄了。","zhè jiàn yī fú tài báo le。","이 옷은 너무 얇아요."]);
+W("宝贵","bǎo guì","형용사","귀중하다",["时间是很宝贵的。","shí jiān shì hěn bǎo guì de。","시간은 아주 귀중해요."]);
+W("不得了","bù dé liǎo","관용구","큰일 났다, 대단하다",["不得了，我的手机丢了！","bù dé le， wǒ de shǒu jī diū le！","큰일 났어요, 제 휴대폰을 잃어버렸어요!"]);
+W("不要紧","bù yào jǐn","동사","괜찮다",["你不要紧吧？","nǐ bú yào jǐn ba？","괜찮아요?"]);
+W("不足","bù zú","동사","부족하다",["我们的时间不足。","wǒ men de shí jiān bù zú。","우리는 시간이 부족해요."]);
+W("彻底","chè dǐ","형용사","철저하다",["房间打扫得很彻底。","fáng jiān dǎ sǎo dé hěn chè dǐ。","방을 아주 철저히 청소했어요."]);
+W("充分","chōng fèn","형용사","충분하다",["我们准备得很充分。","wǒ men zhǔn bèi dé hěn chōng fèn。","우리는 충분히 준비했어요."]);
+W("丑","Chǒu","형용사","못생기다",["这只鸟虽然丑，但很可爱。","zhè zhǐ niǎo suī rán chǒu， dàn hěn kě ài。","이 새는 못생겼지만 귀여워요."]);
+W("臭","chòu","형용사","구리다, 냄새나다",["这个东西很臭。","zhè ge dōng xī hěn chòu。","이 물건은 냄새가 아주 지독해요."]);
+W("出色","chū sè","형용사","뛰어나다",["他的表现非常出色。","tā de biǎo xiàn fēi cháng chū sè。","그의 활약은 아주 뛰어났어요."]);
+W("次要","cì yào","형용사","부차적인",["这是个次要的问题。","zhè shì gè cì yào de wèn tí。","이것은 부차적인 문제예요."]);
+W("匆忙","cōng máng","형용사","바쁘다, 서두르다",["他匆忙地走了。","tā cōng máng dì zǒu le。","그는 서둘러 갔어요."]);
+W("大型","dà xíng","형용사","대형의",["这是一个大型超市。","zhè shì yí gè dà xíng chāo shì。","이곳은 대형 마트예요."]);
+W("单调","dān diào","형용사","단조롭다",["这种生活太单调了。","zhè zhǒng shēng huó tài dān diào le。","이런 생활은 너무 단조로워요."]);
+W("淡","dàn","형용사","싱겁다, 연하다",["这个汤有点儿淡。","zhè ge tāng yǒu diǎn ér dàn。","이 국은 좀 싱거워요."]);
+W("地道","dì dào","형용사","정통의, 진짜",["这个菜做得很地道。","zhè ge cài zuò dé hěn dì dào。","이 요리는 정통으로 잘 만들었어요."]);
+W("独特","dú tè","형용사","독특하다",["她的风格很独特。","tā de fēng gé hěn dú tè。","그녀의 스타일은 아주 독특해요."]);
+W("多余","duō yú","형용사","쓸데없다, 남다",["这句话是多余的。","zhè jù huà shì duō yú de。","이 말은 쓸데없어요."]);
+W("恶劣","è liè","형용사","열악하다, 나쁘다",["今天的天气非常恶劣。","jīn tiān de tiān qì fēi cháng è liè。","오늘 날씨가 아주 나빠요."]);
+W("发达","fā dá","형용사","발달하다",["这个国家的经济很发达。","zhè ge guó jiā de jīng jì hěn fā dá。","이 나라의 경제는 아주 발달했어요."]);
+W("高档","gāo dàng","형용사","고급의",["这是一家高档饭店。","zhè shì yī jiā gāo dàng fàn diàn。","이곳은 고급 식당이에요."]);
+W("高速","gāo sù","형용사","고속",["高速公路上车很多。","gāo sù gōng lù shàng chē hěn duō。","고속도로에 차가 많아요."]);
+W("个别","gè bié","형용사","개별적인, 극소수의",["只有个别人没来。","zhǐ yǒu gè bié rén méi lái。","극소수의 사람만 오지 않았어요."]);
+W("古老","gǔ lǎo","형용사","오래되다",["这是一座古老的城市。","zhè shì yī zuò gǔ lǎo de chéng shì。","이곳은 오래된 도시예요."]);
+W("固定","gù dìng","형용사","고정하다, 일정하다",["他每天在固定的时间起床。","tā měi tiān zài gù dìng de shí jiān qǐ chuáng。","그는 매일 정해진 시간에 일어나요."]);
+W("光滑","guāng huá","형용사","매끄럽다",["桌面很光滑。","zhuō miàn hěn guāng huá。","탁자 면이 아주 매끄러워요."]);
+W("广大","guǎng dà","형용사","광대하다, 많은",["这个电影受到广大观众的喜爱。","zhè ge diàn yǐng shòu dào guǎng dà guān zhòng de xǐ ài。","이 영화는 많은 관객에게 사랑받아요."]);
+W("广泛","guǎng fàn","형용사","광범위하다",["这个问题引起了广泛的讨论。","zhè ge wèn tí yǐn qǐ le guǎng fàn de tǎo lùn。","이 문제는 광범위한 토론을 일으켰어요."]);
+W("过分","guò fèn","형용사","지나치다",["你这样说太过分了。","nǐ zhè yàng shuō tài guò fèn le。","그렇게 말하는 건 너무 지나쳐요."]);
+W("过期","guò qī","동사","기한이 지나다",["这个牛奶已经过期了。","zhè ge niú nǎi yǐ jīng guò qī le。","이 우유는 이미 유통기한이 지났어요."]);
+W("豪华","háo huá","형용사","호화롭다",["这个宾馆非常豪华。","zhè ge bīn guǎn fēi cháng háo huá。","이 호텔은 아주 호화로워요."]);
+W("合理","hé lǐ","형용사","합리적이다",["这个价格很合理。","zhè ge jià gé hěn hé lǐ。","이 가격은 합리적이에요."]);
+W("糊涂","hú tu","형용사","어리둥절하다, 흐리멍덩하다",["我被他说糊涂了。","wǒ bèi tā shuō hú tú le。","저는 그의 말에 어리둥절해졌어요."]);
+W("灰","huī","명사","재, 회색",["墙是灰色的。","qiáng shì huī sè de。","벽은 회색이에요."]);
+W("活跃","huó yuè","동사","활기차다",["会场的气氛很活跃。","huì chǎng de qì fēn hěn huó yuè。","회의장 분위기가 활기차요."]);
+W("基本","jī běn","형용사","기본(적인)",["这是最基本的要求。","zhè shì zuì jī běn de yāo qiú。","이것이 가장 기본적인 요구예요."]);
+W("激烈","jī liè","형용사","격렬하다",["比赛非常激烈。","bǐ sài fēi cháng jī liè。","시합이 아주 치열해요."]);
+W("尖锐","jiān ruì","형용사","날카롭다",["他提出了一个尖锐的问题。","tā tí chū le yí gè jiān ruì de wèn tí。","그는 날카로운 질문을 했어요."]);
+W("艰巨","jiān jù","형용사","막중하다, 어렵다",["这个任务非常艰巨。","zhè ge rèn wù fēi cháng jiān jù。","이 임무는 아주 막중해요."]);
+W("艰苦","jiān kǔ","형용사","고달프다",["他们的生活很艰苦。","tā men de shēng huó hěn jiān kǔ。","그들의 생활은 고달파요."]);
+W("结实","jiē shí","형용사","튼튼하다",["这张桌子很结实。","zhè zhāng zhuō zi hěn jiē shí。","이 책상은 튼튼해요."]);
+W("紧","jǐn","형용사","팽팽하다, 꽉 조이다",["这条裤子太紧了。","zhè tiáo kù zi tài jǐn le。","이 바지는 너무 꽉 껴요."]);
+W("紧急","jǐn jí","형용사","긴급하다",["这是一件紧急的事。","zhè shì yī jiàn jǐn jí de shì。","이것은 긴급한 일이에요."]);
+W("巨大","jù dà","형용사","거대하다",["他取得了巨大的成功。","tā qǔ dé le jù dà de chéng gōng。","그는 엄청난 성공을 거뒀어요."]);
+W("具体","jù tǐ","형용사","구체적이다",["请说得具体一点儿。","qǐng shuō dé jù tǐ yì diǎn ér。","좀 더 구체적으로 말해 주세요."]);
+W("均匀","jūn yún","형용사","고르다",["请把面粉搅拌均匀。","qǐng bǎ miàn fěn jiǎo bàn jūn yún。","밀가루를 고르게 섞어 주세요."]);
+W("可靠","kě kào","형용사","믿을 만하다",["他是一个可靠的人。","tā shì yí gè kě kào de rén。","그는 믿을 만한 사람이에요."]);
+W("可怕","kě pà","형용사","무섭다",["这个电影很可怕。","zhè ge diàn yǐng hěn kě pà。","이 영화는 아주 무서워요."]);
+W("客观","kè guān","형용사","객관적이다",["你要客观地看问题。","nǐ yào kè guān dì kàn wèn tí。","문제를 객관적으로 봐야 해요."]);
+W("空闲","kòng xián","명사","한가하다",["你明天有空闲吗？","nǐ míng tiān yǒu kòng xián ma？","내일 한가해요?"]);
+W("烂","làn","형용사","썩다, 문드러지다",["这个苹果烂了。","zhè ge píng guǒ làn le。","이 사과는 썩었어요."]);
+W("了不起","liǎo bu qǐ","형용사","대단하다",["你真了不起！","nǐ zhēn liǎo bù qǐ！","당신 정말 대단해요!"]);
+W("良好","liáng hǎo","형용사","양호하다",["他的成绩很良好。","tā de chéng jì hěn liáng hǎo。","그의 성적은 양호해요."]);
+W("临时","lín shí","형용사","임시의",["会议临时改了时间。","huì yì lín shí gǎi le shí jiān。","회의 시간이 갑자기 바뀌었어요."]);
+W("灵活","líng huó","형용사","융통성 있다, 민첩하다",["他的头脑很灵活。","tā de tóu nǎo hěn líng huó。","그는 머리가 잘 돌아가요."]);
+W("落后","luò hòu","형용사","뒤떨어지다",["我们不能落后。","wǒ men bù néng luò hòu。","우리는 뒤처지면 안 돼요."]);
+W("密切","mì qiè","형용사","밀접하다",["这两件事有密切的关系。","zhè liǎng jiàn shì yǒu mì qiè de guān xì。","이 두 일은 밀접한 관계가 있어요."]);
+W("明确","míng què","형용사","명확하다",["请给我一个明确的答复。","qǐng gěi wǒ yí gè míng què de dá fù。","명확한 답을 주세요."]);
+W("明显","míng xiǎn","형용사","뚜렷하다",["他的进步很明显。","tā de jìn bù hěn míng xiǎn。","그의 향상이 뚜렷해요."]);
+W("模糊","mó hu","형용사","흐릿하다",["这张照片有点儿模糊。","zhè zhāng zhào piān yǒu diǎn ér mó hú。","이 사진은 좀 흐릿해요."]);
+W("难看","nán kàn","형용사","보기 흉하다",["这件衣服的颜色很难看。","zhè jiàn yī fú de yán sè hěn nán kàn。","이 옷의 색깔은 보기 흉해요."]);
+W("嫩","nèn","형용사","연하다, 어리다",["这个菜很嫩。","zhè ge cài hěn nèn。","이 채소는 아주 연해요."]);
+W("能干","néng gàn","형용사","유능하다",["他是一个很能干的人。","tā shì yí gè hěn néng gàn de rén。","그는 아주 유능한 사람이에요."]);
+W("浓","nóng","형용사","진하다",["这杯茶太浓了。","zhè bēi chá tài nóng le。","이 차는 너무 진해요."]);
+W("片面","piàn miàn","형용사","편면적이다",["你这样想太片面了。","nǐ zhè yàng xiǎng tài piàn miàn le。","그렇게 생각하는 건 너무 한쪽으로 치우쳐요."]);
+W("平","Píng","형용사","평평하다",["这条路很平。","zhè tiáo lù hěn píng。","이 길은 평평해요."]);
+W("迫切","pò qiè","형용사","절박하다",["我们迫切需要你的帮助。","wǒ men pò qiè xū yào nǐ de bāng zhù。","우리는 당신의 도움이 절실해요."]);
+W("朴素","pǔ sù","형용사","소박하다",["她穿得很朴素。","tā chuān dé hěn pǔ sù。","그녀는 소박하게 입어요."]);
+W("浅","jiān","형용사","얕다",["这条河很浅。","zhè tiáo hé hěn qiǎn。","이 강은 얕아요."]);
+W("强烈","qiáng liè","형용사","강렬하다",["他有强烈的好奇心。","tā yǒu qiáng liè de hào qí xīn。","그는 강렬한 호기심이 있어요."]);
+W("巧妙","qiǎo miào","형용사","교묘하다",["他用了一个巧妙的办法。","tā yòng le yí gè qiǎo miào de bàn fǎ。","그는 기발한 방법을 썼어요."]);
+W("青","Qīng","형용사","푸르다",["山很青，水很绿。","shān hěn qīng， shuǐ hěn lǜ。","산은 푸르고 물은 초록빛이에요."]);
+W("全面","quán miàn","형용사","전면적이다",["我们要全面地看问题。","wǒ men yào quán miàn dì kàn wèn tí。","우리는 문제를 전면적으로 봐야 해요."]);
+W("缺乏","quē fá","동사","부족하다",["他缺乏经验。","tā quē fá jīng yàn。","그는 경험이 부족해요."]);
+W("日常","rì cháng","형용사","일상의",["这是日常生活用品。","zhè shì rì cháng shēng huó yòng pǐn。","이것은 일상생활 용품이에요."]);
+W("弱","ruò","형용사","약하다",["他的身体很弱。","tā de shēn tǐ hěn ruò。","그는 몸이 약해요."]);
+W("善于","shàn yú","동사","~를 잘하다",["他善于跟人交流。","tā shàn yú gēn rén jiāo liú。","그는 사람과 소통을 잘해요."]);
+W("深刻","shēn kè","형용사","깊다, 인상 깊다",["这件事给我留下了深刻的印象。","zhè jiàn shì gěi wǒ liú xià le shēn kè de yìn xiàng。","이 일은 저에게 깊은 인상을 남겼어요."]);
+W("神秘","shén mì","형용사","신비하다",["这个地方很神秘。","zhè ge dì fāng hěn shén mì。","이곳은 아주 신비로워요."]);
+W("生动","shēng dòng","형용사","생동감 있다",["他讲得很生动。","tā jiǎng dé hěn shēng dòng。","그는 아주 생생하게 이야기해요."]);
+W("时髦","shí máo","형용사","유행이다",["她穿得很时髦。","tā chuān dé hěn shí máo。","그녀는 유행에 맞게 입어요."]);
+W("实用","shí yòng","형용사","실용적이다",["这个手机很实用。","zhè ge shǒu jī hěn shí yòng。","이 휴대폰은 아주 실용적이에요."]);
+W("舒适","shū shì","형용사","쾌적하다",["这个房间很舒适。","zhè ge fáng jiān hěn shū shì。","이 방은 아주 쾌적해요."]);
+W("熟练","shú liàn","형용사","능숙하다",["他的动作很熟练。","tā de dòng zuò hěn shú liàn。","그의 동작은 능숙해요."]);
+W("烫","tàng","동사","뜨겁다, 데다",["这杯水太烫了。","zhè bēi shuǐ tài tàng le。","이 물은 너무 뜨거워요."]);
+W("特殊","tè shū","형용사","특수하다",["这是一个特殊的情况。","zhè shì yí gè tè shū de qíng kuàng。","이것은 특수한 상황이에요."]);
+W("透明","tòu míng","형용사","투명하다",["这个杯子是透明的。","zhè ge bēi zi shì tòu míng de。","이 컵은 투명해요."]);
+W("突出","tū chū","형용사","뛰어나다, 두드러지다",["他的成绩很突出。","tā de chéng jì hěn tū chū。","그의 성적은 뛰어나요."]);
+W("歪","wāi","형용사","비뚤다",["这张画挂歪了。","zhè zhāng huà guà wāi le。","이 그림이 비뚤게 걸렸어요."]);
+W("弯","wān","동사","굽다",["这条路很弯。","zhè tiáo lù hěn wān。","이 길은 굽어 있어요."]);
+W("完美","wán měi","형용사","완벽하다",["这是一个完美的计划。","zhè shì yí gè wán měi de jì huà。","이것은 완벽한 계획이에요."]);
+W("完善","wán shàn","동사","완비하다",["这个制度还不完善。","zhè ge zhì dù hái bù wán shàn。","이 제도는 아직 완비되지 않았어요."]);
+W("完整","wán zhěng","형용사","완전하다",["这是一套完整的书。","zhè shì yī tào wán zhěng de shū。","이것은 완전한 전집이에요."]);
+W("唯一","wéi yī","형용사","유일하다",["这是唯一的办法。","zhè shì wéi yī de bàn fǎ。","이것이 유일한 방법이에요."]);
+W("伟大","wěi dà","형용사","위대하다",["他是一位伟大的人。","tā shì yī wèi wěi dà de rén。","그는 위대한 사람이에요."]);
+W("稳定","wěn dìng","형용사","안정적이다",["他的工作很稳定。","tā de gōng zuò hěn wěn dìng。","그의 일은 안정적이에요."]);
+W("鲜艳","xiān yàn","형용사","산뜻하고 아름답다",["这朵花的颜色很鲜艳。","zhè duǒ huā de yán sè hěn xiān yàn。","이 꽃의 색깔은 아주 선명해요."]);
+W("相似","xiāng sì","형용사","비슷하다",["这两个字很相似。","zhè liǎng gè zì hěn xiāng sì。","이 두 글자는 아주 비슷해요."]);
+W("斜","xié","형용사","비스듬하다",["这张桌子有点儿斜。","zhè zhāng zhuō zi yǒu diǎn ér xié。","이 탁자는 약간 기울어 있어요."]);
+W("雄伟","xióng wěi","형용사","웅장하다",["长城非常雄伟。","cháng chéng fēi cháng xióng wěi。","만리장성은 매우 웅장해요."]);
+W("迅速","xùn sù","형용사","신속하다",["他的反应很迅速。","tā de fǎn yìng hěn xùn sù。","그의 반응은 빨라요."]);
+W("严肃","yán sù","형용사","엄숙하다",["他的表情很严肃。","tā de biǎo qíng hěn yán sù。","그의 표정은 아주 엄숙해요."]);
+W("业余","yè yú","형용사","여가의, 아마추어의",["他在业余时间学画画。","tā zài yè yú shí jiān xué huà huà。","그는 여가 시간에 그림을 배워요."]);
+W("英俊","yīng jùn","형용사","잘생기다",["他长得很英俊。","tā zhǎng dé hěn yīng jùn。","그는 잘생겼어요."]);
+W("拥挤","yōng jǐ","형용사","붐비다",["地铁里非常拥挤。","dì tiě lǐ fēi cháng yōng jǐ。","지하철 안이 아주 붐벼요."]);
+W("优美","yōu měi","형용사","우아하다",["这里的风景很优美。","zhè lǐ de fēng jǐng hěn yōu měi。","이곳의 경치는 아름다워요."]);
+W("悠久","yōu jiǔ","형용사","유구하다",["中国的历史很悠久。","zhōng guó de lì shǐ hěn yōu jiǔ。","중국의 역사는 유구해요."]);
+W("有利","yǒu lì","형용사","유리하다",["运动对健康有利。","yùn dòng duì jiàn kāng yǒu lì。","운동은 건강에 이로워요."]);
+W("糟糕","zāo gāo","형용사","엉망이다",["糟糕，我忘了带钥匙。","zāo gāo， wǒ wàng le dài yào shi。","이런, 열쇠를 깜빡했어요."]);
+W("长途","cháng tú","형용사","장거리",["他坐长途汽车去北京。","tā zuò cháng tú qì chē qù běi jīng。","그는 장거리 버스를 타고 베이징에 가요."]);
+W("真实","zhēn shí","형용사","진실하다",["这是一个真实的故事。","zhè shì yí gè zhēn shí de gù shì。","이것은 실화예요."]);
+W("整个","zhěng gè","형용사","전체의",["整个城市都很安静。","zhěng gè chéng shì dōu hěn ān jìng。","도시 전체가 아주 조용해요."]);
+W("直","Zhí","부사","곧다, 곧바로",["这条路很直。","zhè tiáo lù hěn zhí。","이 길은 곧아요."]);
+W("主观","zhǔ guān","형용사","주관적이다",["你的想法太主观了。","nǐ de xiǎng fǎ tài zhǔ guān le。","당신 생각은 너무 주관적이에요."]);
+W("紫","zǐ","형용사","자주색",["她喜欢紫色。","tā xǐ huān zǐ sè。","그녀는 보라색을 좋아해요."]);
+th("시간·수량·단위");
+W("傍晚","bàng wǎn","명사","해질 무렵",["傍晚的时候，天空很漂亮。","bàng wǎn de shí hòu， tiān kōng hěn piào liàng。","해질 무렵에는 하늘이 아주 예뻐요."]);
+W("比例","bǐ lì","명사","비율",["男女比例是一比一。","nán nǚ bǐ lì shì yī bǐ yī。","남녀 비율은 1대 1이에요."]);
+W("程度","chéng dù","명사","정도, 수준",["他的汉语程度很高。","tā de hàn yǔ chéng dù hěn gāo。","그의 중국어 수준은 아주 높아요."]);
+W("持续","chí xù","동사","지속되다",["雨持续下了三天。","yǔ chí xù xià le sān tiān。","비가 사흘 동안 계속 내렸어요."]);
+W("除夕","Chú xī","명사","섣달그믐",["除夕晚上，一家人一起吃饭。","chú xī wǎn shàng， yī jiā rén yì qǐ chī fàn。","섣달그믐 밤에 온 가족이 함께 식사해요."]);
+W("从前","cóng qián","명사","예전",["从前这里是一个小村子。","cóng qián zhè lǐ shì yí gè xiǎo cūn zi。","예전에 여기는 작은 마을이었어요."]);
+W("当代","dāng dài","명사","당대, 현대",["他是当代著名的作家。","tā shì dāng dài zhù míng de zuò jiā。","그는 당대의 유명 작가예요."]);
+W("等于","děng yú","동사","~와 같다",["二加二等于四。","èr jiā èr děng yú sì。","2 더하기 2는 4예요."]);
+W("度过","dù guò","동사","보내다, 지내다",["我们一起度过了愉快的假期。","wǒ men yì qǐ dù guò le yú kuài de jià qī。","우리는 함께 즐거운 방학을 보냈어요."]);
+W("吨","dūn","양사","톤",["这辆车重五吨。","zhè liàng chē zhòng wǔ dūn。","이 차는 무게가 5톤이에요."]);
+W("幅","fú","양사","폭, 점(그림)",["墙上挂着一幅画。","qiáng shàng guà zhe yī fú huà。","벽에 그림이 한 점 걸려 있어요."]);
+W("公元","gōng yuán","명사","서기",["他出生在公元二000年。","tā chū shēng zài gōng yuán èr 000 nián。","그는 서기 2000년에 태어났어요."]);
+W("古代","gǔ dài","명사","고대",["这是古代的建筑。","zhè shì gǔ dài de jiàn zhù。","이것은 고대 건축물이에요."]);
+W("规模","guī mó","명사","규모",["这个公司的规模很大。","zhè ge gōng sī de guī mó hěn dà。","이 회사는 규모가 커요."]);
+W("国庆节","Guó qìng jié","명사","국경절",["国庆节我们放假七天。","guó qìng jié wǒ men fàng jià qī tiān。","국경절에는 일주일 쉬어요."]);
+W("节","jiē","명사","마디, 절, 수업 시간",["我们每天有四节课。","wǒ men měi tiān yǒu sì jié kè。","우리는 하루에 수업이 네 교시 있어요."]);
+W("届","jiè","양사","회(차), 기",["这是第三十届运动会。","zhè shì dì sān shí jiè yùn dòng huì。","이것은 제30회 운동회예요."]);
+W("近代","jìn dài","명사","근대",["这是近代的建筑。","zhè shì jìn dài de jiàn zhù。","이것은 근대 건축물이에요."]);
+W("颗","kē","양사","알(작은 것)",["她买了一颗糖。","tā mǎi le yī kē táng。","그녀는 사탕을 한 알 샀어요."]);
+W("克","Kè","양사","그램, 이기다",["这个苹果重两百克。","zhè ge píng guǒ zhòng liǎng bǎi kè。","이 사과는 무게가 200그램이에요."]);
+W("厘米","lí mǐ","양사","센티미터",["他的个子有一百八十厘米。","tā de gè zi yǒu yì bǎi bā shí lí mǐ。","그의 키는 180센티미터예요."]);
+W("礼拜天","Lǐ bài tiān","명사","일요일",["礼拜天我在家休息。","lǐ bài tiān wǒ zài jiā xiū xī。","일요일에 저는 집에서 쉬어요."]);
+W("立方","lì fāng","양사","세제곱",["这个盒子有一立方米。","zhè ge hé zi yǒu yī lì fāng mǐ。","이 상자는 1세제곱미터예요."]);
+W("粒","lì","양사","알갱이",["碗里有几粒米。","wǎn lǐ yǒu jǐ lì mǐ。","그릇에 쌀알이 몇 알 있어요."]);
+W("面积","miàn jī","명사","면적",["这个房子的面积是一百平方米。","zhè ge fáng zi de miàn jī shì yì bǎi píng fāng mǐ。","이 집의 면적은 100제곱미터예요."]);
+W("秒","miǎo","명사","초",["他跑一百米只要十秒。","tā pǎo yì bǎi mǐ zhǐ yào shí miǎo。","그는 100미터를 뛰는 데 10초면 돼요."]);
+W("目前","mù qián","명사","현재",["目前我们还没有决定。","mù qián wǒ men hái méi yǒu jué dìng。","현재 우리는 아직 결정하지 않았어요."]);
+W("年代","nián dài","명사","연대, 시대",["他出生在八十年代。","tā chū shēng zài bā shí nián dài。","그는 80년대에 태어났어요."]);
+W("批","pī","양사","무리, 비준하다",["这批货明天到。","zhè pī huò míng tiān dào。","이번 물량은 내일 도착해요."]);
+W("匹","pī","양사","필(말·천을 세는 단위)",["草地上有两匹马。","cǎo dì shàng yǒu liǎng pǐ mǎ。","풀밭에 말이 두 마리 있어요."]);
+W("片","piān","양사","조각, 장",["我吃了一片面包。","wǒ chī le yī piàn miàn bāo。","저는 빵을 한 조각 먹었어요."]);
+W("平常","píng cháng","형용사","평소, 평범하다",["他平常很早起床。","tā píng cháng hěn zǎo qǐ chuáng。","그는 평소에 일찍 일어나요."]);
+W("平方","píng fāng","양사","제곱",["这个房子有一百平方米。","zhè ge fáng zi yǒu yì bǎi píng fāng mǐ。","이 집은 100제곱미터예요."]);
+W("平均","píng jūn","형용사","평균(의)",["我平均每天睡七个小时。","wǒ píng jūn měi tiān shuì qī gè xiǎo shí。","저는 평균 하루에 일곱 시간 자요."]);
+W("期间","qī jiān","명사","기간",["春节期间，商店都关门。","chūn jié qī jiān， shāng diàn dōu guān mén。","설 연휴 동안 가게가 모두 문을 닫아요."]);
+W("日程","rì chéng","명사","일정",["我们看一下明天的日程。","wǒ men kàn yī xià míng tiān de rì chéng。","내일 일정을 한번 봐요."]);
+W("日期","rì qī","명사","날짜",["请写下今天的日期。","qǐng xiě xià jīn tiān de rì qī。","오늘 날짜를 적어 주세요."]);
+W("如今","rú jīn","명사","지금은",["如今的生活比以前好多了。","rú jīn de shēng huó bǐ yǐ qián hǎo duō le。","지금의 생활은 예전보다 훨씬 좋아요."]);
+W("时代","Shí dài","명사","시대",["这是一个新时代。","zhè shì yí gè xīn shí dài。","이것은 새로운 시대예요."]);
+W("时刻","shí kè","명사","시각, 늘",["我时刻记着你的话。","wǒ shí kè jì zhe nǐ de huà。","저는 늘 당신의 말을 기억해요."]);
+W("时期","shí qī","명사","시기",["这是一个特殊的时期。","zhè shì yí gè tè shū de shí qī。","이것은 특별한 시기예요."]);
+W("套","tào","양사","세트, 덮다",["我买了一套新家具。","wǒ mǎi le yī tào xīn jiā jù。","저는 새 가구 한 세트를 샀어요."]);
+W("体积","tǐ jī","명사","부피",["这个盒子的体积很大。","zhè ge hé zi de tǐ jī hěn dà。","이 상자는 부피가 커요."]);
+W("未来","wèi lái","명사","미래",["我对未来充满信心。","wǒ duì wèi lái chōng mǎn xìn xīn。","저는 미래에 대해 자신이 있어요."]);
+W("无数","wú shù","수사","무수하다",["天上有无数颗星星。","tiān shàng yǒu wú shù kē xīng xīng。","하늘에 별이 무수히 많아요."]);
+W("夜","yè","명사","밤",["夜里很安静。","yè lǐ hěn ān jìng。","밤에는 아주 조용해요."]);
+W("一辈子","yī bèi zi","수사","평생",["我一辈子都不会忘记。","wǒ yī bèi zi dōu bú huì wàng jì。","저는 평생 잊지 않을 거예요."]);
+W("一路","yī lù","수사","가는 길 내내",["祝你一路平安。","zhù nǐ yí lù píng ān。","가시는 길 평안하세요."]);
+W("以来","yǐ lái","명사","이래",["从去年以来，他一直在学汉语。","cóng qù nián yǐ lái， tā yì zhí zài xué hàn yǔ。","작년 이래로 그는 계속 중국어를 배우고 있어요."]);
+W("元旦","Yuán dàn","명사","양력 설날",["元旦我们放假一天。","yuán dàn wǒ men fàng jià yī tiān。","설날 하루 쉬어요."]);
+W("阵","zhèn","양사","한바탕",["外面刮了一阵大风。","wài miàn guā le yī zhèn dà fēng。","밖에 한바탕 큰 바람이 불었어요."]);
+W("支","Zhī","양사","(막대 모양) 자루, 지탱하다",["我买了一支笔。","wǒ mǎi le yī zhī bǐ。","저는 펜을 한 자루 샀어요."]);
+W("至今","zhì jīn","부사","지금까지",["至今他还没有回来。","zhì jīn tā hái méi yǒu huí lái。","지금까지 그는 돌아오지 않았어요."]);
+W("中旬","zhōng xún","명사","중순",["我们六月中旬去旅游。","wǒ men liù yuè zhōng xún qù lǚ yóu。","우리는 6월 중순에 여행을 가요."]);
+W("重量","zhòng liàng","명사","무게",["这个箱子的重量是十公斤。","zhè ge xiāng zi de zhòng liàng shì shí gōng jīn。","이 상자의 무게는 10킬로그램이에요."]);
+W("最初","zuì chū","형용사","최초",["最初我不会说汉语。","zuì chū wǒ bú huì shuō hàn yǔ。","처음에 저는 중국어를 못했어요."]);
+W("项","xiàng","양사","항목, 목(항목을 세는 말)",["这个计划有三项内容。","zhè ge jì huà yǒu sān xiàng nèi róng。","이 계획에는 세 가지 항목이 있어요."]);
+th("부사·접속·기능어");
+W("比如","bǐ rú","동사","예를 들면",["我喜欢运动，比如游泳。","wǒ xǐ huān yùn dòng， bǐ rú yóu yǒng。","저는 운동을 좋아해요, 예를 들어 수영이요."]);
+W("毕竟","bì jìng","부사","결국, 어쨌든",["他毕竟还是个孩子。","tā bì jìng hái shì gè hái zi。","그는 어쨌든 아직 아이예요."]);
+W("便","biàn","부사","곧, 바로",["我一到家，便开始做饭。","wǒ yī dào jiā， biàn kāi shǐ zuò fàn。","저는 집에 도착하자마자 요리를 시작했어요."]);
+W("不必","bù bì","부사","~할 필요 없다",["你不必着急。","nǐ bù bì zháo jí。","서두를 필요 없어요."]);
+W("不断","bù duàn","부사","끊임없이",["他不断地学习新知识。","tā bù duàn dì xué xí xīn zhī shí。","그는 끊임없이 새 지식을 배워요."]);
+W("不见得","bù jiàn de","부사","꼭 ~한 것은 아니다",["贵的不见得就好。","guì de bú jiàn de jiù hǎo。","비싼 것이 꼭 좋은 건 아니에요."]);
+W("不免","bù miǎn","부사","아무래도 ~하게 된다",["第一次见面，不免有点紧张。","dì yī cì jiàn miàn， bù miǎn yǒu diǎn jǐn zhāng。","처음 만나는 거라 아무래도 조금 긴장돼요."]);
+W("不然","bù rán","접속사","그렇지 않으면",["快走，不然要迟到了。","kuài zǒu， bù rán yào chí dào le。","서두르세요, 안 그러면 지각해요."]);
+W("不如","bù rú","동사","~만 못하다",["说得好不如做得好。","shuō dé hǎo bù rú zuò dé hǎo。","말을 잘하는 것보다 잘 행동하는 게 나아요."]);
+W("曾经","céng jīng","부사","일찍이, ~한 적이 있다",["我曾经去过那儿。","wǒ céng jīng qù guò nà ér。","저는 일찍이 그곳에 가 본 적이 있어요."]);
+W("趁","chèn","전치사","~를 틈타",["趁热吃吧。","chèn rè chī ba。","따뜻할 때 드세요."]);
+W("除","chú","전치사","제거하다, ~을 제외하고",["除了他，大家都来了。","chú le tā， dà jiā dōu lái le。","그를 빼고는 모두 왔어요."]);
+W("除非","chú fēi","접속사","~하지 않는 한",["除非你去，我才去。","chú fēi nǐ qù， wǒ cái qù。","당신이 가야만 저도 가요."]);
+W("此外","cǐ wài","접속사","이 밖에",["此外，我还想问一个问题。","cǐ wài， wǒ hái xiǎng wèn yí gè wèn tí。","이 밖에 질문이 하나 더 있어요."]);
+W("从此","cóng cǐ","부사","이로부터",["从此我们成了好朋友。","cóng cǐ wǒ men chéng le hǎo péng yǒu。","그때부터 우리는 좋은 친구가 됐어요."]);
+W("从而","cóng ér","접속사","그리하여",["他努力学习，从而提高了成绩。","tā nǔ lì xué xí， cóng ér tí gāo le chéng jì。","그는 열심히 공부해서 성적을 올렸어요."]);
+W("单独","dān dú","부사","단독으로",["我想单独跟你谈谈。","wǒ xiǎng dān dú gēn nǐ tán tán。","저는 당신과 따로 이야기하고 싶어요."]);
+W("的确","dí què","부사","확실히",["这个办法的确不错。","zhè ge bàn fǎ dí què bù cuò。","이 방법은 확실히 괜찮아요."]);
+W("对于","duì yú","전치사","~에 대해",["对于这个问题，我没有意见。","duì yú zhè ge wèn tí， wǒ méi yǒu yì jiàn。","이 문제에 대해서는 의견이 없어요."]);
+W("多亏","duō kuī","동사","덕분에",["多亏你帮忙，我才完成了工作。","duō kuī nǐ bāng máng， wǒ cái wán chéng le gōng zuò。","도와주신 덕분에 일을 끝냈어요."]);
+W("凡是","fán shì","부사","무릇 ~는 모두",["凡是来的人都有礼物。","fán shì lái de rén dōu yǒu lǐ wù。","오는 사람은 모두 선물이 있어요."]);
+W("反而","fǎn ér","부사","오히려",["雨停了，天气反而更热了。","yǔ tíng le， tiān qì fǎn ér gèng rè le。","비가 그쳤는데 날씨가 오히려 더 더워졌어요."]);
+W("反正","fǎn zhèng","부사","어쨌든",["反正我已经决定了。","fǎn zhèng wǒ yǐ jīng jué dìng le。","어쨌든 저는 이미 결정했어요."]);
+W("仿佛","fǎng fú","부사","마치 ~같다",["他仿佛什么都不知道。","tā fǎng fú shén me dōu bù zhī dào。","그는 마치 아무것도 모르는 것 같아요."]);
+W("分别","fēn bié","부사","헤어지다, 각각",["我们分别坐不同的车回家。","wǒ men fēn bié zuò bù tóng de chē huí jiā。","우리는 각자 다른 차를 타고 집에 가요."]);
+W("纷纷","fēn fēn","부사","잇달아",["大家纷纷发表了意见。","dà jiā fēn fēn fā biǎo le yì jiàn。","모두가 잇달아 의견을 발표했어요."]);
+W("赶紧","gǎn jǐn","부사","서둘러",["你赶紧走吧，要迟到了。","nǐ gǎn jǐn zǒu ba， yào chí dào le。","서둘러 가세요, 지각하겠어요."]);
+W("赶快","gǎn kuài","부사","빨리",["赶快吃饭，菜要凉了。","gǎn kuài chī fàn， cài yào liáng le。","빨리 먹어요, 음식이 식겠어요."]);
+W("干脆","gān cuì","부사","아예, 시원시원하다",["你干脆说清楚吧。","nǐ gān cuì shuō qīng chǔ ba。","아예 분명히 말해 버리세요."]);
+W("格外","gé wài","부사","유난히",["今天的月亮格外圆。","jīn tiān de yuè liàng gé wài yuán。","오늘 달은 유난히 둥글어요."]);
+W("更加","gèng jiā","부사","더욱",["今天比昨天更加冷。","jīn tiān bǐ zuó tiān gèng jiā lěng。","오늘은 어제보다 더 추워요."]);
+W("怪不得","guài bu de","부사","어쩐지",["怪不得他不来，原来病了。","guài bù dé tā bù lái， yuán lái bìng le。","어쩐지 안 오더라니, 아팠군요."]);
+W("何必","hé bì","부사","~할 필요가 있나",["何必这么着急呢？","hé bì zhè me zhe jí ne？","왜 이렇게 서두르세요?"]);
+W("何况","hé kuàng","접속사","하물며",["这么简单的题，何况是你呢。","zhè me jiǎn dān de tí， hé kuàng shì nǐ ne。","이렇게 쉬운 문제를, 하물며 당신이 못 풀겠어요."]);
+W("急忙","jí máng","부사","급히",["他急忙跑回家。","tā jí máng pǎo huí jiā。","그는 급히 집으로 뛰어갔어요."]);
+W("假如","jiǎ rú","접속사","만약",["假如明天下雨，我们就不去了。","jiǎ rú míng tiān xià yǔ， wǒ men jiù bù qù le。","만약 내일 비가 오면 우리는 안 갈 거예요."]);
+W("简直","jiǎn zhí","부사","그야말로",["这里的风景简直像画一样。","zhè lǐ de fēng jǐng jiǎn zhí xiàng huà yī yàng。","이곳 풍경은 그야말로 그림 같아요."]);
+W("接着","jiē zhe","접속사","이어서",["他说完，接着又唱了一首歌。","tā shuō wán， jiē zhe yòu chàng le yī shǒu gē。","그는 말을 마치고 이어서 노래도 한 곡 했어요."]);
+W("尽量","jǐn liàng","부사","가능한 한",["请尽量早点儿来。","qǐng jǐn liàng zǎo diǎn ér lái。","가능한 한 일찍 와 주세요."]);
+W("居然","jū rán","부사","뜻밖에도",["他居然不知道这件事。","tā jū rán bù zhī dào zhè jiàn shì。","그는 뜻밖에도 이 일을 몰랐어요."]);
+W("据说","jù shuō","동사","듣자니, ~라고 한다",["据说明天会下雨。","jù shuō míng tiān huì xià yǔ。","듣자 하니 내일 비가 온대요."]);
+W("绝对","jué duì","부사","절대적이다",["这个消息绝对可靠。","zhè ge xiāo xī jué duì kě kào。","이 소식은 절대적으로 믿을 만해요."]);
+W("看来","kàn lai","동사","보아하니",["看来明天要下雨了。","kàn lái míng tiān yào xià yǔ le。","보아하니 내일 비가 올 것 같아요."]);
+W("可见","kě jiàn","동사","~임을 알 수 있다",["由此可见，他很努力。","yóu cǐ kě jiàn， tā hěn nǔ lì。","이로써 그가 노력한다는 걸 알 수 있어요."]);
+W("来自","lái zì","동사","~에서 오다",["他来自北京。","tā lái zì běi jīng。","그는 베이징에서 왔어요."]);
+W("立即","lì jí","부사","즉시",["请立即回答。","qǐng lì jí huí dá。","즉시 대답해 주세요."]);
+W("立刻","lì kè","부사","즉시",["我立刻就来。","wǒ lì kè jiù lái。","바로 갈게요."]);
+W("连忙","lián máng","부사","얼른",["他连忙站起来。","tā lián máng zhàn qǐ lái。","그는 얼른 일어섰어요."]);
+W("陆续","lù xù","부사","계속해서, 잇달아",["客人陆续到了。","kè rén lù xù dào le。","손님들이 잇달아 도착했어요."]);
+W("某","mǒu","대명사","어떤, 모",["某人给我打了电话。","mǒu rén gěi wǒ dǎ le diàn huà。","어떤 사람이 저에게 전화했어요."]);
+W("哪怕","nǎ pà","접속사","설령 ~일지라도",["哪怕下雨，我也要去。","nǎ pà xià yǔ， wǒ yě yào qù。","비가 오더라도 저는 갈 거예요."]);
+W("难怪","nán guài","부사","어쩐지",["难怪他这么高兴，原来考了第一。","nán guài tā zhè me gāo xìng， yuán lái kǎo le dì yī。","어쩐지 기뻐하더니 1등을 했군요."]);
+W("宁可","nìng kě","부사","차라리 ~하겠다",["我宁可走路，也不坐车。","wǒ nìng kě zǒu lù， yě bù zuò chē。","저는 차라리 걸을지언정 차는 타지 않겠어요."]);
+W("偶然","ǒu rán","형용사","우연히",["我们是偶然遇到的。","wǒ men shì ǒu rán yù dào de。","우리는 우연히 만났어요."]);
+W("凭","píng","전치사","~에 의지하다, ~에 따라",["凭你的能力，一定能成功。","píng nǐ de néng lì， yí dìng néng chéng gōng。","당신의 능력이면 반드시 성공할 거예요."]);
+W("其余","qí yú","대명사","나머지",["其余的人都回家了。","qí yú de rén dōu huí jiā le。","나머지 사람들은 모두 집에 갔어요."]);
+W("悄悄","qiāo qiāo","부사","살그머니",["他悄悄地走了进来。","tā qiāo qiāo dì zǒu le jìn lái。","그는 살그머니 걸어 들어왔어요."]);
+W("亲自","qīn zì","부사","직접",["经理亲自来接我们。","jīng lǐ qīn zì lái jiē wǒ men。","매니저가 직접 우리를 마중하러 왔어요."]);
+W("如何","rú hé","대명사","어떻게",["你觉得这个办法如何？","nǐ jué de zhè ge bàn fǎ rú hé？","이 방법은 어떤 것 같아요?"]);
+W("始终","shǐ zhōng","부사","처음부터 끝까지",["他始终没有说话。","tā shǐ zhōng méi yǒu shuō huà。","그는 끝까지 말을 하지 않았어요."]);
+W("似的","shì de","조사","~와 같다",["她高兴得像孩子似的。","tā gāo xìng dé xiàng hái zi shì de。","그녀는 아이처럼 기뻐해요."]);
+W("似乎","sì hū","부사","~인 것 같다",["他似乎不太高兴。","tā sì hū bù tài gāo xìng。","그는 별로 기쁘지 않은 것 같아요."]);
+W("事先","shì xiān","부사","미리",["请事先告诉我。","qǐng shì xiān gào sù wǒ。","미리 저에게 알려 주세요."]);
+W("是否","shì fǒu","동사","~인지 아닌지",["我不知道他是否来。","wǒ bù zhī dào tā shì fǒu lái。","그가 올지 안 올지 몰라요."]);
+W("说不定","shuō bu dìng","동사","아마도 ~일지 모른다",["说不定明天会下雨。","shuō bù dìng míng tiān huì xià yǔ。","어쩌면 내일 비가 올지도 몰라요."]);
+W("丝毫","sī háo","수사","조금도",["他丝毫没有生气。","tā sī háo méi yǒu shēng qì。","그는 조금도 화내지 않았어요."]);
+W("随时","suí shí","부사","수시로",["有问题可以随时问我。","yǒu wèn tí kě yǐ suí shí wèn wǒ。","문제가 있으면 언제든 물어보세요."]);
+W("所","suǒ","조사","(~하는) 바, 곳",["这是我所知道的一切。","zhè shì wǒ suǒ zhī dào de yī qiè。","이것이 제가 아는 전부예요."]);
+W("所谓","suǒ wèi","동사","이른바",["所谓好朋友，就是互相帮助。","suǒ wèi hǎo péng yǒu， jiù shì hù xiāng bāng zhù。","이른바 좋은 친구란 서로 돕는 사이예요."]);
+W("特意","tè yì","부사","특별히",["我特意来看你。","wǒ tè yì lái kàn nǐ。","저는 특별히 당신을 보러 왔어요."]);
+W("通常","tōng cháng","부사","보통",["我通常七点起床。","wǒ tōng cháng qī diǎn qǐ chuáng。","저는 보통 7시에 일어나요."]);
+W("同时","tóng shí","접속사","동시에",["他们同时到了。","tā men tóng shí dào le。","그들은 동시에 도착했어요."]);
+W("万一","wàn yī","접속사","만일",["万一下雨怎么办？","wàn yī xià yǔ zěn me bàn？","만일 비가 오면 어떡해요?"]);
+W("未必","wèi bì","부사","꼭 ~한 것은 아니다",["贵的未必就好。","guì de wèi bì jiù hǎo。","비싼 게 꼭 좋은 건 아니에요."]);
+W("显然","xiǎn rán","형용사","분명하게",["显然他不同意。","xiǎn rán tā bù tóng yì。","분명히 그는 동의하지 않아요."]);
+W("相当","xiāng dāng","부사","상당히",["这个电影相当有意思。","zhè ge diàn yǐng xiāng dāng yǒu yì si。","이 영화는 상당히 재미있어요."]);
+W("相对","xiāng duì","부사","상대적으로",["这里相对安静一些。","zhè lǐ xiāng duì ān jìng yī xiē。","이곳은 상대적으로 조용해요."]);
+W("幸亏","xìng kuī","부사","다행히",["幸亏你来了。","xìng kuī nǐ lái le。","당신이 와서 다행이에요."]);
+W("要不","yào bù","접속사","그렇지 않으면, ~하는 게 어때",["要不你先走吧。","yào bù nǐ xiān zǒu ba。","그럼 당신이 먼저 가요."]);
+W("要是","yào shi","접속사","만약",["要是下雨，我们就不去了。","yào shì xià yǔ， wǒ men jiù bù qù le。","만약 비가 오면 우리는 안 갈 거예요."]);
+W("一旦","yī dàn","부사","일단 ~하면",["一旦决定了，就不要改。","yí dàn jué dìng le， jiù bú yào gǎi。","일단 결정했으면 바꾸지 마세요."]);
+W("依然","yī rán","부사","여전히",["他依然是那么年轻。","tā yī rán shì nà me nián qīng。","그는 여전히 그렇게 젊어요."]);
+W("以及","yǐ jí","접속사","및",["我买了苹果、香蕉以及葡萄。","wǒ mǎi le píng guǒ、 xiāng jiāo yǐ jí pú táo。","저는 사과, 바나나 및 포도를 샀어요."]);
+W("因而","yīn ér","접속사","그러므로",["他很努力，因而成绩很好。","tā hěn nǔ lì， yīn ér chéng jì hěn hǎo。","그는 열심히 해서 성적이 좋아요."]);
+W("与其","yǔ qí","접속사","~하느니",["与其等他，不如我们先走。","yǔ qí děng tā， bù rú wǒ men xiān zǒu。","그를 기다리느니 우리가 먼저 가는 게 나아요."]);
+W("再三","zài sān","부사","거듭",["他再三谢谢我。","tā zài sān xiè xiè wǒ。","그는 거듭 저에게 고마워했어요."]);
+W("则","zé","부사","~하면, 오히려",["他学习好，则不骄傲。","tā xué xí hǎo， zé bù jiāo ào。","그는 공부를 잘하지만 오히려 거만하지 않아요."]);
+W("照常","zhào cháng","동사","평소대로",["明天照常上班。","míng tiān zhào cháng shàng bān。","내일은 평소대로 출근해요."]);
+W("针对","zhēn duì","전치사","~에 맞추다",["这个办法是针对这个问题的。","zhè ge bàn fǎ shì zhēn duì zhè ge wèn tí de。","이 방법은 이 문제를 겨냥한 거예요."]);
+W("正","zhēng","부사","바로, 마침",["他正在看书。","tā zhèng zài kàn shū。","그는 마침 책을 보고 있어요."]);
+W("至于","zhì yú","전치사","~로 말하자면",["至于价格，我们以后再谈。","zhì yú jià gé， wǒ men yǐ hòu zài tán。","가격은 나중에 다시 얘기해요."]);
+W("逐步","zhú bù","부사","점차",["情况逐步好起来了。","qíng kuàng zhú bù hǎo qǐ lái le。","상황이 점차 좋아지고 있어요."]);
+W("自从","zì cóng","전치사","~한 이래로",["自从来了北京，他很开心。","zì cóng lái le běi jīng， tā hěn kāi xīn。","베이징에 온 이후 그는 아주 즐거워해요."]);
+W("总共","zǒng gòng","부사","모두",["总共有二十个人。","zǒng gòng yǒu èr shí gè rén。","모두 스무 명이 있어요."]);
+W("总算","zǒng suàn","부사","마침내",["总算完成了。","zǒng suàn wán chéng le。","마침내 끝냈어요."]);
+W("总之","zǒng zhī","접속사","요컨대",["总之，我们要努力。","zǒng zhī， wǒ men yào nǔ lì。","요컨대 우리는 노력해야 해요."]);
+W("作为","zuò wéi","전치사","~로서, 행위",["作为学生，要努力学习。","zuò wéi xué shēng， yào nǔ lì xué xí。","학생으로서 열심히 공부해야 해요."]);
+th("추상·사고·개념");
+W("把握","bǎ wò","동사","붙잡다, 자신(확신)",["我有把握通过考试。","wǒ yǒu bǎ wò tōng guò kǎo shì。","저는 시험에 붙을 자신이 있어요."]);
+W("包含","bāo hán","동사","포함하다",["这个价格包含税。","zhè ge jià gé bāo hán shuì。","이 가격에는 세금이 포함돼요."]);
+W("背景","bèi jǐng","명사","배경",["这张照片的背景很漂亮。","zhè zhāng zhào piān de bèi jǐng hěn piào liàng。","이 사진의 배경이 아주 예뻐요."]);
+W("本领","běn lǐng","명사","재주, 능력",["他有很大的本领。","tā yǒu hěn dà de běn lǐng。","그는 대단한 능력이 있어요."]);
+W("本质","běn zhì","명사","본질",["这是问题的本质。","zhè shì wèn tí de běn zhì。","이것이 문제의 본질이에요."]);
+W("必然","bì rán","부사","필연적이다",["努力必然会有结果。","nǔ lì bì rán huì yǒu jié guǒ。","노력은 반드시 결과가 있어요."]);
+W("必需","bì xū","동사","꼭 필요로 하다",["水是生活必需的东西。","shuǐ shì shēng huó bì xū de dōng xī。","물은 생활에 꼭 필요한 것이에요."]);
+W("必要","bì yào","형용사","필요하다",["这样做没有必要。","zhè yàng zuò méi yǒu bì yào。","이렇게 할 필요는 없어요."]);
+W("标志","biāo zhì","명사","표지, 상징",["这是我们学校的标志。","zhè shì wǒ men xué xiào de biāo zhì。","이것이 우리 학교의 상징이에요."]);
+W("表面","biǎo miàn","명사","표면, 겉",["不要只看表面。","bú yào zhǐ kàn biǎo miàn。","겉만 보지 마세요."]);
+W("表明","biǎo míng","동사","분명히 나타내다",["他表明了自己的态度。","tā biǎo míng liǎo zì jǐ de tài dù。","그는 자신의 태도를 분명히 밝혔어요."]);
+W("丙","bǐng","수사","(십간의 셋째) 병",["甲乙丙是排列顺序的名称。","jiǎ yǐ bǐng shì pái liè shùn xù de míng chēng。","갑을병은 순서를 부르는 이름이에요."]);
+W("步骤","bù zhòu","명사","절차, 단계",["请按照步骤做。","qǐng àn zhào bù zhòu zuò。","절차대로 해 주세요."]);
+W("差别","chā bié","명사","차이",["这两个人的差别很大。","zhè liǎng gè rén de chā bié hěn dà。","이 두 사람은 차이가 커요."]);
+W("产生","chǎn shēng","동사","생기다, 발생하다",["这个问题是怎么产生的？","zhè ge wèn tí shì zěn me chǎn shēng de？","이 문제는 어떻게 생겼어요?"]);
+W("成果","chéng guǒ","명사","성과",["这是大家努力的成果。","zhè shì dà jiā nǔ lì de chéng guǒ。","이것은 모두가 노력한 성과예요."]);
+W("成就","chéng jiù","명사","성취, 업적",["他在工作上取得了很大的成就。","tā zài gōng zuò shàng qǔ dé le hěn dà de chéng jiù。","그는 일에서 큰 성취를 이뤘어요."]);
+W("成长","chéng zhǎng","동사","성장하다",["孩子在爱中成长。","hái zi zài ài zhōng chéng zhǎng。","아이는 사랑 속에서 자라요."]);
+W("承认","chéng rèn","동사","인정하다",["他承认了自己的错误。","tā chéng rèn le zì jǐ de cuò wù。","그는 자신의 잘못을 인정했어요."]);
+W("充满","chōng mǎn","동사","가득 차다",["他的眼里充满了泪水。","tā de yǎn lǐ chōng mǎn le lèi shuǐ。","그의 눈에 눈물이 가득했어요."]);
+W("抽象","chōu xiàng","형용사","추상적이다",["这个概念太抽象了。","zhè ge gài niàn tài chōu xiàng le。","이 개념은 너무 추상적이에요."]);
+W("创造","chuàng zào","동사","창조하다",["人们创造了很多新东西。","rén men chuàng zào le hěn duō xīn dōng xī。","사람들은 많은 새로운 것을 만들어 냈어요."]);
+W("促进","cù jìn","동사","촉진하다",["运动可以促进健康。","yùn dòng kě yǐ cù jìn jiàn kāng。","운동은 건강을 촉진해요."]);
+W("促使","cù shǐ","동사","~하도록 만들다",["这件事促使他改变了想法。","zhè jiàn shì cù shǐ tā gǎi biàn le xiǎng fǎ。","이 일이 그가 생각을 바꾸게 만들었어요."]);
+W("存在","cún zài","동사","존재하다",["这个问题确实存在。","zhè ge wèn tí què shí cún zài。","이 문제는 확실히 존재해요."]);
+W("错误","cuò wù","명사","잘못, 틀리다",["这是一个严重的错误。","zhè shì yí gè yán zhòng de cuò wù。","이것은 심각한 잘못이에요."]);
+W("达到","dá dào","동사","도달하다",["他的汉语已经达到了很高的水平。","tā de hàn yǔ yǐ jīng dá dào le hěn gāo de shuǐ píng。","그의 중국어는 이미 아주 높은 수준에 도달했어요."]);
+W("导致","dǎo zhì","동사","초래하다",["堵车导致他迟到了。","dǔ chē dǎo zhì tā chí dào le。","차가 막혀서 그가 지각했어요."]);
+W("道理","dào li","명사","이치, 도리",["你说得很有道理。","nǐ shuō dé hěn yǒu dào lǐ。","당신 말씀이 아주 일리 있어요."]);
+W("丁","Dīng","명사","(십간의 넷째) 정, 장정",["甲乙丙丁是顺序的名称。","jiǎ yǐ bǐng dīng shì shùn xù de míng chēng。","갑을병정은 순서를 부르는 이름이에요."]);
+W("独立","dú lì","형용사","독립하다",["他从小就很独立。","tā cóng xiǎo jiù hěn dú lì。","그는 어릴 때부터 독립적이었어요."]);
+W("对比","duì bǐ","동사","대비하다",["请对比一下这两个句子。","qǐng duì bǐ yī xià zhè liǎng gè jù zi。","이 두 문장을 대조해 보세요."]);
+W("反应","fǎn yìng","동사","반응(하다)",["他的反应很快。","tā de fǎn yìng hěn kuài。","그의 반응은 아주 빨라요."]);
+W("方","Fāng","양사","네모, 쪽, 방위",["双方都同意了。","shuāng fāng dōu tóng yì le。","양쪽 모두 동의했어요."]);
+W("方案","fāng àn","명사","방안",["我们需要一个新方案。","wǒ men xū yào yí gè xīn fāng àn。","우리에게는 새 방안이 필요해요."]);
+W("方式","fāng shì","명사","방식",["他的生活方式很健康。","tā de shēng huó fāng shì hěn jiàn kāng。","그의 생활 방식은 건강해요."]);
+W("非","Fēi","형용사","아니다, 아프리카",["他不是非洲人。","tā bú shì fēi zhōu rén。","그는 아프리카 사람이 아니에요."]);
+W("风格","fēng gé","명사","스타일",["她的穿衣风格很特别。","tā de chuān yī fēng gé hěn tè bié。","그녀의 옷 스타일은 아주 특별해요."]);
+W("否定","fǒu dìng","동사","부정하다",["不要轻易否定别人。","bú yào qīng yì fǒu dìng bié rén。","다른 사람을 쉽게 부정하지 마세요."]);
+W("否认","fǒu rèn","동사","부인하다",["他否认自己做过这件事。","tā fǒu rèn zì jǐ zuò guò zhè jiàn shì。","그는 자신이 이 일을 했다는 것을 부인했어요."]);
+W("概念","gài niàn","명사","개념",["这个概念很难理解。","zhè ge gài niàn hěn nán lǐ jiě。","이 개념은 이해하기 어려워요."]);
+W("根本","gēn běn","부사","근본, 전혀",["他根本不知道这件事。","tā gēn běn bù zhī dào zhè jiàn shì。","그는 이 일을 전혀 몰라요."]);
+W("构成","gòu chéng","동사","구성하다",["水由氢和氧构成。","shuǐ yóu qīng hé yǎng gòu chéng。","물은 수소와 산소로 이루어져요."]);
+W("观点","guān diǎn","명사","관점",["我不同意你的观点。","wǒ bù tóng yì nǐ de guān diǎn。","저는 당신의 관점에 동의하지 않아요."]);
+W("观念","guān niàn","명사","관념",["他的观念很传统。","tā de guān niàn hěn chuán tǒng。","그의 관념은 아주 전통적이에요."]);
+W("光明","guāng míng","명사","광명, 밝다",["我们的将来是光明的。","wǒ men de jiāng lái shì guāng míng de。","우리의 미래는 밝아요."]);
+W("规律","guī lǜ","명사","규율, 규칙적이다",["他的生活很有规律。","tā de shēng huó hěn yǒu guī lǜ。","그의 생활은 아주 규칙적이에요."]);
+W("核心","hé xīn","명사","핵심",["这是问题的核心。","zhè shì wèn tí de hé xīn。","이것이 문제의 핵심이에요."]);
+W("横","héng","동사","가로, 가로놓이다",["他在纸上画了一条横线。","tā zài zhǐ shàng huà le yī tiáo héng xiàn。","그는 종이에 가로선을 그었어요."]);
+W("后果","hòu guǒ","명사","(나쁜) 결과",["这样做的后果很严重。","zhè yàng zuò de hòu guǒ hěn yán zhòng。","이렇게 하면 결과가 심각해요."]);
+W("记忆","jì yì","명사","기억",["这是我最美好的记忆。","zhè shì wǒ zuì měi hǎo de jì yì。","이것은 제 가장 아름다운 기억이에요."]);
+W("甲","jiǎ","명사","(십간의 첫째) 갑",["甲方和乙方签了合同。","jiǎ fāng hé yǐ fāng qiān le hé tóng。","갑과 을이 계약서에 서명했어요."]);
+W("价值","jià zhí","명사","가치",["这幅画很有价值。","zhè fú huà hěn yǒu jià zhí。","이 그림은 가치가 커요."]);
+W("讲究","jiǎng jiu","동사","중요하게 여기다, 격식",["他吃饭很讲究。","tā chī fàn hěn jiǎng jiū。","그는 식사에 신경을 많이 써요."]);
+W("角度","jiǎo dù","명사","각도, 관점",["我们从另一个角度想想。","wǒ men cóng lìng yí gè jiǎo dù xiǎng xiǎng。","다른 관점에서 생각해 봐요."]);
+W("教训","jiào xun","명사","교훈",["我们要从错误中吸取教训。","wǒ men yào cóng cuò wù zhōng xī qǔ jiào xùn。","우리는 실수에서 교훈을 얻어야 해요."]);
+W("阶段","jiē duàn","명사","단계",["我们进入了新的阶段。","wǒ men jìn rù le xīn de jiē duàn。","우리는 새로운 단계에 들어섰어요."]);
+W("结构","jié gòu","명사","구조",["这个房子的结构很特别。","zhè ge fáng zi de jié gòu hěn tè bié。","이 집의 구조는 아주 특별해요."]);
+W("结合","jié hé","동사","결합하다",["我们要把理论和实际结合起来。","wǒ men yào bǎ lǐ lùn hé shí jì jié hé qǐ lái。","우리는 이론과 실제를 결합해야 해요."]);
+W("结论","jié lùn","명사","결론",["你得出什么结论？","nǐ dé chū shén me jié lùn？","어떤 결론을 내렸어요?"]);
+W("借口","jiè kǒu","명사","핑계",["不要找借口。","bú yào zhǎo jiè kǒu。","핑계 대지 마세요."]);
+W("进步","jìn bù","동사","진보(하다)",["你的汉语进步很大。","nǐ de hàn yǔ jìn bù hěn dà。","당신의 중국어가 많이 늘었어요."]);
+W("空间","kōng jiān","명사","공간",["这个房间的空间很大。","zhè ge fáng jiān de kōng jiān hěn dà。","이 방은 공간이 넓어요."]);
+W("类","lèi","양사","종류",["这类问题很常见。","zhè lèi wèn tí hěn cháng jiàn。","이런 종류의 문제는 흔해요."]);
+W("理由","lǐ yóu","명사","이유",["你有什么理由？","nǐ yǒu shén me lǐ yóu？","무슨 이유가 있어요?"]);
+W("力量","lì liang","명사","힘",["团结就是力量。","tuán jié jiù shì lì liàng。","단결이 곧 힘이에요."]);
+W("领域","lǐng yù","명사","분야",["他在这个领域很有名。","tā zài zhè ge lǐng yù hěn yǒu míng。","그는 이 분야에서 유명해요."]);
+W("毛病","máo bìng","명사","고장, 결점",["这台电脑有毛病。","zhè tái diàn nǎo yǒu máo bìng。","이 컴퓨터는 고장이 났어요."]);
+W("矛盾","máo dùn","형용사","모순, 갈등",["他们之间有矛盾。","tā men zhī jiān yǒu máo dùn。","그들 사이에 갈등이 있어요."]);
+W("秘密","mì mì","명사","비밀",["这是我们的秘密。","zhè shì wǒ men de mì mì。","이것은 우리의 비밀이에요."]);
+W("命运","mìng yùn","명사","운명",["每个人都有自己的命运。","měi gè rén dōu yǒu zì jǐ de mìng yùn。","누구나 자신의 운명이 있어요."]);
+W("目标","mù biāo","명사","목표",["我的目标是学好汉语。","wǒ de mù biāo shì xué hǎo hàn yǔ。","제 목표는 중국어를 잘 배우는 거예요."]);
+W("平衡","píng héng","형용사","균형(을 맞추다)",["要注意工作和生活的平衡。","yào zhù yì gōng zuò hé shēng huó de píng héng。","일과 생활의 균형에 신경 써야 해요."]);
+W("评价","píng jià","동사","평가하다",["大家对他的评价很高。","dà jiā duì tā de píng jià hěn gāo。","모두가 그를 높이 평가해요."]);
+W("奇迹","qí jì","명사","기적",["这真是一个奇迹。","zhè zhēn shì yí gè qí jì。","이것은 정말 기적이에요."]);
+W("启发","qǐ fā","동사","계발하다, 깨우치다",["老师的话启发了我。","lǎo shī de huà qǐ fā le wǒ。","선생님의 말씀이 저를 깨우쳐 줬어요."]);
+W("气氛","qì fēn","명사","분위기",["这里的气氛很好。","zhè lǐ de qì fēn hěn hǎo。","이곳의 분위기는 좋아요."]);
+W("前途","qián tú","명사","앞날",["他的前途很光明。","tā de qián tú hěn guāng míng。","그의 앞날은 밝아요."]);
+W("青春","qīng chūn","명사","청춘",["青春是美好的。","qīng chūn shì měi hǎo de。","청춘은 아름다워요."]);
+W("情景","qíng jǐng","명사","광경",["那个情景我永远忘不了。","nà ge qíng jǐng wǒ yǒng yuǎn wàng bù liǎo。","그 광경은 영원히 잊을 수 없어요."]);
+W("趋势","qū shì","명사","추세",["这是一个发展趋势。","zhè shì yí gè fā zhǎn qū shì。","이것은 발전 추세예요."]);
+W("圈","juān","양사","원, 동그라미",["他在名字上画了一个圈。","tā zài míng zì shàng huà le yí gè quān。","그는 이름 위에 동그라미를 쳤어요."]);
+W("人生","rén shēng","명사","인생",["人生就像一次旅行。","rén shēng jiù xiàng yī cì lǚ xíng。","인생은 여행 같아요."]);
+W("荣誉","róng yù","명사","명예",["这是一个很大的荣誉。","zhè shì yí gè hěn dà de róng yù。","이것은 큰 영예예요."]);
+W("失去","shī qù","동사","잃다",["他失去了信心。","tā shī qù le xìn xīn。","그는 자신감을 잃었어요."]);
+W("时尚","shí shàng","명사","트렌드, 패션",["她很喜欢追求时尚。","tā hěn xǐ huān zhuī qiú shí shàng。","그녀는 유행 따라가는 걸 좋아해요."]);
+W("事实","shì shí","명사","사실",["这是一个事实。","zhè shì yí gè shì shí。","이것은 사실이에요."]);
+W("事物","shì wù","명사","사물",["我们要用新眼光看事物。","wǒ men yào yòng xīn yǎn guāng kàn shì wù。","우리는 새로운 눈으로 사물을 봐야 해요."]);
+W("收获","shōu huò","명사","수확(하다)",["这次旅行很有收获。","zhè cì lǚ xíng hěn yǒu shōu huò。","이번 여행은 얻은 게 많아요."]);
+W("属于","shǔ yú","동사","~에 속하다",["这个东西属于我。","zhè ge dōng xī shǔ yú wǒ。","이 물건은 제 거예요."]);
+W("思考","sī kǎo","동사","사고하다",["你要多思考。","nǐ yào duō sī kǎo。","많이 생각해 봐야 해요."]);
+W("思想","sī xiǎng","명사","사상",["他的思想很新。","tā de sī xiǎng hěn xīn。","그의 사상은 아주 새로워요."]);
+W("特征","tè zhēng","명사","특징",["这个动物的特征是什么？","zhè ge dòng wù de tè zhēng shì shén me？","이 동물의 특징은 뭐예요?"]);
+W("体会","tǐ huì","동사","체득하다",["我体会到了学习的快乐。","wǒ tǐ huì dào le xué xí de kuài lè。","저는 배우는 즐거움을 체득했어요."]);
+W("体现","tǐ xiàn","동사","구현하다, 나타내다",["这件事体现了他的善良。","zhè jiàn shì tǐ xiàn le tā de shàn liáng。","이 일은 그의 선량함을 보여 줘요."]);
+W("挑战","tiǎo zhàn","동사","도전(하다)",["这是一个很大的挑战。","zhè shì yí gè hěn dà de tiǎo zhàn。","이것은 큰 도전이에요."]);
+W("细节","xì jié","명사","세부 사항",["请注意细节。","qǐng zhù yì xì jié。","세부 사항에 주의하세요."]);
+W("现实","xiàn shí","명사","현실",["要面对现实。","yào miàn duì xiàn shí。","현실을 마주해야 해요."]);
+W("现象","xiàn xiàng","명사","현상",["这是一个普遍的现象。","zhè shì yí gè pǔ biàn de xiàn xiàng。","이것은 보편적인 현상이에요."]);
+W("相关","xiāng guān","동사","관련되다",["这件事和我相关。","zhè jiàn shì hé wǒ xiāng guān。","이 일은 저와 관련이 있어요."]);
+W("想象","xiǎng xiàng","동사","상상하다",["你想象不到有多漂亮。","nǐ xiǎng xiàng bú dào yǒu duō piào liàng。","얼마나 예쁜지 상상도 못 할 거예요."]);
+W("象征","xiàng zhēng","명사","상징(하다)",["鸽子是和平的象征。","gē zi shì hé píng de xiàng zhēng。","비둘기는 평화의 상징이에요."]);
+W("效率","xiào lǜ","명사","효율",["他工作效率很高。","tā gōng zuò xiào lǜ hěn gāo。","그는 업무 효율이 높아요."]);
+W("心理","xīn lǐ","명사","심리",["他在研究心理学。","tā zài yán jiū xīn lǐ xué。","그는 심리학을 연구해요."]);
+W("行为","xíng wéi","명사","행위",["他的行为很奇怪。","tā de xíng wéi hěn qí guài。","그의 행동은 이상해요."]);
+W("形成","xíng chéng","동사","형성하다",["他形成了好习惯。","tā xíng chéng le hǎo xí guàn。","그는 좋은 습관을 형성했어요."]);
+W("形式","xíng shì","명사","형식",["这只是一种形式。","zhè zhǐ shì yī zhǒng xíng shì。","이것은 단지 하나의 형식일 뿐이에요."]);
+W("形势","xíng shì","명사","형세",["现在的形势很好。","xiàn zài de xíng shì hěn hǎo。","지금의 형세는 좋아요."]);
+W("形象","xíng xiàng","명사","이미지, 형상",["他在大家心中的形象很好。","tā zài dà jiā xīn zhōng de xíng xiàng hěn hǎo。","그는 모두의 마음속에서 이미지가 좋아요."]);
+W("形状","xíng zhuàng","명사","모양",["这个盒子的形状很特别。","zhè ge hé zi de xíng zhuàng hěn tè bié。","이 상자의 모양은 특별해요."]);
+W("性质","xìng zhì","명사","성질",["这两件事的性质不同。","zhè liǎng jiàn shì de xìng zhì bù tóng。","이 두 일은 성질이 달라요."]);
+W("休闲","xiū xián","동사","여가",["周末我们去休闲。","zhōu mò wǒ men qù xiū xián。","주말에 우리는 여가를 즐겨요."]);
+W("一致","yī zhì","형용사","일치하다",["大家的意见一致。","dà jiā de yì jiàn yí zhì。","모두의 의견이 일치해요."]);
+W("疑问","yí wèn","명사","의문",["你有什么疑问吗？","nǐ yǒu shén me yí wèn ma？","궁금한 점이 있어요?"]);
+W("乙","yǐ","수사","(십간의 둘째) 을",["甲乙双方签了合同。","jiǎ yǐ shuāng fāng qiān le hé tóng。","갑과 을 쌍방이 계약서에 서명했어요."]);
+W("意外","yì wài","형용사","뜻밖의, 사고",["这个结果让我很意外。","zhè ge jié guǒ ràng wǒ hěn yì wài。","이 결과는 저를 매우 놀라게 했어요."]);
+W("意义","yì yì","명사","의의, 의미",["这件事很有意义。","zhè jiàn shì hěn yǒu yì yì。","이 일은 아주 의미가 있어요."]);
+W("因素","yīn sù","명사","요소",["这是一个重要的因素。","zhè shì yí gè zhòng yào de yīn sù。","이것은 중요한 요소예요."]);
+W("用途","yòng tú","명사","용도",["这个东西的用途很多。","zhè ge dōng xī de yòng tú hěn duō。","이 물건은 용도가 많아요."]);
+W("优势","yōu shì","명사","우세, 장점",["他有语言上的优势。","tā yǒu yǔ yán shàng de yōu shì。","그는 언어 면에서 강점이 있어요."]);
+W("娱乐","yú lè","동사","오락",["这里有很多娱乐活动。","zhè lǐ yǒu hěn duō yú lè huó dòng。","이곳에는 오락 활동이 많아요."]);
+W("原则","yuán zé","명사","원칙",["他是一个有原则的人。","tā shì yí gè yǒu yuán zé de rén。","그는 원칙이 있는 사람이에요."]);
+W("缘故","yuán gù","명사","까닭",["不知道什么缘故，他没来。","bù zhī dào shén me yuán gù， tā méi lái。","무슨 까닭인지 그는 오지 않았어요."]);
+W("运气","yùn qi","명사","운",["今天运气真好。","jīn tiān yùn qì zhēn hǎo。","오늘 운이 정말 좋아요."]);
+W("造成","zào chéng","동사","초래하다",["大雨造成了交通堵塞。","dà yǔ zào chéng le jiāo tōng dǔ sè。","폭우가 교통 정체를 초래했어요."]);
+W("真理","zhēn lǐ","명사","진리",["他在追求真理。","tā zài zhuī qiú zhēn lǐ。","그는 진리를 추구해요."]);
+W("整体","zhěng tǐ","명사","전체",["从整体上看，这个计划很好。","cóng zhěng tǐ shàng kàn， zhè ge jì huà hěn hǎo。","전체적으로 보면 이 계획은 좋아요."]);
+W("智慧","zhì huì","명사","지혜",["这是大家的智慧。","zhè shì dà jiā de zhì huì。","이것은 모두의 지혜예요."]);
+W("主张","zhǔ zhāng","동사","주장하다",["我主张早点儿出发。","wǒ zhǔ zhāng zǎo diǎn ér chū fā。","저는 일찍 출발하자고 주장해요."]);
+W("状况","zhuàng kuàng","명사","상황",["他的健康状况很好。","tā de jiàn kāng zhuàng kuàng hěn hǎo。","그의 건강 상태는 좋아요."]);
+W("状态","zhuàng tài","명사","상태",["他今天的状态很好。","tā jīn tiān de zhuàng tài hěn hǎo。","그는 오늘 컨디션이 좋아요."]);
+W("自由","zì yóu","형용사","자유",["我们有说话的自由。","wǒ men yǒu shuō huà de zì yóu。","우리에게는 말할 자유가 있어요."]);
+W("综合","zōng hé","동사","종합하다",["请综合大家的意见。","qǐng zōng hé dà jiā de yì jiàn。","모두의 의견을 종합해 주세요."]);
+th("기술·기기·사물");
+W("安装","ān zhuāng","동사","설치하다",["师傅来家里安装空调。","shī fù lái jiā lǐ ān zhuāng kōng tiáo。","기사님이 집에 에어컨을 설치하러 왔어요."]);
+W("成分","chéng fèn","명사","성분",["这个药的成分是什么？","zhè ge yào de chéng fèn shì shén me？","이 약의 성분은 뭐예요?"]);
+W("程序","chéng xù","명사","절차, 프로그램",["办理手续的程序很复杂。","bàn lǐ shǒu xù de chéng xù hěn fù zá。","수속 절차가 복잡해요."]);
+W("充电器","chōng diàn qì","명사","충전기",["我忘了带充电器。","wǒ wàng le dài chōng diàn qì。","충전기를 챙기는 걸 잊었어요."]);
+W("磁带","cí dài","명사","카세트테이프",["我有很多旧磁带。","wǒ yǒu hěn duō jiù cí dài。","저는 오래된 테이프가 많아요."]);
+W("电池","diàn chí","명사","배터리",["手机的电池没电了。","shǒu jī de diàn chí méi diàn le。","휴대폰 배터리가 다 됐어요."]);
+W("电台","diàn tái","명사","라디오 방송국",["我喜欢听电台节目。","wǒ xǐ huān tīng diàn tái jié mù。","저는 라디오 프로그램 듣는 걸 좋아해요."]);
+W("短信","duǎn xìn","명사","문자 메시지",["我给他发了一条短信。","wǒ gěi tā fā le yī tiáo duǎn xìn。","저는 그에게 문자를 보냈어요."]);
+W("发明","fā míng","동사","발명하다",["电话是谁发明的？","diàn huà shì shuí fā míng de？","전화는 누가 발명했어요?"]);
+W("复制","fù zhì","동사","복제하다",["请把这个文件复制一下。","qǐng bǎ zhè ge wén jiàn fù zhì yī xià。","이 파일을 복사해 주세요."]);
+W("钢铁","gāng tiě","명사","강철",["这是用钢铁做的。","zhè shì yòng gāng tiě zuò de。","이것은 강철로 만들었어요."]);
+W("功能","gōng néng","명사","기능",["这个手机有很多功能。","zhè ge shǒu jī yǒu hěn duō gōng néng。","이 휴대폰에는 기능이 많아요."]);
+W("固体","gù tǐ","명사","고체",["冰是固体。","bīng shì gù tǐ。","얼음은 고체예요."]);
+W("光盘","guāng pán","명사","CD, DVD",["我买了一张光盘。","wǒ mǎi le yī zhāng guāng pán。","저는 CD를 한 장 샀어요."]);
+W("机器","jī qì","명사","기계",["这台机器坏了。","zhè tái jī qì huài le。","이 기계가 고장 났어요."]);
+W("键盘","jiàn pán","명사","키보드",["这个键盘很好用。","zhè ge jiàn pán hěn hǎo yòng。","이 키보드는 쓰기 좋아요."]);
+W("金属","jīn shǔ","명사","금속",["铁是一种金属。","tiě shì yī zhǒng jīn shǔ。","철은 금속의 한 종류예요."]);
+W("救护车","jiù hù chē","명사","구급차",["救护车来了。","jiù hù chē lái le。","구급차가 왔어요."]);
+W("卡车","kǎ chē","명사","트럭",["路上有一辆大卡车。","lù shàng yǒu yī liàng dà kǎ chē。","길에 큰 트럭이 한 대 있어요."]);
+W("铃","líng","의성어","방울, 벨",["门铃响了。","mén líng xiǎng le。","초인종이 울렸어요."]);
+W("零件","líng jiàn","명사","부품",["这台机器缺一个零件。","zhè tái jī qì quē yí gè líng jiàn。","이 기계는 부품이 하나 모자라요."]);
+W("录音","lù yīn","동사","녹음(하다)",["我把他的话录音了。","wǒ bǎ tā de huà lù yīn le。","저는 그의 말을 녹음했어요."]);
+W("麦克风","mài kè fēng","명사","마이크",["请把麦克风给我。","qǐng bǎ mài kè fēng gěi wǒ。","마이크 좀 주세요."]);
+W("摩托车","mó tuō chē","명사","오토바이",["他骑摩托车上班。","tā qí mó tuō chē shàng bān。","그는 오토바이를 타고 출근해요."]);
+W("频道","pín dào","명사","채널",["你喜欢看哪个频道？","nǐ xǐ huān kàn nǎ ge pín dào？","어느 채널 보는 걸 좋아해요?"]);
+W("汽油","qì yóu","명사","휘발유",["汽车没有汽油了。","qì chē méi yǒu qì yóu le。","차에 기름이 없어요."]);
+W("枪","Qiāng","명사","총",["警察手里拿着一把枪。","jǐng chá shǒu lǐ ná zhe yī bǎ qiāng。","경찰이 손에 총을 들고 있어요."]);
+W("软件","ruǎn jiàn","명사","소프트웨어",["这个软件很好用。","zhè ge ruǎn jiàn hěn hǎo yòng。","이 소프트웨어는 쓰기 좋아요."]);
+W("删除","shān chú","동사","삭제하다",["请删除这个文件。","qǐng shān chú zhè ge wén jiàn。","이 파일을 삭제해 주세요."]);
+W("设备","shè bèi","명사","설비",["这里的设备很先进。","zhè lǐ de shè bèi hěn xiān jìn。","이곳의 설비는 아주 앞서 있어요."]);
+W("设计","shè jì","동사","설계(하다), 디자인",["他设计了这座桥。","tā shè jì le zhè zuò qiáo。","그가 이 다리를 설계했어요."]);
+W("设施","shè shī","명사","시설",["这个宾馆的设施很好。","zhè ge bīn guǎn de shè shī hěn hǎo。","이 호텔의 시설은 좋아요."]);
+W("输入","shū rù","동사","입력하다",["请输入密码。","qǐng shū rù mì mǎ。","비밀번호를 입력해 주세요."]);
+W("鼠标","shǔ biāo","명사","마우스",["这个鼠标很好用。","zhè ge shǔ biāo hěn hǎo yòng。","이 마우스는 쓰기 좋아요."]);
+W("数据","shù jù","명사","데이터",["请把数据发给我。","qǐng bǎ shù jù fā gěi wǒ。","데이터를 저에게 보내 주세요."]);
+W("数码","shù mǎ","명사","디지털",["他喜欢买数码产品。","tā xǐ huān mǎi shù mǎ chǎn pǐn。","그는 디지털 제품 사는 걸 좋아해요."]);
+W("通讯","tōng xùn","명사","통신",["现代通讯很发达。","xiàn dài tōng xùn hěn fā dá。","현대 통신은 아주 발달했어요."]);
+W("铜","tóng","명사","구리",["这是一个铜做的杯子。","zhè shì yí gè tóng zuò de bēi zi。","이것은 구리로 만든 컵이에요."]);
+W("武器","wǔ qì","명사","무기",["这是一种新武器。","zhè shì yī zhǒng xīn wǔ qì。","이것은 새로운 무기예요."]);
+W("物质","wù zhì","명사","물질",["物质生活越来越好。","wù zhì shēng huó yuè lái yuè hǎo。","물질적 생활이 갈수록 나아져요."]);
+W("系统","xì tǒng","명사","시스템, 체계",["电脑系统出了问题。","diàn nǎo xì tǒng chū le wèn tí。","컴퓨터 시스템에 문제가 생겼어요."]);
+W("下载","xià zǎi","동사","다운로드하다",["我下载了一个软件。","wǒ xià zài le yí gè ruǎn jiàn。","저는 소프트웨어를 하나 다운로드했어요."]);
+W("信号","xìn hào","명사","신호",["这里的手机信号不好。","zhè lǐ de shǒu jī xìn hào bù hǎo。","여기는 휴대폰 신호가 약해요."]);
+W("信息","xìn xī","명사","정보",["我收到了一条信息。","wǒ shōu dào le yī tiáo xìn xī。","저는 메시지를 하나 받았어요."]);
+W("液体","yè tǐ","명사","액체",["水是液体。","shuǐ shì yè tǐ。","물은 액체예요."]);
+W("银","yín","형용사","은",["这个戒指是银做的。","zhè ge jiè zhǐ shì yín zuò de。","이 반지는 은으로 만들었어요."]);
+W("应用","yìng yòng","동사","응용하다",["这个技术应用得很广。","zhè ge jì shù yìng yòng dé hěn guǎng。","이 기술은 응용 범위가 넓어요."]);
+W("硬件","yìng jiàn","명사","하드웨어",["这台电脑的硬件很好。","zhè tái diàn nǎo de yìng jiàn hěn hǎo。","이 컴퓨터는 하드웨어가 좋아요."]);
+W("原料","yuán liào","명사","원료",["这是做面包的原料。","zhè shì zuò miàn bāo de yuán liào。","이것은 빵을 만드는 원료예요."]);
+W("粘贴","zhān tiē","동사","붙이다",["请把这个文件粘贴到这里。","qǐng bǎ zhè ge wén jiàn zhān tiē dào zhè lǐ。","이 파일을 여기에 붙여 넣어 주세요."]);
+W("占线","zhàn xiàn","동사","통화 중이다",["他的电话占线。","tā de diàn huà zhàn xiàn。","그의 전화가 통화 중이에요."]);
+W("自动","zì dòng","부사","자동",["门会自动打开。","mén huì zì dòng dǎ kāi。","문이 자동으로 열려요."]);
+
+P('进口','出口');
+P('战争','和平');
+P('公开','秘密');
+P('悲观','乐观');
+P('爱护','破坏');
+P('尊敬','轻视');
+P('看不起','尊敬');
+P('淡','浓');
+P('斜','直');
+P('弯','直');
+P('从前','如今');
+P('目前','未来');
+P('缩短','延长');
+P('取消','确定');
+P('逃避','面对');
+P('保存','删除');
+P('固体','液体');
+P('预防','治疗');
+P('传染','预防','헷갈리는 말');
+P('发达','落后');
+P('清淡','浓');
+P('片面','全面');
+P('主观','客观');
+P('具体','抽象');
+P('单独','集体');
+P('个人','集体');
+P('权利','义务');
+P('娶','嫁');
+P('王子','公主');
+P('皇帝','皇后');
+P('损失','利润');
+P('存','欠');
+P('推荐','推辞');
+P('请求','答应');
+P('夸','骂');
+P('称赞','责备');
+P('沉默','发言');
+P('大方','小气');
+P('陌生','亲切');
+P('爱惜','珍惜','비슷한 말');
+P('期待','盼望','비슷한 말');
+P('怀念','想念','비슷한 말');
+P('光荣','荣誉','헷갈리는 말');
+P('救','杀');
+P('成果','成就','헷갈리는 말');
+P('否定','否认','헷갈리는 말');
+P('否认','承认');
+P('收获','失去');
+P('接触','接近','헷갈리는 말');
+P('掌握','把握','헷갈리는 말');
+P('表明','表现','헷갈리는 말');
+P('改正','改进','헷갈리는 말');
+P('改进','改善','헷갈리는 말');
+P('实现','实行','헷갈리는 말');
+P('实践','实验','헷갈리는 말');
+P('文学','哲学','과목');
+P('物理','化学','과목');
+P('排球','射击','운동');
+P('武术','太极拳','무술');
+P('辩论','争论','헷갈리는 말');
+P('描写','叙述','헷갈리는 말');
+P('形容','描写','헷갈리는 말');
+P('强调','突出','비슷한 말');
+P('提问','询问','헷갈리는 말');
+P('询问','咨询','헷갈리는 말');
+P('指导','辅导','비슷한 말');
+P('培养','训练','헷갈리는 말');
+P('体验','体会','헷갈리는 말');
+P('胃','肺','장기');
+P('肺','心脏','장기');
+P('胳膊','肩膀','신체');
+P('嗓子','舌头','신체');
+P('眉毛','胡须','신체');
+P('骨头','肌肉','신체');
+P('蝴蝶','蜜蜂','곤충');
+P('沙漠','沙滩','지형');
+P('雷','闪电','날씨');
+P('冻','融化');
+P('炒','煎','조리법');
+P('黄瓜','土豆','채소');
+P('桃','梨','과일');
+P('馒头','包子','만두류');
+P('勺子','叉子','식기');
+P('被子','枕头','침구');
+P('手套','围巾','겨울 소품');
+P('戒指','项链','장신구');
+P('客厅','卧室','집 구조');
+P('阳台','卫生间','집 구조');
+P('厕所','卫生间','비슷한 말');
+P('商品','产品','헷갈리는 말');
+P('工业','农业','산업');
+P('投资','贸易','경제');
+P('股票','汇率','금융');
+P('现金','硬币','화폐');
+P('政府','政治','헷갈리는 말');
+P('总统','总理','정치 직책');
+P('注册','登记','비슷한 말');
+P('人口','人类','헷갈리는 말');
+P('规则','规矩','헷갈리는 말');
+P('纪律','秩序','헷갈리는 말');
+
+const KO={"婚礼": ["s", "혼례"], "婚姻": ["s", "혼인"], "皇帝": ["s", "황제"], "皇后": ["s", "황후"], "王子": ["s", "왕자"], "公主": ["s", "공주"], "英雄": ["s", "영웅"], "营养": ["s", "영양"], "病毒": ["s", "병독"], "传染": ["s", "전염"], "呼吸": ["s", "호흡"], "神经": ["s", "신경"], "手术": ["s", "수술"], "寿命": ["s", "수명"], "消化": ["s", "소화"], "心脏": ["s", "심장"], "预防": ["s", "예방"], "诊断": ["s", "진단"], "治疗": ["s", "치료"], "姿势": ["s", "자세"], "地震": ["s", "지진"], "宇宙": ["s", "우주"], "灾害": ["s", "재해"], "资源": ["s", "자원"], "博物馆": ["s", "박물관"], "建筑": ["s", "건축"], "分析": ["s", "분석"], "参考": ["s", "참고"], "常识": ["s", "상식"], "成语": ["s", "성어"], "出版": ["s", "출판"], "传说": ["s", "전설"], "传统": ["s", "전통"], "地理": ["s", "지리"], "发表": ["s", "발표"], "风俗": ["s", "풍속"], "讽刺": ["s", "풍자"], "古典": ["s", "고전"], "化学": ["s", "화학"], "讲座": ["s", "강좌"], "教材": ["s", "교재"], "课程": ["s", "과정"], "理论": ["s", "이론"], "论文": ["s", "논문"], "美术": ["s", "미술"], "培养": ["s", "배양"], "强调": ["s", "강조"], "神话": ["s", "신화"], "声调": ["s", "성조"], "实习": ["s", "실습"], "实验": ["s", "실험"], "文学": ["s", "문학"], "武术": ["s", "무술"], "物理": ["s", "물리"], "学术": ["s", "학술"], "学问": ["s", "학문"], "展览": ["s", "전람"], "哲学": ["s", "철학"], "宗教": ["s", "종교"], "作品": ["s", "작품"], "保险": ["s", "보험"], "报告": ["s", "보고"], "编辑": ["s", "편집"], "部门": ["s", "부문"], "财产": ["s", "재산"], "辞职": ["s", "사직"], "从事": ["s", "종사"], "待遇": ["s", "대우"], "分配": ["s", "분배"], "黄金": ["s", "황금"], "会计": ["s", "회계"], "经营": ["s", "경영"], "开发": ["s", "개발"], "劳动": ["s", "노동"], "利润": ["s", "이윤"], "利益": ["s", "이익"], "贸易": ["s", "무역"], "企业": ["s", "기업"], "农业": ["s", "농업"], "破产": ["s", "파산"], "商品": ["s", "상품"], "商业": ["s", "상업"], "生产": ["s", "생산"], "失业": ["s", "실업"], "损失": ["s", "손실"], "投资": ["s", "투자"], "消费": ["s", "소비"], "宣传": ["s", "선전"], "业务": ["s", "업무"], "营业": ["s", "영업"], "运输": ["s", "운수"], "资金": ["s", "자금"], "参与": ["s", "참여"], "成立": ["s", "성립"], "传播": ["s", "전파"], "道德": ["s", "도덕"], "地位": ["s", "지위"], "登记": ["s", "등기"], "法院": ["s", "법원"], "繁荣": ["s", "번영"], "服从": ["s", "복종"], "改革": ["s", "개혁"], "革命": ["s", "혁명"], "公布": ["s", "공포"], "公开": ["s", "공개"], "公平": ["s", "공평"], "贡献": ["s", "공헌"], "规则": ["s", "규칙"], "国籍": ["s", "국적"], "合法": ["s", "합법"], "建设": ["s", "건설"], "解放": ["s", "해방"], "军事": ["s", "군사"], "开放": ["s", "개방"], "抗议": ["s", "항의"], "联合": ["s", "연합"], "民主": ["s", "민주"], "命令": ["s", "명령"], "批准": ["s", "비준"], "平等": ["s", "평등"], "侵略": ["s", "침략"], "权力": ["s", "권력"], "权利": ["s", "권리"], "人口": ["s", "인구"], "人类": ["s", "인류"], "手续": ["s", "수속"], "私人": ["s", "사인"], "谈判": ["s", "담판"], "提倡": ["s", "제창"], "统一": ["s", "통일"], "统治": ["s", "통치"], "外交": ["s", "외교"], "危害": ["s", "위해"], "威胁": ["s", "위협"], "违反": ["s", "위반"], "文明": ["s", "문명"], "宣布": ["s", "선포"], "选举": ["s", "선거"], "宴会": ["s", "연회"], "移民": ["s", "이민"], "义务": ["s", "의무"], "战争": ["s", "전쟁"], "证据": ["s", "증거"], "政策": ["s", "정책"], "政府": ["s", "정부"], "政治": ["s", "정치"], "执行": ["s", "집행"], "制度": ["s", "제도"], "秩序": ["s", "질서"], "主席": ["s", "주석"], "资格": ["s", "자격"], "自愿": ["s", "자원"], "总理": ["s", "총리"], "祖国": ["s", "조국"], "遵守": ["s", "준수"], "悲观": ["s", "비관"], "不安": ["s", "불안"], "沉默": ["s", "침묵"], "感激": ["s", "감격"], "感想": ["s", "감상"], "个性": ["s", "개성"], "幻想": ["s", "환상"], "决心": ["s", "결심"], "恐怖": ["s", "공포"], "乐观": ["s", "낙관"], "满足": ["s", "만족"], "魅力": ["s", "매력"], "期待": ["s", "기대"], "善良": ["s", "선량"], "微笑": ["s", "미소"], "享受": ["s", "향수"], "幸运": ["s", "행운"], "遗憾": ["s", "유감"], "勇气": ["s", "용기"], "赞美": ["s", "찬미"], "祝福": ["s", "축복"], "自信": ["s", "자신"], "尊敬": ["s", "존경"], "保存": ["s", "보존"], "表现": ["s", "표현"], "补充": ["s", "보충"], "处理": ["s", "처리"], "调整": ["s", "조정"], "发挥": ["s", "발휘"], "反复": ["s", "반복"], "改善": ["s", "개선"], "观察": ["s", "관찰"], "恢复": ["s", "회복"], "计算": ["s", "계산"], "记录": ["s", "기록"], "纪念": ["s", "기념"], "建立": ["s", "건립"], "建议": ["s", "건의"], "交换": ["s", "교환"], "克服": ["s", "극복"], "利用": ["s", "이용"], "模仿": ["s", "모방"], "破坏": ["s", "파괴"], "请求": ["s", "청구"], "庆祝": ["s", "경축"], "取消": ["s", "취소"], "确定": ["s", "확정"], "确认": ["s", "확인"], "实践": ["s", "실천"], "实现": ["s", "실현"], "实行": ["s", "실행"], "体验": ["s", "체험"], "推荐": ["s", "추천"], "吸收": ["s", "흡수"], "消灭": ["s", "소멸"], "消失": ["s", "소실"], "显示": ["s", "현시"], "行动": ["s", "행동"], "训练": ["s", "훈련"], "延长": ["s", "연장"], "运用": ["s", "운용"], "赞成": ["s", "찬성"], "展开": ["s", "전개"], "掌握": ["s", "장악"], "指挥": ["s", "지휘"], "制作": ["s", "제작"], "重复": ["s", "중복"], "转变": ["s", "전변"], "追求": ["s", "추구"], "组合": ["s", "조합"], "彻底": ["s", "철저"], "充分": ["s", "충분"], "单调": ["s", "단조"], "发达": ["s", "발달"], "高速": ["s", "고속"], "固定": ["s", "고정"], "合理": ["s", "합리"], "基本": ["s", "기본"], "激烈": ["s", "격렬"], "紧急": ["s", "긴급"], "巨大": ["s", "거대"], "具体": ["s", "구체"], "客观": ["s", "객관"], "临时": ["s", "임시"], "落后": ["s", "낙후"], "明确": ["s", "명확"], "模糊": ["s", "모호"], "全面": ["s", "전면"], "缺乏": ["s", "결핍"], "日常": ["s", "일상"], "深刻": ["s", "심각"], "神秘": ["s", "신비"], "生动": ["s", "생동"], "实用": ["s", "실용"], "熟练": ["s", "숙련"], "特殊": ["s", "특수"], "透明": ["s", "투명"], "突出": ["s", "돌출"], "唯一": ["s", "유일"], "伟大": ["s", "위대"], "相似": ["s", "상사"], "严肃": ["s", "엄숙"], "悠久": ["s", "유구"], "有利": ["s", "유리"], "真实": ["s", "진실"], "主观": ["s", "주관"], "比例": ["s", "비례"], "程度": ["s", "정도"], "持续": ["s", "지속"], "当代": ["s", "당대"], "古代": ["s", "고대"], "近代": ["s", "근대"], "面积": ["s", "면적"], "平均": ["s", "평균"], "日程": ["s", "일정"], "时代": ["s", "시대"], "时期": ["s", "시기"], "体积": ["s", "체적"], "未来": ["s", "미래"], "无数": ["s", "무수"], "重量": ["s", "중량"], "最初": ["s", "최초"], "单独": ["s", "단독"], "绝对": ["s", "절대"], "偶然": ["s", "우연"], "始终": ["s", "시종"], "相当": ["s", "상당"], "相对": ["s", "상대"], "随时": ["s", "수시"], "通常": ["s", "통상"], "同时": ["s", "동시"], "背景": ["s", "배경"], "本质": ["s", "본질"], "必然": ["s", "필연"], "必要": ["s", "필요"], "标志": ["s", "표지"], "表面": ["s", "표면"], "成果": ["s", "성과"], "成就": ["s", "성취"], "成长": ["s", "성장"], "承认": ["s", "승인"], "充满": ["s", "충만"], "抽象": ["s", "추상"], "创造": ["s", "창조"], "促进": ["s", "촉진"], "存在": ["s", "존재"], "错误": ["s", "착오"], "道理": ["s", "도리"], "独立": ["s", "독립"], "对比": ["s", "대비"], "反应": ["s", "반응"], "方案": ["s", "방안"], "方式": ["s", "방식"], "风格": ["s", "풍격"], "否定": ["s", "부정"], "否认": ["s", "부인"], "概念": ["s", "개념"], "根本": ["s", "근본"], "构成": ["s", "구성"], "观点": ["s", "관점"], "观念": ["s", "관념"], "光明": ["s", "광명"], "规律": ["s", "규율"], "核心": ["s", "핵심"], "后果": ["s", "후과"], "记忆": ["s", "기억"], "价值": ["s", "가치"], "教训": ["s", "교훈"], "结合": ["s", "결합"], "结论": ["s", "결론"], "进步": ["s", "진보"], "空间": ["s", "공간"], "理由": ["s", "이유"], "力量": ["s", "역량"], "领域": ["s", "영역"], "矛盾": ["s", "모순"], "秘密": ["s", "비밀"], "目标": ["s", "목표"], "平衡": ["s", "평형"], "评价": ["s", "평가"], "奇迹": ["s", "기적"], "前途": ["s", "전도"], "青春": ["s", "청춘"], "趋势": ["s", "추세"], "人生": ["s", "인생"], "荣誉": ["s", "영예"], "事实": ["s", "사실"], "事物": ["s", "사물"], "思考": ["s", "사고"], "思想": ["s", "사상"], "特征": ["s", "특징"], "挑战": ["s", "도전"], "现实": ["s", "현실"], "现象": ["s", "현상"], "想象": ["s", "상상"], "象征": ["s", "상징"], "心理": ["s", "심리"], "行为": ["s", "행위"], "形成": ["s", "형성"], "形式": ["s", "형식"], "形势": ["s", "형세"], "形状": ["s", "형상"], "性质": ["s", "성질"], "一致": ["s", "일치"], "疑问": ["s", "의문"], "意外": ["s", "의외"], "意义": ["s", "의의"], "优势": ["s", "우세"], "娱乐": ["s", "오락"], "原则": ["s", "원칙"], "造成": ["s", "조성"], "真理": ["s", "진리"], "整体": ["s", "정체"], "智慧": ["s", "지혜"], "主张": ["s", "주장"], "状况": ["s", "상황"], "状态": ["s", "상태"], "自由": ["s", "자유"], "综合": ["s", "종합"], "成分": ["s", "성분"], "电池": ["s", "전지"], "发明": ["s", "발명"], "复制": ["s", "복제"], "钢铁": ["s", "강철"], "固体": ["s", "고체"], "金属": ["s", "금속"], "录音": ["s", "녹음"], "设备": ["s", "설비"], "设计": ["s", "설계"], "武器": ["s", "무기"], "物质": ["s", "물질"], "信号": ["s", "신호"], "液体": ["s", "액체"], "应用": ["s", "응용"], "原料": ["s", "원료"], "自动": ["s", "자동"], "分布": ["s", "분포"], "品种": ["s", "품종"], "燃烧": ["s", "연소"], "沙漠": ["s", "사막"], "预报": ["s", "예보"], "土地": ["s", "토지"], "位置": ["s", "위치"], "中心": ["s", "중심"], "集中": ["s", "집중"], "接触": ["s", "접촉"], "接近": ["s", "접근"], "人员": ["d", "인원", "'사람의 수'(인원)를 말해요. 중국어는 '직원, 인력'"], "单位": ["d", "단위", "길이·무게 등의 기준(단위)을 말해요. 중국어는 직장·소속 기관도 가리켜요"], "对象": ["d", "대상", "'대상(목표)'이에요. 중국어는 '결혼·연애 상대'라는 뜻도 있어요"], "经典": ["d", "경전", "종교의 '경전'을 말해요. 중국어는 '고전, 명작(classic)'"], "结实": ["d", "결실", "'열매를 맺음(결실)'이에요. 중국어는 '튼튼하다'(jiēshi)"], "讲究": ["d", "강구", "'방법을 궁리함(강구)'이에요. 중국어는 '신경 쓰다, 까다롭다'"], "学生": ["s", "학생"], "学校": ["s", "학교"], "商店": ["s", "상점"], "北京": ["s", "북경"], "中国": ["s", "중국"], "学习": ["s", "학습"], "汉语": ["s", "한어"], "时间": ["s", "시간"], "生日": ["s", "생일"], "开始": ["s", "개시"], "起床": ["s", "기상"], "教室": ["s", "교실"], "身体": ["s", "신체"], "休息": ["s", "휴식"], "运动": ["s", "운동"], "问题": ["s", "문제"], "铅笔": ["s", "연필"], "准备": ["s", "준비"], "希望": ["s", "희망"], "可能": ["s", "가능"], "第一": ["s", "제일"], "新鲜": ["s", "신선"], "健康": ["s", "건강"], "聪明": ["s", "총명"], "热情": ["s", "열정"], "努力": ["s", "노력"], "简单": ["s", "간단"], "容易": ["s", "용이"], "重要": ["s", "중요"], "主要": ["s", "주요"], "一般": ["s", "일반"], "相同": ["s", "상동"], "有名": ["s", "유명"], "突然": ["s", "돌연"], "比较": ["s", "비교"], "特别": ["s", "특별"], "当然": ["s", "당연"], "必须": ["s", "필수"], "其他": ["s", "기타"], "自己": ["s", "자기"], "根据": ["s", "근거"], "校长": ["s", "교장"], "现在": ["s", "현재"], "同学": ["s", "동학"], "前面": ["s", "전면"], "后面": ["s", "후면"], "桌子": ["s", "탁자"], "衣服": ["s", "의복"], "眼镜": ["s", "안경"], "帽子": ["s", "모자"], "字典": ["s", "자전"], "葡萄": ["s", "포도"], "厨房": ["s", "주방"], "国家": ["s", "국가"], "世界": ["s", "세계"], "附近": ["s", "부근"], "中间": ["s", "중간"], "银行": ["s", "은행"], "公园": ["s", "공원"], "图书馆": ["s", "도서관"], "地图": ["s", "지도"], "季节": ["s", "계절"], "太阳": ["s", "태양"], "动物": ["s", "동물"], "黑板": ["s", "흑판"], "数学": ["s", "수학"], "体育": ["s", "체육"], "历史": ["s", "역사"], "文化": ["s", "문화"], "成绩": ["s", "성적"], "练习": ["s", "연습"], "复习": ["s", "복습"], "检查": ["s", "검사"], "选择": ["s", "선택"], "同意": ["s", "동의"], "注意": ["s", "주의"], "参加": ["s", "참가"], "举行": ["s", "거행"], "结婚": ["s", "결혼"], "完成": ["s", "완성"], "决定": ["s", "결정"], "解决": ["s", "해결"], "锻炼": ["s", "단련"], "关心": ["s", "관심"], "环境": ["s", "환경"], "变化": ["s", "변화"], "影响": ["s", "영향"], "作用": ["s", "작용"], "习惯": ["s", "습관"], "成熟": ["s", "성숙"], "活泼": ["s", "활발"], "积极": ["s", "적극"], "勇敢": ["s", "용감"], "冷静": ["s", "냉정"], "友好": ["s", "우호"], "优秀": ["s", "우수"], "严格": ["s", "엄격"], "性格": ["s", "성격"], "态度": ["s", "태도"], "缺点": ["s", "결점"], "紧张": ["s", "긴장"], "兴奋": ["s", "흥분"], "幸福": ["s", "행복"], "愉快": ["s", "유쾌"], "伤心": ["s", "상심"], "失望": ["s", "실망"], "感动": ["s", "감동"], "感觉": ["s", "감각"], "感情": ["s", "감정"], "心情": ["s", "심정"], "后悔": ["s", "후회"], "同情": ["s", "동정"], "可怜": ["s", "가련"], "烦恼": ["s", "번뇌"], "压力": ["s", "압력"], "信任": ["s", "신임"], "感谢": ["s", "감사"], "祝贺": ["s", "축하"], "尊重": ["s", "존중"], "理解": ["s", "이해"], "怀疑": ["s", "회의"], "无聊": ["s", "무료"], "浪漫": ["s", "낭만"], "干燥": ["s", "건조"], "湿润": ["s", "습윤"], "辛苦": ["s", "신고"], "丰富": ["s", "풍부"], "复杂": ["s", "복잡"], "正常": ["s", "정상"], "高级": ["s", "고급"], "危险": ["s", "위험"], "安全": ["s", "안전"], "严重": ["s", "엄중"], "适合": ["s", "적합"], "合格": ["s", "합격"], "普遍": ["s", "보편"], "安排": ["s", "안배"], "申请": ["s", "신청"], "职业": ["s", "직업"], "记者": ["s", "기자"], "警察": ["s", "경찰"], "顾客": ["s", "고객"], "教授": ["s", "교수"], "博士": ["s", "박사"], "硕士": ["s", "석사"], "收入": ["s", "수입"], "经济": ["s", "경제"], "市场": ["s", "시장"], "价格": ["s", "가격"], "浪费": ["s", "낭비"], "节约": ["s", "절약"], "责任": ["s", "책임"], "管理": ["s", "관리"], "任务": ["s", "임무"], "代表": ["s", "대표"], "组织": ["s", "조직"], "集合": ["s", "집합"], "社会": ["s", "사회"], "法律": ["s", "법률"], "规定": ["s", "규정"], "禁止": ["s", "금지"], "条件": ["s", "조건"], "民族": ["s", "민족"], "国际": ["s", "국제"], "大使馆": ["s", "대사관"], "首都": ["s", "수도"], "农村": ["s", "농촌"], "世纪": ["s", "세기"], "现代": ["s", "현대"], "发展": ["s", "발전"], "发生": ["s", "발생"], "增加": ["s", "증가"], "减少": ["s", "감소"], "扩大": ["s", "확대"], "失败": ["s", "실패"], "成功": ["s", "성공"], "获得": ["s", "획득"], "竞争": ["s", "경쟁"], "支持": ["s", "지지"], "反对": ["s", "반대"], "通知": ["s", "통지"], "通过": ["s", "통과"], "调查": ["s", "조사"], "科学": ["s", "과학"], "技术": ["s", "기술"], "工具": ["s", "공구"], "制造": ["s", "제조"], "污染": ["s", "오염"], "空气": ["s", "공기"], "气候": ["s", "기후"], "温度": ["s", "온도"], "窗户": ["s", "창호"], "家具": ["s", "가구"], "词典": ["s", "사전"], "日记": ["s", "일기"], "杂志": ["s", "잡지"], "小说": ["s", "소설"], "广告": ["s", "광고"], "观众": ["s", "관중"], "消息": ["s", "소식"], "食品": ["s", "식품"], "干杯": ["s", "건배"], "皮肤": ["s", "피부"], "理发": ["s", "이발"], "地球": ["s", "지구"], "海洋": ["s", "해양"], "森林": ["s", "삼림"], "植物": ["s", "식물"], "风景": ["s", "풍경"], "到处": ["s", "도처"], "参观": ["s", "참관"], "出发": ["s", "출발"], "交通": ["s", "교통"], "入口": ["s", "입구"], "方向": ["s", "방향"], "距离": ["s", "거리"], "教育": ["s", "교육"], "知识": ["s", "지식"], "语言": ["s", "언어"], "语法": ["s", "어법"], "翻译": ["s", "번역"], "对话": ["s", "대화"], "答案": ["s", "답안"], "预习": ["s", "예습"], "标准": ["s", "표준"], "重点": ["s", "중점"], "重视": ["s", "중시"], "基础": ["s", "기초"], "材料": ["s", "재료"], "京剧": ["s", "경극"], "艺术": ["s", "예술"], "父亲": ["s", "부친"], "母亲": ["s", "모친"], "孙子": ["s", "손자"], "亲戚": ["s", "친척"], "儿童": ["s", "아동"], "年龄": ["s", "연령"], "性别": ["s", "성별"], "生活": ["s", "생활"], "生命": ["s", "생명"], "出生": ["s", "출생"], "爱情": ["s", "애정"], "友谊": ["s", "우의"], "理想": ["s", "이상"], "能力": ["s", "능력"], "经验": ["s", "경험"], "精神": ["s", "정신"], "本来": ["s", "본래"], "原来": ["s", "원래"], "从来": ["s", "종래"], "当时": ["s", "당시"], "将来": ["s", "장래"], "平时": ["s", "평시"], "暂时": ["s", "잠시"], "永远": ["s", "영원"], "往往": ["s", "왕왕"], "十分": ["s", "십분"], "完全": ["s", "완전"], "全部": ["s", "전부"], "一切": ["s", "일체"], "许多": ["s", "허다"], "大概": ["s", "대개"], "果然": ["s", "과연"], "确实": ["s", "확실"], "故意": ["s", "고의"], "共同": ["s", "공동"], "直接": ["s", "직접"], "正式": ["s", "정식"], "真正": ["s", "진정"], "自然": ["s", "자연"], "最后": ["s", "최후"], "相反": ["s", "상반"], "包括": ["s", "포괄"], "保护": ["s", "보호"], "保证": ["s", "보증"], "报道": ["s", "보도"], "超过": ["s", "초과"], "代替": ["s", "대체"], "放弃": ["s", "방기"], "符合": ["s", "부합"], "坚持": ["s", "견지"], "交流": ["s", "교류"], "进行": ["s", "진행"], "拒绝": ["s", "거절"], "考虑": ["s", "고려"], "留学": ["s", "유학"], "流行": ["s", "유행"], "排列": ["s", "배열"], "判断": ["s", "판단"], "散步": ["s", "산보"], "使用": ["s", "사용"], "适应": ["s", "적응"], "收拾": ["s", "수습"], "讨论": ["s", "토론"], "提供": ["s", "제공"], "停止": ["s", "정지"], "握手": ["s", "악수"], "吸引": ["s", "흡인"], "养成": ["s", "양성"], "证明": ["s", "증명"], "整理": ["s", "정리"], "反映": ["s", "반영"], "访问": ["s", "방문"], "继续": ["s", "계속"], "计划": ["s", "계획"], "活动": ["s", "활동"], "部分": ["s", "부분"], "动作": ["s", "동작"], "范围": ["s", "범위"], "方法": ["s", "방법"], "方面": ["s", "방면"], "关键": ["s", "관건"], "过程": ["s", "과정"], "结果": ["s", "결과"], "目的": ["s", "목적"], "内容": ["s", "내용"], "区别": ["s", "구별"], "实际": ["s", "실제"], "数量": ["s", "수량"], "顺序": ["s", "순서"], "说明": ["s", "설명"], "速度": ["s", "속도"], "效果": ["s", "효과"], "意见": ["s", "의견"], "印象": ["s", "인상"], "原因": ["s", "원인"], "周围": ["s", "주위"], "著名": ["s", "저명"], "专门": ["s", "전문"], "详细": ["s", "상세"], "仔细": ["s", "자세"], "饮料": ["s", "음료"], "提高": ["s", "제고"], "表示": ["s", "표시"], "要求": ["s", "요구"], "出现": ["s", "출현"], "经过": ["s", "경과"], "爱好": ["s", "애호"], "音乐": ["s", "음악"], "游戏": ["s", "유희"], "周末": ["s", "주말"], "以前": ["s", "이전"], "以后": ["s", "이후"], "最近": ["s", "최근"], "过去": ["s", "과거"], "机会": ["s", "기회"], "关系": ["s", "관계"], "会议": ["s", "회의"], "上午": ["s", "상오"], "下午": ["s", "하오"], "信用卡": ["s", "신용카드"], "先生": ["d", "선생", "가르치는 사람(선생님)이라는 뜻이 중심이에요. 중국어는 '~씨, 선생님, 남편'"], "饭店": ["d", "반점", "중국 음식점(반점)을 말해요. 중국어는 식당이나 호텔"], "医院": ["d", "의원", "규모가 작은 병원(동네 의원)을 말해요. 중국어는 '병원' 전체"], "东西": ["d", "동서", "'동쪽과 서쪽'이에요. 중국어는 '물건'(dōngxi)"], "工作": ["d", "공작", "목적을 위한 계략·작업(공작원, 공작품)을 말해요. 중국어는 '일하다, 직업'"], "大家": ["d", "대가", "어떤 분야의 거장·전문가예요. 중국어는 '여러분, 모두'"], "便宜": ["d", "편의", "편리하고 쓰기 좋음이에요. 중국어는 '싸다'"], "颜色": ["d", "안색", "얼굴빛을 말해요. 중국어는 '색깔'"], "非常": ["d", "비상", "급한 사태나 평범하지 않음(비상시)이에요. 중국어는 '매우'"], "方便": ["d", "방편", "목적을 이루기 위한 수단·방법이에요. 중국어는 '편리하다'"], "马上": ["d", "마상", "말 위를 말해요. 중국어는 '곧, 바로'"], "一定": ["d", "일정", "정해져 있음(일정한 시간)이에요. 중국어는 '반드시'"], "经常": ["d", "경상", "일정하게 반복되는 것(경상비)을 말해요. 중국어는 '자주'"], "经理": ["d", "경리", "회계 업무(경리)를 말해요. 중국어는 '매니저, 사장'"], "多少": ["d", "다소", "어느 정도, 조금이에요. 중국어는 '얼마, 몇'"], "意思": ["d", "의사", "생각, 마음먹은 뜻이에요. 중국어는 '뜻, 재미, 마음'까지 넓어요"], "事情": ["d", "사정", "형편이나 까닭(사정이 있다)이에요. 중국어는 '일, 사건'"], "帮助": ["d", "방조", "한국어에서는 주로 범죄를 거드는 일(방조죄)에 써요. 중국어는 '돕다'"], "认识": ["d", "인식", "사물을 분별해 아는 것이에요. 중국어는 '사람을 알다'로도 써요"], "明白": ["d", "명백", "분명하다는 뜻이에요. 중국어는 '이해하다'"], "需要": ["d", "수요", "상품을 사려는 욕구(수요와 공급)예요. 중국어는 '필요하다'"], "发现": ["d", "발현", "속에 있던 것이 겉으로 나타남이에요. 중국어는 '발견하다'"], "结束": ["d", "결속", "뜻을 모아 묶음이에요. 중국어는 '끝나다'"], "打算": ["d", "타산", "이해득실을 따짐(타산적)이에요. 중국어는 '~할 계획이다'"], "放心": ["d", "방심", "마음을 놓아 주의하지 않음이에요. 중국어는 '안심하다'"], "生气": ["d", "생기", "활력, 싱싱한 기운이에요. 중국어는 '화내다'"], "小心": ["d", "소심", "대담하지 못하고 조심성이 많음이에요. 중국어는 '조심하다'"], "诚实": ["d", "성실", "부지런하고 정성스러움이에요. 중국어는 '정직하다'"], "信心": ["d", "신심", "종교적 믿음이에요. 중국어는 '자신감'"], "批评": ["d", "비평", "사물의 가치·옳고 그름을 논함이에요. 중국어는 '꾸짖다, 지적하다'"], "师傅": ["d", "사부", "스승을 말해요. 중국어는 '기사님, 장인'처럼 기술자를 부르는 말"], "作者": ["d", "작자", "사람을 낮춰 부르는 말로도 써요. 중국어는 '작가, 저자'"], "文章": ["d", "문장", "낱말이 모여 이루는 한 문장이에요. 중국어는 '글(article)'"], "演出": ["d", "연출", "연극·영화를 지휘하는 일이에요. 중국어는 '공연하다'"], "经历": ["d", "경력", "직장·활동 이력이에요. 중국어는 '겪은 경험'"], "对面": ["d", "대면", "얼굴을 마주 봄이에요. 중국어는 '맞은편'"], "质量": ["d", "질량", "물리의 질량(무게)이에요. 중국어는 '품질'"], "实在": ["d", "실재", "실제로 존재함이에요. 중국어는 '정말, 확실히'"], "所有": ["d", "소유", "가지고 있음이에요. 중국어는 '모든'"], "千万": ["d", "천만", "숫자 1,000만이에요. 중국어는 '부디, 제발'"], "主动": ["d", "주동", "앞장서서 이끎(주동자)이에요. 중국어는 '자발적이다'"], "顺利": ["d", "순리", "도리에 맞는 흐름(순리대로)이에요. 중국어는 '순조롭다'"], "不过": ["d", "불과", "'겨우, 단지'(불과 한 달)예요. 중국어는 '그러나'"], "接受": ["d", "접수", "서류·신청을 받음(접수)이에요. 중국어는 '받아들이다'"], "解释": ["d", "해석", "글이나 현상의 뜻을 풀이함이에요. 중국어는 '설명하다, 해명하다'"], "联系": ["d", "연계", "서로 이어 맺음이에요. 중국어는 '연락하다'"], "新闻": ["d", "신문", "종이 신문을 말해요. 중국어는 '뉴스'"]};
+
+(function(){
+const $=s=>document.querySelector(s);
+const MAP=new Map(D.map(d=>[d.w,d]));
+const IDX=new Map(D.map((d,i)=>[d.w,i]));
+const LEVELS=[...new Set(D.map(d=>d.lv))].sort();
+const TM={'āēīōūǖ':1,'áéíóúǘ':2,'ǎěǐǒǔǚ':3,'àèìòùǜ':4};
+function tone(s){for(const c of s){for(const k in TM){if(k.includes(c))return TM[k]}}return 5}
+function base(s){return s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,'')}
+function pyH(py){return py.split(' ').map(s=>`<span class="t${tone(s)}">${s}</span>`).join(' ')}
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const STOP=new Set([...'的了不是我你他她们个这那有在吗呢吧很都也就和得过着']);
+const fam=t=>t.replace(/\(\d\)$/,'');
+const LS='hsk5-kkori-v1';
+const S={tab:'study',cur:null,trail:[],learned:new Set(),q:'',lvf:0,onlyNew:false,mode:'mean',lvq:0,lvk:0,quiz:null,score:{ok:0,n:0}};
+try{const j=JSON.parse(localStorage.getItem(LS)||'{}');
+  if(Array.isArray(j.learned))S.learned=new Set(j.learned.filter(w=>MAP.has(w)));
+  if(j.cur&&MAP.has(j.cur))S.cur=j.cur}catch(e){}
+if(!S.cur)S.cur=D[0].w;
+S.trail=[S.cur];
+function save(){try{localStorage.setItem(LS,JSON.stringify({learned:[...S.learned],cur:S.cur}))}catch(e){}}
+
+// 예문을 단어 단위로 쪼개기 (가장 긴 단어 우선)
+function seg(t){const out=[];let i=0;while(i<t.length){let hit=null;for(let l=Math.min(6,t.length-i);l>=1;l--){const s=t.substr(i,l);if(MAP.has(s)){hit=s;break}}
+  if(hit){out.push({t:hit,w:true});i+=hit.length}else{out.push({t:t[i],w:false});i++}}return out}
+const sentWords=d=>[...new Set(seg(d.ex.z).filter(x=>x.w).map(x=>x.t))];
+
+function nbrs(w){
+  const d=MAP.get(w),seen=new Set([w]),o={pair:[],char:[],sent:[],theme:[]};
+  const take=(k,list,max)=>{for(const x of list){if(o[k].length>=max)break;if(seen.has(x.c))continue;seen.add(x.c);o[k].push(x)}};
+  take('pair',PR.filter(p=>p.a===w||p.b===w).map(p=>({c:p.a===w?p.b:p.a,why:p.label})),12);
+  const ch=[...d.w].filter(c=>!STOP.has(c));
+  const cl=[];for(const e of D){if(e.w===w)continue;const sh=ch.filter(c=>e.w.includes(c));if(sh.length)cl.push({c:e.w,why:'같은 글자 '+sh.join(''),n:sh.length,l:Math.abs(e.lv-d.lv)})}
+  cl.sort((a,b)=>b.n-a.n||a.l-b.l||IDX.get(a.c)-IDX.get(b.c));take('char',cl,10);
+  const fw=sentWords(d).filter(x=>x!==w).map(c=>({c,why:'이 단어의 예문에 나와요'}));
+  const rev=D.filter(e=>e.w!==w&&e.ex.z.includes(w)&&sentWords(e).includes(w)).sort((a,b)=>a.lv-b.lv).slice(0,4).map(e=>({c:e.w,why:'이 단어가 나오는 예문'}));
+  take('sent',[...fw,...rev],10);
+  const i=IDX.get(w),f=fam(d.th);
+  const tl=D.filter(e=>e.w!==w&&fam(e.th)===f).sort((a,b)=>Math.abs(IDX.get(a.w)-i)-Math.abs(IDX.get(b.w)-i)).map(e=>({c:e.w,why:f}));
+  take('theme',tl,10);
+  return o}
+function allN(w){const o=nbrs(w);return [...o.pair,...o.char,...o.sent,...o.theme].map(x=>x.c)}
+const REL=[
+ ['pair','반대말 · 짝 · 헷갈리는 말','뜻이 반대이거나 짝으로 같이 쓰는 말','var(--t3)'],
+ ['char','같은 글자가 들어간 단어','글자 하나만 알아도 단어가 줄줄이 이어져요','var(--t1)'],
+ ['sent','예문으로 이어지는 단어','예문 속에 함께 나오는 말','var(--t4)'],
+ ['theme','같은 주제의 단어','같은 상황에서 함께 쓰는 말','var(--t2)']];
+
+function go(w){S.cur=w;if(S.trail[S.trail.length-1]!==w){S.trail.push(w);if(S.trail.length>40)S.trail.shift()}save()}
+function pickNext(){
+  const n=allN(S.cur);
+  let c=n.filter(x=>!S.trail.includes(x)&&!S.learned.has(x));
+  if(!c.length)c=n.filter(x=>!S.trail.includes(x));
+  if(!c.length)c=D.map(d=>d.w).filter(x=>!S.learned.has(x)&&x!==S.cur);
+  if(!c.length)c=D.map(d=>d.w).filter(x=>x!==S.cur);
+  return c[Math.floor(Math.random()*c.length)]}
+function say(t){try{const u=new SpeechSynthesisUtterance(t);u.lang='zh-CN';u.rate=.8;speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
+
+function chip(x){const d=MAP.get(x.c);
+  return `<button class="chip${S.learned.has(x.c)?' done':''}" data-go="${x.c}"><span class="cc">${x.c}</span><span class="ct"><span class="cp">${pyH(d.py)}</span><span class="cm">${d.mean}</span><span class="cw">HSK ${d.lv}급 · ${x.why}</span></span></button>`}
+function tile(w){const d=MAP.get(w),L=S.learned.has(w);
+  return `<button class="tile${L?' done':''}" data-go="${w}"><span class="lv">${d.lv}급</span>${L?'<span class="ck">익힘</span>':''}<span class="tc">${w}</span><span class="tp">${pyH(d.py)}</span><span class="tm">${d.mean}</span></button>`}
+function trailH(){return `<div class="trail" aria-label="지금까지 이어 온 단어"><span class="lab">꼬리</span>${S.trail.map((c,i)=>`${i?'<span class="ar" aria-hidden="true">›</span>':''}<button class="tr" data-tr="${i}"${c===S.cur?' aria-current="true"':''}>${c}</button>`).join('')}${S.trail.length>1?'<button class="clr" data-act="clear">꼬리 지우기</button>':''}</div>`}
+const FS=[0,150,110,78,62,52,44];
+
+function study(){
+  const d=MAP.get(S.cur),n=nbrs(S.cur),L=S.learned.has(S.cur),len=[...d.w].length;
+  const sent=seg(d.ex.z).map(x=>x.t===d.w?`<mark>${x.t}</mark>`:x.w?`<button data-go="${x.t}" aria-label="${x.t} 단어로 이동">${x.t}</button>`:x.t).join('');
+  const rels=REL.map(([k,t,s,col])=>n[k].length?`<section class="rel" style="--rc:${col}"><h3>${t} <span class="tag">${n[k].length}</span></h3><p>${s}</p><div class="chips">${n[k].map(chip).join('')}</div></section>`:'').join('');
+  return `${trailH()}
+  <article class="study">
+    <div><div class="plate"><div class="plate-in"><div class="big" lang="zh-CN" style="font-size:${FS[Math.min(len,6)]}px">${d.w}</div></div><div class="plate-foot">HSK ${d.lv}급 · ${d.th}</div></div></div>
+    <div>
+      <div class="py">${pyH(d.py)}</div>
+      <div class="meta"><div class="mean">${d.mean}</div><div><span class="lvl">HSK ${d.lv}급</span><span class="tag">${d.pos}</span></div></div>
+      ${d.tip?`<p class="tip">${d.tip}</p>`:''}${koBox(d.w)}
+      <div class="acts"><button class="btn say" data-say="${d.w}">단어 듣기</button><button class="btn${L?' on':''}" data-act="learn" aria-pressed="${L}">${L?'익힘 완료':'익혔어요'}</button><button class="btn pri" data-act="next">이어서 한 단어 더</button></div>
+    </div>
+  </article>
+  <div class="box"><h2>예문 (밑줄 단어를 누르면 그 단어로 이어져요)</h2><div class="sent" lang="zh-CN">${sent}<button class="say" data-say="${d.ex.z}">듣기</button></div><div class="sp">${d.ex.py}</div><div class="sk">${d.ex.k}</div></div>
+  ${rels}`}
+
+
+const kinfo=w=>(typeof KO!=='undefined'&&KO[w])||null;
+function koBox(w){const k=kinfo(w);if(!k)return '';
+  if(k[0]==='s')return `<p class="kbox same"><b>한국어와 같아요</b> 한자어 “${k[1]}”와 한자·뜻이 같아요. 한국어 한자음으로 읽으면 뜻이 짐작돼요. <span class="tag">동형동의어</span></p>`;
+  return `<p class="kbox diff"><b>한국어와 뜻이 달라요</b> 한국어 “${k[1]}”: ${k[2]} <span class="tag">동형이의어</span></p>`}
+function korea(){
+  const L=D.filter(d=>kinfo(d.w)&&(!S.lvk||d.lv===S.lvk));
+  const sm=L.filter(d=>kinfo(d.w)[0]==='s'),df=L.filter(d=>kinfo(d.w)[0]==='d');
+  const kt=d=>{const k=kinfo(d.w);return `<button class="tile${S.learned.has(d.w)?' done':''}" data-go="${d.w}"><span class="lv">${d.lv}급</span><span class="tc">${d.w}</span><span class="tp">${pyH(d.py)}</span><span class="tm">${d.mean}</span><span class="tm" style="color:var(--t3)">한국어 ${k[1]}</span></button>`};
+  const dc=d=>{const k=kinfo(d.w);return `<button class="chip" data-go="${d.w}"><span class="cc">${d.w}</span><span class="ct"><span class="cp">${pyH(d.py)}</span><span class="cm">${d.mean}</span><span class="cw">한국어 “${k[1]}”: ${k[2]}</span></span></button>`};
+  return `<p class="gn" style="margin-top:16px">중국어 한자어는 한국어 한자음으로 읽어서 뜻이 통하는 말(동형동의어)이 많아요. 반대로 한자는 같은데 뜻이 달라 헷갈리기 쉬운 말(동형이의어)은 따로 모아 두었어요.</p>
+  <div class="row"><button class="fb" data-lvk="0" aria-pressed="${S.lvk===0}">전체</button>${LEVELS.map(l=>`<button class="fb" data-lvk="${l}" aria-pressed="${S.lvk===l}">${l}급</button>`).join('')}</div>
+  <section class="grp"><div class="gt">뜻이 달라요 · 동형이의어<span class="tag">${df.length}개</span></div><div class="chips" style="margin-top:8px">${df.map(dc).join('')||'<p class="hint">이 급수에는 없어요.</p>'}</div></section>
+  <section class="grp"><div class="gt">뜻이 같아요 · 동형동의어<span class="tag">${sm.length}개</span></div><div class="grid" style="margin-top:8px">${sm.map(kt).join('')||'<p class="hint">이 급수에는 없어요.</p>'}</div></section>`}
+
+function themes(){
+  const fams=[...new Set(D.map(d=>fam(d.th)))];
+  return `<p class="gn" style="margin-top:16px">같은 상황에서 함께 쓰는 단어끼리 모았어요. 단어를 누르면 이어 배우기로 넘어가요.</p>`+fams.map(f=>{const l=D.filter(d=>fam(d.th)===f);
+    return `<section class="grp"><div class="gt">${f}<span class="tag">${l.length}개</span></div><div class="grid" style="margin-top:8px">${l.map(d=>tile(d.w)).join('')}</div></section>`}).join('')}
+
+function matches(d){
+  if(S.lvf&&d.lv!==S.lvf)return false;
+  if(S.onlyNew&&S.learned.has(d.w))return false;
+  const q=S.q.trim().toLowerCase();if(!q)return true;
+  return d.w.includes(q)||base(d.py).includes(base(q))||d.mean.toLowerCase().includes(q)||d.pos.includes(q)||d.th.includes(q)}
+function gridH(){const l=D.filter(matches);return (l.length?`<p class="hint" style="grid-column:1/-1;margin:0">${l.length}개</p>`+l.map(d=>tile(d.w)).join(''):'<p class="hint">조건에 맞는 단어가 없어요.</p>')}
+function list(){
+  return `<div class="row"><input type="search" id="q" placeholder="단어, 병음(예: xuesheng), 한글 뜻으로 찾기" value="${S.q.replace(/"/g,'&quot;')}" aria-label="단어 찾기"></div>
+  <div class="row"><button class="fb" data-lvf="0" aria-pressed="${S.lvf===0}">전체</button>${LEVELS.map(l=>`<button class="fb" data-lvf="${l}" aria-pressed="${S.lvf===l}">${l}급</button>`).join('')}<button class="fb" data-act="onlynew" aria-pressed="${S.onlyNew}">아직 안 익힌 것만</button></div>
+  <div class="grid" id="grid">${gridH()}</div>`}
+
+function newQ(){
+  let pool=D.filter(d=>!S.lvq||d.lv===S.lvq);
+  const t=pool[Math.floor(Math.random()*pool.length)];
+  const key=S.mode==='mean'?'mean':S.mode==='word'?'w':'py';
+  const val=d=>d[key];
+  const wrong=[];
+  for(const w of shuffle(allN(t.w))){const v=val(MAP.get(w));if(v!==val(t)&&!wrong.includes(v))wrong.push(v);if(wrong.length>=3)break}
+  for(const x of shuffle(D.filter(e=>e.lv===t.lv))){if(wrong.length>=3)break;if(val(x)!==val(t)&&!wrong.includes(val(x)))wrong.push(val(x))}
+  return {t,key,opts:shuffle([val(t),...wrong]),pick:null}}
+function quiz(){
+  if(!S.quiz)S.quiz=newQ();
+  const Q=S.quiz,done=Q.pick!==null,ok=done&&Q.opts[Q.pick]===Q.t[Q.key];
+  const showMean=S.mode==='word';
+  return `<div class="row"><button class="fb" data-mode="mean" aria-pressed="${S.mode==='mean'}">뜻 맞히기</button><button class="fb" data-mode="word" aria-pressed="${S.mode==='word'}">단어 맞히기</button><button class="fb" data-mode="py" aria-pressed="${S.mode==='py'}">병음·성조 맞히기</button></div>
+  <div class="row"><button class="fb" data-lvq="0" aria-pressed="${S.lvq===0}">전체 급수</button>${LEVELS.map(l=>`<button class="fb" data-lvq="${l}" aria-pressed="${S.lvq===l}">${l}급만</button>`).join('')}<span class="score">맞힌 문제 ${S.score.ok} / ${S.score.n}</span></div>
+  <div class="qbig" lang="${showMean?'ko':'zh-CN'}"${showMean?' style="font-size:2rem"':''}>${showMean?Q.t.mean:Q.t.w}</div>
+  <p style="margin:0 0 10px;font-weight:700">${S.mode==='mean'?'이 단어의 뜻은?':S.mode==='word'?'이 뜻에 맞는 단어는?':'이 단어의 병음(성조 포함)은?'}</p>
+  <div class="opts">${Q.opts.map((o,i)=>`<button class="opt${done?(o===Q.t[Q.key]?' right':i===Q.pick?' wrong':''):''}" data-opt="${i}"${done?' disabled':''}>${o}</button>`).join('')}</div>
+  ${done?`<p class="fb2">${ok?'정답이에요!':'아쉬워요. 정답은 “'+Q.t[Q.key]+'”'}</p><div class="acts"><button class="btn pri" data-act="qnext">다음 문제</button><button class="btn" data-go="${Q.t.w}">이 단어 이어 배우기</button></div>`:''}
+  <p class="hint">오답 보기는 반대말·같은 글자·같은 주제의 단어에서 골라서, 헷갈리는 단어를 구분하는 연습이 돼요.</p>`}
+
+const TABS=[['study','이어 배우기'],['themes','주제별'],['list','전체 단어'],['kr','한국어와 비교'],['quiz','퀴즈']];
+function render(){
+  $('#tabs').innerHTML=TABS.map(([k,t])=>`<button role="tab" data-tab="${k}" aria-selected="${S.tab===k}">${t}</button>`).join('');
+  const n=S.learned.size;
+  $('#prog').innerHTML=LEVELS.map(l=>{const a=D.filter(d=>d.lv===l);return `${l}급 ${a.filter(d=>S.learned.has(d.w)).length}/${a.length}`}).join(' · ')+`<div class="bar"><i style="width:${Math.round(n/D.length*100)}%"></i></div>`;
+  $('#app').innerHTML=S.tab==='study'?study():S.tab==='themes'?themes():S.tab==='list'?list():S.tab==='kr'?korea():quiz();
+  const q=$('#q');if(q)q.addEventListener('input',()=>{S.q=q.value;$('#grid').innerHTML=gridH()});
+  const t=$('.trail');if(t)t.scrollLeft=t.scrollWidth}
+function top(){try{$('#tabs').scrollIntoView({block:'start'})}catch(e){}}
+
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  const x=b.dataset;
+  if(x.tab){S.tab=x.tab;render();return}
+  if(x.say){say(x.say);return}
+  if(x.go){go(x.go);S.tab='study';render();top();return}
+  if(x.tr!==undefined){const i=+x.tr;S.cur=S.trail[i];S.trail=S.trail.slice(0,i+1);save();render();return}
+  if(x.lvf!==undefined){S.lvf=+x.lvf;render();return}
+  if(x.lvk!==undefined){S.lvk=+x.lvk;render();return}
+  if(x.lvq!==undefined){S.lvq=+x.lvq;S.quiz=null;render();return}
+  if(x.mode){S.mode=x.mode;S.quiz=null;render();return}
+  if(x.opt!==undefined){const Q=S.quiz;if(Q.pick!==null)return;Q.pick=+x.opt;S.score.n++;if(Q.opts[Q.pick]===Q.t[Q.key])S.score.ok++;render();return}
+  const a=x.act;if(!a)return;
+  if(a==='learn'){S.learned.has(S.cur)?S.learned.delete(S.cur):S.learned.add(S.cur);save();render()}
+  else if(a==='next'){go(pickNext());render();top()}
+  else if(a==='clear'){S.trail=[S.cur];render()}
+  else if(a==='onlynew'){S.onlyNew=!S.onlyNew;render()}
+  else if(a==='qnext'){S.quiz=newQ();render()}
+});
+if(!('speechSynthesis' in window))document.body.classList.add('no-tts');
+render();
+})();
+
+</script></body></html>

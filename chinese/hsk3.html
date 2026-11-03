@@ -1,0 +1,727 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>HSK 3급 꼬리잡기 - 스마트공</title>
+<meta name="description" content="HSK 3급 단어를 같은 글자·반대말·주제·예문으로 꼬리에 꼬리를 물고 익히는 중국어 학습 앱.">
+<link rel="icon" href="/smartgong_logo_icon.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Noto+Sans+SC:wght@400;700;900&family=Noto+Sans:wght@400;600;700&display=swap">
+<style>
+/* 레이아웃: 파란 도로표지판 느낌의 글자판 + 꼬리잡기 사슬 + 연결 칩 */
+:root{
+  --bg:#eceff3; --surface:#ffffff; --ink:#14202c; --muted:#556271; --line:#d3dae2;
+  --sign:#0d4f8b; --sign-ink:#ffffff; --red:#c4301c; --soft:#e3edf7;
+  --t1:#1d62c9; --t2:#1b7a43; --t3:#9a5700; --t4:#c4301c; --t5:#667381; --ok:#1b7a43;
+  --f-han:'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;
+  --f-kr:'Noto Sans KR','Malgun Gothic','Apple SD Gothic Neo',system-ui,sans-serif;
+  --f-py:'Noto Sans','Segoe UI',system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f161d; --surface:#18222c; --ink:#e8eef4; --muted:#9fadbb; --line:#2b3947;
+  --sign:#1a63aa; --red:#ff7a64; --soft:#14283a;
+  --t1:#74acff; --t2:#5fcf8a; --t3:#f2b445; --t4:#ff7a64; --t5:#9fadbb; --ok:#5fcf8a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f161d; --surface:#18222c; --ink:#e8eef4; --muted:#9fadbb; --line:#2b3947;
+  --sign:#1a63aa; --red:#ff7a64; --soft:#14283a;
+  --t1:#74acff; --t2:#5fcf8a; --t3:#f2b445; --t4:#ff7a64; --t5:#9fadbb; --ok:#5fcf8a; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 var(--f-kr);padding-block:0 56px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:10}
+.wrap{max-width:1000px;margin:0 auto}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+.top{display:flex;gap:16px;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;padding:22px 0 14px}
+h1{margin:0;font-size:1.7rem;font-weight:900;letter-spacing:-.01em;text-wrap:balance}
+.sub{margin:2px 0 0;color:var(--muted);font-size:.92rem}
+.prog{min-width:190px;font-size:.85rem;color:var(--muted)}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:5px}
+.bar i{display:block;height:100%;background:var(--red)}
+.tabs{display:flex;gap:2px;border-bottom:2px solid var(--line);overflow-x:auto;position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:5}
+.tabs{scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}
+.tabs button{background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-2px;padding:12px 11px;font-size:.95rem;font-weight:700;color:var(--muted);white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--red)}
+.trail{display:flex;align-items:center;gap:4px;overflow-x:auto;padding:14px 0 6px}
+.trail .tr{flex:none;min-width:42px;height:42px;padding:0 8px;white-space:nowrap;border:1px solid var(--line);background:var(--surface);border-radius:8px;font:700 1.25rem var(--f-han)}
+.trail .tr[aria-current="true"]{background:var(--sign);border-color:var(--sign);color:#fff}
+.trail .ar{flex:none;color:var(--muted)}
+.trail .lab{flex:none;font-size:.8rem;color:var(--muted);margin-right:6px}
+.trail .clr{flex:none;margin-left:8px;background:none;border:0;color:var(--muted);text-decoration:underline;font-size:.85rem}
+.study{display:grid;grid-template-columns:minmax(220px,290px) minmax(0,1fr);gap:22px;align-items:start;margin-top:10px}
+.plate{background:var(--sign);padding:10px;border-radius:14px}
+.plate-in{border:3px solid #fff;border-radius:8px;aspect-ratio:1/1;display:grid;place-items:center;color:#fff}
+.big{font-weight:900;line-height:1.1;font-family:var(--f-han);text-align:center;padding:0 6px}
+.plate-foot{color:#fff;font-size:.82rem;text-align:center;padding-top:8px}
+.py{font:600 2.1rem/1.2 var(--f-py)}
+.py i{font-style:normal;color:var(--muted);padding:0 4px}
+.t1{color:var(--t1)}.t2{color:var(--t2)}.t3{color:var(--t3)}.t4{color:var(--t4)}.t5{color:var(--t5)}
+.meta{display:grid;gap:4px;margin:8px 0 12px}
+.meta b{display:inline-block;min-width:6.4em;color:var(--muted);font-weight:500;font-size:.85rem}
+.mean{font-size:1.2rem;font-weight:700}
+.kbox{margin:10px 0 0;padding:10px 12px;border-radius:8px;font-size:.92rem;border:1px solid var(--line);line-height:1.5}
+.kbox b{display:block;margin-bottom:2px}
+.kbox.same{background:var(--soft)}
+.kbox.diff{background:var(--soft);border-left:4px solid var(--t4)}
+.tip{margin:10px 0 0;padding:10px 12px;background:var(--soft);border-radius:8px;font-size:.92rem}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 14px;font-weight:700}
+.btn.pri{background:var(--red);border-color:var(--red);color:#fff}
+.btn.on{border-color:var(--ok);color:var(--ok)}
+.no-tts .say{display:none}
+.btn.say{margin-left:0}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:14px}
+.box h2{margin:0 0 10px;font-size:.95rem;color:var(--muted);font-weight:700}
+.wd{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 14px;padding:8px 0;border-top:1px solid var(--line)}
+.wd:first-of-type{border-top:0}
+.wz{font:700 1.5rem var(--f-han)}
+.wz button:not(.say),.sent button:not(.say){background:none;border:0;border-bottom:2px dotted var(--sign);padding:0;font:inherit;color:inherit}
+.wz mark,.sent mark{background:var(--soft);color:inherit;border-radius:3px}
+.wp{font-family:var(--f-py);font-weight:600}
+.wm{grid-column:2;color:var(--muted);font-size:.92rem}
+.sent{font:500 1.5rem/1.7 var(--f-han)}
+.sp{font-family:var(--f-py);color:var(--muted);margin-top:2px}
+.sk{margin-top:2px}
+.say{margin-left:8px;border:1px solid var(--line);background:none;border-radius:6px;padding:0 8px;font-size:.78rem;color:var(--muted)}
+.rel{margin-top:18px}
+.rel h3{margin:0 0 4px;font-size:1rem;padding-left:10px;border-left:5px solid var(--rc)}
+.rel p{margin:0 0 8px 15px;color:var(--muted);font-size:.88rem}
+.chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:8px}
+.chip{display:flex;gap:12px;align-items:center;text-align:left;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.chip:hover{border-color:var(--sign)}
+.chip .cc{font:700 1.4rem/1.1 var(--f-han);min-width:2.2em;max-width:5.5em;overflow-wrap:anywhere}
+.chip .ct{display:grid;min-width:0}
+.chip .cp{font:600 .95rem var(--f-py)}
+.chip .cm{color:var(--muted);font-size:.85rem;overflow-wrap:anywhere}
+.chip .cw{font-size:.75rem;color:var(--muted)}
+.chip.done{border-color:var(--ok)}
+.hint{color:var(--muted);font-size:.9rem;margin:14px 0 0}
+.grp{margin-top:14px}
+.grp .gt{font-weight:700;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.lvl{font-size:.75rem;font-weight:700;border-radius:999px;padding:1px 10px;background:var(--soft);color:var(--ink);margin-right:6px}
+.tag{font-size:.75rem;font-weight:700;border:1px solid var(--line);border-radius:999px;padding:0 8px;color:var(--muted)}
+.gn{margin:4px 0 10px;color:var(--muted);font-size:.92rem}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:14px 0 10px}
+input[type=search]{font:inherit;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);min-width:0;flex:1 1 180px}
+.fb{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 12px;font-size:.88rem}
+.fb[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px}
+.tile{position:relative;display:grid;gap:0;justify-items:center;padding:10px 6px;border:1px solid var(--line);background:var(--surface);border-radius:10px}
+.tile:hover{border-color:var(--sign)}
+.tile .tc{font:700 1.5rem/1.3 var(--f-han);text-align:center}
+.tile .tp{font:600 .9rem var(--f-py)}
+.tile .tm{font-size:.78rem;color:var(--muted);text-align:center;overflow-wrap:anywhere}
+.tile.done{border-color:var(--ok)}
+.tile .ck{position:absolute;top:4px;right:6px;font-size:.7rem;color:var(--ok);font-weight:700}
+.qbig{font-family:var(--f-han);font-weight:900;font-size:3.6rem;line-height:1.2;text-align:center;color:#fff;background:var(--sign);border-radius:14px;padding:14px 8px;margin-bottom:14px;overflow-wrap:anywhere}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+.opt{padding:12px;border:2px solid var(--line);background:var(--surface);border-radius:10px;font-weight:700;font-size:1.05rem}
+.opt.right{border-color:var(--ok);background:var(--soft)}
+.opt.wrong{border-color:var(--red)}
+.fb2{margin:12px 0;font-weight:700}
+.score{color:var(--muted);font-size:.9rem}
+@media (max-width:700px){.study{grid-template-columns:minmax(0,1fr)}.plate{max-width:300px}.py{font-size:1.8rem}}
+@media (prefers-reduced-motion:no-preference){.chip,.tile,.btn{transition:border-color .15s}}
+</style>
+</head>
+<body>
+<style>
+.zhbar{max-width:1000px;margin:0 auto;padding:10px 0 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.85rem}
+.zhbar a{color:var(--muted);text-decoration:none}
+.zhbar a.home:hover{color:var(--ink)}
+.zhbar .sw{display:flex;gap:2px;margin-left:auto;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px;overflow-x:auto;max-width:100%}
+.zhbar .sw a{padding:7px 12px;border-radius:999px;font-weight:700;color:var(--muted);white-space:nowrap}
+.zhbar .sw a[aria-current="page"]{background:var(--sign);color:#fff}
+.zhbar a:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+</style>
+<div class="zhbar"><a class="home" href="/">← 스마트공 홈</a><a class="home" href="/more/">기타 앱</a>
+<nav class="sw" aria-label="중국어 학습 메뉴"><a href="/chinese/hanzi.html">간체자</a><a href="/chinese/hsk12.html">HSK 1·2급</a><a href="/chinese/hsk3.html" aria-current="page">3급</a><a href="/chinese/hsk4.html">4급</a><a href="/chinese/hsk5.html">5급</a></nav></div>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>HSK 3급 꼬리잡기</h1>
+      <p class="sub">HSK 3급 신출 299단어를 같은 글자, 반대말, 주제, 예문으로 이어 배워요</p>
+    </div>
+    <div class="prog" id="prog"></div>
+  </header>
+  <nav class="tabs" id="tabs" aria-label="학습 메뉴"></nav>
+  <main id="app"></main>
+</div>
+<script>
+// W(단어, 병음(음절마다 띄어쓰기), 품사, 뜻, [예문, 병음, 번역], 팁)
+const D=[]; let LV=1, TH='';
+function lv(n){LV=n}
+function th(n){TH=n}
+function W(w,py,pos,mean,ex,tip){D.push({w,py,pos,mean,ex:{z:ex[0],py:ex[1],k:ex[2]},tip:tip||'',lv:LV,th:TH})}
+// P(단어A, 단어B, 관계 이름) : 반대말·짝
+const PR=[];
+function P(a,b,label){PR.push({a,b,label:label||'반대말'})}
+
+lv(3);
+th('성질·상태');
+W("矮","ǎi","형용사","키가 작다, 낮다",["他比我矮。","Tā bǐ wǒ ǎi.","그는 나보다 키가 작아요."]);
+W("低","dī","형용사","낮다",["这个桌子太低了。","Zhège zhuōzi tài dī le.","이 책상은 너무 낮아요."]);
+W("短","duǎn","형용사","짧다",["这条裤子有点儿短。","Zhè tiáo kùzi yǒudiǎnr duǎn.","이 바지는 조금 짧아요."]);
+W("久","jiǔ","형용사","오래다",["我等了很久。","Wǒ děng le hěn jiǔ.","저는 오래 기다렸어요."]);
+W("旧","jiù","형용사","낡다, 오래되다",["这件衣服太旧了。","Zhè jiàn yīfu tài jiù le.","이 옷은 너무 낡았어요."]);
+W("新鲜","xīn xiān","형용사","신선하다",["这个水果很新鲜。","Zhège shuǐguǒ hěn xīnxiān.","이 과일은 아주 신선해요."]);
+W("年轻","nián qīng","형용사","젊다",["她看起来很年轻。","Tā kàn qǐlái hěn niánqīng.","그녀는 아주 젊어 보여요."]);
+W("老","lǎo","형용사","늙다, 오래되다",["我的爷爷老了。","Wǒ de yéye lǎo le.","우리 할아버지는 연세가 드셨어요."]);
+W("胖","pàng","형용사","뚱뚱하다",["我的猫很胖。","Wǒ de māo hěn pàng.","제 고양이는 아주 통통해요."]);
+W("瘦","shòu","형용사","마르다",["他很高，也很瘦。","Tā hěn gāo, yě hěn shòu.","그는 키가 크고 말랐어요."]);
+W("饿","è","형용사","배고프다",["我饿了，想吃饭。","Wǒ è le, xiǎng chī fàn.","배고파서 밥을 먹고 싶어요."]);
+W("饱","bǎo","형용사","배부르다",["我吃饱了。","Wǒ chī bǎo le.","배부르게 먹었어요."]);
+W("渴","kě","형용사","목마르다",["我渴了，想喝水。","Wǒ kě le, xiǎng hē shuǐ.","목말라서 물을 마시고 싶어요."]);
+W("甜","tián","형용사","달다",["这个蛋糕很甜。","Zhège dàngāo hěn tián.","이 케이크는 아주 달아요."]);
+W("健康","jiàn kāng","형용사","건강하다, 건강",["身体健康最重要。","Shēntǐ jiànkāng zuì zhòngyào.","몸이 건강한 게 가장 중요해요."]);
+W("舒服","shū fu","형용사","편안하다, 개운하다",["这个椅子很舒服。","Zhège yǐzi hěn shūfu.","이 의자는 아주 편해요."]);
+W("干净","gān jìng","형용사","깨끗하다",["我的房间很干净。","Wǒ de fángjiān hěn gānjìng.","제 방은 아주 깨끗해요."]);
+W("安静","ān jìng","형용사","조용하다",["图书馆里很安静。","Túshūguǎn lǐ hěn ānjìng.","도서관 안은 아주 조용해요."]);
+W("聪明","cōng míng","형용사","똑똑하다",["这个孩子很聪明。","Zhège háizi hěn cōngmíng.","이 아이는 아주 똑똑해요."]);
+W("可爱","kě ài","형용사","귀엽다",["你的狗真可爱。","Nǐ de gǒu zhēn kě'ài.","당신의 개는 정말 귀여워요."]);
+W("热情","rè qíng","형용사","친절하다, 열정적이다",["中国人很热情。","Zhōngguórén hěn rèqíng.","중국 사람들은 아주 친절해요."]);
+W("认真","rèn zhēn","형용사","성실하다, 진지하다",["他学习很认真。","Tā xuéxí hěn rènzhēn.","그는 공부를 아주 열심히 해요."]);
+W("努力","nǔ lì","형용사","노력하다, 열심히 하다",["你要努力学习。","Nǐ yào nǔlì xuéxí.","열심히 공부해야 해요."]);
+W("难过","nán guò","형용사","슬프다",["听到这个消息，我很难过。","Tīngdào zhège xiāoxi, wǒ hěn nánguò.","이 소식을 듣고 저는 슬펐어요."]);
+W("着急","zháo jí","형용사","초조하다, 조급하다",["别着急，慢慢来。","Bié zháojí, mànmān lái.","조급해하지 말고 천천히 해요."]);
+W("满意","mǎn yì","형용사","만족하다",["我对这个房间很满意。","Wǒ duì zhège fángjiān hěn mǎnyì.","저는 이 방이 아주 마음에 들어요."]);
+W("奇怪","qí guài","형용사","이상하다",["这件事很奇怪。","Zhè jiàn shì hěn qíguài.","이 일은 정말 이상해요."]);
+W("清楚","qīng chu","형용사","분명하다, 또렷하다",["我听不清楚。","Wǒ tīng bù qīngchu.","저는 또렷하게 들리지 않아요."]);
+W("简单","jiǎn dān","형용사","간단하다",["这个问题很简单。","Zhège wèntí hěn jiǎndān.","이 문제는 아주 간단해요."]);
+W("难","nán","형용사","어렵다",["汉字很难写。","Hànzì hěn nán xiě.","한자는 쓰기가 어려워요."]);
+W("容易","róng yì","형용사","쉽다",["这个字很容易写。","Zhège zì hěn róngyì xiě.","이 글자는 쓰기 쉬워요."]);
+W("方便","fāng biàn","형용사","편리하다",["坐地铁很方便。","Zuò dìtiě hěn fāngbiàn.","지하철을 타면 편리해요."]);
+W("重要","zhòng yào","형용사","중요하다",["这件事很重要。","Zhè jiàn shì hěn zhòngyào.","이 일은 아주 중요해요."]);
+W("主要","zhǔ yào","형용사","주요한",["这是主要的问题。","Zhè shì zhǔyào de wèntí.","이것이 주된 문제예요."]);
+W("一般","yì bān","형용사","보통이다, 일반적이다",["我一般七点起床。","Wǒ yìbān qī diǎn qǐchuáng.","저는 보통 7시에 일어나요."]);
+W("一样","yí yàng","형용사","같다",["我们的手机一样。","Wǒmen de shǒujī yíyàng.","우리 휴대폰은 같아요."]);
+W("相同","xiāng tóng","형용사","서로 같다",["我们的爱好相同。","Wǒmen de àihào xiāngtóng.","우리는 취미가 같아요."]);
+W("有名","yǒu míng","형용사","유명하다",["这个饭店很有名。","Zhège fàndiàn hěn yǒumíng.","이 식당은 아주 유명해요."]);
+W("突然","tū rán","형용사","갑작스럽다, 갑자기",["天气突然变冷了。","Tiānqì tūrán biàn lěng le.","날씨가 갑자기 추워졌어요."]);
+W("小心","xiǎo xīn","동사","조심하다",["过马路要小心。","Guò mǎlù yào xiǎoxīn.","길을 건널 때는 조심해야 해요."]);
+W("蓝","lán","형용사","파랗다",["天很蓝。","Tiān hěn lán.","하늘이 아주 파래요."]);
+W("绿","lǜ","형용사","푸르다, 초록색이다",["这条裤子是绿的。","Zhè tiáo kùzi shì lǜ de.","이 바지는 초록색이에요."]);
+W("黄","huáng","형용사","노랗다",["秋天，树叶都黄了。","Qiūtiān, shùyè dōu huáng le.","가을에는 나뭇잎이 모두 노래져요."]);
+th('부사·정도');
+W("比较","bǐ jiào","부사","비교적, 비교하다",["这个比较便宜。","Zhège bǐjiào piányi.","이게 비교적 싸요."]);
+W("更","gèng","부사","더욱",["今天比昨天更冷。","Jīntiān bǐ zuótiān gèng lěng.","오늘은 어제보다 더 추워요."]);
+W("极","jí","부사","극히, 아주",["这个电影好极了。","Zhège diànyǐng hǎo jí le.","이 영화는 정말 좋아요."]);
+W("特别","tè bié","부사","특히, 특별하다",["我特别喜欢吃面条。","Wǒ tèbié xǐhuan chī miàntiáo.","저는 국수를 특히 좋아해요."]);
+W("多么","duō me","부사","얼마나",["今天多么高兴啊！","Jīntiān duōme gāoxìng a!","오늘 얼마나 기쁜지 몰라요!"]);
+W("几乎","jī hū","부사","거의",["我几乎每天都去公园。","Wǒ jīhū měitiān dōu qù gōngyuán.","저는 거의 매일 공원에 가요."]);
+W("经常","jīng cháng","부사","자주",["我经常去图书馆。","Wǒ jīngcháng qù túshūguǎn.","저는 도서관에 자주 가요."]);
+W("总是","zǒng shì","부사","늘, 항상",["他总是很忙。","Tā zǒngshì hěn máng.","그는 늘 바빠요."]);
+W("一直","yì zhí","부사","계속, 줄곧",["雨一直下。","Yǔ yìzhí xià.","비가 계속 내려요."]);
+W("又","yòu","부사","또, 다시",["他昨天来了，今天又来了。","Tā zuótiān lái le, jīntiān yòu lái le.","그는 어제 왔는데 오늘 또 왔어요."]);
+W("越","yuè","부사","~할수록",["越学越有意思。","Yuè xué yuè yǒu yìsi.","배울수록 재미있어요."]);
+W("才","cái","부사","겨우, 비로소",["他十点才起床。","Tā shí diǎn cái qǐchuáng.","그는 10시에야 일어나요."]);
+W("马上","mǎ shàng","부사","곧, 바로",["我马上就到。","Wǒ mǎshàng jiù dào.","곧 도착해요."]);
+W("终于","zhōng yú","부사","마침내",["我终于找到了我的手机。","Wǒ zhōngyú zhǎodào le wǒ de shǒujī.","저는 마침내 제 휴대폰을 찾았어요."]);
+W("先","xiān","부사","먼저",["你先吃，我等一下。","Nǐ xiān chī, wǒ děng yíxià.","먼저 드세요, 저는 잠깐 기다릴게요."]);
+W("然后","rán hòu","접속사","그런 다음",["先吃饭，然后看电视。","Xiān chī fàn, ránhòu kàn diànshì.","먼저 밥을 먹고 그다음에 TV를 봐요."]);
+W("一边","yì biān","부사","~하면서",["他一边吃饭，一边看电视。","Tā yìbiān chī fàn, yìbiān kàn diànshì.","그는 밥을 먹으면서 TV를 봐요."]);
+W("一定","yí dìng","부사","반드시, 꼭",["明天你一定要来。","Míngtiān nǐ yídìng yào lái.","내일 꼭 와야 해요."]);
+W("一共","yí gòng","부사","모두, 합쳐서",["这些一共多少钱？","Zhèxiē yígòng duōshao qián?","이것들은 모두 얼마예요?"]);
+W("当然","dāng rán","부사","당연히",["你当然可以去。","Nǐ dāngrán kěyǐ qù.","당연히 가도 돼요."]);
+W("其实","qí shí","부사","사실은",["其实我不会游泳。","Qíshí wǒ bú huì yóuyǒng.","사실 저는 수영을 못해요."]);
+W("必须","bì xū","부사","반드시 ~해야 한다",["你必须在八点到学校。","Nǐ bìxū zài bā diǎn dào xuéxiào.","8시까지 학교에 도착해야 해요."]);
+W("应该","yīng gāi","조동사","~해야 한다",["你应该多休息。","Nǐ yīnggāi duō xiūxi.","더 쉬어야 해요."]);
+W("愿意","yuàn yì","동사","~하고 싶다, 기꺼이 ~하다",["我愿意帮你。","Wǒ yuànyì bāng nǐ.","기꺼이 도와드릴게요."]);
+W("敢","gǎn","조동사","감히 ~하다",["我不敢一个人去。","Wǒ bù gǎn yí ge rén qù.","저는 혼자 갈 엄두가 안 나요."]);
+th('접속·전치·조사');
+W("而且","ér qiě","접속사","게다가",["这个菜很好吃，而且很便宜。","Zhège cài hěn hǎochī, érqiě hěn piányi.","이 요리는 맛있고 게다가 싸요."]);
+W("还是","hái shi","접속사","아니면, 여전히",["你喝茶还是喝咖啡？","Nǐ hē chá háishi hē kāfēi?","차 마실래요, 커피 마실래요?"]);
+W("或者","huò zhě","접속사","또는",["我们坐地铁或者坐出租车去。","Wǒmen zuò dìtiě huòzhě zuò chūzūchē qù.","우리는 지하철이나 택시로 가요."]);
+W("如果","rú guǒ","접속사","만약",["如果明天下雨，我就不去了。","Rúguǒ míngtiān xià yǔ, wǒ jiù bú qù le.","내일 비가 오면 저는 안 갈래요."]);
+W("虽然","suī rán","접속사","비록 ~이지만",["虽然很累，但是我很高兴。","Suīrán hěn lèi, dànshì wǒ hěn gāoxìng.","피곤하지만 저는 기뻐요."]);
+W("其他","qí tā","대명사","다른, 기타",["其他人都来了。","Qítā rén dōu lái le.","다른 사람들은 모두 왔어요."]);
+W("别人","bié ren","대명사","다른 사람",["别人都走了。","Biéren dōu zǒu le.","다른 사람들은 다 갔어요."]);
+W("自己","zì jǐ","대명사","자기, 스스로",["我自己去。","Wǒ zìjǐ qù.","제가 직접 갈게요."]);
+W("把","bǎ","전치사","~을(를) (처치)",["请把门关上。","Qǐng bǎ mén guān shàng.","문을 닫아 주세요."],"'把+목적어+동사' 구문으로 대상을 어떻게 처리하는지 말해요.");
+W("被","bèi","전치사","~에게 ~당하다",["我的手机被朋友拿走了。","Wǒ de shǒujī bèi péngyou ná zǒu le.","제 휴대폰을 친구가 가져갔어요."]);
+W("跟","gēn","전치사","~와, ~를 따라",["我跟朋友去看电影。","Wǒ gēn péngyou qù kàn diànyǐng.","저는 친구와 영화를 보러 가요."]);
+W("为","wèi","전치사","~를 위해",["我为你高兴。","Wǒ wèi nǐ gāoxìng.","저는 당신 때문에 기뻐요."]);
+W("为了","wèi le","전치사","~하기 위해서",["为了学汉语，他去了中国。","Wèile xué Hànyǔ, tā qù le Zhōngguó.","중국어를 배우려고 그는 중국에 갔어요."]);
+W("关于","guān yú","전치사","~에 관해",["这是一本关于中国的书。","Zhè shì yì běn guānyú Zhōngguó de shū.","이것은 중국에 관한 책이에요."]);
+W("根据","gēn jù","전치사","~에 따라",["根据天气决定去不去。","Gēnjù tiānqì juédìng qù bu qù.","날씨에 따라 갈지 정해요."]);
+W("除了","chú le","전치사","~외에",["除了他，大家都来了。","Chúle tā, dàjiā dōu lái le.","그 사람 말고는 모두 왔어요."],"除了…以外, 还/都… 구문으로 자주 써요.");
+W("地","de","조사","~하게(부사어 표지)",["他高兴地笑了。","Tā gāoxìng de xiào le.","그는 기쁘게 웃었어요."]);
+W("啊","a","조사","~네요, ~군요",["今天天气真好啊！","Jīntiān tiānqì zhēn hǎo a!","오늘 날씨 정말 좋네요!"]);
+
+th('사람·가족·직업');
+W("阿姨","ā yí","명사","이모, 아주머니",["阿姨，您好！","Āyí, nín hǎo!","아주머니, 안녕하세요!"]);
+W("叔叔","shū shu","명사","삼촌, 아저씨",["叔叔在银行工作。","Shūshu zài yínháng gōngzuò.","삼촌은 은행에서 일해요."]);
+W("奶奶","nǎi nai","명사","할머니(친가)",["奶奶今年七十岁。","Nǎinai jīnnián qīshí suì.","할머니는 올해 일흔이세요."]);
+W("爷爷","yé ye","명사","할아버지(친가)",["爷爷喜欢喝茶。","Yéye xǐhuan hē chá.","할아버지는 차를 즐겨 드세요."]);
+W("邻居","lín jū","명사","이웃",["我的邻居很热情。","Wǒ de línjū hěn rèqíng.","우리 이웃은 아주 친절해요."]);
+W("同事","tóng shì","명사","직장 동료",["他是我的同事。","Tā shì wǒ de tóngshì.","그는 제 직장 동료예요."]);
+W("经理","jīng lǐ","명사","매니저, 사장",["经理在办公室。","Jīnglǐ zài bàngōngshì.","매니저는 사무실에 있어요."]);
+W("校长","xiào zhǎng","명사","교장",["校长在教室里。","Xiàozhǎng zài jiàoshì lǐ.","교장 선생님은 교실에 계세요."]);
+W("司机","sī jī","명사","운전기사",["司机开车很小心。","Sījī kāichē hěn xiǎoxīn.","기사님은 운전을 조심스럽게 해요."]);
+W("客人","kè rén","명사","손님",["客人来了。","Kèrén lái le.","손님이 오셨어요."]);
+W("熊猫","xióng māo","명사","판다",["我想去看熊猫。","Wǒ xiǎng qù kàn xióngmāo.","저는 판다를 보러 가고 싶어요."]);
+th('몸·외모');
+W("鼻子","bí zi","명사","코",["他的鼻子很高。","Tā de bízi hěn gāo.","그는 코가 높아요."]);
+W("耳朵","ěr duo","명사","귀",["我的耳朵很疼。","Wǒ de ěrduo hěn téng.","제 귀가 아파요."]);
+W("脸","liǎn","명사","얼굴",["她的脸很红。","Tā de liǎn hěn hóng.","그녀의 얼굴이 빨개요."]);
+W("脚","jiǎo","명사","발",["我的脚很疼。","Wǒ de jiǎo hěn téng.","제 발이 아파요."]);
+W("腿","tuǐ","명사","다리",["他的腿很长。","Tā de tuǐ hěn cháng.","그는 다리가 길어요."]);
+W("头发","tóu fa","명사","머리카락",["她的头发很长。","Tā de tóufa hěn cháng.","그녀는 머리카락이 길어요."]);
+W("眼镜","yǎn jìng","명사","안경",["我找不到我的眼镜。","Wǒ zhǎo bu dào wǒ de yǎnjìng.","제 안경을 못 찾겠어요."]);
+th('옷·신발·소지품');
+W("衬衫","chèn shān","명사","셔츠",["这件衬衫很漂亮。","Zhè jiàn chènshān hěn piàoliang.","이 셔츠는 아주 예뻐요."]);
+W("裤子","kù zi","명사","바지",["我想买一条裤子。","Wǒ xiǎng mǎi yì tiáo kùzi.","저는 바지를 한 벌 사고 싶어요."]);
+W("裙子","qún zi","명사","치마",["她穿着一条蓝裙子。","Tā chuān zhe yì tiáo lán qúnzi.","그녀는 파란 치마를 입고 있어요."]);
+W("帽子","mào zi","명사","모자",["他戴着一顶黑帽子。","Tā dài zhe yì dǐng hēi màozi.","그는 검은 모자를 쓰고 있어요."]);
+W("鞋","xié","명사","신발",["这双鞋很舒服。","Zhè shuāng xié hěn shūfu.","이 신발은 아주 편해요."]);
+W("伞","sǎn","명사","우산",["外面下雨，你带伞了吗？","Wàimiàn xià yǔ, nǐ dài sǎn le ma?","밖에 비가 오는데 우산 가져왔어요?"]);
+W("包","bāo","명사","가방, 싸다",["我的包在椅子上。","Wǒ de bāo zài yǐzi shàng.","제 가방은 의자 위에 있어요."]);
+W("行李箱","xíng li xiāng","명사","여행용 가방",["我的行李箱很大。","Wǒ de xínglixiāng hěn dà.","제 여행 가방은 아주 커요."]);
+W("护照","hù zhào","명사","여권",["别忘了带护照。","Bié wàng le dài hùzhào.","여권 챙기는 거 잊지 마세요."]);
+W("照相机","zhào xiàng jī","명사","카메라",["他有一个新照相机。","Tā yǒu yí ge xīn zhàoxiàngjī.","그는 새 카메라가 있어요."]);
+W("照片","zhào piàn","명사","사진",["这张照片很漂亮。","Zhè zhāng zhàopiàn hěn piàoliang.","이 사진은 아주 예뻐요."]);
+W("礼物","lǐ wù","명사","선물",["这是送你的礼物。","Zhè shì sòng nǐ de lǐwù.","이건 당신에게 주는 선물이에요."]);
+W("铅笔","qiān bǐ","명사","연필",["我用铅笔写字。","Wǒ yòng qiānbǐ xiě zì.","저는 연필로 글씨를 써요."]);
+W("字典","zì diǎn","명사","자전, 글자 사전",["不会的字可以查字典。","Bú huì de zì kěyǐ chá zìdiǎn.","모르는 글자는 사전을 찾아보세요."]);
+W("信","xìn","명사","편지",["我给朋友写了一封信。","Wǒ gěi péngyou xiě le yì fēng xìn.","저는 친구에게 편지를 썼어요."]);
+W("电子邮件","diàn zǐ yóu jiàn","명사","이메일",["我给他发了一封电子邮件。","Wǒ gěi tā fā le yì fēng diànzǐ yóujiàn.","저는 그에게 이메일을 보냈어요."]);
+th('음식·식당');
+W("菜单","cài dān","명사","메뉴판",["请给我看看菜单。","Qǐng gěi wǒ kànkan càidān.","메뉴판 좀 보여 주세요."]);
+W("蛋糕","dàn gāo","명사","케이크",["我想吃蛋糕。","Wǒ xiǎng chī dàngāo.","저는 케이크를 먹고 싶어요."]);
+W("面包","miàn bāo","명사","빵",["我早上吃面包。","Wǒ zǎoshang chī miànbāo.","저는 아침에 빵을 먹어요."]);
+W("面条","miàn tiáo","명사","국수",["我喜欢吃面条。","Wǒ xǐhuan chī miàntiáo.","저는 국수를 좋아해요."]);
+W("果汁","guǒ zhī","명사","과일 주스",["请给我一杯果汁。","Qǐng gěi wǒ yì bēi guǒzhī.","과일 주스 한 잔 주세요."]);
+W("啤酒","pí jiǔ","명사","맥주",["他不喝啤酒。","Tā bù hē píjiǔ.","그는 맥주를 안 마셔요."]);
+W("葡萄","pú tao","명사","포도",["这些葡萄很甜。","Zhèxiē pútao hěn tián.","이 포도는 아주 달아요."]);
+W("香蕉","xiāng jiāo","명사","바나나",["我想买一些香蕉。","Wǒ xiǎng mǎi yìxiē xiāngjiāo.","저는 바나나를 좀 사고 싶어요."]);
+W("糖","táng","명사","설탕, 사탕",["我的茶里不放糖。","Wǒ de chá lǐ bú fàng táng.","제 차에는 설탕을 넣지 않아요."]);
+W("筷子","kuài zi","명사","젓가락",["你会用筷子吗？","Nǐ huì yòng kuàizi ma?","젓가락 쓸 줄 알아요?"]);
+W("盘子","pán zi","명사","접시",["盘子里有一个苹果。","Pánzi lǐ yǒu yí ge píngguǒ.","접시에 사과가 하나 있어요."]);
+W("碗","wǎn","명사","그릇, 공기",["我吃了一碗米饭。","Wǒ chī le yì wǎn mǐfàn.","저는 밥 한 공기를 먹었어요."]);
+W("冰箱","bīng xiāng","명사","냉장고",["冰箱里有水果。","Bīngxiāng lǐ yǒu shuǐguǒ.","냉장고에 과일이 있어요."]);
+W("厨房","chú fáng","명사","주방",["妈妈在厨房做饭。","Māma zài chúfáng zuò fàn.","엄마는 주방에서 요리하세요."]);
+th('장소·도시');
+W("城市","chéng shì","명사","도시",["北京是一个大城市。","Běijīng shì yí ge dà chéngshì.","베이징은 큰 도시예요."]);
+W("国家","guó jiā","명사","나라",["中国是一个大国家。","Zhōngguó shì yí ge dà guójiā.","중국은 큰 나라예요."]);
+W("世界","shì jiè","명사","세계",["世界很大。","Shìjiè hěn dà.","세상은 아주 넓어요."]);
+W("地方","dì fang","명사","장소, 곳",["这是什么地方？","Zhè shì shénme dìfang?","여기는 어떤 곳이에요?"]);
+W("附近","fù jìn","명사","근처",["我家附近有一个超市。","Wǒ jiā fùjìn yǒu yí ge chāoshì.","우리 집 근처에 슈퍼마켓이 있어요."]);
+W("中间","zhōng jiān","명사","가운데",["桌子在房间中间。","Zhuōzi zài fángjiān zhōngjiān.","책상은 방 한가운데에 있어요."]);
+W("超市","chāo shì","명사","슈퍼마켓",["我去超市买水果。","Wǒ qù chāoshì mǎi shuǐguǒ.","저는 슈퍼마켓에 과일을 사러 가요."]);
+W("银行","yín háng","명사","은행",["银行在学校旁边。","Yínháng zài xuéxiào pángbiān.","은행은 학교 옆에 있어요."]);
+W("公园","gōng yuán","명사","공원",["我们去公园玩吧。","Wǒmen qù gōngyuán wán ba.","우리 공원에 놀러 가요."]);
+W("花园","huā yuán","명사","정원",["花园里有很多花。","Huāyuán lǐ yǒu hěn duō huā.","정원에 꽃이 많아요."]);
+W("图书馆","tú shū guǎn","명사","도서관",["图书馆里有很多书。","Túshūguǎn lǐ yǒu hěn duō shū.","도서관에 책이 아주 많아요."]);
+W("宾馆","bīn guǎn","명사","호텔",["这个宾馆很干净。","Zhège bīnguǎn hěn gānjìng.","이 호텔은 아주 깨끗해요."]);
+W("办公室","bàn gōng shì","명사","사무실",["经理在办公室。","Jīnglǐ zài bàngōngshì.","매니저는 사무실에 있어요."]);
+W("楼","lóu","명사","건물, 층",["我家在三楼。","Wǒ jiā zài sān lóu.","우리 집은 3층이에요."]);
+W("层","céng","양사","층",["这个楼有十层。","Zhège lóu yǒu shí céng.","이 건물은 10층이에요."]);
+W("电梯","diàn tī","명사","엘리베이터",["我们坐电梯上去。","Wǒmen zuò diàntī shàngqù.","우리는 엘리베이터로 올라가요."]);
+W("洗手间","xǐ shǒu jiān","명사","화장실",["请问，洗手间在哪儿？","Qǐngwèn, xǐshǒujiān zài nǎr?","실례지만 화장실이 어디예요?"]);
+W("灯","dēng","명사","등, 불",["请把灯关了。","Qǐng bǎ dēng guān le.","불을 꺼 주세요."]);
+W("空调","kōng tiáo","명사","에어컨",["房间里有空调。","Fángjiān lǐ yǒu kōngtiáo.","방에 에어컨이 있어요."]);
+W("街道","jiē dào","명사","거리",["这条街道很干净。","Zhè tiáo jiēdào hěn gānjìng.","이 거리는 아주 깨끗해요."]);
+W("地铁","dì tiě","명사","지하철",["我坐地铁去学校。","Wǒ zuò dìtiě qù xuéxiào.","저는 지하철로 학교에 가요."]);
+W("地图","dì tú","명사","지도",["你有地图吗？","Nǐ yǒu dìtú ma?","지도 있어요?"]);
+W("河","hé","명사","강",["河里有很多鱼。","Hé lǐ yǒu hěn duō yú.","강에 물고기가 많아요."]);
+W("口","kǒu","명사","입, 출입구, 식구 수",["我家有四口人。","Wǒ jiā yǒu sì kǒu rén.","우리 집은 네 식구예요."]);
+th('방향·계절·자연');
+W("东","dōng","명사","동쪽",["太阳从东边出来。","Tàiyáng cóng dōngbian chūlái.","해는 동쪽에서 떠요."]);
+W("西","xī","명사","서쪽",["商店在学校西边。","Shāngdiàn zài xuéxiào xībian.","가게는 학교 서쪽에 있어요."]);
+W("南","nán","명사","남쪽",["我家在学校南边。","Wǒ jiā zài xuéxiào nánbian.","우리 집은 학교 남쪽에 있어요."]);
+W("北方","běi fāng","명사","북방, 북쪽 지방",["北方的冬天很冷。","Běifāng de dōngtiān hěn lěng.","북쪽 지방의 겨울은 아주 추워요."]);
+W("春","chūn","명사","봄",["春天来了。","Chūntiān lái le.","봄이 왔어요."]);
+W("夏","xià","명사","여름",["夏天很热。","Xiàtiān hěn rè.","여름은 아주 더워요."]);
+W("秋","qiū","명사","가을",["秋天的天气很好。","Qiūtiān de tiānqì hěn hǎo.","가을 날씨는 아주 좋아요."]);
+W("冬","dōng","명사","겨울",["北京的冬天很冷。","Běijīng de dōngtiān hěn lěng.","베이징의 겨울은 아주 추워요."]);
+W("季节","jì jié","명사","계절",["你最喜欢哪个季节？","Nǐ zuì xǐhuan nǎge jìjié?","어느 계절을 가장 좋아해요?"]);
+W("太阳","tài yáng","명사","태양, 해",["今天太阳很大。","Jīntiān tàiyáng hěn dà.","오늘은 햇볕이 강해요."]);
+W("月亮","yuè liang","명사","달",["今天的月亮很圆。","Jīntiān de yuèliang hěn yuán.","오늘 달이 아주 둥글어요."]);
+W("云","yún","명사","구름",["天上有很多云。","Tiān shàng yǒu hěn duō yún.","하늘에 구름이 많아요."]);
+W("树","shù","명사","나무",["树上有一只鸟。","Shù shàng yǒu yì zhī niǎo.","나무 위에 새가 한 마리 있어요."]);
+W("花","huā","명사","꽃, 쓰다",["这些花很漂亮。","Zhèxiē huā hěn piàoliang.","이 꽃들은 아주 예뻐요."],"동사로는 '(돈·시간을) 쓰다'의 뜻도 있어요.");
+W("草","cǎo","명사","풀",["草是绿的。","Cǎo shì lǜ de.","풀은 초록색이에요."]);
+W("鸟","niǎo","명사","새",["树上有两只鸟。","Shù shàng yǒu liǎng zhī niǎo.","나무 위에 새가 두 마리 있어요."]);
+W("马","mǎ","명사","말",["那匹马很大。","Nà pǐ mǎ hěn dà.","저 말은 아주 커요."]);
+W("动物","dòng wù","명사","동물",["我喜欢小动物。","Wǒ xǐhuan xiǎo dòngwù.","저는 작은 동물을 좋아해요."]);
+
+th('학교·공부');
+W("班","bān","명사","반, 학급",["我们班有二十个学生。","Wǒmen bān yǒu èrshí ge xuésheng.","우리 반에는 학생이 20명 있어요."]);
+W("年级","nián jí","명사","학년",["我是三年级的学生。","Wǒ shì sān niánjí de xuésheng.","저는 3학년 학생이에요."]);
+W("黑板","hēi bǎn","명사","칠판",["老师在黑板上写字。","Lǎoshī zài hēibǎn shàng xiě zì.","선생님이 칠판에 글씨를 써요."]);
+W("作业","zuò yè","명사","숙제",["我做完作业了。","Wǒ zuò wán zuòyè le.","저는 숙제를 다 했어요."]);
+W("数学","shù xué","명사","수학",["我喜欢数学。","Wǒ xǐhuan shùxué.","저는 수학을 좋아해요."]);
+W("体育","tǐ yù","명사","체육",["我们下午有体育课。","Wǒmen xiàwǔ yǒu tǐyù kè.","우리는 오후에 체육 수업이 있어요."]);
+W("历史","lì shǐ","명사","역사",["我对中国历史很感兴趣。","Wǒ duì Zhōngguó lìshǐ hěn gǎn xìngqù.","저는 중국 역사에 관심이 많아요."]);
+W("文化","wén huà","명사","문화",["我喜欢中国文化。","Wǒ xǐhuan Zhōngguó wénhuà.","저는 중국 문화를 좋아해요."]);
+W("词语","cí yǔ","명사","단어, 어휘",["这个词语是什么意思？","Zhège cíyǔ shì shénme yìsi?","이 단어는 무슨 뜻이에요?"]);
+W("句子","jù zi","명사","문장",["请用这个词写一个句子。","Qǐng yòng zhège cí xiě yí ge jùzi.","이 단어로 문장을 하나 써 보세요."]);
+W("普通话","pǔ tōng huà","명사","표준 중국어",["他的普通话说得很好。","Tā de pǔtōnghuà shuō de hěn hǎo.","그는 표준 중국어를 아주 잘해요."]);
+W("成绩","chéng jì","명사","성적",["他的成绩很好。","Tā de chéngjì hěn hǎo.","그의 성적은 아주 좋아요."]);
+W("水平","shuǐ píng","명사","수준",["他的汉语水平很高。","Tā de Hànyǔ shuǐpíng hěn gāo.","그의 중국어 수준은 아주 높아요."]);
+W("练习","liàn xí","동사","연습하다, 연습",["我每天练习写汉字。","Wǒ měitiān liànxí xiě Hànzì.","저는 매일 한자 쓰기를 연습해요."]);
+W("复习","fù xí","동사","복습하다",["考试以前要好好复习。","Kǎoshì yǐqián yào hǎohāo fùxí.","시험 전에는 잘 복습해야 해요."]);
+W("教","jiāo","동사","가르치다",["他教我们汉语。","Tā jiāo wǒmen Hànyǔ.","그는 우리에게 중국어를 가르쳐요."]);
+W("讲","jiǎng","동사","말하다, 설명하다",["老师在讲这个句子。","Lǎoshī zài jiǎng zhège jùzi.","선생님이 이 문장을 설명하고 있어요."]);
+W("明白","míng bai","동사","이해하다, 분명하다",["我明白你的意思。","Wǒ míngbai nǐ de yìsi.","당신의 뜻을 알겠어요."]);
+W("了解","liǎo jiě","동사","잘 알다, 이해하다",["我不太了解这个人。","Wǒ bú tài liǎojiě zhège rén.","저는 이 사람을 잘 몰라요."]);
+W("检查","jiǎn chá","동사","검사하다, 점검하다",["请检查一下你的作业。","Qǐng jiǎnchá yíxià nǐ de zuòyè.","숙제를 한번 확인해 보세요."]);
+W("提高","tí gāo","동사","높이다, 향상시키다",["多听多说可以提高汉语水平。","Duō tīng duō shuō kěyǐ tígāo Hànyǔ shuǐpíng.","많이 듣고 말하면 중국어 실력이 늘어요."]);
+W("选择","xuǎn zé","동사","선택하다",["你选择哪一个？","Nǐ xuǎnzé nǎ yí ge?","어느 것을 선택할래요?"]);
+W("记得","jì de","동사","기억하다",["你记得他的名字吗？","Nǐ jìde tā de míngzi ma?","그의 이름을 기억해요?"]);
+W("忘记","wàng jì","동사","잊다",["我忘记带护照了。","Wǒ wàngjì dài hùzhào le.","저는 여권을 챙기는 걸 잊었어요."]);
+W("认为","rèn wéi","동사","~라고 여기다",["我认为这个很好。","Wǒ rènwéi zhège hěn hǎo.","저는 이게 좋다고 생각해요."]);
+W("以为","yǐ wéi","동사","~인 줄 알다(착각)",["我以为他是老师。","Wǒ yǐwéi tā shì lǎoshī.","저는 그가 선생님인 줄 알았어요."]);
+W("表示","biǎo shì","동사","나타내다, 표시하다",["他表示同意。","Tā biǎoshì tóngyì.","그는 동의한다고 밝혔어요."]);
+W("同意","tóng yì","동사","동의하다",["我同意你的看法。","Wǒ tóngyì nǐ de kànfǎ.","당신 의견에 동의해요."]);
+W("相信","xiāng xìn","동사","믿다",["我相信你。","Wǒ xiāngxìn nǐ.","저는 당신을 믿어요."]);
+W("像","xiàng","동사","닮다, ~와 같다",["你长得像你妈妈。","Nǐ zhǎng de xiàng nǐ māma.","당신은 엄마를 닮았어요."]);
+th('생활·일상 동작');
+W("搬","bān","동사","옮기다, 이사하다",["我们下个月搬家。","Wǒmen xià ge yuè bānjiā.","우리는 다음 달에 이사해요."]);
+W("拿","ná","동사","들다, 가지다",["请拿一下这个包。","Qǐng ná yíxià zhège bāo.","이 가방 좀 들어 주세요."]);
+W("带","dài","동사","가지고 가다, 데리다",["你带手机了吗？","Nǐ dài shǒujī le ma?","휴대폰 가져왔어요?"]);
+W("放","fàng","동사","놓다, 넣다",["请把书放在桌子上。","Qǐng bǎ shū fàng zài zhuōzi shàng.","책을 책상 위에 놓아 주세요."]);
+W("关","guān","동사","닫다, 끄다",["请关门。","Qǐng guān mén.","문을 닫아 주세요."]);
+W("换","huàn","동사","바꾸다, 갈아입다",["我想换一件衣服。","Wǒ xiǎng huàn yí jiàn yīfu.","저는 옷을 갈아입고 싶어요."]);
+W("借","jiè","동사","빌리다, 빌려주다",["我想借一本书。","Wǒ xiǎng jiè yì běn shū.","저는 책을 한 권 빌리고 싶어요."]);
+W("还","huán","동사","돌려주다",["我明天还你书。","Wǒ míngtiān huán nǐ shū.","내일 책을 돌려줄게요."],"부사 '아직, 또'일 때는 hái로 읽어요.");
+W("接","jiē","동사","받다, 마중하다",["我去机场接朋友。","Wǒ qù jīchǎng jiē péngyou.","저는 친구를 마중하러 공항에 가요."]);
+W("骑","qí","동사","(자전거·말을) 타다",["我骑自行车去学校。","Wǒ qí zìxíngchē qù xuéxiào.","저는 자전거를 타고 학교에 가요."]);
+W("站","zhàn","동사","서다, 정거장",["请站在这儿。","Qǐng zhàn zài zhèr.","여기에 서 주세요."]);
+W("爬山","pá shān","동사","등산하다",["周末我们去爬山。","Zhōumò wǒmen qù páshān.","주말에 우리는 등산을 가요."]);
+W("打扫","dǎ sǎo","동사","청소하다",["我在打扫房间。","Wǒ zài dǎsǎo fángjiān.","저는 방을 청소하고 있어요."]);
+W("洗澡","xǐ zǎo","동사","샤워하다, 목욕하다",["我每天晚上洗澡。","Wǒ měitiān wǎnshang xǐzǎo.","저는 매일 저녁 샤워해요."]);
+W("刷牙","shuā yá","동사","양치하다",["睡觉前要刷牙。","Shuìjiào qián yào shuāyá.","자기 전에는 양치를 해야 해요."]);
+W("上网","shàng wǎng","동사","인터넷을 하다",["我晚上上网看新闻。","Wǒ wǎnshang shàngwǎng kàn xīnwén.","저는 저녁에 인터넷으로 뉴스를 봐요."]);
+W("用","yòng","동사","쓰다, 사용하다",["你会用筷子吗？","Nǐ huì yòng kuàizi ma?","젓가락 쓸 줄 알아요?"]);
+W("需要","xū yào","동사","필요하다",["你需要什么？","Nǐ xūyào shénme?","무엇이 필요해요?"]);
+W("要求","yāo qiú","동사","요구하다, 요구",["老师要求我们每天写字。","Lǎoshī yāoqiú wǒmen měitiān xiě zì.","선생님은 우리에게 매일 글씨를 쓰라고 하세요."]);
+W("使","shǐ","동사","~하게 하다",["这件事使我很高兴。","Zhè jiàn shì shǐ wǒ hěn gāoxìng.","이 일이 저를 기쁘게 했어요."]);
+W("祝","zhù","동사","빌다, 기원하다",["祝你生日快乐！","Zhù nǐ shēngrì kuàilè!","생일 축하해요!"]);
+W("注意","zhù yì","동사","주의하다",["过马路要注意安全。","Guò mǎlù yào zhùyì ānquán.","길을 건널 때는 안전에 주의해야 해요."]);
+W("照顾","zhào gu","동사","돌보다",["他在家照顾孩子。","Tā zài jiā zhàogu háizi.","그는 집에서 아이를 돌봐요."]);
+W("帮忙","bāng máng","동사","돕다",["你能帮我一个忙吗？","Nǐ néng bāng wǒ yí ge máng ma?","저 좀 도와줄 수 있어요?"]);
+W("参加","cān jiā","동사","참가하다",["我想参加这个会议。","Wǒ xiǎng cānjiā zhège huìyì.","저는 이 회의에 참석하고 싶어요."]);
+W("举行","jǔ xíng","동사","개최하다",["比赛在明天举行。","Bǐsài zài míngtiān jǔxíng.","시합은 내일 열려요."]);
+W("见面","jiàn miàn","동사","만나다",["我们明天见面吧。","Wǒmen míngtiān jiànmiàn ba.","우리 내일 만나요."]);
+W("离开","lí kāi","동사","떠나다",["他已经离开北京了。","Tā yǐjīng líkāi Běijīng le.","그는 이미 베이징을 떠났어요."]);
+W("遇到","yù dào","동사","마주치다, 만나다",["我在路上遇到了老同学。","Wǒ zài lù shàng yùdào le lǎo tóngxué.","저는 길에서 옛 동창을 만났어요."]);
+W("迟到","chí dào","동사","지각하다",["对不起，我迟到了。","Duìbuqǐ, wǒ chídào le.","죄송해요, 제가 늦었어요."]);
+W("出现","chū xiàn","동사","나타나다",["他突然出现在门口。","Tā tūrán chūxiàn zài ménkǒu.","그가 갑자기 문 앞에 나타났어요."]);
+W("发现","fā xiàn","동사","발견하다, 알아채다",["我发现我的手机不见了。","Wǒ fāxiàn wǒ de shǒujī bú jiàn le.","저는 휴대폰이 없어진 걸 알아챘어요."]);
+W("经过","jīng guò","동사","지나다, 거치다",["我每天经过这个公园。","Wǒ měitiān jīngguò zhège gōngyuán.","저는 매일 이 공원을 지나가요."]);
+W("结婚","jié hūn","동사","결혼하다",["他们去年结婚了。","Tāmen qùnián jiéhūn le.","그들은 작년에 결혼했어요."]);
+W("结束","jié shù","동사","끝나다, 끝내다",["会议结束了。","Huìyì jiéshù le.","회의가 끝났어요."]);
+W("完成","wán chéng","동사","완성하다, 끝마치다",["我已经完成作业了。","Wǒ yǐjīng wánchéng zuòyè le.","저는 이미 숙제를 끝냈어요."]);
+W("决定","jué dìng","동사","결정하다",["我决定去北京。","Wǒ juédìng qù Běijīng.","저는 베이징에 가기로 했어요."]);
+W("打算","dǎ suàn","동사","~할 계획이다",["你打算什么时候去？","Nǐ dǎsuàn shénme shíhou qù?","언제 갈 계획이에요?"]);
+W("解决","jiě jué","동사","해결하다",["这个问题怎么解决？","Zhège wèntí zěnme jiějué?","이 문제는 어떻게 해결해요?"]);
+W("锻炼","duàn liàn","동사","운동하다, 단련하다",["我每天早上锻炼身体。","Wǒ měitiān zǎoshang duànliàn shēntǐ.","저는 매일 아침 운동해요."]);
+W("画","huà","동사","그리다, 그림",["他画得很好。","Tā huà de hěn hǎo.","그는 그림을 아주 잘 그려요."]);
+th('감정·건강·날씨');
+W("担心","dān xīn","동사","걱정하다",["别担心，没问题。","Bié dānxīn, méi wèntí.","걱정 마세요, 문제없어요."]);
+W("放心","fàng xīn","동사","안심하다",["你放心，我会照顾他。","Nǐ fàngxīn, wǒ huì zhàogu tā.","안심하세요, 제가 그를 돌볼게요."]);
+W("关心","guān xīn","동사","관심을 가지다, 마음 쓰다",["谢谢你关心我。","Xièxie nǐ guānxīn wǒ.","저를 챙겨 줘서 고마워요."]);
+W("害怕","hài pà","동사","무서워하다",["我害怕小狗。","Wǒ hàipà xiǎo gǒu.","저는 강아지가 무서워요."]);
+W("生气","shēng qì","동사","화내다",["别生气了。","Bié shēngqì le.","화내지 마세요."]);
+W("哭","kū","동사","울다",["孩子哭了。","Háizi kū le.","아이가 울었어요."]);
+W("疼","téng","형용사","아프다",["我的头很疼。","Wǒ de tóu hěn téng.","머리가 아주 아파요."]);
+W("发烧","fā shāo","동사","열이 나다",["我昨天发烧了。","Wǒ zuótiān fāshāo le.","저는 어제 열이 났어요."]);
+W("感冒","gǎn mào","동사","감기에 걸리다, 감기",["我感冒了，不想吃饭。","Wǒ gǎnmào le, bù xiǎng chī fàn.","저는 감기에 걸려서 밥이 먹기 싫어요."]);
+W("刮风","guā fēng","동사","바람이 불다",["今天刮风，很冷。","Jīntiān guā fēng, hěn lěng.","오늘은 바람이 불어서 추워요."]);
+W("环境","huán jìng","명사","환경",["这儿的环境很好。","Zhèr de huánjìng hěn hǎo.","여기는 환경이 아주 좋아요."]);
+W("声音","shēng yīn","명사","소리, 목소리",["她的声音很好听。","Tā de shēngyīn hěn hǎotīng.","그녀의 목소리는 듣기 좋아요."]);
+th('여가·시간·추상');
+W("爱好","ài hào","명사","취미",["我的爱好是看电影。","Wǒ de àihào shì kàn diànyǐng.","제 취미는 영화 보기예요."]);
+W("兴趣","xìng qù","명사","흥미, 관심",["我对音乐很感兴趣。","Wǒ duì yīnyuè hěn gǎn xìngqù.","저는 음악에 관심이 많아요."]);
+W("音乐","yīn yuè","명사","음악",["我喜欢听音乐。","Wǒ xǐhuan tīng yīnyuè.","저는 음악 듣는 걸 좋아해요."]);
+W("游戏","yóu xì","명사","게임",["孩子们在玩游戏。","Háizimen zài wán yóuxì.","아이들이 게임을 하고 있어요."]);
+W("节目","jié mù","명사","프로그램",["这个节目很有意思。","Zhège jiémù hěn yǒu yìsi.","이 프로그램은 아주 재미있어요."]);
+W("比赛","bǐ sài","명사","경기, 시합",["今天有一场足球比赛。","Jīntiān yǒu yì chǎng zúqiú bǐsài.","오늘 축구 경기가 있어요."]);
+W("表演","biǎo yǎn","동사","공연하다, 공연",["明天有一个表演。","Míngtiān yǒu yí ge biǎoyǎn.","내일 공연이 하나 있어요."]);
+W("新闻","xīn wén","명사","뉴스",["我每天看新闻。","Wǒ měitiān kàn xīnwén.","저는 매일 뉴스를 봐요."]);
+W("故事","gù shi","명사","이야기",["奶奶给我讲故事。","Nǎinai gěi wǒ jiǎng gùshi.","할머니가 제게 이야기를 들려주세요."]);
+W("节日","jié rì","명사","명절, 기념일",["春节是中国最重要的节日。","Chūnjié shì Zhōngguó zuì zhòngyào de jiérì.","설은 중국에서 가장 중요한 명절이에요."]);
+W("周末","zhōu mò","명사","주말",["周末你想做什么？","Zhōumò nǐ xiǎng zuò shénme?","주말에 뭐 하고 싶어요?"]);
+W("以前","yǐ qián","명사","이전",["我以前住在北京。","Wǒ yǐqián zhù zài Běijīng.","저는 예전에 베이징에 살았어요."]);
+W("以后","yǐ hòu","명사","이후",["以后请多帮助我。","Yǐhòu qǐng duō bāngzhù wǒ.","앞으로 많이 도와주세요."]);
+W("刚才","gāng cái","명사","방금",["他刚才还在这儿。","Tā gāngcái hái zài zhèr.","그는 방금까지 여기 있었어요."]);
+W("最近","zuì jìn","명사","최근",["你最近怎么样？","Nǐ zuìjìn zěnmeyàng?","요즘 어떻게 지내요?"]);
+W("过去","guò qù","명사","과거, 지나가다",["过去的事不要想了。","Guòqù de shì búyào xiǎng le.","지난 일은 생각하지 마세요."]);
+W("一会儿","yí huìr","명사","잠시",["请等一会儿。","Qǐng děng yíhuìr.","잠시만 기다려 주세요."]);
+W("会议","huì yì","명사","회의",["我们下午开会议。","Wǒmen xiàwǔ kāi huìyì.","우리는 오후에 회의를 해요."]);
+W("机会","jī huì","명사","기회",["我想有机会去中国。","Wǒ xiǎng yǒu jīhuì qù Zhōngguó.","기회가 되면 중국에 가고 싶어요."]);
+W("办法","bàn fǎ","명사","방법",["我有一个好办法。","Wǒ yǒu yí ge hǎo bànfǎ.","저에게 좋은 방법이 하나 있어요."]);
+W("关系","guān xi","명사","관계",["我们的关系很好。","Wǒmen de guānxi hěn hǎo.","우리 사이는 아주 좋아요."]);
+W("变化","biàn huà","명사","변화",["北京的变化很大。","Běijīng de biànhuà hěn dà.","베이징은 변화가 아주 커요."]);
+W("影响","yǐng xiǎng","동사","영향을 주다, 영향",["天气影响我的心情。","Tiānqì yǐngxiǎng wǒ de xīnqíng.","날씨는 제 기분에 영향을 줘요."]);
+W("作用","zuò yòng","명사","작용, 효과",["这个药很有作用。","Zhège yào hěn yǒu zuòyòng.","이 약은 효과가 좋아요."]);
+W("习惯","xí guàn","명사","습관, 익숙해지다",["早起是一个好习惯。","Zǎoqǐ shì yí ge hǎo xíguàn.","일찍 일어나는 건 좋은 습관이에요."]);
+W("差","chà","동사","모자라다, 나쁘다",["现在差五分八点。","Xiànzài chà wǔ fēn bā diǎn.","지금은 8시 5분 전이에요."]);
+th('수·양사');
+W("半","bàn","수사","반, 절반",["现在是八点半。","Xiànzài shì bā diǎn bàn.","지금은 8시 반이에요."]);
+W("万","wàn","수사","만(10000)",["这个手机三千五百块，那个一万块。","Zhège shǒujī sānqiān wǔbǎi kuài, nàge yí wàn kuài.","이 휴대폰은 3,500위안이고 저건 1만 위안이에요."]);
+W("分","fēn","양사","분, 점, 전(화폐)",["现在三点十分。","Xiànzài sān diǎn shí fēn.","지금은 3시 10분이에요."]);
+W("刻","kè","양사","15분",["现在三点一刻。","Xiànzài sān diǎn yí kè.","지금은 3시 15분이에요."]);
+W("角","jiǎo","양사","각(1위안의 1/10)",["这个五角钱。","Zhège wǔ jiǎo qián.","이건 5자오예요."]);
+W("米","mǐ","양사","미터",["这条路有一百米。","Zhè tiáo lù yǒu yì bǎi mǐ.","이 길은 100미터예요."]);
+W("段","duàn","양사","토막, 구간",["这段时间我很忙。","Zhè duàn shíjiān wǒ hěn máng.","요즘 한동안 저는 바빠요."]);
+W("辆","liàng","양사","대(차량)",["门口有一辆车。","Ménkǒu yǒu yí liàng chē.","문 앞에 차가 한 대 있어요."]);
+W("双","shuāng","양사","켤레, 쌍",["我想买一双鞋。","Wǒ xiǎng mǎi yì shuāng xié.","저는 신발 한 켤레를 사고 싶어요."]);
+W("条","tiáo","양사","줄기, 벌(길쭉한 것)",["我有一条蓝裤子。","Wǒ yǒu yì tiáo lán kùzi.","저는 파란 바지가 한 벌 있어요."]);
+W("位","wèi","양사","분(사람의 존칭)",["这位是我的老师。","Zhè wèi shì wǒ de lǎoshī.","이분은 제 선생님이세요."]);
+W("只","zhī","양사","마리(작은 동물)",["我有两只猫。","Wǒ yǒu liǎng zhī māo.","저는 고양이가 두 마리 있어요."]);
+W("种","zhǒng","양사","종류",["这种水果很甜。","Zhè zhǒng shuǐguǒ hěn tián.","이런 과일은 아주 달아요."]);
+W("长","zhǎng","동사","자라다, 생기다",["孩子长高了。","Háizi zhǎng gāo le.","아이가 키가 컸어요."],"'길다'의 뜻일 때는 cháng으로 읽어요.");
+
+P('矮','低','비슷한 말');
+P('新鲜','旧');
+P('年轻','老');
+P('胖','瘦');
+P('饿','饱');
+P('饿','渴','헷갈리는 말');
+P('难','容易');
+P('简单','容易','비슷한 말');
+P('一样','相同','비슷한 말');
+P('蓝','绿','색깔');
+P('绿','黄','색깔');
+P('蓝','黄','색깔');
+P('更','极','정도');
+P('经常','总是','비슷한 말');
+P('一直','总是','비슷한 말');
+P('先','然后','순서');
+P('才','又','헷갈리는 말');
+P('而且','虽然','접속');
+P('还是','或者','헷갈리는 말');
+P('把','被','헷갈리는 말');
+P('跟','为','전치사');
+P('为','为了','헷갈리는 말');
+P('春','夏','계절');
+P('夏','秋','계절');
+P('秋','冬','계절');
+P('东','西','방향');
+P('南','北方','방향');
+P('奶奶','爷爷','가족');
+P('阿姨','叔叔','호칭');
+P('鼻子','耳朵','몸');
+P('脚','腿','몸');
+P('裤子','裙子','옷');
+P('衬衫','帽子','옷');
+P('鞋','双','짝');
+P('筷子','碗','식기');
+P('盘子','碗','식기');
+P('面包','蛋糕','음식');
+P('葡萄','香蕉','과일');
+P('果汁','啤酒','음료');
+P('电梯','楼','건물');
+P('层','楼','건물');
+P('洗手间','厨房','집');
+P('以前','以后','반대말');
+P('过去','最近','시간');
+P('借','还','짝');
+P('关','放','헷갈리는 말');
+P('放','拿','반대말');
+P('哭','生气','감정');
+P('担心','放心','반대말');
+P('害怕','担心','감정');
+P('同意','相信','비슷한 말');
+P('认为','以为','헷갈리는 말');
+P('了解','明白','비슷한 말');
+P('教','练习','학습');
+P('复习','练习','학습');
+P('班','年级','학교');
+P('数学','历史','과목');
+P('体育','音乐','과목');
+P('句子','词语','언어');
+P('字典','词语','언어');
+P('比赛','表演','행사');
+P('节目','新闻','방송');
+P('游戏','节目','여가');
+P('万','半','수');
+P('分','刻','시간');
+P('米','角','단위');
+P('只','条','양사');
+P('辆','位','양사');
+P('结婚','礼物','행사');
+P('发烧','感冒','건강');
+P('疼','发烧','건강');
+P('刮风','云','날씨');
+P('太阳','月亮','자연');
+P('树','草','식물');
+P('花','花园','식물');
+P('鸟','马','동물');
+P('熊猫','动物','동물');
+P('骑','站','교통');
+P('出现','离开','반대말');
+P('结束','完成','비슷한 말');
+P('差','极','정도');
+
+const KO={"学生": ["s", "학생"], "学校": ["s", "학교"], "商店": ["s", "상점"], "北京": ["s", "북경"], "中国": ["s", "중국"], "学习": ["s", "학습"], "汉语": ["s", "한어"], "时间": ["s", "시간"], "生日": ["s", "생일"], "开始": ["s", "개시"], "起床": ["s", "기상"], "教室": ["s", "교실"], "身体": ["s", "신체"], "休息": ["s", "휴식"], "运动": ["s", "운동"], "问题": ["s", "문제"], "铅笔": ["s", "연필"], "准备": ["s", "준비"], "希望": ["s", "희망"], "可能": ["s", "가능"], "第一": ["s", "제일"], "新鲜": ["s", "신선"], "健康": ["s", "건강"], "聪明": ["s", "총명"], "热情": ["s", "열정"], "努力": ["s", "노력"], "简单": ["s", "간단"], "容易": ["s", "용이"], "重要": ["s", "중요"], "主要": ["s", "주요"], "一般": ["s", "일반"], "相同": ["s", "상동"], "有名": ["s", "유명"], "突然": ["s", "돌연"], "比较": ["s", "비교"], "特别": ["s", "특별"], "当然": ["s", "당연"], "必须": ["s", "필수"], "其他": ["s", "기타"], "自己": ["s", "자기"], "根据": ["s", "근거"], "校长": ["s", "교장"], "现在": ["s", "현재"], "同学": ["s", "동학"], "前面": ["s", "전면"], "后面": ["s", "후면"], "桌子": ["s", "탁자"], "衣服": ["s", "의복"], "眼镜": ["s", "안경"], "帽子": ["s", "모자"], "字典": ["s", "자전"], "葡萄": ["s", "포도"], "厨房": ["s", "주방"], "国家": ["s", "국가"], "世界": ["s", "세계"], "附近": ["s", "부근"], "中间": ["s", "중간"], "银行": ["s", "은행"], "公园": ["s", "공원"], "图书馆": ["s", "도서관"], "地图": ["s", "지도"], "季节": ["s", "계절"], "太阳": ["s", "태양"], "动物": ["s", "동물"], "黑板": ["s", "흑판"], "数学": ["s", "수학"], "体育": ["s", "체육"], "历史": ["s", "역사"], "文化": ["s", "문화"], "成绩": ["s", "성적"], "练习": ["s", "연습"], "复习": ["s", "복습"], "检查": ["s", "검사"], "选择": ["s", "선택"], "同意": ["s", "동의"], "注意": ["s", "주의"], "参加": ["s", "참가"], "举行": ["s", "거행"], "结婚": ["s", "결혼"], "完成": ["s", "완성"], "决定": ["s", "결정"], "解决": ["s", "해결"], "锻炼": ["s", "단련"], "关心": ["s", "관심"], "环境": ["s", "환경"], "变化": ["s", "변화"], "影响": ["s", "영향"], "作用": ["s", "작용"], "习惯": ["s", "습관"], "成熟": ["s", "성숙"], "活泼": ["s", "활발"], "积极": ["s", "적극"], "勇敢": ["s", "용감"], "冷静": ["s", "냉정"], "友好": ["s", "우호"], "优秀": ["s", "우수"], "严格": ["s", "엄격"], "性格": ["s", "성격"], "态度": ["s", "태도"], "缺点": ["s", "결점"], "紧张": ["s", "긴장"], "兴奋": ["s", "흥분"], "幸福": ["s", "행복"], "愉快": ["s", "유쾌"], "伤心": ["s", "상심"], "失望": ["s", "실망"], "感动": ["s", "감동"], "感觉": ["s", "감각"], "感情": ["s", "감정"], "心情": ["s", "심정"], "后悔": ["s", "후회"], "同情": ["s", "동정"], "可怜": ["s", "가련"], "烦恼": ["s", "번뇌"], "压力": ["s", "압력"], "信任": ["s", "신임"], "感谢": ["s", "감사"], "祝贺": ["s", "축하"], "尊重": ["s", "존중"], "理解": ["s", "이해"], "怀疑": ["s", "회의"], "无聊": ["s", "무료"], "浪漫": ["s", "낭만"], "干燥": ["s", "건조"], "湿润": ["s", "습윤"], "辛苦": ["s", "신고"], "丰富": ["s", "풍부"], "复杂": ["s", "복잡"], "正常": ["s", "정상"], "高级": ["s", "고급"], "危险": ["s", "위험"], "安全": ["s", "안전"], "严重": ["s", "엄중"], "适合": ["s", "적합"], "合格": ["s", "합격"], "普遍": ["s", "보편"], "安排": ["s", "안배"], "申请": ["s", "신청"], "职业": ["s", "직업"], "记者": ["s", "기자"], "警察": ["s", "경찰"], "顾客": ["s", "고객"], "教授": ["s", "교수"], "博士": ["s", "박사"], "硕士": ["s", "석사"], "收入": ["s", "수입"], "经济": ["s", "경제"], "市场": ["s", "시장"], "价格": ["s", "가격"], "浪费": ["s", "낭비"], "节约": ["s", "절약"], "责任": ["s", "책임"], "管理": ["s", "관리"], "任务": ["s", "임무"], "代表": ["s", "대표"], "组织": ["s", "조직"], "集合": ["s", "집합"], "社会": ["s", "사회"], "法律": ["s", "법률"], "规定": ["s", "규정"], "禁止": ["s", "금지"], "条件": ["s", "조건"], "民族": ["s", "민족"], "国际": ["s", "국제"], "大使馆": ["s", "대사관"], "首都": ["s", "수도"], "农村": ["s", "농촌"], "世纪": ["s", "세기"], "现代": ["s", "현대"], "发展": ["s", "발전"], "发生": ["s", "발생"], "增加": ["s", "증가"], "减少": ["s", "감소"], "扩大": ["s", "확대"], "失败": ["s", "실패"], "成功": ["s", "성공"], "获得": ["s", "획득"], "竞争": ["s", "경쟁"], "支持": ["s", "지지"], "反对": ["s", "반대"], "通知": ["s", "통지"], "通过": ["s", "통과"], "调查": ["s", "조사"], "科学": ["s", "과학"], "技术": ["s", "기술"], "工具": ["s", "공구"], "制造": ["s", "제조"], "污染": ["s", "오염"], "空气": ["s", "공기"], "气候": ["s", "기후"], "温度": ["s", "온도"], "窗户": ["s", "창호"], "家具": ["s", "가구"], "词典": ["s", "사전"], "日记": ["s", "일기"], "杂志": ["s", "잡지"], "小说": ["s", "소설"], "广告": ["s", "광고"], "观众": ["s", "관중"], "消息": ["s", "소식"], "食品": ["s", "식품"], "干杯": ["s", "건배"], "皮肤": ["s", "피부"], "理发": ["s", "이발"], "地球": ["s", "지구"], "海洋": ["s", "해양"], "森林": ["s", "삼림"], "植物": ["s", "식물"], "风景": ["s", "풍경"], "到处": ["s", "도처"], "参观": ["s", "참관"], "出发": ["s", "출발"], "交通": ["s", "교통"], "入口": ["s", "입구"], "方向": ["s", "방향"], "距离": ["s", "거리"], "教育": ["s", "교육"], "知识": ["s", "지식"], "语言": ["s", "언어"], "语法": ["s", "어법"], "翻译": ["s", "번역"], "对话": ["s", "대화"], "答案": ["s", "답안"], "预习": ["s", "예습"], "标准": ["s", "표준"], "重点": ["s", "중점"], "重视": ["s", "중시"], "基础": ["s", "기초"], "材料": ["s", "재료"], "京剧": ["s", "경극"], "艺术": ["s", "예술"], "父亲": ["s", "부친"], "母亲": ["s", "모친"], "孙子": ["s", "손자"], "亲戚": ["s", "친척"], "儿童": ["s", "아동"], "年龄": ["s", "연령"], "性别": ["s", "성별"], "生活": ["s", "생활"], "生命": ["s", "생명"], "出生": ["s", "출생"], "爱情": ["s", "애정"], "友谊": ["s", "우의"], "理想": ["s", "이상"], "能力": ["s", "능력"], "经验": ["s", "경험"], "精神": ["s", "정신"], "本来": ["s", "본래"], "原来": ["s", "원래"], "从来": ["s", "종래"], "当时": ["s", "당시"], "将来": ["s", "장래"], "平时": ["s", "평시"], "暂时": ["s", "잠시"], "永远": ["s", "영원"], "往往": ["s", "왕왕"], "十分": ["s", "십분"], "完全": ["s", "완전"], "全部": ["s", "전부"], "一切": ["s", "일체"], "许多": ["s", "허다"], "大概": ["s", "대개"], "果然": ["s", "과연"], "确实": ["s", "확실"], "故意": ["s", "고의"], "共同": ["s", "공동"], "直接": ["s", "직접"], "正式": ["s", "정식"], "真正": ["s", "진정"], "自然": ["s", "자연"], "最后": ["s", "최후"], "相反": ["s", "상반"], "包括": ["s", "포괄"], "保护": ["s", "보호"], "保证": ["s", "보증"], "报道": ["s", "보도"], "超过": ["s", "초과"], "代替": ["s", "대체"], "放弃": ["s", "방기"], "符合": ["s", "부합"], "坚持": ["s", "견지"], "交流": ["s", "교류"], "进行": ["s", "진행"], "拒绝": ["s", "거절"], "考虑": ["s", "고려"], "留学": ["s", "유학"], "流行": ["s", "유행"], "排列": ["s", "배열"], "判断": ["s", "판단"], "散步": ["s", "산보"], "使用": ["s", "사용"], "适应": ["s", "적응"], "收拾": ["s", "수습"], "讨论": ["s", "토론"], "提供": ["s", "제공"], "停止": ["s", "정지"], "握手": ["s", "악수"], "吸引": ["s", "흡인"], "养成": ["s", "양성"], "证明": ["s", "증명"], "整理": ["s", "정리"], "反映": ["s", "반영"], "访问": ["s", "방문"], "继续": ["s", "계속"], "计划": ["s", "계획"], "活动": ["s", "활동"], "部分": ["s", "부분"], "动作": ["s", "동작"], "范围": ["s", "범위"], "方法": ["s", "방법"], "方面": ["s", "방면"], "关键": ["s", "관건"], "过程": ["s", "과정"], "结果": ["s", "결과"], "目的": ["s", "목적"], "内容": ["s", "내용"], "区别": ["s", "구별"], "实际": ["s", "실제"], "数量": ["s", "수량"], "顺序": ["s", "순서"], "说明": ["s", "설명"], "速度": ["s", "속도"], "效果": ["s", "효과"], "意见": ["s", "의견"], "印象": ["s", "인상"], "原因": ["s", "원인"], "周围": ["s", "주위"], "著名": ["s", "저명"], "专门": ["s", "전문"], "详细": ["s", "상세"], "仔细": ["s", "자세"], "饮料": ["s", "음료"], "提高": ["s", "제고"], "表示": ["s", "표시"], "要求": ["s", "요구"], "出现": ["s", "출현"], "经过": ["s", "경과"], "爱好": ["s", "애호"], "音乐": ["s", "음악"], "游戏": ["s", "유희"], "周末": ["s", "주말"], "以前": ["s", "이전"], "以后": ["s", "이후"], "最近": ["s", "최근"], "过去": ["s", "과거"], "机会": ["s", "기회"], "关系": ["s", "관계"], "会议": ["s", "회의"], "上午": ["s", "상오"], "下午": ["s", "하오"], "信用卡": ["s", "신용카드"], "先生": ["d", "선생", "가르치는 사람(선생님)이라는 뜻이 중심이에요. 중국어는 '~씨, 선생님, 남편'"], "饭店": ["d", "반점", "중국 음식점(반점)을 말해요. 중국어는 식당이나 호텔"], "医院": ["d", "의원", "규모가 작은 병원(동네 의원)을 말해요. 중국어는 '병원' 전체"], "东西": ["d", "동서", "'동쪽과 서쪽'이에요. 중국어는 '물건'(dōngxi)"], "工作": ["d", "공작", "목적을 위한 계략·작업(공작원, 공작품)을 말해요. 중국어는 '일하다, 직업'"], "大家": ["d", "대가", "어떤 분야의 거장·전문가예요. 중국어는 '여러분, 모두'"], "便宜": ["d", "편의", "편리하고 쓰기 좋음이에요. 중국어는 '싸다'"], "颜色": ["d", "안색", "얼굴빛을 말해요. 중국어는 '색깔'"], "非常": ["d", "비상", "급한 사태나 평범하지 않음(비상시)이에요. 중국어는 '매우'"], "方便": ["d", "방편", "목적을 이루기 위한 수단·방법이에요. 중국어는 '편리하다'"], "马上": ["d", "마상", "말 위를 말해요. 중국어는 '곧, 바로'"], "一定": ["d", "일정", "정해져 있음(일정한 시간)이에요. 중국어는 '반드시'"], "经常": ["d", "경상", "일정하게 반복되는 것(경상비)을 말해요. 중국어는 '자주'"], "经理": ["d", "경리", "회계 업무(경리)를 말해요. 중국어는 '매니저, 사장'"], "多少": ["d", "다소", "어느 정도, 조금이에요. 중국어는 '얼마, 몇'"], "意思": ["d", "의사", "생각, 마음먹은 뜻이에요. 중국어는 '뜻, 재미, 마음'까지 넓어요"], "事情": ["d", "사정", "형편이나 까닭(사정이 있다)이에요. 중국어는 '일, 사건'"], "帮助": ["d", "방조", "한국어에서는 주로 범죄를 거드는 일(방조죄)에 써요. 중국어는 '돕다'"], "认识": ["d", "인식", "사물을 분별해 아는 것이에요. 중국어는 '사람을 알다'로도 써요"], "明白": ["d", "명백", "분명하다는 뜻이에요. 중국어는 '이해하다'"], "需要": ["d", "수요", "상품을 사려는 욕구(수요와 공급)예요. 중국어는 '필요하다'"], "发现": ["d", "발현", "속에 있던 것이 겉으로 나타남이에요. 중국어는 '발견하다'"], "结束": ["d", "결속", "뜻을 모아 묶음이에요. 중국어는 '끝나다'"], "打算": ["d", "타산", "이해득실을 따짐(타산적)이에요. 중국어는 '~할 계획이다'"], "放心": ["d", "방심", "마음을 놓아 주의하지 않음이에요. 중국어는 '안심하다'"], "生气": ["d", "생기", "활력, 싱싱한 기운이에요. 중국어는 '화내다'"], "小心": ["d", "소심", "대담하지 못하고 조심성이 많음이에요. 중국어는 '조심하다'"], "诚实": ["d", "성실", "부지런하고 정성스러움이에요. 중국어는 '정직하다'"], "信心": ["d", "신심", "종교적 믿음이에요. 중국어는 '자신감'"], "批评": ["d", "비평", "사물의 가치·옳고 그름을 논함이에요. 중국어는 '꾸짖다, 지적하다'"], "师傅": ["d", "사부", "스승을 말해요. 중국어는 '기사님, 장인'처럼 기술자를 부르는 말"], "作者": ["d", "작자", "사람을 낮춰 부르는 말로도 써요. 중국어는 '작가, 저자'"], "文章": ["d", "문장", "낱말이 모여 이루는 한 문장이에요. 중국어는 '글(article)'"], "演出": ["d", "연출", "연극·영화를 지휘하는 일이에요. 중국어는 '공연하다'"], "经历": ["d", "경력", "직장·활동 이력이에요. 중국어는 '겪은 경험'"], "对面": ["d", "대면", "얼굴을 마주 봄이에요. 중국어는 '맞은편'"], "质量": ["d", "질량", "물리의 질량(무게)이에요. 중국어는 '품질'"], "实在": ["d", "실재", "실제로 존재함이에요. 중국어는 '정말, 확실히'"], "所有": ["d", "소유", "가지고 있음이에요. 중국어는 '모든'"], "千万": ["d", "천만", "숫자 1,000만이에요. 중국어는 '부디, 제발'"], "主动": ["d", "주동", "앞장서서 이끎(주동자)이에요. 중국어는 '자발적이다'"], "顺利": ["d", "순리", "도리에 맞는 흐름(순리대로)이에요. 중국어는 '순조롭다'"], "不过": ["d", "불과", "'겨우, 단지'(불과 한 달)예요. 중국어는 '그러나'"], "接受": ["d", "접수", "서류·신청을 받음(접수)이에요. 중국어는 '받아들이다'"], "解释": ["d", "해석", "글이나 현상의 뜻을 풀이함이에요. 중국어는 '설명하다, 해명하다'"], "联系": ["d", "연계", "서로 이어 맺음이에요. 중국어는 '연락하다'"], "新闻": ["d", "신문", "종이 신문을 말해요. 중국어는 '뉴스'"]};
+
+(function(){
+const $=s=>document.querySelector(s);
+const MAP=new Map(D.map(d=>[d.w,d]));
+const IDX=new Map(D.map((d,i)=>[d.w,i]));
+const LEVELS=[...new Set(D.map(d=>d.lv))].sort();
+const TM={'āēīōūǖ':1,'áéíóúǘ':2,'ǎěǐǒǔǚ':3,'àèìòùǜ':4};
+function tone(s){for(const c of s){for(const k in TM){if(k.includes(c))return TM[k]}}return 5}
+function base(s){return s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,'')}
+function pyH(py){return py.split(' ').map(s=>`<span class="t${tone(s)}">${s}</span>`).join(' ')}
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const STOP=new Set([...'的了不是我你他她们个这那有在吗呢吧很都也就和得过着']);
+const fam=t=>t.replace(/\(\d\)$/,'');
+const LS='hsk3-kkori-v1';
+const S={tab:'study',cur:null,trail:[],learned:new Set(),q:'',lvf:0,onlyNew:false,mode:'mean',lvq:0,lvk:0,quiz:null,score:{ok:0,n:0}};
+try{const j=JSON.parse(localStorage.getItem(LS)||'{}');
+  if(Array.isArray(j.learned))S.learned=new Set(j.learned.filter(w=>MAP.has(w)));
+  if(j.cur&&MAP.has(j.cur))S.cur=j.cur}catch(e){}
+if(!S.cur)S.cur=D[0].w;
+S.trail=[S.cur];
+function save(){try{localStorage.setItem(LS,JSON.stringify({learned:[...S.learned],cur:S.cur}))}catch(e){}}
+
+// 예문을 단어 단위로 쪼개기 (가장 긴 단어 우선)
+function seg(t){const out=[];let i=0;while(i<t.length){let hit=null;for(let l=Math.min(6,t.length-i);l>=1;l--){const s=t.substr(i,l);if(MAP.has(s)){hit=s;break}}
+  if(hit){out.push({t:hit,w:true});i+=hit.length}else{out.push({t:t[i],w:false});i++}}return out}
+const sentWords=d=>[...new Set(seg(d.ex.z).filter(x=>x.w).map(x=>x.t))];
+
+function nbrs(w){
+  const d=MAP.get(w),seen=new Set([w]),o={pair:[],char:[],sent:[],theme:[]};
+  const take=(k,list,max)=>{for(const x of list){if(o[k].length>=max)break;if(seen.has(x.c))continue;seen.add(x.c);o[k].push(x)}};
+  take('pair',PR.filter(p=>p.a===w||p.b===w).map(p=>({c:p.a===w?p.b:p.a,why:p.label})),12);
+  const ch=[...d.w].filter(c=>!STOP.has(c));
+  const cl=[];for(const e of D){if(e.w===w)continue;const sh=ch.filter(c=>e.w.includes(c));if(sh.length)cl.push({c:e.w,why:'같은 글자 '+sh.join(''),n:sh.length,l:Math.abs(e.lv-d.lv)})}
+  cl.sort((a,b)=>b.n-a.n||a.l-b.l||IDX.get(a.c)-IDX.get(b.c));take('char',cl,10);
+  const fw=sentWords(d).filter(x=>x!==w).map(c=>({c,why:'이 단어의 예문에 나와요'}));
+  const rev=D.filter(e=>e.w!==w&&e.ex.z.includes(w)&&sentWords(e).includes(w)).sort((a,b)=>a.lv-b.lv).slice(0,4).map(e=>({c:e.w,why:'이 단어가 나오는 예문'}));
+  take('sent',[...fw,...rev],10);
+  const i=IDX.get(w),f=fam(d.th);
+  const tl=D.filter(e=>e.w!==w&&fam(e.th)===f).sort((a,b)=>Math.abs(IDX.get(a.w)-i)-Math.abs(IDX.get(b.w)-i)).map(e=>({c:e.w,why:f}));
+  take('theme',tl,10);
+  return o}
+function allN(w){const o=nbrs(w);return [...o.pair,...o.char,...o.sent,...o.theme].map(x=>x.c)}
+const REL=[
+ ['pair','반대말 · 짝 · 헷갈리는 말','뜻이 반대이거나 짝으로 같이 쓰는 말','var(--t3)'],
+ ['char','같은 글자가 들어간 단어','글자 하나만 알아도 단어가 줄줄이 이어져요','var(--t1)'],
+ ['sent','예문으로 이어지는 단어','예문 속에 함께 나오는 말','var(--t4)'],
+ ['theme','같은 주제의 단어','같은 상황에서 함께 쓰는 말','var(--t2)']];
+
+function go(w){S.cur=w;if(S.trail[S.trail.length-1]!==w){S.trail.push(w);if(S.trail.length>40)S.trail.shift()}save()}
+function pickNext(){
+  const n=allN(S.cur);
+  let c=n.filter(x=>!S.trail.includes(x)&&!S.learned.has(x));
+  if(!c.length)c=n.filter(x=>!S.trail.includes(x));
+  if(!c.length)c=D.map(d=>d.w).filter(x=>!S.learned.has(x)&&x!==S.cur);
+  if(!c.length)c=D.map(d=>d.w).filter(x=>x!==S.cur);
+  return c[Math.floor(Math.random()*c.length)]}
+function say(t){try{const u=new SpeechSynthesisUtterance(t);u.lang='zh-CN';u.rate=.8;speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
+
+function chip(x){const d=MAP.get(x.c);
+  return `<button class="chip${S.learned.has(x.c)?' done':''}" data-go="${x.c}"><span class="cc">${x.c}</span><span class="ct"><span class="cp">${pyH(d.py)}</span><span class="cm">${d.mean}</span><span class="cw">HSK ${d.lv}급 · ${x.why}</span></span></button>`}
+function tile(w){const d=MAP.get(w),L=S.learned.has(w);
+  return `<button class="tile${L?' done':''}" data-go="${w}"><span class="lv">${d.lv}급</span>${L?'<span class="ck">익힘</span>':''}<span class="tc">${w}</span><span class="tp">${pyH(d.py)}</span><span class="tm">${d.mean}</span></button>`}
+function trailH(){return `<div class="trail" aria-label="지금까지 이어 온 단어"><span class="lab">꼬리</span>${S.trail.map((c,i)=>`${i?'<span class="ar" aria-hidden="true">›</span>':''}<button class="tr" data-tr="${i}"${c===S.cur?' aria-current="true"':''}>${c}</button>`).join('')}${S.trail.length>1?'<button class="clr" data-act="clear">꼬리 지우기</button>':''}</div>`}
+const FS=[0,150,110,78,62,52,44];
+
+function study(){
+  const d=MAP.get(S.cur),n=nbrs(S.cur),L=S.learned.has(S.cur),len=[...d.w].length;
+  const sent=seg(d.ex.z).map(x=>x.t===d.w?`<mark>${x.t}</mark>`:x.w?`<button data-go="${x.t}" aria-label="${x.t} 단어로 이동">${x.t}</button>`:x.t).join('');
+  const rels=REL.map(([k,t,s,col])=>n[k].length?`<section class="rel" style="--rc:${col}"><h3>${t} <span class="tag">${n[k].length}</span></h3><p>${s}</p><div class="chips">${n[k].map(chip).join('')}</div></section>`:'').join('');
+  return `${trailH()}
+  <article class="study">
+    <div><div class="plate"><div class="plate-in"><div class="big" lang="zh-CN" style="font-size:${FS[Math.min(len,6)]}px">${d.w}</div></div><div class="plate-foot">HSK ${d.lv}급 · ${d.th}</div></div></div>
+    <div>
+      <div class="py">${pyH(d.py)}</div>
+      <div class="meta"><div class="mean">${d.mean}</div><div><span class="lvl">HSK ${d.lv}급</span><span class="tag">${d.pos}</span></div></div>
+      ${d.tip?`<p class="tip">${d.tip}</p>`:''}${koBox(d.w)}
+      <div class="acts"><button class="btn say" data-say="${d.w}">단어 듣기</button><button class="btn${L?' on':''}" data-act="learn" aria-pressed="${L}">${L?'익힘 완료':'익혔어요'}</button><button class="btn pri" data-act="next">이어서 한 단어 더</button></div>
+    </div>
+  </article>
+  <div class="box"><h2>예문 (밑줄 단어를 누르면 그 단어로 이어져요)</h2><div class="sent" lang="zh-CN">${sent}<button class="say" data-say="${d.ex.z}">듣기</button></div><div class="sp">${d.ex.py}</div><div class="sk">${d.ex.k}</div></div>
+  ${rels}`}
+
+
+const kinfo=w=>(typeof KO!=='undefined'&&KO[w])||null;
+function koBox(w){const k=kinfo(w);if(!k)return '';
+  if(k[0]==='s')return `<p class="kbox same"><b>한국어와 같아요</b> 한자어 “${k[1]}”와 한자·뜻이 같아요. 한국어 한자음으로 읽으면 뜻이 짐작돼요. <span class="tag">동형동의어</span></p>`;
+  return `<p class="kbox diff"><b>한국어와 뜻이 달라요</b> 한국어 “${k[1]}”: ${k[2]} <span class="tag">동형이의어</span></p>`}
+function korea(){
+  const L=D.filter(d=>kinfo(d.w)&&(!S.lvk||d.lv===S.lvk));
+  const sm=L.filter(d=>kinfo(d.w)[0]==='s'),df=L.filter(d=>kinfo(d.w)[0]==='d');
+  const kt=d=>{const k=kinfo(d.w);return `<button class="tile${S.learned.has(d.w)?' done':''}" data-go="${d.w}"><span class="lv">${d.lv}급</span><span class="tc">${d.w}</span><span class="tp">${pyH(d.py)}</span><span class="tm">${d.mean}</span><span class="tm" style="color:var(--t3)">한국어 ${k[1]}</span></button>`};
+  const dc=d=>{const k=kinfo(d.w);return `<button class="chip" data-go="${d.w}"><span class="cc">${d.w}</span><span class="ct"><span class="cp">${pyH(d.py)}</span><span class="cm">${d.mean}</span><span class="cw">한국어 “${k[1]}”: ${k[2]}</span></span></button>`};
+  return `<p class="gn" style="margin-top:16px">중국어 한자어는 한국어 한자음으로 읽어서 뜻이 통하는 말(동형동의어)이 많아요. 반대로 한자는 같은데 뜻이 달라 헷갈리기 쉬운 말(동형이의어)은 따로 모아 두었어요.</p>
+  <div class="row"><button class="fb" data-lvk="0" aria-pressed="${S.lvk===0}">전체</button>${LEVELS.map(l=>`<button class="fb" data-lvk="${l}" aria-pressed="${S.lvk===l}">${l}급</button>`).join('')}</div>
+  <section class="grp"><div class="gt">뜻이 달라요 · 동형이의어<span class="tag">${df.length}개</span></div><div class="chips" style="margin-top:8px">${df.map(dc).join('')||'<p class="hint">이 급수에는 없어요.</p>'}</div></section>
+  <section class="grp"><div class="gt">뜻이 같아요 · 동형동의어<span class="tag">${sm.length}개</span></div><div class="grid" style="margin-top:8px">${sm.map(kt).join('')||'<p class="hint">이 급수에는 없어요.</p>'}</div></section>`}
+
+function themes(){
+  const fams=[...new Set(D.map(d=>fam(d.th)))];
+  return `<p class="gn" style="margin-top:16px">같은 상황에서 함께 쓰는 단어끼리 모았어요. 단어를 누르면 이어 배우기로 넘어가요.</p>`+fams.map(f=>{const l=D.filter(d=>fam(d.th)===f);
+    return `<section class="grp"><div class="gt">${f}<span class="tag">${l.length}개</span></div><div class="grid" style="margin-top:8px">${l.map(d=>tile(d.w)).join('')}</div></section>`}).join('')}
+
+function matches(d){
+  if(S.lvf&&d.lv!==S.lvf)return false;
+  if(S.onlyNew&&S.learned.has(d.w))return false;
+  const q=S.q.trim().toLowerCase();if(!q)return true;
+  return d.w.includes(q)||base(d.py).includes(base(q))||d.mean.toLowerCase().includes(q)||d.pos.includes(q)||d.th.includes(q)}
+function gridH(){const l=D.filter(matches);return (l.length?`<p class="hint" style="grid-column:1/-1;margin:0">${l.length}개</p>`+l.map(d=>tile(d.w)).join(''):'<p class="hint">조건에 맞는 단어가 없어요.</p>')}
+function list(){
+  return `<div class="row"><input type="search" id="q" placeholder="단어, 병음(예: xuesheng), 한글 뜻으로 찾기" value="${S.q.replace(/"/g,'&quot;')}" aria-label="단어 찾기"></div>
+  <div class="row"><button class="fb" data-lvf="0" aria-pressed="${S.lvf===0}">전체</button>${LEVELS.map(l=>`<button class="fb" data-lvf="${l}" aria-pressed="${S.lvf===l}">${l}급</button>`).join('')}<button class="fb" data-act="onlynew" aria-pressed="${S.onlyNew}">아직 안 익힌 것만</button></div>
+  <div class="grid" id="grid">${gridH()}</div>`}
+
+function newQ(){
+  let pool=D.filter(d=>!S.lvq||d.lv===S.lvq);
+  const t=pool[Math.floor(Math.random()*pool.length)];
+  const key=S.mode==='mean'?'mean':S.mode==='word'?'w':'py';
+  const val=d=>d[key];
+  const wrong=[];
+  for(const w of shuffle(allN(t.w))){const v=val(MAP.get(w));if(v!==val(t)&&!wrong.includes(v))wrong.push(v);if(wrong.length>=3)break}
+  for(const x of shuffle(D.filter(e=>e.lv===t.lv))){if(wrong.length>=3)break;if(val(x)!==val(t)&&!wrong.includes(val(x)))wrong.push(val(x))}
+  return {t,key,opts:shuffle([val(t),...wrong]),pick:null}}
+function quiz(){
+  if(!S.quiz)S.quiz=newQ();
+  const Q=S.quiz,done=Q.pick!==null,ok=done&&Q.opts[Q.pick]===Q.t[Q.key];
+  const showMean=S.mode==='word';
+  return `<div class="row"><button class="fb" data-mode="mean" aria-pressed="${S.mode==='mean'}">뜻 맞히기</button><button class="fb" data-mode="word" aria-pressed="${S.mode==='word'}">단어 맞히기</button><button class="fb" data-mode="py" aria-pressed="${S.mode==='py'}">병음·성조 맞히기</button></div>
+  <div class="row"><button class="fb" data-lvq="0" aria-pressed="${S.lvq===0}">전체 급수</button>${LEVELS.map(l=>`<button class="fb" data-lvq="${l}" aria-pressed="${S.lvq===l}">${l}급만</button>`).join('')}<span class="score">맞힌 문제 ${S.score.ok} / ${S.score.n}</span></div>
+  <div class="qbig" lang="${showMean?'ko':'zh-CN'}"${showMean?' style="font-size:2rem"':''}>${showMean?Q.t.mean:Q.t.w}</div>
+  <p style="margin:0 0 10px;font-weight:700">${S.mode==='mean'?'이 단어의 뜻은?':S.mode==='word'?'이 뜻에 맞는 단어는?':'이 단어의 병음(성조 포함)은?'}</p>
+  <div class="opts">${Q.opts.map((o,i)=>`<button class="opt${done?(o===Q.t[Q.key]?' right':i===Q.pick?' wrong':''):''}" data-opt="${i}"${done?' disabled':''}>${o}</button>`).join('')}</div>
+  ${done?`<p class="fb2">${ok?'정답이에요!':'아쉬워요. 정답은 “'+Q.t[Q.key]+'”'}</p><div class="acts"><button class="btn pri" data-act="qnext">다음 문제</button><button class="btn" data-go="${Q.t.w}">이 단어 이어 배우기</button></div>`:''}
+  <p class="hint">오답 보기는 반대말·같은 글자·같은 주제의 단어에서 골라서, 헷갈리는 단어를 구분하는 연습이 돼요.</p>`}
+
+const TABS=[['study','이어 배우기'],['themes','주제별'],['list','전체 단어'],['kr','한국어와 비교'],['quiz','퀴즈']];
+function render(){
+  $('#tabs').innerHTML=TABS.map(([k,t])=>`<button role="tab" data-tab="${k}" aria-selected="${S.tab===k}">${t}</button>`).join('');
+  const n=S.learned.size;
+  $('#prog').innerHTML=LEVELS.map(l=>{const a=D.filter(d=>d.lv===l);return `${l}급 ${a.filter(d=>S.learned.has(d.w)).length}/${a.length}`}).join(' · ')+`<div class="bar"><i style="width:${Math.round(n/D.length*100)}%"></i></div>`;
+  $('#app').innerHTML=S.tab==='study'?study():S.tab==='themes'?themes():S.tab==='list'?list():S.tab==='kr'?korea():quiz();
+  const q=$('#q');if(q)q.addEventListener('input',()=>{S.q=q.value;$('#grid').innerHTML=gridH()});
+  const t=$('.trail');if(t)t.scrollLeft=t.scrollWidth}
+function top(){try{$('#tabs').scrollIntoView({block:'start'})}catch(e){}}
+
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  const x=b.dataset;
+  if(x.tab){S.tab=x.tab;render();return}
+  if(x.say){say(x.say);return}
+  if(x.go){go(x.go);S.tab='study';render();top();return}
+  if(x.tr!==undefined){const i=+x.tr;S.cur=S.trail[i];S.trail=S.trail.slice(0,i+1);save();render();return}
+  if(x.lvf!==undefined){S.lvf=+x.lvf;render();return}
+  if(x.lvk!==undefined){S.lvk=+x.lvk;render();return}
+  if(x.lvq!==undefined){S.lvq=+x.lvq;S.quiz=null;render();return}
+  if(x.mode){S.mode=x.mode;S.quiz=null;render();return}
+  if(x.opt!==undefined){const Q=S.quiz;if(Q.pick!==null)return;Q.pick=+x.opt;S.score.n++;if(Q.opts[Q.pick]===Q.t[Q.key])S.score.ok++;render();return}
+  const a=x.act;if(!a)return;
+  if(a==='learn'){S.learned.has(S.cur)?S.learned.delete(S.cur):S.learned.add(S.cur);save();render()}
+  else if(a==='next'){go(pickNext());render();top()}
+  else if(a==='clear'){S.trail=[S.cur];render()}
+  else if(a==='onlynew'){S.onlyNew=!S.onlyNew;render()}
+  else if(a==='qnext'){S.quiz=newQ();render()}
+});
+if(!('speechSynthesis' in window))document.body.classList.add('no-tts');
+render();
+})();
+
+</script></body></html>

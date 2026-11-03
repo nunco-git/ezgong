@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>중국어 학습 - 간체자 꼬리잡기 - 스마트공</title>
+<title>간체자 꼬리잡기 - 스마트공</title>
 <meta name="description" content="간판·거리·신문에 자주 나오는 간체자를 비슷한 모양·발음으로 묶어 꼬리에 꼬리를 물고 익히는 중국어 학습 앱.">
 <link rel="icon" href="/smartgong_logo_icon.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Noto+Sans+SC:wght@400;700;900&family=Noto+Sans:wght@400;600;700&display=swap">
@@ -124,13 +124,13 @@ input[type=search]{font:inherit;padding:8px 12px;border:1px solid var(--line);bo
 .zhbar{max-width:1000px;margin:0 auto;padding:10px 0 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.85rem}
 .zhbar a{color:var(--muted);text-decoration:none}
 .zhbar a.home:hover{color:var(--ink)}
-.zhbar .sw{display:flex;gap:4px;margin-left:auto;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px}
-.zhbar .sw a{padding:6px 14px;border-radius:999px;font-weight:700;color:var(--muted)}
+.zhbar .sw{display:flex;gap:2px;margin-left:auto;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px;overflow-x:auto;max-width:100%}
+.zhbar .sw a{padding:7px 12px;border-radius:999px;font-weight:700;color:var(--muted);white-space:nowrap}
 .zhbar .sw a[aria-current="page"]{background:var(--sign);color:#fff}
 .zhbar a:focus-visible{outline:3px solid var(--red);outline-offset:2px}
 </style>
 <div class="zhbar"><a class="home" href="/">← 스마트공 홈</a><a class="home" href="/more/">기타 앱</a>
-<nav class="sw" aria-label="중국어 학습 메뉴"><a href="/chinese/hanzi.html" aria-current="page">간체자</a><a href="/chinese/">HSK 1~5급</a></nav></div>
+<nav class="sw" aria-label="중국어 학습 메뉴"><a href="/chinese/hanzi.html" aria-current="page">간체자</a><a href="/chinese/hsk12.html">HSK 1·2급</a><a href="/chinese/hsk3.html">3급</a><a href="/chinese/hsk4.html">4급</a><a href="/chinese/hsk5.html">5급</a></nav></div>
 <div class="wrap">
   <header class="top">
     <div>
@@ -153,6 +153,7 @@ function C(ch,py,kr,mean,trad,words,ex,tip){
 // g(종류, 제목, 글자들, 설명) 종류: shape(모양/부품) | pair(짝·반대말)
 const G=[];
 function g(type,title,chars,note){G.push({type,title,chars:[...chars],note})}
+
 cat('기본 표지');
 C("门","mén","문","문","門",[["大门","dà mén","대문, 정문"],["门口","mén kǒu","문 앞, 입구"]],["门口有一家咖啡店。","Ménkǒu yǒu yì jiā kāfēidiàn.","입구에 커피숍이 하나 있다."],"네모난 문틀 모양이에요. 问·间·闻 같은 글자의 문틀(门) 부분이기도 해요.");
 C("开","kāi","개","열다, 켜다","開",[["开门","kāi mén","문을 열다"],["开业","kāi yè","개업하다"]],["商店九点开门。","Shāngdiàn jiǔ diǎn kāi mén.","가게는 9시에 문을 연다."],"간판의 '开' = 영업 중. 반대말은 关(닫다)이에요.");
@@ -185,6 +186,7 @@ C("后","hòu","후","뒤","後",[["后门","hòu mén","뒷문"],["以后","yǐ
 C("正","zhèng","정","바르다, 마침 ~하는 중","",[["正门","zhèng mén","정문"],["正在","zhèng zài","~하는 중이다"]],["商店正在装修。","Shāngdiàn zhèngzài zhuāngxiū.","가게는 수리 중이다."],"政과 소리가 같아요(zheng).");
 C("止","zhǐ","지","멈추다, 그치다","",[["禁止","jìn zhǐ","금지하다"],["停止","tíng zhǐ","중지하다"]],["禁止入内。","Jìnzhǐ rùnèi.","출입 금지."],"正과 모양이 닮았어요. 止는 '멈추다'예요.");
 C("禁","jìn","금","금지하다","",[["禁止","jìn zhǐ","금지하다"],["禁烟","jìn yān","금연"]],["这里禁止停车。","Zhèlǐ jìnzhǐ tíngchē.","여기는 주차 금지다."],"표지판 필수 글자: 禁止 + 하지 말아야 할 행동.");
+
 cat('장소·교통');
 C("站","zhàn","참","정거장, 서다","",[["车站","chē zhàn","정거장"],["地铁站","dì tiě zhàn","지하철역"]],["前面是公交车站。","Qiánmiàn shì gōngjiāo chēzhàn.","앞이 버스 정류장이다."],"立(서다) + 占. 店·点과 같은 부품 占이 들어 있어요.");
 C("店","diàn","점","가게","",[["饭店","fàn diàn","식당, 호텔"],["商店","shāng diàn","상점"]],["这家店的面很好吃。","Zhè jiā diàn de miàn hěn hǎochī.","이 가게의 면 요리는 맛있다."],"广(건물) + 占. 간판 끝에 가장 많이 붙는 글자예요.");
@@ -213,6 +215,7 @@ C("银","yín","은","은","銀",[["银行","yín háng","은행"],["银色","y�
 C("行","xíng/háng","행","가다, 괜찮다 / 줄, 점포","",[["银行","yín háng","은행"],["旅行","lǚ xíng","여행"]],["这里不行。","Zhèlǐ bù xíng.","여기는 안 된다."],"다음자: 银行·行业는 háng, 旅行·不行·行走는 xíng.");
 C("票","piào","표","표, 티켓","",[["售票","shòu piào","매표"],["车票","chē piào","승차권"]],["请先买票再上车。","Qǐng xiān mǎi piào zài shàngchē.","먼저 표를 사고 승차해 주세요."],"기차·지하철 매표소에서 자주 봐요.");
 C("售","shòu","수","팔다","",[["售票","shòu piào","매표"],["销售","xiāo shòu","판매"]],["售票处在二楼。","Shòupiàochù zài èr lóu.","매표소는 2층에 있다."],"卖(mài)와 뜻은 비슷하지만 간판에서는 售票·售货처럼 써요.");
+
 cat('상점·결제');
 C("买","mǎi","매","사다","買",[["买单","mǎi dān","계산하다"],["买东西","mǎi dōng xi","물건을 사다"]],["买二送一。","Mǎi èr sòng yī.","2개 사면 1개를 더 준다."],"买 위에 十을 얹으면 卖(팔다)가 돼요.");
 C("卖","mài","매","팔다","賣",[["卖完","mài wán","다 팔리다"],["热卖","rè mài","인기리에 판매"]],["这个已经卖完了。","Zhège yǐjīng mài wán le.","이건 이미 다 팔렸다."],"买와 모양·소리가 닮았어요. 성조로 구분해요: 买 mǎi(3성), 卖 mài(4성).");
@@ -251,6 +254,7 @@ C("位","wèi","위","자리, 분","",[["座位","zuò wèi","좌석"],["位置"
 C("味","wèi","미","맛","",[["味道","wèi dào","맛"],["美味","měi wèi","맛있는 음식"]],["这个味道很好。","Zhège wèidào hěn hǎo.","이 맛이 아주 좋다."],"口(입) + 未. 소리는 未에서 왔어요.");
 C("卫","wèi","위","지키다","衛",[["卫生","wèi shēng","위생"],["卫生间","wèi shēng jiān","화장실"]],["请保持卫生。","Qǐng bǎochí wèishēng.","위생을 지켜 주세요."],"卫生间 = 화장실. 洗手间과 같은 말이에요.");
 C("未","wèi","미","아직 ~하지 않다","",[["未成年","wèi chéng nián","미성년"],["未来","wèi lái","미래"]],["未成年人禁止入内。","Wèichéngnián rén jìnzhǐ rùnèi.","미성년자 출입 금지."],"末(mò)와 모양이 닮았어요: 未는 위 가로획이 짧고, 末는 위 가로획이 길어요.");
+
 cat('생활·음식');
 C("饭","fàn","반","밥, 식사","飯",[["米饭","mǐ fàn","쌀밥"],["饭店","fàn diàn","식당, 호텔"]],["我们去饭店吃饭吧。","Wǒmen qù fàndiàn chīfàn ba.","우리 식당에 가서 밥 먹자."],"饣(먹다) + 反. 反·返과 같은 부품 反이 들어 있어요.");
 C("反","fǎn","반","반대하다, 거꾸로","",[["反对","fǎn duì","반대하다"],["反应","fǎn yìng","반응"]],["很多人反对这个计划。","Hěn duō rén fǎnduì zhège jìhuà.","많은 사람이 이 계획에 반대한다."],"饭(fàn)과 소리가 거의 같고 성조만 달라요.");
@@ -282,6 +286,7 @@ C("食","shí","식","먹다, 음식","",[["食品","shí pǐn","식품"],["食�
 C("事","shì","사","일, 사건","",[["事故","shì gù","사고"],["事情","shì qing","일"]],["有事请按铃。","Yǒu shì qǐng àn líng.","일이 있으면 벨을 눌러 주세요."],"士·市·时와 소리가 같아요(shi).");
 C("十","shí","십","열","",[["十月","shí yuè","10월"],["十分","shí fēn","매우, 10분"]],["现在十点十分。","Xiànzài shí diǎn shí fēn.","지금 10시 10분이다."],"十字(십자) 모양이에요.");
 C("士","shì","사","선비, 전문직","",[["护士","hù shi","간호사"],["女士","nǚ shì","여사"]],["护士在医院工作。","Hùshi zài yīyuàn gōngzuò.","간호사는 병원에서 일한다."],"土(tǔ)와 닮았어요: 士는 위 가로획이 길고, 土는 아래 가로획이 길어요.");
+
 cat('신문·시간·숫자');
 C("报","bào","보","알리다, 신문","報",[["报纸","bào zhǐ","신문"],["报道","bào dào","보도"]],["他每天早上看报纸。","Tā měitiān zǎoshang kàn bàozhǐ.","그는 매일 아침 신문을 본다."],"○○日报처럼 신문 이름 끝에 자주 나와요.");
 C("书","shū","서","책","書",[["书店","shū diàn","서점"],["图书","tú shū","도서"]],["我想去书店买一本书。","Wǒ xiǎng qù shūdiàn mǎi yì běn shū.","서점에 가서 책을 한 권 사고 싶다."],"书店 = 서점. 图书馆의 书예요.");
@@ -327,6 +332,7 @@ C("七","qī","칠","일곱","",[["七月","qī yuè","7월"],["七天","qī ti�
 C("午","wǔ","오","정오","",[["中午","zhōng wǔ","점심, 정오"],["下午","xià wǔ","오후"]],["下午三点开始。","Xiàwǔ sān diǎn kāishǐ.","오후 3시에 시작한다."],"牛·年과 모양이 닮았고, 五와 소리가 같아요.");
 C("年","nián","년","해, 년","",[["今年","jīn nián","올해"],["新年","xīn nián","새해"]],["这家店开了十年。","Zhè jiā diàn kāi le shí nián.","이 가게는 10년 동안 문을 열었다."],"午·牛와 모양이 닮았어요.");
 C("于","yú","우","~에, ~에서","於",[["关于","guān yú","~에 관하여"],["由于","yóu yú","~때문에"]],["这是关于新政策的报道。","Zhè shì guānyú xīn zhèngcè de bàodào.","이는 새 정책에 관한 보도다."],"关于·由于·对于는 신문 기사의 대표적인 연결 표현이에요.");
+
 // ---- 모양이 닮았거나 같은 부품을 가진 묶음 ----
 g('shape','人 · 入 · 八','人入八','세 글자 모두 갈라진 선 모양이라 헷갈려요. 人은 사람, 入은 들어가다(入口), 八은 숫자 8이에요.');
 g('shape','大 · 太 · 天','大太天','大에 점을 찍으면 太(너무), 大 위에 가로획을 얹으면 天(하늘)이에요.');
@@ -389,6 +395,7 @@ g('pair','사용 · 결제','用支付付','결제 안내에 자주 나오는 �
 g('pair','话 · 说 · 问','话问记','말하고 묻고 적는 글자들이에요. 讠(말씀 언)이 들어간 글자와 연결돼요.');
 g('pair','주말 · 이전과 이후','末后前','때와 순서를 나타내는 글자예요.');
 g('pair','土 · 木 · 水','土木水','자연 재료 글자예요.');
+
 (function(){
 const $=s=>document.querySelector(s);
 const MAP=new Map(D.map(d=>[d.ch,d]));
@@ -533,4 +540,5 @@ document.addEventListener('click',e=>{
 if(!('speechSynthesis' in window))document.body.classList.add('no-tts');
 render();
 })();
+
 </script></body></html>
