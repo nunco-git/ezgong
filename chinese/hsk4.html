@@ -147,7 +147,7 @@ input[type=search]{font:inherit;padding:8px 12px;border:1px solid var(--line);bo
   <header class="top">
     <div>
       <h1>HSK 4급 꼬리잡기</h1>
-      <p class="sub">HSK 4급 신출 598단어를 같은 글자, 반대말, 주제, 예문으로 이어 배워요<br>한자를 누르면 발음이 나오고, 병음을 누르면 그 단어로 이동해요 · <button type="button" data-help style="background:none;border:0;padding:0;color:var(--sign);text-decoration:underline;font:inherit;cursor:pointer">음성이 안 나오나요?</button></p>
+      <p class="sub">HSK 4급 신출 598단어를 같은 글자, 반대말, 주제, 예문으로 이어 배워요<br>한자를 누르면 발음, 카드를 누르면 설명 창, 창에서 병음을 누르면 그 단어로 이동해요 · <button type="button" data-help style="background:none;border:0;padding:0;color:var(--sign);text-decoration:underline;font:inherit;cursor:pointer">음성이 안 나오나요?</button></p>
     </div>
     <div class="prog" id="prog"></div>
   </header>
@@ -971,11 +971,17 @@ function sayOnline(t){const urls=['https://translate.google.com/translate_tts?ie
   const tryNext=()=>{if(i>=urls.length){sayToast('중국어 음성을 재생할 수 없어요. 설치 안내를 열어요.');setTimeout(showHelp,600);return}
     try{if(TTS.a){TTS.a.pause()}const a=new Audio(urls[i++]);TTS.a=a;a.onerror=tryNext;const p=a.play();if(p&&p.catch)p.catch(tryNext)}catch(e){tryNext()}};
   tryNext()}
-function say(t){
+function sayEngine(t){
   try{if('speechSynthesis' in window){const v=zhVoice();
     if(v){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.voice=v;u.lang=v.lang;u.rate=.85;let ok=false;u.onstart=()=>{ok=true};u.onerror=()=>{if(!ok)sayOnline(t)};
       setTimeout(()=>speechSynthesis.speak(u),40);return}}}catch(e){}
   sayOnline(t)}
+const AUDIO_BASE=/(^|\.)smartgong\.kr$/.test(location.hostname)?'/chinese/a/':'https://www.smartgong.kr/chinese/a/';
+function audioKey(s){let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0,c;i<s.length;i++){c=s.charCodeAt(i);h1=Math.imul(h1^c,2654435761);h2=Math.imul(h2^c,1597334677)}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return (4294967296*(2097151&h2)+(h1>>>0)).toString(16)}
+function say(t){
+  try{if('speechSynthesis' in window)speechSynthesis.cancel()}catch(e){}
+  let done=false;const fail=()=>{if(done)return;done=true;sayEngine(t)};
+  try{if(TTS.a)TTS.a.pause();const a=new Audio(AUDIO_BASE+audioKey(t)+'.mp3');TTS.a=a;a.onerror=fail;const p=a.play();if(p&&p.catch)p.catch(fail)}catch(e){fail()}}
 try{if('speechSynthesis' in window){speechSynthesis.getVoices();speechSynthesis.addEventListener&&speechSynthesis.addEventListener('voiceschanged',()=>{})}}catch(e){}
 function showHelp(){
   const ua=navigator.userAgent||'',and=/Android/i.test(ua),ios=/iPhone|iPad|iPod/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1),win=/Windows/i.test(ua),mac=!ios&&/Macintosh|Mac OS/i.test(ua);
@@ -1080,13 +1086,27 @@ function render(){
   const t=$('.trail');if(t)t.scrollLeft=t.scrollWidth}
 function top(){try{$('#tabs').scrollIntoView({block:'start'})}catch(e){}}
 
+function peek(w){const d=MAP.get(w);if(!d)return;
+  let k=document.getElementById('peek');if(k)k.remove();
+  k=document.createElement('dialog');k.id='peek';
+  k.style.cssText='border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);width:min(420px,92vw);padding:18px;font:inherit;line-height:1.5';
+  const ko=(typeof kinfo==='function'&&kinfo(d.w))||null;
+  k.innerHTML=`<div style="display:flex;gap:14px;align-items:center"><button data-say="${d.w}" aria-label="${d.w} 듣기" style="flex:none;background:var(--sign);color:#fff;border:0;border-radius:12px;padding:10px 14px;font:900 2rem/1.1 var(--f-han);max-width:60%;overflow-wrap:anywhere">${d.w}</button><div style="min-width:0"><button data-go="${d.w}" aria-label="${d.w} 단어로 이동" style="background:none;border:0;border-bottom:2px dotted var(--sign);padding:0;font:600 1.15rem var(--f-py);color:inherit;cursor:pointer;text-align:left">${pyH(d.py)}</button><div style="font-size:.78rem;color:var(--muted);margin-top:2px">병음을 누르면 이 단어로 이동</div></div></div>
+  <p style="margin:12px 0 2px;font-size:1.1rem;font-weight:700">${d.mean}</p><p style="margin:0;color:var(--muted);font-size:.85rem">HSK ${d.lv}급 · ${d.pos}${d.th?' · '+d.th:''}</p>
+  ${ko?`<p style="margin:8px 0 0;font-size:.88rem;background:var(--soft);border-radius:8px;padding:6px 10px">한국어 “${ko[1]}” ${ko[0]==='s'?'· 뜻도 같아요':'· 뜻이 달라요'}</p>`:''}
+  <p lang="zh-CN" style="margin:12px 0 0;font:500 1.15rem/1.6 var(--f-han)">${d.ex.z}</p><p style="margin:0;font-size:.85rem;color:var(--muted)">${d.ex.py}</p><p style="margin:0;font-size:.9rem">${d.ex.k}</p>
+  <form method="dialog" style="text-align:right;margin-top:10px"><button style="padding:8px 16px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-weight:700">닫기</button></form>`;
+  k.addEventListener('click',ev=>{if(ev.target===k)k.close()});
+  document.body.appendChild(k);try{k.showModal()}catch(e){k.setAttribute('open','')}}
+function closePeek(){const k=document.getElementById('peek');if(k&&k.open)k.close()}
 document.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
   const x=b.dataset;
   if(x.tab){S.tab=x.tab;render();return}
   if(x.say){say(x.say);return}
   if(x.go&&e.target.closest('.cc,.tc')){say(x.go);return}
-  if(x.go){go(x.go);S.tab='study';render();top();return}
+  if(x.go&&b.matches('.chip,.tile')){peek(x.go);return}
+  if(x.go){closePeek();go(x.go);S.tab='study';render();top();return}
   if(x.tr!==undefined){const i=+x.tr;S.cur=S.trail[i];S.trail=S.trail.slice(0,i+1);save();render();return}
   if(x.lvf!==undefined){S.lvf=+x.lvf;render();return}
   if(x.lvk!==undefined){S.lvk=+x.lvk;render();return}
