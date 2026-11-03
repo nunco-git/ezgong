@@ -580,9 +580,15 @@ function sayEngine(t){
 const AUDIO_BASE=/(^|\.)smartgong\.kr$/.test(location.hostname)?'/chinese/a/':'https://www.smartgong.kr/chinese/a/';
 function audioKey(s){let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0,c;i<s.length;i++){c=s.charCodeAt(i);h1=Math.imul(h1^c,2654435761);h2=Math.imul(h2^c,1597334677)}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return (4294967296*(2097151&h2)+(h1>>>0)).toString(16)}
 function say(t){
-  try{if('speechSynthesis' in window)speechSynthesis.cancel()}catch(e){}
-  let done=false,playing=false;const fail=()=>{if(done||playing)return;done=true;sayToast('소리 파일을 재생하지 못해 기기 음성으로 시도해요');sayEngine(t)};
-  try{if(TTS.a)TTS.a.pause();const a=new Audio(AUDIO_BASE+audioKey(t)+'.mp3');TTS.a=a;a.addEventListener('playing',()=>{playing=true});a.onerror=fail;const p=a.play();if(p&&p.catch)p.catch(fail);setTimeout(()=>{if(!playing)fail()},3000)}catch(e){fail()}}
+  let started=false,moved=false;const toFile=()=>{if(moved||started)return;moved=true;sayFile(t)};
+  try{if(TTS.a)TTS.a.pause()}catch(e){}
+  try{if('speechSynthesis' in window){const v=zhVoice();
+    if(v){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.voice=v;u.lang=v.lang;u.rate=.85;u.onstart=()=>{started=true};u.onerror=toFile;
+      setTimeout(()=>speechSynthesis.speak(u),40);setTimeout(toFile,3000);return}}}catch(e){}
+  sayFile(t)}
+function sayFile(t){
+  let done=false,playing=false;const fail=()=>{if(done||playing)return;done=true;sayToast('소리 파일을 재생하지 못해 인터넷 음성으로 시도해요');sayOnline(t)};
+  try{const a=new Audio(AUDIO_BASE+audioKey(t)+'.mp3');TTS.a=a;a.addEventListener('playing',()=>{playing=true});a.onerror=fail;const p=a.play();if(p&&p.catch)p.catch(fail);setTimeout(()=>{if(!playing)fail()},3000)}catch(e){fail()}}
 try{if('speechSynthesis' in window){speechSynthesis.getVoices();speechSynthesis.addEventListener&&speechSynthesis.addEventListener('voiceschanged',()=>{})}}catch(e){}
 function showHelp(){
   const ua=navigator.userAgent||'',and=/Android/i.test(ua),ios=/iPhone|iPad|iPod/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1),win=/Windows/i.test(ua),mac=!ios&&/Macintosh|Mac OS/i.test(ua);
