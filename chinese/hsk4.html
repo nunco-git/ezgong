@@ -147,7 +147,7 @@ input[type=search]{font:inherit;padding:8px 12px;border:1px solid var(--line);bo
   <header class="top">
     <div>
       <h1>HSK 4급 꼬리잡기</h1>
-      <p class="sub">HSK 4급 신출 598단어를 같은 글자, 반대말, 주제, 예문으로 이어 배워요<br>한자를 누르면 발음이 나오고, 병음을 누르면 그 단어로 이동해요</p>
+      <p class="sub">HSK 4급 신출 598단어를 같은 글자, 반대말, 주제, 예문으로 이어 배워요<br>한자를 누르면 발음이 나오고, 병음을 누르면 그 단어로 이동해요 · <button type="button" data-help style="background:none;border:0;padding:0;color:var(--sign);text-decoration:underline;font:inherit;cursor:pointer">음성이 안 나오나요?</button></p>
     </div>
     <div class="prog" id="prog"></div>
   </header>
@@ -968,7 +968,7 @@ const TTS={a:null,warm:false};
 function zhVoice(){try{const v=speechSynthesis.getVoices();return v.find(x=>/^zh[-_]?CN/i.test(x.lang))||v.find(x=>/^zh/i.test(x.lang))||v.find(x=>/chinese|中文|普通话|mandarin/i.test(x.name))||null}catch(e){return null}}
 function sayToast(m){let t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.setAttribute('role','status');t.style.cssText='position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#14202c;color:#fff;padding:10px 16px;border-radius:10px;font-size:.9rem;z-index:50;max-width:90vw;text-align:center';document.body.appendChild(t)}t.textContent=m;t.hidden=false;clearTimeout(t._h);t._h=setTimeout(()=>{t.hidden=true},3500)}
 function sayOnline(t){const urls=['https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=zh-CN&q='+encodeURIComponent(t),'https://fanyi.baidu.com/gettts?lan=zh&spd=5&source=web&text='+encodeURIComponent(t)];let i=0;
-  const tryNext=()=>{if(i>=urls.length){sayToast('이 기기에서는 중국어 음성을 재생할 수 없어요. 기기 설정에서 중국어 음성(TTS)을 설치해 보세요.');return}
+  const tryNext=()=>{if(i>=urls.length){sayToast('중국어 음성을 재생할 수 없어요. 설치 안내를 열어요.');setTimeout(showHelp,600);return}
     try{if(TTS.a){TTS.a.pause()}const a=new Audio(urls[i++]);TTS.a=a;a.onerror=tryNext;const p=a.play();if(p&&p.catch)p.catch(tryNext)}catch(e){tryNext()}};
   tryNext()}
 function say(t){
@@ -977,6 +977,21 @@ function say(t){
       setTimeout(()=>speechSynthesis.speak(u),40);return}}}catch(e){}
   sayOnline(t)}
 try{if('speechSynthesis' in window){speechSynthesis.getVoices();speechSynthesis.addEventListener&&speechSynthesis.addEventListener('voiceschanged',()=>{})}}catch(e){}
+function showHelp(){
+  const ua=navigator.userAgent||'',and=/Android/i.test(ua),ios=/iPhone|iPad|iPod/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1),win=/Windows/i.test(ua),mac=!ios&&/Macintosh|Mac OS/i.test(ua);
+  let d=document.getElementById('vhelp');if(d)d.remove();
+  d=document.createElement('dialog');d.id='vhelp';
+  d.style.cssText='border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);max-width:min(440px,92vw);padding:18px 18px 14px;font:inherit;line-height:1.55';
+  const btn='display:inline-block;margin:4px 6px 4px 0;padding:9px 14px;border-radius:8px;background:var(--sign);color:#fff;text-decoration:none;font-weight:700;font-size:.92rem';
+  let h='<h2 style="margin:0 0 6px;font-size:1.1rem">중국어 음성 설치 안내</h2><p style="margin:0 0 10px;color:var(--muted);font-size:.9rem">웹페이지가 기기에 음성을 직접 설치할 수는 없어요. 아래 순서로 설치한 뒤 브라우저를 한 번 껐다 켜고 다시 눌러 보세요.</p>';
+  if(and)h+=`<p><b>안드로이드</b></p><a style="${btn}" href="https://play.google.com/store/apps/details?id=com.google.android.tts" target="_blank" rel="noopener">Google 음성 서비스 설치·업데이트</a><a style="${btn}" href="intent:#Intent;action=com.android.settings.TTS_SETTINGS;end">음성 설정 열기</a><ol style="margin:8px 0;padding-left:20px"><li>설정 → 일반(또는 접근성) → 텍스트 음성 변환(TTS) 출력</li><li>Google 음성 서비스 → 설정(톱니바퀴) → 음성 데이터 설치</li><li>중국어(중국, 简体) 선택 후 다운로드</li></ol>`;
+  else if(ios)h+='<p><b>아이폰·아이패드</b></p><ol style="margin:8px 0;padding-left:20px"><li>설정 → 손쉬운 사용 → 말하는 콘텐츠 → 음성</li><li>중국어 → Ting-Ting(또는 Li-mu) 선택</li><li>다운로드 아이콘을 눌러 설치</li></ol>';
+  else if(win)h+=`<p><b>윈도우</b></p><a style="${btn}" href="ms-settings:speech">음성 설정 열기</a><ol style="margin:8px 0;padding-left:20px"><li>설정 → 시간 및 언어 → 언어 및 지역 → 언어 추가 → 中文(简体)</li><li>설치 옵션에서 "텍스트 음성 변환"(음성) 체크</li><li>설치 후 브라우저를 다시 시작</li></ol><p style="font-size:.85rem;color:var(--muted)">크롬은 시스템 음성이 없어도 온라인 음성으로 재생을 시도해요. 엣지는 "Microsoft Huihui" 등 중국어 음성을 쓸 수 있어요.</p>`;
+  else if(mac)h+='<p><b>맥</b></p><ol style="margin:8px 0;padding-left:20px"><li>시스템 설정 → 손쉬운 사용 → 말하기 콘텐츠</li><li>시스템 음성 → 관리… → 중국어(Tingting 등) 다운로드</li></ol>';
+  else h+='<p>기기 설정의 언어·음성(텍스트 음성 변환) 항목에서 중국어(简体) 음성을 설치해 주세요.</p>';
+  h+='<form method="dialog" style="text-align:right;margin-top:8px"><button style="padding:8px 16px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-weight:700">닫기</button></form>';
+  d.innerHTML=h;document.body.appendChild(d);try{d.showModal()}catch(e){d.setAttribute('open','')}}
+document.addEventListener('click',e=>{if(e.target.closest('[data-help]'))showHelp()});
 
 function chip(x){const d=MAP.get(x.c);
   return `<button class="chip${S.learned.has(x.c)?' done':''}" data-go="${x.c}"><span class="cc">${x.c}</span><span class="ct"><span class="cp">${pyH(d.py)}</span><span class="cm">${d.mean}</span><span class="cw">HSK ${d.lv}급 · ${x.why}</span></span></button>`}
