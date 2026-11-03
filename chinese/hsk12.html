@@ -594,10 +594,20 @@ function showHelp(){
   const ua=navigator.userAgent||'',and=/Android/i.test(ua),ios=/iPhone|iPad|iPod/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1),win=/Windows/i.test(ua),mac=!ios&&/Macintosh|Mac OS/i.test(ua);
   let d=document.getElementById('vhelp');if(d)d.remove();
   d=document.createElement('dialog');d.id='vhelp';
-  d.style.cssText='border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);max-width:min(440px,92vw);padding:18px 18px 14px;font:inherit;line-height:1.55';
+  d.style.cssText='border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);max-width:min(460px,94vw);max-height:88vh;overflow:auto;padding:18px 18px 14px;font:inherit;line-height:1.55';
   const btn='display:inline-block;margin:4px 6px 4px 0;padding:9px 14px;border-radius:8px;background:var(--sign);color:#fff;text-decoration:none;font-weight:700;font-size:.92rem';
+  const stp='margin:0 0 8px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);font-size:.92rem;line-height:1.55';
   let h='<h2 style="margin:0 0 6px;font-size:1.1rem">중국어 음성 설치 안내</h2><p style="margin:0 0 10px;color:var(--muted);font-size:.9rem">웹페이지가 기기에 음성을 직접 설치할 수는 없어요. 아래 순서로 설치한 뒤 브라우저를 한 번 껐다 켜고 다시 눌러 보세요. (아래 버튼이 열리지 않으면 적힌 설정 경로로 직접 들어가 주세요. 앱 안에서는 설정 화면이 열리지 않을 수 있어요.)</p>';
-  if(and)h+=`<p><b>안드로이드</b></p><a style="${btn}" href="https://play.google.com/store/apps/details?id=com.google.android.tts" target="_blank" rel="noopener">Google 음성 서비스 설치·업데이트</a><a style="${btn}" href="intent:#Intent;action=com.android.settings.TTS_SETTINGS;end">음성 설정 열기</a><ol style="margin:8px 0;padding-left:20px"><li>설정 → 일반(또는 접근성) → 텍스트 음성 변환(TTS) 출력</li><li>Google 음성 서비스 → 설정(톱니바퀴) → 음성 데이터 설치</li><li>중국어(중국, 简体) 선택 후 다운로드</li></ol>`;
+  if(and)h+=`<p style="margin:0 0 8px"><b>안드로이드 설정 방법</b> <span style="color:var(--muted);font-size:.82rem">(기종마다 메뉴 이름이 조금 달라요. 설정 맨 위 검색창에 "텍스트 음성 변환"을 입력하면 가장 빨라요)</span></p>
+  <ol style="margin:0;padding-left:0;list-style:none;counter-reset:s">
+  <li style="${stp}"><b>① 설정 앱 열기 → 텍스트 음성 변환 찾기</b><br>갤럭시: 설정 → 일반 → 언어 → <b>텍스트 음성 변환</b><br>그 밖의 폰: 설정 → 시스템 → 언어 및 입력 → <b>텍스트 음성 변환 출력</b></li>
+  <li style="${stp}"><b>② 선호하는 엔진을 "Google 음성 서비스"로 바꾸기</b><br>"삼성 텍스트 음성 변환"으로 되어 있으면 눌러서 <b>Google 음성 서비스</b>(Speech Services by Google)를 고르세요.<br>목록에 없으면 Play 스토어에서 설치해야 해요.<br><a style="${btn}" href="https://play.google.com/store/apps/details?id=com.google.android.tts" target="_blank" rel="noopener">Play 스토어에서 Google 음성 서비스 열기</a></li>
+  <li style="${stp}"><b>③ 엔진 오른쪽 톱니바퀴(⚙) 누르기</b><br>Google 음성 서비스 이름 옆에 있는 ⚙ 아이콘이에요.</li>
+  <li style="${stp}"><b>④ "음성 데이터 설치" 누르기</b><br>화면에 "음성 데이터 설치"가 없으면 <b>"언어"</b> 또는 <b>"오프라인 음성 데이터"</b> 항목을 눌러 보세요.</li>
+  <li style="${stp}"><b>⑤ "중국어(중국)" 또는 "Chinese (Mandarin)" 고르기</b><br>목록에서 <b>中文(普通话)</b>, <b>중국어(중국, 简体)</b> 중 하나를 눌러 오른쪽 <b>↓ 다운로드</b> 아이콘을 누르세요. 다운로드가 끝나면 체크 표시로 바뀌어요.</li>
+  <li style="${stp}"><b>⑥ 다 끝나면</b><br>크롬(또는 쓰던 브라우저)을 최근 앱 목록에서 완전히 종료한 뒤 다시 열고, 아래 <b>소리 테스트</b>를 눌러 보세요.</li></ol>
+  <button data-say="你好，欢迎学习汉语。" style="${btn};border:0;cursor:pointer;margin-top:8px">▶ 소리 테스트 (你好)</button>
+  <p style="margin:8px 0 0;font-size:.82rem;color:var(--muted)">기기 설정을 앱이 대신 열거나 설치해 줄 수는 없어요. 위 메뉴를 직접 따라가 주세요.</p>`;
   else if(ios)h+='<p><b>아이폰·아이패드</b></p><ol style="margin:8px 0;padding-left:20px"><li>설정 → 손쉬운 사용 → 말하는 콘텐츠 → 음성</li><li>중국어 → Ting-Ting(또는 Li-mu) 선택</li><li>다운로드 아이콘을 눌러 설치</li></ol>';
   else if(win)h+=`<p><b>윈도우</b></p><a style="${btn}" href="ms-settings:speech">음성 설정 열기</a><ol style="margin:8px 0;padding-left:20px"><li>설정 → 시간 및 언어 → 언어 및 지역 → 언어 추가 → 中文(简体)</li><li>설치 옵션에서 "텍스트 음성 변환"(음성) 체크</li><li>설치 후 브라우저를 다시 시작</li></ol><p style="font-size:.85rem;color:var(--muted)">크롬은 시스템 음성이 없어도 온라인 음성으로 재생을 시도해요. 엣지는 "Microsoft Huihui" 등 중국어 음성을 쓸 수 있어요.</p>`;
   else if(mac)h+='<p><b>맥</b></p><ol style="margin:8px 0;padding-left:20px"><li>시스템 설정 → 손쉬운 사용 → 말하기 콘텐츠</li><li>시스템 음성 → 관리… → 중국어(Tingting 등) 다운로드</li></ol>';
