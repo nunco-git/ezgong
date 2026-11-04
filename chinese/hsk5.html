@@ -1652,23 +1652,24 @@ function sayEngine(t){
   sayOnline(t)}
 const AUDIO_BASE=/(^|\.)smartgong\.kr$/.test(location.hostname)?'/chinese/a/':'https://www.smartgong.kr/chinese/a/';
 function audioKey(s){let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0,c;i<s.length;i++){c=s.charCodeAt(i);h1=Math.imul(h1^c,2654435761);h2=Math.imul(h2^c,1597334677)}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return (4294967296*(2097151&h2)+(h1>>>0)).toString(16)}
-const NET={dead:false},EL=new Audio();
-function tryPlay(src,ms,onFail){let ok=false,dead=false;const bad=()=>{if(dead||ok)return;dead=true;onFail()};
-  EL.onplaying=()=>{ok=true};EL.onerror=bad;
+const EL=new Audio();
+function tryPlay(src,ms,onOk,onFail){let ok=false,dead=false;const bad=()=>{if(dead||ok)return;dead=true;onFail()};
+  EL.onplaying=()=>{if(!ok){ok=true;onOk&&onOk()}};EL.onerror=bad;
   try{EL.src=src;const p=EL.play();if(p&&p.catch)p.catch(bad)}catch(e){bad();return}
   setTimeout(()=>{if(!ok){try{EL.pause()}catch(e){}bad()}},ms)}
-function sayDevice(t){
-  try{if('speechSynthesis' in window){const v=zhVoice();speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);if(v){u.voice=v;u.lang=v.lang}else u.lang='zh-CN';u.rate=.85;let st=false;u.onstart=()=>{st=true};u.onerror=()=>sayToast('소리를 재생하지 못했어요');
-    setTimeout(()=>speechSynthesis.speak(u),40);setTimeout(()=>{if(!st)sayToast('이 기기에서는 중국어 소리를 낼 수 없어요')},2500);return}}catch(e){}
-  sayToast('이 기기에서는 중국어 소리를 낼 수 없어요')}
+function sayNetFallback(t){const q=encodeURIComponent(t);
+  tryPlay('https://dict.youdao.com/dictvoice?le=zh&audio='+q,1800,()=>sayToast('사전 음성'),()=>
+  tryPlay('https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=zh-CN&q='+q,1800,()=>sayToast('인터넷 음성'),()=>
+  sayToast('소리를 낼 수 없어요: 기기·내장·인터넷 음성 모두 실패')))}
 function sayLocal(t){const k=audioKey(t);
   const src=(typeof AUDIO!=='undefined'&&AUDIO[k])?'data:audio/mpeg;base64,'+AUDIO[k]:AUDIO_BASE+k+'.mp3';
-  tryPlay(src,3000,()=>sayDevice(t))}
+  tryPlay(src,3000,()=>sayToast('내장 음성'),()=>sayNetFallback(t))}
 function say(t){
-  try{speechSynthesis.cancel()}catch(e){}try{EL.pause()}catch(e){}
-  if(NET.dead){sayLocal(t);return}
-  const q=encodeURIComponent(t);
-  tryPlay('https://dict.youdao.com/dictvoice?le=zh&audio='+q,1500,()=>tryPlay('https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=zh-CN&q='+q,1500,()=>{NET.dead=true;sayLocal(t)}))}
+  try{EL.pause()}catch(e){}
+  let moved=false,st=false;const next=()=>{if(moved||st)return;moved=true;try{speechSynthesis.cancel()}catch(e){}sayLocal(t)};
+  try{if('speechSynthesis' in window){const v=zhVoice();speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);if(v){u.voice=v;u.lang=v.lang}else u.lang='zh-CN';u.rate=.85;
+    u.onstart=()=>{st=true;sayToast('기기 음성')};u.onerror=next;speechSynthesis.speak(u);setTimeout(next,1300);return}}catch(e){}
+  next()}
 try{if('speechSynthesis' in window){speechSynthesis.getVoices();speechSynthesis.addEventListener&&speechSynthesis.addEventListener('voiceschanged',()=>{})}}catch(e){}
 function showHelp(){
   const ua=navigator.userAgent||'',and=/Android/i.test(ua),ios=/iPhone|iPad|iPod/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1),win=/Windows/i.test(ua),mac=!ios&&/Macintosh|Mac OS/i.test(ua);
