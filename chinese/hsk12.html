@@ -579,7 +579,14 @@ function sayEngine(t){
   sayOnline(t)}
 const AUDIO_BASE=/(^|\.)smartgong\.kr$/.test(location.hostname)?'/chinese/a/':'https://www.smartgong.kr/chinese/a/';
 function audioKey(s){let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0,c;i<s.length;i++){c=s.charCodeAt(i);h1=Math.imul(h1^c,2654435761);h2=Math.imul(h2^c,1597334677)}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return (4294967296*(2097151&h2)+(h1>>>0)).toString(16)}
-function say(t){
+function sayNet(t,next){const urls=['https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=zh-CN&q='+encodeURIComponent(t),'https://fanyi.baidu.com/gettts?lan=zh&spd=5&source=web&text='+encodeURIComponent(t)];let i=0;
+  const tryNext=()=>{if(i>=urls.length){next();return}let ok=false,dead=false;const bad=()=>{if(dead||ok)return;dead=true;tryNext()};
+    try{const a=new Audio(urls[i++]);TTS.a=a;a.addEventListener('playing',()=>{ok=true});a.onerror=bad;const p=a.play();if(p&&p.catch)p.catch(bad);setTimeout(()=>{if(!ok){try{a.pause()}catch(e){}bad()}},2500)}catch(e){bad()}};
+  try{if(TTS.a)TTS.a.pause()}catch(e){}try{speechSynthesis.cancel()}catch(e){}
+  tryNext()}
+function say(t){sayNet(t,()=>sayLocal(t))}
+function sayLocal(t){
+  if(typeof AUDIO!=='undefined'&&AUDIO[audioKey(t)]){sayFile(t);return}
   let started=false,moved=false;const toFile=()=>{if(moved||started)return;moved=true;sayFile(t)};
   try{if(TTS.a)TTS.a.pause()}catch(e){}
   try{if('speechSynthesis' in window){const v=zhVoice();
@@ -588,7 +595,7 @@ function say(t){
   sayFile(t)}
 function sayFile(t){
   let done=false,playing=false;const fail=()=>{if(done||playing)return;done=true;sayToast('소리 파일을 재생하지 못해 인터넷 음성으로 시도해요');sayOnline(t)};
-  try{const a=new Audio(AUDIO_BASE+audioKey(t)+'.mp3');TTS.a=a;a.addEventListener('playing',()=>{playing=true});a.onerror=fail;const p=a.play();if(p&&p.catch)p.catch(fail);setTimeout(()=>{if(!playing)fail()},3000)}catch(e){fail()}}
+  try{const k=audioKey(t);const a=new Audio((typeof AUDIO!=='undefined'&&AUDIO[k])?'data:audio/mpeg;base64,'+AUDIO[k]:AUDIO_BASE+k+'.mp3');TTS.a=a;a.addEventListener('playing',()=>{playing=true});a.onerror=fail;const p=a.play();if(p&&p.catch)p.catch(fail);setTimeout(()=>{if(!playing)fail()},3000)}catch(e){fail()}}
 try{if('speechSynthesis' in window){speechSynthesis.getVoices();speechSynthesis.addEventListener&&speechSynthesis.addEventListener('voiceschanged',()=>{})}}catch(e){}
 function showHelp(){
   const ua=navigator.userAgent||'',and=/Android/i.test(ua),ios=/iPhone|iPad|iPod/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1),win=/Windows/i.test(ua),mac=!ios&&/Macintosh|Mac OS/i.test(ua);
