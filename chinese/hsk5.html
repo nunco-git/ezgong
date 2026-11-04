@@ -1641,7 +1641,7 @@ function pickNext(){
 const TTS={a:null,warm:false};
 function zhVoice(){try{const v=speechSynthesis.getVoices();return v.find(x=>/^zh[-_]?CN/i.test(x.lang))||v.find(x=>/^zh/i.test(x.lang))||v.find(x=>/chinese|中文|普通话|mandarin/i.test(x.name))||null}catch(e){return null}}
 function sayToast(m){let t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.setAttribute('role','status');t.style.cssText='position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#14202c;color:#fff;padding:10px 16px;border-radius:10px;font-size:.9rem;z-index:50;max-width:90vw;text-align:center';document.body.appendChild(t)}t.textContent=m;t.hidden=false;clearTimeout(t._h);t._h=setTimeout(()=>{t.hidden=true},3500)}
-function sayOnline(t){const urls=['https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=zh-CN&q='+encodeURIComponent(t),'https://fanyi.baidu.com/gettts?lan=zh&spd=5&source=web&text='+encodeURIComponent(t)];let i=0;
+function sayOnline(t){const urls=['https://dict.youdao.com/dictvoice?le=zh&audio='+encodeURIComponent(t),'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=zh-CN&q='+encodeURIComponent(t),'https://fanyi.baidu.com/gettts?lan=zh&spd=5&source=web&text='+encodeURIComponent(t)];let i=0;
   const tryNext=()=>{if(i>=urls.length){sayToast('중국어 음성을 재생할 수 없어요. 설치 안내를 열어요.');setTimeout(showHelp,600);return}
     try{if(TTS.a){TTS.a.pause()}const a=new Audio(urls[i++]);TTS.a=a;a.onerror=tryNext;const p=a.play();if(p&&p.catch)p.catch(tryNext)}catch(e){tryNext()}};
   tryNext()}
@@ -1652,7 +1652,7 @@ function sayEngine(t){
   sayOnline(t)}
 const AUDIO_BASE=/(^|\.)smartgong\.kr$/.test(location.hostname)?'/chinese/a/':'https://www.smartgong.kr/chinese/a/';
 function audioKey(s){let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0,c;i<s.length;i++){c=s.charCodeAt(i);h1=Math.imul(h1^c,2654435761);h2=Math.imul(h2^c,1597334677)}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return (4294967296*(2097151&h2)+(h1>>>0)).toString(16)}
-function sayNet(t,next){const urls=['https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=zh-CN&q='+encodeURIComponent(t),'https://fanyi.baidu.com/gettts?lan=zh&spd=5&source=web&text='+encodeURIComponent(t)];let i=0;
+function sayNet(t,next){const urls=['https://dict.youdao.com/dictvoice?le=zh&audio='+encodeURIComponent(t),'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=zh-CN&q='+encodeURIComponent(t),'https://fanyi.baidu.com/gettts?lan=zh&spd=5&source=web&text='+encodeURIComponent(t)];let i=0;
   const tryNext=()=>{if(i>=urls.length){next();return}let ok=false,dead=false;const bad=()=>{if(dead||ok)return;dead=true;tryNext()};
     try{const a=new Audio(urls[i++]);TTS.a=a;a.addEventListener('playing',()=>{ok=true});a.onerror=bad;const p=a.play();if(p&&p.catch)p.catch(bad);setTimeout(()=>{if(!ok){try{a.pause()}catch(e){}bad()}},2500)}catch(e){bad()}};
   try{if(TTS.a)TTS.a.pause()}catch(e){}try{speechSynthesis.cancel()}catch(e){}
