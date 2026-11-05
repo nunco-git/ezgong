@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>여행 중국어 회화 - 스마트공</title>
+<meta name="description" content="공항·쇼핑·식당·대중교통·관광지에서 바로 쓰는 중국어 회화 표현 153개를 발음·병음·퀴즈로 익히는 앱.">
+<link rel="icon" href="/smartgong_logo_icon.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Noto+Sans+SC:wght@400;700;900&family=Noto+Sans:wght@400;600;700&display=swap">
+<style>
+/* 레이아웃: 파란 도로표지판 느낌의 글자판 + 꼬리잡기 사슬 + 연결 칩 */
+:root{
+  --bg:#eceff3; --surface:#ffffff; --ink:#14202c; --muted:#556271; --line:#d3dae2;
+  --sign:#0d4f8b; --sign-ink:#ffffff; --red:#c4301c; --soft:#e3edf7;
+  --t1:#1d62c9; --t2:#1b7a43; --t3:#9a5700; --t4:#c4301c; --t5:#667381; --ok:#1b7a43;
+  --f-han:'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;
+  --f-kr:'Noto Sans KR','Malgun Gothic','Apple SD Gothic Neo',system-ui,sans-serif;
+  --f-py:'Noto Sans','Segoe UI',system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f161d; --surface:#18222c; --ink:#e8eef4; --muted:#9fadbb; --line:#2b3947;
+  --sign:#1a63aa; --red:#ff7a64; --soft:#14283a;
+  --t1:#74acff; --t2:#5fcf8a; --t3:#f2b445; --t4:#ff7a64; --t5:#9fadbb; --ok:#5fcf8a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f161d; --surface:#18222c; --ink:#e8eef4; --muted:#9fadbb; --line:#2b3947;
+  --sign:#1a63aa; --red:#ff7a64; --soft:#14283a;
+  --t1:#74acff; --t2:#5fcf8a; --t3:#f2b445; --t4:#ff7a64; --t5:#9fadbb; --ok:#5fcf8a; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 var(--f-kr);padding-block:0 56px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:10}
+.wrap{max-width:1000px;margin:0 auto}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+.top{display:flex;gap:16px;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;padding:22px 0 14px}
+h1{margin:0;font-size:1.7rem;font-weight:900;letter-spacing:-.01em;text-wrap:balance}
+.sub{margin:2px 0 0;color:var(--muted);font-size:.92rem}
+.prog{min-width:190px;font-size:.85rem;color:var(--muted)}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:5px}
+.bar i{display:block;height:100%;background:var(--red)}
+.tabs{display:flex;gap:2px;border-bottom:2px solid var(--line);overflow-x:auto;position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:5}
+.tabs{scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}
+.tabs button{background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-2px;padding:12px 11px;font-size:.95rem;font-weight:700;color:var(--muted);white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--red)}
+.trail{display:flex;align-items:center;gap:4px;overflow-x:auto;padding:14px 0 6px}
+.trail .tr{flex:none;min-width:42px;height:42px;padding:0 8px;white-space:nowrap;border:1px solid var(--line);background:var(--surface);border-radius:8px;font:700 1.25rem var(--f-han)}
+.trail .tr[aria-current="true"]{background:var(--sign);border-color:var(--sign);color:#fff}
+.trail .ar{flex:none;color:var(--muted)}
+.trail .lab{flex:none;font-size:.8rem;color:var(--muted);margin-right:6px}
+.trail .clr{flex:none;margin-left:8px;background:none;border:0;color:var(--muted);text-decoration:underline;font-size:.85rem}
+.study{display:grid;grid-template-columns:minmax(220px,290px) minmax(0,1fr);gap:22px;align-items:start;margin-top:10px}
+.plate{background:var(--sign);padding:10px;border-radius:14px}
+.plate-in{border:3px solid #fff;border-radius:8px;aspect-ratio:1/1;display:grid;place-items:center;color:#fff}
+.big{font-weight:900;line-height:1.1;font-family:var(--f-han);text-align:center;padding:0 6px}
+.plate-foot{color:#fff;font-size:.82rem;text-align:center;padding-top:8px}
+.py{font:600 2.1rem/1.2 var(--f-py)}
+.py i{font-style:normal;color:var(--muted);padding:0 4px}
+.t1{color:var(--t1)}.t2{color:var(--t2)}.t3{color:var(--t3)}.t4{color:var(--t4)}.t5{color:var(--t5)}
+.meta{display:grid;gap:4px;margin:8px 0 12px}
+.meta b{display:inline-block;min-width:6.4em;color:var(--muted);font-weight:500;font-size:.85rem}
+.mean{font-size:1.2rem;font-weight:700}
+.kbox{margin:10px 0 0;padding:10px 12px;border-radius:8px;font-size:.92rem;border:1px solid var(--line);line-height:1.5}
+.kbox b{display:block;margin-bottom:2px}
+.kbox.same{background:var(--soft)}
+.kbox.diff{background:var(--soft);border-left:4px solid var(--t4)}
+.tip{margin:10px 0 0;padding:10px 12px;background:var(--soft);border-radius:8px;font-size:.92rem}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 14px;font-weight:700}
+.btn.pri{background:var(--red);border-color:var(--red);color:#fff}
+.btn.on{border-color:var(--ok);color:var(--ok)}
+.no-tts .say{display:none}
+.btn.say{margin-left:0}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:14px}
+.box h2{margin:0 0 10px;font-size:.95rem;color:var(--muted);font-weight:700}
+.wd{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 14px;padding:8px 0;border-top:1px solid var(--line)}
+.wd:first-of-type{border-top:0}
+.wz{font:700 1.5rem var(--f-han)}
+.wz button:not(.say),.sent button:not(.say){background:none;border:0;border-bottom:2px dotted var(--sign);padding:0;font:inherit;color:inherit}
+.wz mark,.sent mark{background:var(--soft);color:inherit;border-radius:3px}
+.wp{font-family:var(--f-py);font-weight:600}
+.wm{grid-column:2;color:var(--muted);font-size:.92rem}
+.sent{font:500 1.5rem/1.7 var(--f-han)}
+.sp{font-family:var(--f-py);color:var(--muted);margin-top:2px}
+.sk{margin-top:2px}
+.say{margin-left:8px;border:1px solid var(--line);background:none;border-radius:6px;padding:0 8px;font-size:.78rem;color:var(--muted)}
+.rel{margin-top:18px}
+.rel h3{margin:0 0 4px;font-size:1rem;padding-left:10px;border-left:5px solid var(--rc)}
+.rel p{margin:0 0 8px 15px;color:var(--muted);font-size:.88rem}
+.chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:8px}
+.chip{display:flex;gap:12px;align-items:center;text-align:left;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.chip:hover{border-color:var(--sign)}
+.chip .cc{font:700 1.4rem/1.1 var(--f-han);min-width:2.2em;max-width:5.5em;overflow-wrap:anywhere}
+.chip .ct{display:grid;min-width:0}
+.chip .cp{font:600 .95rem var(--f-py)}
+.chip .cm{color:var(--muted);font-size:.85rem;overflow-wrap:anywhere}
+.chip .cw{font-size:.75rem;color:var(--muted)}
+.chip.done{border-color:var(--ok)}
+.hint{color:var(--muted);font-size:.9rem;margin:14px 0 0}
+.grp{margin-top:14px}
+.grp .gt{font-weight:700;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.lvl{font-size:.75rem;font-weight:700;border-radius:999px;padding:1px 10px;background:var(--soft);color:var(--ink);margin-right:6px}
+.tag{font-size:.75rem;font-weight:700;border:1px solid var(--line);border-radius:999px;padding:0 8px;color:var(--muted)}
+.gn{margin:4px 0 10px;color:var(--muted);font-size:.92rem}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:14px 0 10px}
+input[type=search]{font:inherit;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);min-width:0;flex:1 1 180px}
+.fb{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 12px;font-size:.88rem}
+.fb[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px}
+.tile{position:relative;display:grid;gap:0;justify-items:center;padding:10px 6px;border:1px solid var(--line);background:var(--surface);border-radius:10px}
+.tile:hover{border-color:var(--sign)}
+.tile .tc{font:700 1.5rem/1.3 var(--f-han);text-align:center}
+.tile .tp{font:600 .9rem var(--f-py)}
+.tile .tm{font-size:.78rem;color:var(--muted);text-align:center;overflow-wrap:anywhere}
+.tile.done{border-color:var(--ok)}
+.tile .ck{position:absolute;top:4px;right:6px;font-size:.7rem;color:var(--ok);font-weight:700}
+.qbig{font-family:var(--f-han);font-weight:900;font-size:3.6rem;line-height:1.2;text-align:center;color:#fff;background:var(--sign);border-radius:14px;padding:14px 8px;margin-bottom:14px;overflow-wrap:anywhere}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+.opt{padding:12px;border:2px solid var(--line);background:var(--surface);border-radius:10px;font-weight:700;font-size:1.05rem}
+.opt.right{border-color:var(--ok);background:var(--soft)}
+.opt.wrong{border-color:var(--red)}
+.fb2{margin:12px 0;font-weight:700}
+.score{color:var(--muted);font-size:.9rem}
+@media (max-width:700px){.study{grid-template-columns:minmax(0,1fr)}.plate{max-width:300px}.py{font-size:1.8rem}}
+@media (prefers-reduced-motion:no-preference){.chip,.tile,.btn{transition:border-color .15s}}
+
+.chip .cc,.tile .tc{cursor:pointer}
+.hint2{margin:6px 0 0;color:var(--muted);font-size:.82rem}
+.sl{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px;font-size:.85rem;color:var(--muted)}
+.sl button,.wl button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 10px;font:600 .9rem var(--f-py);min-height:32px}
+.wl{display:flex;flex-wrap:wrap;gap:6px;grid-column:1/-1;align-items:center;font-size:.8rem;color:var(--muted)}
+.wz button:not(.say),.sent button:not(.say){cursor:pointer}
+</style>
+<style>
+.cats{display:flex;gap:6px;overflow-x:auto;padding:14px 0 6px;scrollbar-width:none}.cats::-webkit-scrollbar{display:none}
+.cat{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;font-weight:700;font-size:.92rem;display:flex;gap:6px;align-items:center}
+.cat small{color:var(--muted);font-weight:500}
+.cat[aria-pressed="true"]{background:var(--sign);border-color:var(--sign);color:#fff}.cat[aria-pressed="true"] small{color:#dbe8f6}
+.tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0 4px}
+.tools input[type=search]{flex:1 1 200px;min-width:0;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:9px 12px;font:inherit}
+.tg{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 12px;font-size:.88rem;color:var(--muted)}
+.tg[aria-pressed="true"]{border-color:var(--sign);color:var(--sign);background:var(--soft);font-weight:700}
+.grp{margin:22px 0 8px;font-size:.88rem;font-weight:700;color:var(--muted);display:flex;gap:8px;align-items:center}
+.grp::after{content:"";flex:1;border-top:1px solid var(--line)}
+.ph{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:8px 0;display:grid;grid-template-columns:44px minmax(0,1fr) 40px;gap:2px 10px;align-items:start}
+.ph.re{margin-left:22px;background:var(--bg);border-style:dashed}
+.ph .sp{width:44px;height:44px;border-radius:50%;border:0;background:var(--sign);color:#fff;display:grid;place-items:center;grid-row:1/4}
+.ph .sp svg{width:20px;height:20px}
+.ph .zh{grid-column:2;font:700 1.3rem/1.4 var(--f-han);text-align:left;background:none;border:0;padding:0;display:block;width:100%}
+.ph .pp{grid-column:2;font:500 1rem/1.4 var(--f-py)}
+.ph .ko{grid-column:2;font-size:.98rem}
+.ph .ko.hid{color:transparent;background:var(--line);border-radius:6px;user-select:none;cursor:pointer;min-height:1.4em}
+.ph .pp.hid{display:none}
+.ph .fv{grid-column:3;grid-row:1/4;border:0;background:none;font-size:1.5rem;color:var(--line);align-self:start;padding:4px}
+.ph .fv[aria-pressed="true"]{color:#e0a100}
+.rlab{font-size:.74rem;color:var(--muted);font-weight:700;grid-column:2}
+.empty{padding:36px 8px;text-align:center;color:var(--muted)}
+.qwrap{display:grid;gap:16px;max-width:640px;margin:18px auto 0}
+.qcard{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px 18px;text-align:center;display:grid;gap:14px;justify-items:center}
+.qcard .qk{font-size:1.25rem;font-weight:700}
+.qcard .qs{width:72px;height:72px;border-radius:50%;border:0;background:var(--sign);color:#fff;display:grid;place-items:center}
+.qcard .qs svg{width:32px;height:32px}
+.qopts{display:grid;gap:8px;width:100%}
+.qopt{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:12px;text-align:left;font-size:1rem}
+.qopt.zhopt{font:700 1.1rem var(--f-han)}
+.qopt:hover{border-color:var(--sign)}
+.qopt.ok{background:#dff3e6;border-color:var(--ok);color:#0f5a2e}.qopt.no{background:#fbe3df;border-color:var(--red);color:#8a2113}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .qopt.ok{background:#12301f;color:#9fe3ba}:root:not([data-theme="light"]) .qopt.no{background:#3a1d18;color:#ffb3a6}}
+.qfb{min-height:44px;font-size:.95rem}
+.qfb .pp{display:block;font-size:1.05rem}
+.qscore{display:flex;gap:18px;justify-content:center;color:var(--muted);font-size:.9rem}.qscore b{color:var(--ink);font-size:1.3rem;margin-right:3px}
+.seg2{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.seg2 button{border:0;background:none;padding:8px 12px;font-size:.9rem}
+.seg2 button[aria-pressed="true"]{background:var(--soft);color:var(--sign);font-weight:700}
+.nxt{border:0;background:var(--sign);color:#fff;border-radius:10px;padding:11px 22px;font-weight:700}
+.tipbox{margin:14px 0 0;padding:10px 12px;background:var(--soft);border-radius:8px;font-size:.9rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<style>
+.zhbar{max-width:1000px;margin:0 auto;padding:10px 0 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.85rem}
+.zhbar a{color:var(--muted);text-decoration:none}
+.zhbar a.home:hover{color:var(--ink)}
+.zhbar .sw{display:flex;gap:2px;margin-left:auto;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px;overflow-x:auto;max-width:100%}
+.zhbar .sw a{padding:7px 12px;border-radius:999px;font-weight:700;color:var(--muted);white-space:nowrap}
+.zhbar .sw a[aria-current="page"]{background:var(--sign);color:#fff}
+.zhbar a:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+</style>
+<div class="zhbar"><a class="home" href="/">← 스마트공 홈</a><a class="home" href="/more/">기타 앱</a>
+<nav class="sw" aria-label="중국어 학습 메뉴"><a href="/chinese/hanzi.html">간체자</a><a href="/chinese/hsk12.html">HSK 1·2급</a><a href="/chinese/hsk3.html">3급</a><a href="/chinese/hsk4.html">4급</a><a href="/chinese/hsk5.html">5급</a><a href="/chinese/talk.html" aria-current="page">여행 회화</a></nav></div>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>여행 중국어 회화</h1>
+      <p class="sub">공항·쇼핑·식당·대중교통·관광지에서 바로 쓰는 표현 <span id="cnt"></span><br>중국어를 누르면 발음이 나와요 · <button type="button" data-help style="background:none;border:0;padding:0;color:var(--sign);text-decoration:underline;font:inherit;cursor:pointer">음성이 안 나오나요?</button></p>
+    </div>
+  </header>
+  <nav class="tabs" id="tabs" aria-label="회화 메뉴"></nav>
+  <main id="app"></main>
+</div>
+<script>
+const DATA=`## airport|공항|✈
+# 체크인·탑승
+我要办理登机手续。|Wǒ yào bànlǐ dēngjī shǒuxù.|탑승 수속을 하고 싶어요.
+我想要靠窗的座位。|Wǒ xiǎng yào kào chuāng de zuòwèi.|창가 좌석으로 주세요.
+我想要靠过道的座位。|Wǒ xiǎng yào kào guòdào de zuòwèi.|통로 쪽 좌석으로 주세요.
+我要托运这个行李。|Wǒ yào tuōyùn zhège xíngli.|이 짐을 부치고 싶어요.
+> 请把行李放在秤上。|Qǐng bǎ xíngli fàng zài chèng shang.|짐을 저울 위에 올려 주세요.
+这个包可以带上飞机吗？|Zhège bāo kěyǐ dài shàng fēijī ma?|이 가방은 기내에 들고 탈 수 있나요?
+登机口在哪里？|Dēngjīkǒu zài nǎlǐ?|탑승구가 어디예요?
+这趟航班准点吗？|Zhè tàng hángbān zhǔndiǎn ma?|이 항공편은 정시에 출발하나요?
+航班延误了吗？|Hángbān yánwù le ma?|항공편이 지연됐나요?
+# 입국심사·세관
+请出示您的护照。|Qǐng chūshì nín de hùzhào.|여권을 보여 주세요. (심사관)
+你来中国的目的是什么？|Nǐ lái Zhōngguó de mùdì shì shénme?|중국에 오신 목적이 무엇입니까?
+> 我是来旅游的。|Wǒ shì lái lǚyóu de.|여행하러 왔어요.
+> 我是来出差的。|Wǒ shì lái chūchāi de.|출장 왔어요.
+你打算待多久？|Nǐ dǎsuàn dāi duōjiǔ?|얼마나 머물 예정입니까?
+> 我打算待五天。|Wǒ dǎsuàn dāi wǔ tiān.|5일 머무를 예정이에요.
+你住在哪里？|Nǐ zhù zài nǎlǐ?|어디에 묵으십니까?
+> 我住在这家酒店。|Wǒ zhù zài zhè jiā jiǔdiàn.|이 호텔에 묵어요. (예약 확인서를 함께 보여 주세요)
+我没有需要申报的东西。|Wǒ méiyǒu xūyào shēnbào de dōngxi.|신고할 물건이 없어요.
+# 수하물·환전·이동
+请问行李领取处在哪里？|Qǐngwèn xíngli lǐngqǔchù zài nǎlǐ?|수하물 찾는 곳이 어디예요?
+我的行李还没有出来。|Wǒ de xíngli hái méiyǒu chūlái.|제 짐이 아직 안 나왔어요.
+我的行李丢了。|Wǒ de xíngli diū le.|제 짐을 잃어버렸어요.
+请问哪里可以换钱？|Qǐngwèn nǎlǐ kěyǐ huàn qián?|어디서 환전할 수 있나요?
+我想把韩元换成人民币。|Wǒ xiǎng bǎ Hányuán huànchéng rénmínbì.|원화를 위안화로 바꾸고 싶어요.
+今天的汇率是多少？|Jīntiān de huìlǜ shì duōshao?|오늘 환율이 얼마예요?
+请问出租车乘车点在哪里？|Qǐngwèn chūzūchē chéngchēdiǎn zài nǎlǐ?|택시 승차장이 어디예요?
+请问去市区的机场大巴在哪里坐？|Qǐngwèn qù shìqū de jīchǎng dàbā zài nǎlǐ zuò?|시내 가는 공항버스는 어디서 타나요?
+请问哪里可以买电话卡？|Qǐngwèn nǎlǐ kěyǐ mǎi diànhuàkǎ?|어디서 유심(전화 카드)을 살 수 있나요?
+请问有免费无线网络吗？|Qǐngwèn yǒu miǎnfèi wúxiàn wǎngluò ma?|무료 와이파이가 있나요?
+## shop|쇼핑|🛍
+# 가격·흥정
+这个多少钱？|Zhège duōshao qián?|이거 얼마예요?
+太贵了，能便宜一点吗？|Tài guì le, néng piányi yìdiǎn ma?|너무 비싸요, 좀 깎아 주실 수 있나요?
+> 最低八十块，不能再便宜了。|Zuì dī bāshí kuài, bù néng zài piányi le.|최저 80위안이에요, 더는 못 깎아요.
+可以打折吗？|Kěyǐ dǎzhé ma?|할인되나요?
+有没有优惠活动？|Yǒu méiyǒu yōuhuì huódòng?|할인 행사 있나요?
+我再看看。|Wǒ zài kànkan.|좀 더 볼게요.
+我考虑一下。|Wǒ kǎolǜ yíxià.|생각해 볼게요.
+# 고르기·입어 보기
+我可以试穿吗？|Wǒ kěyǐ shìchuān ma?|입어 봐도 돼요?
+试衣间在哪里？|Shìyījiān zài nǎlǐ?|탈의실이 어디예요?
+有没有大一号的？|Yǒu méiyǒu dà yí hào de?|한 치수 큰 거 있어요?
+有没有小一号的？|Yǒu méiyǒu xiǎo yí hào de?|한 치수 작은 거 있어요?
+有别的颜色吗？|Yǒu bié de yánsè ma?|다른 색상 있어요?
+这个有货吗？|Zhège yǒu huò ma?|이거 재고 있어요?
+我想看看那个。|Wǒ xiǎng kànkan nàge.|저걸 보고 싶어요.
+请给我拿一个新的。|Qǐng gěi wǒ ná yí gè xīn de.|새 걸로 하나 주세요.
+这个是什么材质的？|Zhège shì shénme cáizhì de?|이건 무슨 소재예요?
+这个适合送人吗？|Zhège shìhé sòng rén ma?|이건 선물하기 좋아요?
+# 결제·환불
+可以刷卡吗？|Kěyǐ shuākǎ ma?|카드 되나요?
+可以用微信支付或者支付宝吗？|Kěyǐ yòng Wēixìn zhīfù huòzhě Zhīfùbǎo ma?|위챗페이나 알리페이 쓸 수 있나요?
+我要这个，请结账。|Wǒ yào zhège, qǐng jiézhàng.|이걸로 할게요, 계산해 주세요.
+请给我发票。|Qǐng gěi wǒ fāpiào.|영수증(发票, 정식 영수증) 주세요.
+请帮我包装一下。|Qǐng bāng wǒ bāozhuāng yíxià.|포장해 주세요.
+可以退税吗？|Kěyǐ tuìshuì ma?|세금 환급되나요?
+我想退货。|Wǒ xiǎng tuìhuò.|환불하고 싶어요.
+我想换一个。|Wǒ xiǎng huàn yí gè.|교환하고 싶어요.
+找错钱了。|Zhǎo cuò qián le.|거스름돈이 잘못됐어요.
+## food|식당|🍜
+# 입장·주문
+请问有位子吗？|Qǐngwèn yǒu wèizi ma?|자리 있나요?
+> 您几位？|Nín jǐ wèi?|몇 분이세요?
+我们一共三个人。|Wǒmen yígòng sān gè rén.|저희 모두 세 명이에요.
+我们需要等位吗？|Wǒmen xūyào děngwèi ma?|기다려야 하나요?
+请给我菜单。|Qǐng gěi wǒ càidān.|메뉴판 주세요.
+有韩语菜单吗？|Yǒu Hányǔ càidān ma?|한국어 메뉴판 있어요?
+请问有什么推荐的菜？|Qǐngwèn yǒu shénme tuījiàn de cài?|추천 메뉴가 뭐예요?
+这是什么菜？|Zhè shì shénme cài?|이건 무슨 요리예요?
+我要这个。|Wǒ yào zhège.|이걸로 주세요.
+先来两瓶啤酒。|Xiān lái liǎng píng píjiǔ.|우선 맥주 두 병 주세요.
+# 취향·요청
+我不吃辣。|Wǒ bù chī là.|저는 매운 걸 못 먹어요.
+可以少放一点辣吗？|Kěyǐ shǎo fàng yìdiǎn là ma?|덜 맵게 해 주실 수 있나요?
+不要放香菜。|Búyào fàng xiāngcài.|고수는 빼 주세요.
+我对花生过敏。|Wǒ duì huāshēng guòmǐn.|땅콩 알레르기가 있어요.
+我吃素。|Wǒ chī sù.|저는 채식해요.
+请给我一杯水。|Qǐng gěi wǒ yì bēi shuǐ.|물 한 잔 주세요.
+再来一碗米饭。|Zài lái yì wǎn mǐfàn.|밥 한 공기 더 주세요.
+请再给我一双筷子。|Qǐng zài gěi wǒ yì shuāng kuàizi.|젓가락 하나 더 주세요.
+这个菜还没上。|Zhège cài hái méi shàng.|이 요리가 아직 안 나왔어요.
+麻烦快一点。|Máfan kuài yìdiǎn.|좀 빨리 부탁드려요.
+可以打包吗？|Kěyǐ dǎbāo ma?|포장해 갈 수 있나요?
+# 계산
+真好吃！|Zhēn hǎochī!|정말 맛있어요!
+服务员，买单。|Fúwùyuán, mǎidān.|여기요, 계산해 주세요.
+我们分开付。|Wǒmen fēnkāi fù.|따로 계산할게요.
+这个账单好像不对。|Zhège zhàngdān hǎoxiàng bú duì.|계산서가 좀 틀린 것 같아요.
+## transit|대중교통|🚇
+# 지하철
+请问地铁站在哪里？|Qǐngwèn dìtiězhàn zài nǎlǐ?|지하철역이 어디예요?
+我要去天安门，坐几号线？|Wǒ yào qù Tiān'ānmén, zuò jǐ hào xiàn?|톈안먼에 가려는데 몇 호선을 타요?
+在哪里换乘？|Zài nǎlǐ huànchéng?|어디서 환승해요?
+下一站是什么站？|Xià yí zhàn shì shénme zhàn?|다음 역이 어디예요?
+请问在哪里买票？|Qǐngwèn zài nǎlǐ mǎi piào?|표는 어디서 사요?
+我要买一张到西单的票。|Wǒ yào mǎi yì zhāng dào Xīdān de piào.|시단까지 표 한 장 주세요.
+去博物馆从哪个出口出去？|Qù bówùguǎn cóng nǎge chūkǒu chūqù?|박물관은 어느 출구로 나가요?
+# 버스
+这辆公交车去火车站吗？|Zhè liàng gōngjiāochē qù huǒchēzhàn ma?|이 버스 기차역 가요?
+请问公交站在哪里？|Qǐngwèn gōngjiāozhàn zài nǎlǐ?|버스 정류장이 어디예요?
+到了请告诉我一声。|Dào le qǐng gàosu wǒ yì shēng.|도착하면 말씀해 주세요.
+师傅，我要下车。|Shīfu, wǒ yào xiàchē.|기사님, 내릴게요.
+麻烦让一下，我要下车。|Máfan ràng yíxià, wǒ yào xiàchē.|죄송한데 좀 비켜 주세요, 내릴게요.
+# 택시
+请送我去这个地址。|Qǐng sòng wǒ qù zhège dìzhǐ.|이 주소로 가 주세요.
+请打表。|Qǐng dǎbiǎo.|미터기 켜 주세요.
+大概要多长时间？|Dàgài yào duō cháng shíjiān?|대략 얼마나 걸려요?
+请在这里停车。|Qǐng zài zhèlǐ tíngchē.|여기서 세워 주세요.
+请开快一点，我赶时间。|Qǐng kāi kuài yìdiǎn, wǒ gǎn shíjiān.|좀 빨리 가 주세요, 시간이 급해요.
+请帮我打开后备箱。|Qǐng bāng wǒ dǎkāi hòubèixiāng.|트렁크 좀 열어 주세요.
+# 기차·길 묻기
+我要买一张去上海的高铁票。|Wǒ yào mǎi yì zhāng qù Shànghǎi de gāotiě piào.|상하이행 고속철 표 한 장 주세요.
+最早的一班是几点？|Zuì zǎo de yì bān shì jǐ diǎn?|가장 빠른 편이 몇 시예요?
+我要一张单程票。|Wǒ yào yì zhāng dānchéng piào.|편도 한 장 주세요.
+我要往返票。|Wǒ yào wǎngfǎn piào.|왕복 주세요.
+请问几号站台？|Qǐngwèn jǐ hào zhàntái?|몇 번 승강장이에요?
+我的座位在哪里？|Wǒ de zuòwèi zài nǎlǐ?|제 좌석은 어디예요?
+我坐过站了。|Wǒ zuò guò zhàn le.|역을 지나쳤어요.
+我迷路了。|Wǒ mílù le.|길을 잃었어요.
+请问怎么走？|Qǐngwèn zěnme zǒu?|어떻게 가나요?
+离这里远吗？|Lí zhèlǐ yuǎn ma?|여기서 멀어요?
+走路要多长时间？|Zǒulù yào duō cháng shíjiān?|걸어서 얼마나 걸려요?
+> 一直走，然后往左拐。|Yìzhí zǒu, ránhòu wǎng zuǒ guǎi.|쭉 가다가 왼쪽으로 도세요.
+> 过两个红绿灯就到了。|Guò liǎng gè hónglǜdēng jiù dào le.|신호등 두 개 지나면 바로예요.
+## sight|관광지|🏯
+# 매표·입장
+请问售票处在哪里？|Qǐngwèn shòupiàochù zài nǎlǐ?|매표소가 어디예요?
+门票多少钱？|Ménpiào duōshao qián?|입장료가 얼마예요?
+我要两张成人票。|Wǒ yào liǎng zhāng chéngrén piào.|성인 표 두 장 주세요.
+学生有优惠吗？|Xuéshēng yǒu yōuhuì ma?|학생 할인 있어요?
+需要提前预约吗？|Xūyào tíqián yùyuē ma?|미리 예약해야 하나요?
+几点开门？|Jǐ diǎn kāimén?|몇 시에 열어요?
+几点关门？|Jǐ diǎn guānmén?|몇 시에 닫아요?
+# 관람·사진
+可以拍照吗？|Kěyǐ pāizhào ma?|사진 찍어도 돼요?
+可以帮我们拍张照片吗？|Kěyǐ bāng wǒmen pāi zhāng zhàopiàn ma?|사진 한 장 찍어 주실 수 있나요?
+请再拍一张。|Qǐng zài pāi yì zhāng.|한 장 더 찍어 주세요.
+有韩语导游吗？|Yǒu Hányǔ dǎoyóu ma?|한국어 가이드 있어요?
+有语音导览吗？|Yǒu yǔyīn dǎolǎn ma?|오디오 가이드 있어요?
+请问有地图吗？|Qǐngwèn yǒu dìtú ma?|지도 있어요?
+这里有什么好玩的？|Zhèlǐ yǒu shénme hǎowán de?|여기 뭐 재밌는 거 있어요?
+最值得看的是什么？|Zuì zhídé kàn de shì shénme?|가장 볼 만한 게 뭐예요?
+这里有多少年历史了？|Zhèlǐ yǒu duōshao nián lìshǐ le?|여기는 역사가 몇 년 됐어요?
+# 편의시설·감상
+请问洗手间在哪里？|Qǐngwèn xǐshǒujiān zài nǎlǐ?|화장실이 어디예요?
+请问哪里可以寄存行李？|Qǐngwèn nǎlǐ kěyǐ jìcún xíngli?|짐은 어디에 맡길 수 있나요?
+纪念品商店在哪里？|Jìniànpǐn shāngdiàn zài nǎlǐ?|기념품 가게가 어디예요?
+这里风景真美！|Zhèlǐ fēngjǐng zhēn měi!|여기 경치가 정말 아름다워요!
+这里人太多了。|Zhèlǐ rén tài duō le.|여기 사람이 너무 많아요.
+## basic|기본·긴급|🆘
+# 인사·소통
+你好！|Nǐ hǎo!|안녕하세요!
+谢谢！|Xièxie!|감사합니다!
+不客气。|Bú kèqi.|천만에요.
+对不起。|Duìbuqǐ.|죄송합니다.
+没关系。|Méi guānxi.|괜찮아요.
+我不会说中文。|Wǒ bú huì shuō Zhōngwén.|저는 중국어를 못해요.
+请说慢一点。|Qǐng shuō màn yìdiǎn.|천천히 말씀해 주세요.
+请再说一遍。|Qǐng zài shuō yí biàn.|한 번 더 말씀해 주세요.
+我听不懂。|Wǒ tīng bu dǒng.|못 알아듣겠어요.
+你会说英语吗？|Nǐ huì shuō Yīngyǔ ma?|영어 할 줄 아세요?
+请写下来。|Qǐng xiě xiàlái.|써 주세요.
+我是韩国人。|Wǒ shì Hánguó rén.|저는 한국 사람이에요.
+# 긴급 상황
+救命！|Jiùmìng!|살려 주세요!
+请帮帮我。|Qǐng bāngbang wǒ.|도와주세요.
+请叫救护车。|Qǐng jiào jiùhùchē.|구급차를 불러 주세요.
+请报警。|Qǐng bàojǐng.|경찰에 신고해 주세요.
+我的护照丢了。|Wǒ de hùzhào diū le.|여권을 잃어버렸어요.
+我的钱包被偷了。|Wǒ de qiánbāo bèi tōu le.|지갑을 도둑맞았어요.
+我不舒服。|Wǒ bù shūfu.|몸이 안 좋아요.
+我需要去医院。|Wǒ xūyào qù yīyuàn.|병원에 가야 해요.
+请问药店在哪里？|Qǐngwèn yàodiàn zài nǎlǐ?|약국이 어디예요?
+请问韩国大使馆在哪里？|Qǐngwèn Hánguó dàshǐguǎn zài nǎlǐ?|한국 대사관이 어디예요?
+`;
+(function(){
+const TTS={el:new Audio(),loaded:false,seq:0,netDead:false};
+function voicesNow(){try{const v=speechSynthesis.getVoices();if(v.length)TTS.loaded=true;return v}catch(e){return[]}}
+try{if('speechSynthesis' in window){voicesNow();speechSynthesis.addEventListener&&speechSynthesis.addEventListener('voiceschanged',voicesNow)}}catch(e){}
+function voicesReady(ms){return new Promise(res=>{let done=false,iv=0;const fin=()=>{if(done)return;done=true;clearInterval(iv);res(voicesNow())};
+  try{speechSynthesis.addEventListener('voiceschanged',fin,{once:true})}catch(e){}
+  iv=setInterval(()=>{if(voicesNow().length)fin()},100);setTimeout(fin,ms||1500)})}
+const langKey=l=>String(l||'').replace('_','-').toLowerCase();
+function pickVoice(vs){vs=vs||voicesNow();const nm=/chinese|中文|普通话|國語|mandarin|xiaoxiao|yunxi|yunyang|xiaoyi|ting-ting|tingting|meijia|sin-ji|huihui|kangkang|yaoyao/i;
+  const cand=vs.filter(v=>v&&(/^zh/.test(langKey(v.lang))||nm.test(v.name||''))&&!/hk|yue|cantonese|粤|廣東|tw|taiwan|台/i.test((v.lang||'')+(v.name||''))||(v&&/^zh-(cn|hans)/.test(langKey(v.lang))));
+  if(!cand.length)return null;
+  const score=v=>(langKey(v.lang)==='zh-cn'?4:0)+(/^zh/.test(langKey(v.lang))?3:0)+(/natural|premium|enhanced|neural|online/i.test(v.name||'')?2:0)+(v.localService?1:0);
+  return cand.slice().sort((a,b)=>score(b)-score(a))[0]}
+function sayToast(m){let t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.setAttribute('role','status');t.style.cssText='position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#14202c;color:#fff;padding:10px 16px;border-radius:10px;font-size:.9rem;z-index:50;max-width:90vw;text-align:center';document.body.appendChild(t)}t.textContent=m;t.hidden=false;clearTimeout(t._h);t._h=setTimeout(()=>{t.hidden=true},3500)}
+const AUDIO_BASE=/(^|\.)smartgong\.kr$/.test(location.hostname)?'/chinese/a/':'https://www.smartgong.kr/chinese/a/';
+function audioKey(s){let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0,c;i<s.length;i++){c=s.charCodeAt(i);h1=Math.imul(h1^c,2654435761);h2=Math.imul(h2^c,1597334677)}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return (4294967296*(2097151&h2)+(h1>>>0)).toString(16)}
+function tryPlay(src,ms,ok,fail){const el=TTS.el;let good=false,dead=false;const bad=()=>{if(dead||good)return;dead=true;fail()};
+  el.onplaying=()=>{if(!good){good=true;ok&&ok()}};el.onerror=bad;
+  try{el.src=src;const p=el.play();if(p&&p.catch)p.catch(bad)}catch(e){bad();return}
+  setTimeout(()=>{if(!good){try{el.pause()}catch(e){}bad()}},ms)}
+function sayEmbedded(t){const k=audioKey(t);
+  const src=(typeof AUDIO!=='undefined'&&AUDIO[k])?'data:audio/mpeg;base64,'+AUDIO[k]:AUDIO_BASE+k+'.mp3';
+  tryPlay(src,3000,null,()=>{sayToast('중국어 음성을 재생할 수 없어요. 기기 설정에서 중국어 음성을 추가해 주세요. (안드로이드: 설정 > 텍스트 음성 변환 > 중국어 음성 데이터 설치)',8000)})}
+function sayOnline(t,id){if(TTS.netDead){sayEmbedded(t);return}
+  const q=encodeURIComponent(t);
+  const urls=['https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=zh-CN&q='+q,'https://translate.googleapis.com/translate_tts?ie=UTF-8&client=gtx&tl=zh-CN&q='+q,'https://dict.youdao.com/dictvoice?le=zh&audio='+q];
+  let i=0;const next=()=>{if(id!==TTS.seq)return;if(i>=urls.length){TTS.netDead=true;sayEmbedded(t);return}tryPlay(urls[i++],2200,null,next)};next()}
+function say(t){const id=++TTS.seq;try{TTS.el.pause()}catch(e){}
+  if(!('speechSynthesis' in window)){sayOnline(t,id);return}
+  const go=vs=>{if(id!==TTS.seq)return;
+    const v=pickVoice(vs);
+    if(!v&&vs.length){sayOnline(t,id);return}
+    let started=false,moved=false;
+    const fb=()=>{if(started||moved||id!==TTS.seq)return;moved=true;try{speechSynthesis.cancel()}catch(e){}sayOnline(t,id)};
+    try{const u=new SpeechSynthesisUtterance(t);u.lang=v?v.lang:'zh-CN';if(v)u.voice=v;u.rate=.85;u.pitch=1;u.volume=1;
+      u.onstart=()=>{started=true};u.onerror=e=>{if(e&&(e.error==='interrupted'||e.error==='canceled'))return;fb()};
+      const run=()=>{if(id!==TTS.seq)return;try{speechSynthesis.resume();speechSynthesis.speak(u)}catch(e){fb()}setTimeout(fb,3500)};
+      if(speechSynthesis.speaking||speechSynthesis.pending){speechSynthesis.cancel();setTimeout(run,90)}else run()}catch(e){fb()}};
+  const vs=voicesNow();
+  if(vs.length||TTS.loaded)go(vs);else voicesReady(1500).then(go)}
+function showHelp(){
+  const ua=navigator.userAgent||'',and=/Android/i.test(ua),ios=/iPhone|iPad|iPod/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1),win=/Windows/i.test(ua),mac=!ios&&/Macintosh|Mac OS/i.test(ua);
+  let d=document.getElementById('vhelp');if(d)d.remove();
+  d=document.createElement('dialog');d.id='vhelp';
+  d.style.cssText='border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);max-width:min(460px,94vw);max-height:88vh;overflow:auto;padding:18px 18px 14px;font:inherit;line-height:1.55';
+  const btn='display:inline-block;margin:4px 6px 4px 0;padding:9px 14px;border-radius:8px;background:var(--sign);color:#fff;text-decoration:none;font-weight:700;font-size:.92rem';
+  const stp='margin:0 0 8px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);font-size:.92rem;line-height:1.55';
+  let h='<h2 style="margin:0 0 6px;font-size:1.1rem">중국어 음성 설치 안내</h2><p style="margin:0 0 10px;color:var(--muted);font-size:.9rem">웹페이지가 기기에 음성을 직접 설치할 수는 없어요. 아래 순서로 설치한 뒤 브라우저를 한 번 껐다 켜고 다시 눌러 보세요. (아래 버튼이 열리지 않으면 적힌 설정 경로로 직접 들어가 주세요. 앱 안에서는 설정 화면이 열리지 않을 수 있어요.)</p>';
+  if(and)h+=`<p style="margin:0 0 8px"><b>안드로이드 설정 방법</b> <span style="color:var(--muted);font-size:.82rem">(기종마다 메뉴 이름이 조금 달라요. 설정 맨 위 검색창에 "텍스트 음성 변환"을 입력하면 가장 빨라요)</span></p>
+  <ol style="margin:0;padding-left:0;list-style:none;counter-reset:s">
+  <li style="${stp}"><b>① 설정 앱 열기 → 텍스트 음성 변환 찾기</b><br>갤럭시: 설정 → 일반 → 언어 → <b>텍스트 음성 변환</b><br>그 밖의 폰: 설정 → 시스템 → 언어 및 입력 → <b>텍스트 음성 변환 출력</b><br><a style="${btn}" href="intent:#Intent;action=com.android.settings.TTS_SETTINGS;end">텍스트 음성 변환 설정 바로가기</a></li>
+  <li style="${stp}"><b>② 선호하는 엔진을 "Google 음성 서비스"로 바꾸기</b><br>"삼성 텍스트 음성 변환"으로 되어 있으면 눌러서 <b>Google 음성 서비스</b>(Speech Services by Google)를 고르세요.<br>목록에 없으면 Play 스토어에서 설치해야 해요.<br><a style="${btn}" href="https://play.google.com/store/apps/details?id=com.google.android.tts" target="_blank" rel="noopener">Play 스토어에서 Google 음성 서비스 열기</a></li>
+  <li style="${stp}"><b>③ 엔진 오른쪽 톱니바퀴(⚙) 누르기</b><br>Google 음성 서비스 이름 옆에 있는 ⚙ 아이콘이에요.<br><a style="${btn}" href="intent:#Intent;component=com.google.android.tts/com.google.android.apps.speech.tts.googletts.settings.AppSettingsActivity;end">Google 음성 서비스 설정 바로가기</a></li>
+  <li style="${stp}"><b>④ "음성 데이터 설치" 누르기</b><br>화면에 "음성 데이터 설치"가 없으면 <b>"언어"</b> 또는 <b>"오프라인 음성 데이터"</b> 항목을 눌러 보세요.</li>
+  <li style="${stp}"><b>⑤ "중국어(중국)" 또는 "Chinese (Mandarin)" 고르기</b><br>목록에서 <b>中文(普通话)</b>, <b>중국어(중국, 简体)</b> 중 하나를 눌러 오른쪽 <b>↓ 다운로드</b> 아이콘을 누르세요. 다운로드가 끝나면 체크 표시로 바뀌어요.</li>
+  <li style="${stp}"><b>⑥ 다 끝나면</b><br>크롬(또는 쓰던 브라우저)을 최근 앱 목록에서 완전히 종료한 뒤 다시 열고, 아래 <b>소리 테스트</b>를 눌러 보세요.</li></ol>
+  <button data-say="你好，欢迎学习汉语。" style="${btn};border:0;cursor:pointer;margin-top:8px">▶ 소리 테스트 (你好)</button>
+  <p style="margin:8px 0 0;font-size:.82rem;color:var(--muted)">기기 설정을 앱이 대신 열거나 설치해 줄 수는 없어요. 바로가기 버튼을 눌러도 아무 반응이 없으면 폰이 막은 것이니 위 메뉴를 직접 따라가 주세요.</p>`;
+  else if(ios)h+='<p><b>아이폰·아이패드</b></p><ol style="margin:8px 0;padding-left:20px"><li>설정 → 손쉬운 사용 → 말하는 콘텐츠 → 음성</li><li>중국어 → Ting-Ting(또는 Li-mu) 선택</li><li>다운로드 아이콘을 눌러 설치</li></ol>';
+  else if(win)h+=`<p><b>윈도우</b></p><a style="${btn}" href="ms-settings:speech">음성 설정 열기</a><ol style="margin:8px 0;padding-left:20px"><li>설정 → 시간 및 언어 → 언어 및 지역 → 언어 추가 → 中文(简体)</li><li>설치 옵션에서 "텍스트 음성 변환"(음성) 체크</li><li>설치 후 브라우저를 다시 시작</li></ol><p style="font-size:.85rem;color:var(--muted)">크롬은 시스템 음성이 없어도 온라인 음성으로 재생을 시도해요. 엣지는 "Microsoft Huihui" 등 중국어 음성을 쓸 수 있어요.</p>`;
+  else if(mac)h+='<p><b>맥</b></p><ol style="margin:8px 0;padding-left:20px"><li>시스템 설정 → 손쉬운 사용 → 말하기 콘텐츠</li><li>시스템 음성 → 관리… → 중국어(Tingting 등) 다운로드</li></ol>';
+  else h+='<p>기기 설정의 언어·음성(텍스트 음성 변환) 항목에서 중국어(简体) 음성을 설치해 주세요.</p>';
+  h+='<form method="dialog" style="text-align:right;margin-top:8px"><button style="padding:8px 16px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-weight:700">닫기</button></form>';
+  d.innerHTML=h;document.body.appendChild(d);try{d.showModal()}catch(e){d.setAttribute('open','')}}
+document.addEventListener('click',e=>{if(e.target.closest('[data-help]'))showHelp()});
+
+window.say=say;})();
+(function(){
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const SPK='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 6h3l4-3v10l-4-3H2z" fill="currentColor"/><path d="M11 5.5a3.5 3.5 0 0 1 0 5M12.8 3.5a6 6 0 0 1 0 9"/></svg>';
+const TM={'āēīōūǖ':1,'áéíóúǘ':2,'ǎěǐǒǔǚ':3,'àèìòùǜ':4};
+function tone(s){for(const c of s){for(const k in TM){if(k.includes(c))return TM[k]}}return 5}
+const V='aeiouüvāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ';
+const SYL=new RegExp('(?:zh|ch|sh|[bpmfdtnlgkhjqxzcsrwy])?['+V+']+(?:ng|n(?!['+V+'])|r(?!['+V+']))?|.','gi');
+function pyH(p){return p.replace(/\S+/g,w=>(w.match(SYL)||[w]).map(s=>/[a-zA-Z]/.test(s)?`<span class="t${tone(s)}">${s}</span>`:s).join(''))}
+/* 데이터 파싱 */
+const CATS=[],P=[];let cat=null,grp='';
+for(const raw of DATA.split('\n')){const l=raw.trim();if(!l)continue;
+  if(l.startsWith('## ')){const[id,name,ic]=l.slice(3).split('|');cat={id,name,ic,n:0};CATS.push(cat);continue}
+  if(l[0]==='#'){grp=l.slice(1).trim();continue}
+  const re=l[0]==='>';const[z,p,k]=(re?l.slice(1).trim():l).split('|');
+  P.push({z,p,k,c:cat.id,g:grp,re});cat.n++}
+const store={get(){try{return JSON.parse(localStorage.getItem('talk-v1')||'{}')}catch(e){return{}}},set(v){try{localStorage.setItem('talk-v1',JSON.stringify(v))}catch(e){}}};
+const S={tab:'study',cat:CATS[0].id,q:'',py:true,hide:false,fav:new Set(store.get().fav||[]),qm:'listen',qc:'all',right:0,wrong:0,streak:0,cur:null,done:false};
+function save(){store.set({fav:[...S.fav]})}
+$('#cnt').textContent='· 표현 '+P.length+'개';
+function tabs(){const T=[['study','표현'],['quiz','퀴즈'],['fav','★ 저장 '+S.fav.size]];
+  $('#tabs').innerHTML=T.map(([k,n])=>`<button type="button" role="tab" data-tab="${k}" aria-selected="${S.tab===k}">${n}</button>`).join('')}
+function card(x){const f=S.fav.has(x.z);
+  return `${x.re?'':''}<div class="ph${x.re?' re':''}">
+  <button class="sp" data-say="${esc(x.z)}" aria-label="듣기">${SPK}</button>
+  <button class="zh" data-say="${esc(x.z)}" lang="zh-CN">${esc(x.z)}</button>
+  <div class="pp${S.py?'':' hid'}">${pyH(x.p)}</div>
+  <div class="ko${S.hide?' hid':''}" ${S.hide?'data-reveal':''}>${esc(x.k)}</div>
+  <button class="fv" data-fav="${esc(x.z)}" aria-pressed="${f}" aria-label="저장">${f?'★':'☆'}</button></div>`}
+function list(items,showGrp){let h='',g='';for(const x of items){if(showGrp&&x.g!==g){g=x.g;h+=`<div class="grp">${esc(g)}</div>`}
+  if(x.re&&showGrp)h+='';h+=card(x)}return h}
+function study(){
+  const q=S.q.trim().toLowerCase();
+  let items=P.filter(x=>q?(x.z.includes(q)||x.k.toLowerCase().includes(q)||x.p.toLowerCase().includes(q)||x.p.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().includes(q)):x.c===S.cat);
+  const cats=CATS.map(c=>`<button class="cat" data-cat="${c.id}" aria-pressed="${!q&&S.cat===c.id}">${c.ic} ${c.name}<small>${c.n}</small></button>`).join('');
+  $('#app').innerHTML=`<div class="cats">${cats}</div>
+  <div class="tools"><input type="search" id="q" placeholder="표현 찾기 (한국어·중국어·병음)" value="${esc(S.q)}">
+  <button class="tg" data-tg="py" aria-pressed="${S.py}">병음 보기</button><button class="tg" data-tg="hide" aria-pressed="${S.hide}">한국어 가리기</button></div>
+  <div class="tipbox">병음 색: <span class="t1">1성(ˉ)</span> <span class="t2">2성(ˊ)</span> <span class="t3">3성(ˇ)</span> <span class="t4">4성(ˋ)</span> <span class="t5">경성</span> · 들여 쓴 점선 카드는 상대방이 할 법한 말·대답이에요.</div>
+  <div id="lst">${items.length?list(items,!q):'<div class="empty">찾는 표현이 없어요.</div>'}</div>`;
+  const inp=$('#q');inp.addEventListener('input',()=>{S.q=inp.value;const pos=inp.selectionStart;renderList()})}
+function renderList(){const q=S.q.trim().toLowerCase();
+  const items=P.filter(x=>q?(x.z.includes(q)||x.k.toLowerCase().includes(q)||x.p.toLowerCase().includes(q)||x.p.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().includes(q)):x.c===S.cat);
+  $('#lst').innerHTML=items.length?list(items,!q):'<div class="empty">찾는 표현이 없어요.</div>';
+  document.querySelectorAll('.cat').forEach(b=>b.setAttribute('aria-pressed',String(!q&&b.dataset.cat===S.cat)))}
+function favView(){const items=P.filter(x=>S.fav.has(x.z));
+  $('#app').innerHTML=`<div class="tools"><button class="tg" data-tg="py" aria-pressed="${S.py}">병음 보기</button><button class="tg" data-tg="hide" aria-pressed="${S.hide}">한국어 가리기</button></div><div id="lst">${items.length?list(items,false):'<div class="empty">☆를 눌러 표현을 저장해 두면 여기에 모여요.<br>여행 직전에 저장한 표현만 복습하세요.</div>'}</div>`}
+/* 퀴즈 */
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+function pool(){return P.filter(x=>S.qc==='all'||x.c===S.qc)}
+function newQ(){const pl=pool();const a=pl[Math.floor(Math.random()*pl.length)];
+  const wrong=shuffle(pl.filter(x=>x.z!==a.z)).slice(0,3);S.cur={a,opts:shuffle([a,...wrong])};S.done=false}
+function quiz(){
+  if(!S.cur||(S.qc!=='all'&&S.cur.a.c!==S.qc))newQ();
+  const {a,opts}=S.cur,L=S.qm==='listen';
+  const seg=(id,arr,key)=>`<div class="seg2" id="${id}">${arr.map(([k,n])=>`<button type="button" data-${key}="${k}" aria-pressed="${S[key==='m'?'qm':'qc']===k}">${n}</button>`).join('')}</div>`;
+  $('#app').innerHTML=`<div class="qwrap">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">${seg('qm',[['listen','듣고 뜻 고르기'],['read','뜻 보고 중국어 고르기']],'m')}</div>
+  <div class="cats" style="justify-content:center;flex-wrap:wrap;overflow:visible"><button class="cat" data-qc="all" aria-pressed="${S.qc==='all'}">전체</button>${CATS.map(c=>`<button class="cat" data-qc="${c.id}" aria-pressed="${S.qc===c.id}">${c.ic} ${c.name}</button>`).join('')}</div>
+  <div class="qscore"><span><b>${S.right}</b>맞음</span><span><b>${S.wrong}</b>틀림</span><span><b>${S.streak}</b>연속</span></div>
+  <div class="qcard">
+   ${L?`<button class="qs" data-say="${esc(a.z)}" aria-label="다시 듣기">${SPK}</button><div class="qk">무슨 뜻일까요?</div>`:`<div class="qk">${esc(a.k)}</div><div class="muted" style="color:var(--muted);font-size:.9rem">알맞은 중국어를 고르세요</div>`}
+   <div class="qopts">${opts.map((o,i)=>`<button class="qopt${L?'':' zhopt'}" data-opt="${i}">${L?esc(o.k):esc(o.z)}</button>`).join('')}</div>
+   <div class="qfb" id="qfb"></div>
+  </div></div>`;
+  if(L&&!S.done)setTimeout(()=>say(a.z),150)}
+function answer(i){if(S.done)return;S.done=true;const {a,opts}=S.cur,ok=opts[i].z===a.z;
+  if(ok){S.right++;S.streak++}else{S.wrong++;S.streak=0}
+  document.querySelectorAll('.qopt').forEach((b,j)=>{if(opts[j].z===a.z)b.classList.add('ok');else if(j===i)b.classList.add('no');b.disabled=true});
+  $('#qfb').innerHTML=`${ok?'맞아요!':'아쉬워요.'}<br><b lang="zh-CN">${esc(a.z)}</b><span class="pp">${pyH(a.p)}</span>${esc(a.k)}<br><button class="nxt" data-next style="margin-top:10px">다음 문제</button>`;
+  document.querySelectorAll('.qscore b')[0].textContent=S.right;document.querySelectorAll('.qscore b')[1].textContent=S.wrong;document.querySelectorAll('.qscore b')[2].textContent=S.streak;
+  if(!ok||S.qm==='read')say(a.z)}
+function render(){tabs();if(S.tab==='study')study();else if(S.tab==='quiz')quiz();else favView()}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.say){say(b.dataset.say);return}
+  if(b.dataset.tab){S.tab=b.dataset.tab;render();window.scrollTo(0,0);return}
+  if(b.dataset.cat){S.cat=b.dataset.cat;S.q='';render();return}
+  if(b.dataset.tg){S[b.dataset.tg]=!S[b.dataset.tg];render();return}
+  if(b.dataset.fav){const z=b.dataset.fav;S.fav.has(z)?S.fav.delete(z):S.fav.add(z);save();tabs();if(S.tab==='fav')favView();else{b.setAttribute('aria-pressed',String(S.fav.has(z)));b.textContent=S.fav.has(z)?'★':'☆'}return}
+  if(b.dataset.m){S.qm=b.dataset.m;S.cur=null;S.right=S.wrong=S.streak=0;quiz();return}
+  if(b.dataset.qc){S.qc=b.dataset.qc;S.cur=null;quiz();return}
+  if(b.dataset.opt!==undefined){answer(+b.dataset.opt);return}
+  if('next' in b.dataset){newQ();quiz();return}
+});
+document.addEventListener('click',e=>{const k=e.target.closest('[data-reveal]');if(k){k.classList.remove('hid');k.removeAttribute('data-reveal')}});
+render();
+})();
+</script></body></html>
