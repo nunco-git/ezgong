@@ -1,0 +1,2538 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>가나다 일본어 - 스마트공</title>
+<meta name="description" content="한국 한자음에서 출발해 히라가나·가타카나, 일본 한자 읽기, 한중일 공통 어휘, JLPT N5~N2 단어 꼬리잡기를 익히는 일본어 학습 앱.">
+<link rel="icon" href="/smartgong_logo_icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Gowun+Dodum&family=IBM+Plex+Mono:wght@400;500&family=Noto+Serif+SC:wght@500&display=swap">
+<style>
+/* Layout: 기초(가나·한자·한중일 비교)와 꼬리잡기(탐험·퀴즈·끝말잇기·단어장) 두 묶음의 탭. 모든 단어 카드에 한국·중국 비교 줄이 붙는다. */
+:root{
+  --paper:#F0EEF3; --sheet:#FBFAFC; --ink:#221E2B; --muted:#625C6E; --line:#D6D1DE;
+  --fuji:#5E4589; --fuji-soft:#E6DFF1; --take:#2F7462; --take-soft:#DCEDE6;
+  --bad:#B03A2E; --bad-soft:#F6E1DD; --gold:#94690F; --gold-soft:#F4EAD3;
+  --n5:#2F7462; --n4:#2E5A96; --n3:#8E4A2C; --n2:#A02F57; --scrim:rgba(28,22,40,.42); --shadow:rgba(28,22,40,.22);
+  --f-jp:"Shippori Mincho","Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif;
+  --f-body:"Gowun Dodum","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --f-zh:"Noto Serif SC","Songti SC","SimSun",serif; --f-kana:var(--f-jp);
+  --ai:var(--fuji); --ai-soft:var(--fuji-soft); --good:var(--take); --good-soft:var(--take-soft); --warn:var(--gold); --warn-soft:var(--gold-soft);
+  --grid:#E1BCC6; --n4-soft:#DEE7F4;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#15131A; --sheet:#1E1B25; --ink:#E8E4EE; --muted:#A39CB0; --line:#332E3D;
+  --fuji:#B7A0E0; --fuji-soft:#2E2640; --take:#7FC6B0; --take-soft:#1C302A;
+  --bad:#E7806F; --bad-soft:#3A221F; --gold:#E2BA60; --gold-soft:#372D18;
+  --n5:#7FC6B0; --n4:#8EB2EA; --n3:#E39A76; --n2:#F08BAA; --grid:#55394A; --n4-soft:#1F2A3C; --scrim:rgba(0,0,0,.6); --shadow:rgba(0,0,0,.5); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#15131A; --sheet:#1E1B25; --ink:#E8E4EE; --muted:#A39CB0; --line:#332E3D;
+  --fuji:#B7A0E0; --fuji-soft:#2E2640; --take:#7FC6B0; --take-soft:#1C302A;
+  --bad:#E7806F; --bad-soft:#3A221F; --gold:#E2BA60; --gold-soft:#372D18;
+  --n5:#7FC6B0; --n4:#8EB2EA; --n3:#E39A76; --n2:#F08BAA; --grid:#55394A; --n4-soft:#1F2A3C; --scrim:rgba(0,0,0,.6); --shadow:rgba(0,0,0,.5); color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--paper)}
+.wrap{max-width:1040px;margin:0 auto}
+h1,h2,h3{margin:0;text-wrap:balance}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--fuji);outline-offset:2px}
+.jp{font-family:var(--f-jp)} .mono{font-family:var(--f-mono)} .muted{color:var(--muted);font-size:13px}
+
+header{padding-block:26px 6px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.seal{width:52px;height:52px;border:2px solid var(--fuji);color:var(--fuji);display:grid;place-items:center;font-family:var(--f-jp);font-weight:700;font-size:15px;line-height:1.05;text-align:center}
+header h1{font-family:var(--f-jp);font-size:29px;font-weight:700}
+header p{margin:0;color:var(--muted);font-size:14px}
+.series{font-size:11px;letter-spacing:.12em;color:var(--fuji);text-transform:uppercase}
+nav{position:relative;z-index:5;background:var(--paper);padding-block:10px;border-bottom:1px solid var(--line);margin-bottom:22px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tab{border:1px solid var(--line);background:var(--sheet);padding:7px 14px;border-radius:999px;font-size:14px}
+.tab[aria-selected="true"]{background:var(--fuji);border-color:var(--fuji);color:var(--sheet)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--sheet)}
+.seg button{border:0;background:none;padding:6px 11px;font-size:13px}
+.seg button[aria-pressed="true"]{background:var(--fuji-soft);color:var(--fuji);font-weight:600}
+.range{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+
+.view{display:grid;gap:22px}
+.panel{background:var(--sheet);border:1px solid var(--line);border-radius:8px;padding:18px;min-width:0}
+.btn{border:1px solid var(--fuji);background:var(--fuji);color:var(--sheet);padding:7px 14px;border-radius:6px;font-size:14px}
+.btn.ghost{background:transparent;color:var(--fuji)}
+.say{border:1px solid var(--line);background:var(--sheet);border-radius:999px;width:32px;height:32px;display:inline-grid;place-items:center;color:var(--fuji);flex:none}
+.say svg{width:15px;height:15px}
+.lv{font-family:var(--f-mono);font-size:11px;font-weight:500;padding:1px 7px;border-radius:4px;border:1px solid currentColor;white-space:nowrap}
+.lv5{color:var(--n5)} .lv4{color:var(--n4)} .lv3{color:var(--n3)} .lv2{color:var(--n2)}
+
+/* 사슬(꼬리) */
+.chainbox{overflow-x:auto;padding-bottom:6px}
+.chain{display:flex;align-items:center;min-width:min-content;padding:4px 2px}
+.node{border:1px solid var(--line);background:var(--sheet);border-radius:8px;padding:6px 10px;display:flex;flex-direction:column;align-items:center;min-width:64px;flex:none}
+.node .w{font-family:var(--f-jp);font-size:19px;line-height:1.2;white-space:nowrap}
+.node .r{font-family:var(--f-jp);font-size:11px;color:var(--muted);white-space:nowrap}
+.node.cur{border-color:var(--fuji);background:var(--fuji-soft)}
+.node.bad{border-color:var(--bad);background:var(--bad-soft)}
+.link{display:flex;flex-direction:column;align-items:center;flex:none;width:58px;position:relative}
+.link::before{content:"";position:absolute;left:0;right:0;top:50%;border-top:2px dashed var(--take)}
+.link span{position:relative;background:var(--paper);color:var(--take);font-size:12px;padding:0 4px;font-family:var(--f-jp);font-weight:700;white-space:nowrap;max-width:58px;overflow:hidden;text-overflow:ellipsis}
+.panel .link span{background:var(--sheet)}
+.chain-empty{color:var(--muted);font-size:13px;padding:8px 0}
+
+/* 탐험 */
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.searchwrap{position:relative;flex:1 1 220px;min-width:0}
+.search{width:100%;border:1px solid var(--line);background:var(--sheet);border-radius:6px;padding:7px 10px;font:inherit;color:var(--ink)}
+.results{position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--sheet);border:1px solid var(--line);border-radius:6px;z-index:4;max-height:280px;overflow:auto}
+.results button{display:flex;gap:10px;align-items:baseline;width:100%;text-align:left;border:0;background:none;padding:7px 10px;border-bottom:1px solid var(--line)}
+.results button:hover{background:var(--fuji-soft)}
+.stage{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:780px){.stage{grid-template-columns:minmax(0,1fr)}}
+.hero{display:flex;flex-direction:column;gap:10px;position:sticky;top:16px}
+@media (max-width:780px){.hero{position:static}}
+.hero .meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.hero .word{font-family:var(--f-jp);font-size:clamp(44px,9vw,64px);line-height:1.1;font-weight:700;word-break:keep-all}
+.hero .read{font-family:var(--f-jp);font-size:22px;color:var(--fuji);display:flex;align-items:center;gap:10px}
+.hero .mean{font-size:20px}
+.hero .topic{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:1px 9px}
+.hero .acts{display:flex;gap:8px;flex-wrap:wrap}
+.known-btn{border:1px solid var(--line);background:none;border-radius:999px;padding:5px 12px;font-size:13px;color:var(--muted)}
+.known-btn[aria-pressed="true"]{border-color:var(--take);color:var(--take);background:var(--take-soft)}
+.tails{display:grid;gap:14px}
+.tg h3{font-size:14px;display:flex;align-items:baseline;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.tg h3 .k{font-family:var(--f-jp);font-size:24px;color:var(--take);line-height:1}
+.tg h3 small{color:var(--muted);font-weight:400;font-size:12px}
+.tlist{display:flex;flex-wrap:wrap;gap:6px}
+.t{border:1px solid var(--line);background:var(--sheet);border-radius:6px;padding:5px 10px;display:flex;flex-direction:column;align-items:flex-start;text-align:left;min-width:0;max-width:100%}
+.t:hover{border-color:var(--take)}
+.t .tw{font-family:var(--f-jp);font-size:17px;line-height:1.25;display:flex;gap:6px;align-items:baseline}
+.t .tm{font-size:12px;color:var(--muted)}
+.t.seen{opacity:.55}
+.t.kn .tw::after{content:"";width:6px;height:6px;border-radius:50%;background:var(--take);align-self:center}
+.t .hl{color:var(--take);font-weight:700}
+.next-hint{font-size:13px;color:var(--muted)}
+
+/* 퀴즈 */
+.quiz{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:18px;align-items:start}
+@media (max-width:760px){.quiz{grid-template-columns:minmax(0,1fr)}}
+.qbox{display:flex;flex-direction:column;align-items:center;gap:12px;padding:22px 14px}
+.qreason{font-size:13px;color:var(--take);min-height:20px;text-align:center}
+.qreason b{font-family:var(--f-jp);font-size:17px}
+.qword{font-family:var(--f-jp);font-size:clamp(46px,10vw,72px);line-height:1.1;font-weight:700;text-align:center;word-break:keep-all}
+.qread{font-family:var(--f-jp);font-size:20px;color:var(--fuji);min-height:30px}
+.opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:100%;max-width:460px}
+.opt{border:1px solid var(--line);background:var(--sheet);border-radius:6px;padding:11px 8px;font-size:16px;min-width:0}
+.opt.jpo{font-family:var(--f-jp);font-size:18px}
+.opt:hover{border-color:var(--fuji)}
+.opt .sub{display:block;font-size:12px;color:var(--muted);font-family:var(--f-body)}
+.opt.ok{background:var(--take-soft);border-color:var(--take);color:var(--take)}
+.opt.no{background:var(--bad-soft);border-color:var(--bad);color:var(--bad)}
+.fb{min-height:40px;font-size:14px;text-align:center;max-width:50ch}
+.score{display:flex;gap:18px;font-variant-numeric:tabular-nums;flex-wrap:wrap}
+.score div{display:flex;flex-direction:column}
+.score b{font-family:var(--f-mono);font-size:26px;font-weight:500}
+.score small{font-size:12px;color:var(--muted)}
+.stats{display:grid;gap:12px;align-content:start}
+.need{font-family:var(--f-jp);font-size:56px;line-height:1;color:var(--fuji);border:2px solid var(--fuji);width:84px;height:84px;display:grid;place-items:center;border-radius:8px}
+.end{color:var(--bad)}
+
+/* 단어장 */
+.prog{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:760px){.prog{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.pg{background:var(--sheet);border:1px solid var(--line);border-radius:8px;padding:12px}
+.pg .top{display:flex;justify-content:space-between;align-items:baseline;font-variant-numeric:tabular-nums}
+.pg .top b{font-family:var(--f-mono);font-size:20px;font-weight:500}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%}
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{border:1px solid var(--line);background:var(--sheet);border-radius:999px;padding:5px 12px;font-size:13px}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--sheet)}
+select{border:1px solid var(--line);background:var(--sheet);color:var(--ink);border-radius:6px;padding:6px 8px;font:inherit;font-size:13px}
+.chk{display:inline-flex;gap:6px;align-items:center;font-size:13px;color:var(--muted)}
+.wl{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.wi{background:var(--sheet);border:1px solid var(--line);border-radius:6px;padding:9px 12px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 8px;align-items:center}
+.wi .w{font-family:var(--f-jp);font-size:19px;border:0;background:none;padding:0;text-align:left}
+.wi .w:hover{color:var(--fuji)}
+.wi .r{font-family:var(--f-jp);font-size:13px;color:var(--fuji)}
+.wi .m{font-size:13px;color:var(--muted);grid-column:1/-1}
+.wi.kn{opacity:.6}
+.wi .ck{border:1px solid var(--line);background:none;border-radius:999px;font-size:11px;padding:1px 8px;color:var(--muted)}
+.wi.kn .ck{border-color:var(--take);color:var(--take)}
+/* 예문 */
+.exm{border-top:1px dashed var(--line);padding-top:10px;display:grid;gap:3px;text-align:left;width:100%}
+.exm .lab{font-size:11px;letter-spacing:.1em;color:var(--muted)}
+.exm .j{font-family:var(--f-jp);font-size:18px;line-height:1.6;display:flex;gap:8px;align-items:flex-start;justify-content:space-between}
+.exm .j>span{min-width:0}
+.exm mark{background:none;color:var(--fuji);font-weight:700;text-decoration:underline;text-decoration-color:var(--fuji-soft);text-decoration-thickness:4px;text-underline-offset:-1px}
+.exm .k{font-size:13px;color:var(--muted)}
+.qbox .exm{max-width:460px;margin-top:8px}
+/* 팝업 */
+.modal{position:fixed;inset:0;z-index:30;display:grid;place-items:center;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.scrim{position:absolute;inset:0;background:var(--scrim)}
+.sheet{position:relative;background:var(--sheet);border:1px solid var(--line);border-radius:12px;width:min(460px,100%);max-height:100%;overflow:auto;padding:20px;display:grid;gap:12px;box-shadow:0 18px 50px var(--shadow)}
+@media (max-width:520px){.modal{place-items:end center}.sheet{border-radius:14px 14px 10px 10px}}
+@media (prefers-reduced-motion:no-preference){.sheet{animation:rise .18s ease-out}@keyframes rise{from{transform:translateY(12px);opacity:.4}to{transform:none;opacity:1}}}
+.ptop{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ptop .x{margin-left:auto;border:0;background:none;font-size:22px;line-height:1;color:var(--muted);padding:2px 6px}
+.preason{font-size:13px;color:var(--take)}
+.preason b{font-family:var(--f-jp);font-size:16px}
+.pword{border:1px solid var(--line);background:var(--paper);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;width:100%}
+.pword:hover{border-color:var(--fuji)}
+.pword .w{font-family:var(--f-jp);font-size:42px;font-weight:700;line-height:1.15}
+.pword .r{font-family:var(--f-jp);font-size:19px;color:var(--fuji)}
+.pword .m{font-size:17px}
+.pword .go{font-size:12px;color:var(--muted)}
+.pword.static{cursor:default}
+.prow{display:flex;align-items:center;gap:8px}
+.plinks{display:flex;flex-wrap:wrap;gap:6px;font-size:12px;color:var(--muted);align-items:center}
+.plinks span{border:1px solid var(--line);border-radius:999px;padding:1px 9px}
+.plinks b{font-family:var(--f-jp);color:var(--take);font-size:14px}
+.pacts{display:flex;gap:8px;flex-wrap:wrap}
+.pacts .btn{flex:1 1 auto}
+footer{margin-top:40px;border-top:1px solid var(--line);padding-top:12px;font-size:12px;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.opt,.t,.chip,.tab{transition:background .15s,border-color .15s}}
+
+/* 50음도 원고지 */
+.gojuon-layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;align-items:start}
+@media (max-width:820px){.gojuon-layout{grid-template-columns:minmax(0,1fr)}}
+.grid50{display:grid;grid-template-columns:34px repeat(5,minmax(0,1fr));gap:0;border-top:1px solid var(--grid);border-left:1px solid var(--grid);background:var(--sheet)}
+.grid50 .rl,.grid50 .ch{border-right:1px solid var(--grid);border-bottom:1px solid var(--grid)}
+.grid50 .rl{display:grid;place-items:center;font-family:var(--f-mono);font-size:11px;color:var(--muted);background:var(--paper)}
+.grid50 .hdr{font-family:var(--f-mono);font-size:11px;color:var(--muted);text-align:center;padding:4px 0;background:var(--paper);border-right:1px solid var(--grid);border-bottom:1px solid var(--grid)}
+.ch{position:relative;aspect-ratio:1/1.05;max-width:100%;border:0;background:
+  linear-gradient(var(--grid),var(--grid)) center/1px 100% no-repeat,
+  linear-gradient(var(--grid),var(--grid)) center/100% 1px no-repeat;
+  background-blend-mode:normal;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2px;min-width:0}
+.ch::before{content:"";position:absolute;inset:0;background:var(--sheet);opacity:.82}
+.ch>*{position:relative}
+.ch .k{font-family:var(--f-kana);font-size:clamp(20px,4.4vw,32px);line-height:1.1}
+.ch .k2{font-family:var(--f-kana);font-size:13px;color:var(--muted);line-height:1}
+.ch .r{font-family:var(--f-mono);font-size:11px;color:var(--muted);line-height:1.2}
+.ch .o{font-family:var(--f-kana);font-size:11px;color:var(--ai);line-height:1.2}
+.ch.empty{cursor:default}
+.ch:not(.empty):hover::before{opacity:.55}
+.ch.sel::before{background:var(--ai-soft);opacity:1}
+.ch .weak{position:absolute;top:3px;right:4px;width:6px;height:6px;border-radius:50%;background:var(--bad)}
+
+.detail{position:sticky;top:16px}
+.detail .big{display:flex;gap:16px;align-items:flex-end}
+.detail .big .k{font-family:var(--f-kana);font-size:84px;line-height:1}
+.detail .big .k2{font-family:var(--f-kana);font-size:44px;line-height:1;color:var(--muted)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin-top:14px;font-size:14px}
+.kv dt{color:var(--muted)} .kv dd{margin:0}
+.origin{margin-top:14px;border-top:1px dashed var(--line);padding-top:12px;font-size:14px}
+.origin .pair{display:flex;gap:16px;margin-top:8px}
+.origin .pair div{display:flex;flex-direction:column;align-items:center;gap:2px}
+.origin .pair .h{font-family:var(--f-kana);font-size:34px;line-height:1.1}
+.origin .pair small{color:var(--muted);font-size:12px}
+
+/* tips & pairs */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.card{background:var(--sheet);border:1px solid var(--line);border-radius:6px;padding:14px;min-width:0}
+.card h3{font-size:15px;margin-bottom:4px}
+.card p{margin:0;font-size:14px;color:var(--muted)}
+.pairglyph{font-family:var(--f-kana);font-size:40px;line-height:1.1;display:flex;gap:14px;margin-bottom:6px}
+.pairglyph span{display:flex;flex-direction:column;align-items:center}
+.pairglyph small{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+
+/* rules */
+.rulegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.rule{background:var(--sheet);border:1px solid var(--line);border-radius:6px;padding:14px;min-width:0}
+.rule .arrow{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.rule .arrow .from{font-size:20px;font-weight:700}
+.rule .arrow .to{font-family:var(--f-kana);font-size:22px;color:var(--ai);font-weight:700}
+.rule p{margin:0 0 10px;font-size:13px;color:var(--muted)}
+.exs{display:flex;flex-wrap:wrap;gap:6px}
+.ex{border:1px solid var(--line);background:var(--paper);border-radius:4px;padding:4px 8px;display:flex;flex-direction:column;align-items:center;min-width:58px}
+.ex .c{font-family:var(--f-kana);font-size:22px;line-height:1.2}
+.ex .y{font-family:var(--f-kana);font-size:12px;color:var(--ai)}
+.ex .kk{font-size:11px;color:var(--muted)}
+
+/* shapes table */
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--sheet)}
+table{border-collapse:collapse;width:100%;min-width:460px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:center}
+th{font-size:12px;color:var(--muted);font-weight:400;letter-spacing:.04em}
+td.g{font-size:30px;line-height:1.2}
+td.match{background:var(--ai-soft)}
+tr:last-child td{border-bottom:0}
+
+/* parts */
+.parts{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.part{background:var(--sheet);border:1px solid var(--line);border-radius:6px;padding:14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.part .eq{display:flex;align-items:center;gap:6px;font-family:var(--f-kana);font-size:22px;flex-wrap:wrap}
+.part .eq .res{font-size:44px;line-height:1;margin-left:4px}
+.part .eq .op{color:var(--muted);font-size:16px}
+.part .yomi{font-size:13px}
+.part .yomi span{font-family:var(--f-kana);color:var(--ai)}
+.part p{margin:0;font-size:13px;color:var(--muted)}
+.kokuji{font-size:11px;color:var(--warn);background:var(--warn-soft);padding:1px 7px;border-radius:999px;align-self:flex-start}
+
+.explain{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.explain .card .big{font-family:var(--f-kana);font-size:28px}
+
+[hidden]{display:none!important}
+/* 머리·탭 묶음 */
+.seal{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;font-size:18px;line-height:1}
+.seal span{display:grid;place-items:center}
+.navg{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.navg .gl{font-size:11px;letter-spacing:.12em;color:var(--muted)}
+.navgroups{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center}
+.zh{font-family:var(--f-zh)}
+#v-kana,#v-kanji,#v-compare{gap:36px}
+.sec h2{font-family:var(--f-jp);font-size:22px;font-weight:700;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.sec h2 small{font-family:var(--f-body);font-size:13px;color:var(--muted);font-weight:400}
+.sec>.lead{color:var(--muted);max-width:68ch;margin:6px 0 16px}
+.controls{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin-bottom:14px}
+.qglyph{font-family:var(--f-jp);font-size:92px;line-height:1}
+.qsub{color:var(--muted);font-size:14px;text-align:center}
+.opt.jpopt{font-family:var(--f-jp);font-size:18px}
+.feedback{min-height:44px;font-size:14px;text-align:center;max-width:46ch}
+.weaklist{display:flex;flex-wrap:wrap;gap:6px}
+.weaklist span{font-family:var(--f-jp);font-size:20px;border:1px solid var(--bad);color:var(--bad);border-radius:4px;padding:0 6px;background:var(--bad-soft)}
+
+/* 한중일 비교 */
+.ctag{font-size:11px;padding:2px 9px;border-radius:999px;white-space:nowrap;border:1px solid transparent}
+.c-same{background:var(--take-soft);color:var(--take)}
+.c-kj{background:var(--fuji-soft);color:var(--fuji)}
+.c-zj{background:var(--n4-soft);color:var(--n4)}
+.c-jp{background:var(--gold-soft);color:var(--gold)}
+.c-diff{background:var(--bad-soft);color:var(--bad)}
+.c-native{background:var(--paper);color:var(--muted);border-color:var(--line)}
+.c-all{background:var(--sheet);color:var(--ink);border-color:var(--line)}
+.cmp{border-top:1px dashed var(--line);padding-top:10px;display:grid;gap:6px;width:100%;text-align:left}
+.cmp .ctop{display:flex;gap:8px;align-items:center}
+.crows{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 10px;align-items:center;font-size:14px}
+.cl{font-size:11px;color:var(--muted);letter-spacing:.06em;white-space:nowrap}
+.cv{min-width:0}
+.cv b{font-weight:700}
+.cv .zh{font-size:17px}
+.trad{font-family:var(--f-jp);color:var(--muted);font-size:14px}
+.jr{font-family:var(--f-jp);font-size:16px;color:var(--fuji)}
+.cnote{font-size:13px;color:var(--muted)}
+.say.sm{width:26px;height:26px}
+.say.sm svg{width:13px;height:13px}
+.tybar{display:flex;flex-wrap:wrap;gap:8px}
+.tyb{border:1px solid var(--line);border-radius:999px;padding:6px 12px;display:inline-flex;gap:8px;align-items:baseline;font-size:13px}
+.tyb b{font-family:var(--f-mono);font-weight:500;font-variant-numeric:tabular-nums}
+.tyb[aria-pressed="true"]{box-shadow:inset 0 0 0 2px currentColor}
+.legend{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+.legend div{background:var(--sheet);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--muted);display:grid;gap:6px;align-content:start}
+.legend .ctag{justify-self:start}
+.cdesc{margin:0;color:var(--muted);font-size:14px;min-height:22px}
+.cwgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.cw{background:var(--sheet);border:1px solid var(--line);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.cwtop{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cwword{border:0;background:none;padding:0;font-family:var(--f-jp);font-size:30px;line-height:1.15;text-align:left;margin-right:auto}
+.cwword:hover{color:var(--fuji)}
+.kgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.kgrp{background:var(--sheet);border:1px solid var(--line);border-radius:8px;padding:14px;display:grid;gap:10px;align-content:start;min-width:0}
+.khead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.khead .gk{font-family:var(--f-jp);font-size:40px;line-height:1}
+.khead .kr{font-size:22px;font-weight:700}
+.khead .n{margin-left:auto;font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.kchips{display:flex;flex-wrap:wrap;gap:6px}
+.kchip{border:1px solid var(--line);background:var(--paper);border-radius:6px;padding:4px 9px;display:flex;flex-direction:column;align-items:flex-start;text-align:left;min-width:0}
+.kchip:hover{border-color:var(--fuji)}
+.kchip .w{font-family:var(--f-jp);font-size:17px;line-height:1.3}
+.kchip .s{font-size:12px;color:var(--muted)}
+.more{display:flex;justify-content:center;margin-top:14px}
+.qkr{font-size:15px;color:var(--muted);text-align:center}
+.qkr b{color:var(--ink);font-size:20px}
+</style>
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}.sgbar{display:flex;gap:14px;padding-top:14px;font-size:13px}.sgbar a{color:var(--muted);text-decoration:none}.sgbar a:hover{color:var(--fuji)}</style>
+</head>
+<body>
+
+<div class="wrap">
+<div class="sgbar"><a href="/">← 스마트공 홈</a><a href="/more/">기타 앱</a></div>
+<header>
+  <div class="seal" aria-hidden="true"><span>か</span><span>な</span><span>漢</span><span>字</span></div>
+  <div><div class="series">한국어로 배우는 일본어</div><h1>가나다 일본어</h1><p>한국 한자음에서 출발해 가나, 한자, JLPT N5~N2 단어를 꼬리에 꼬리를 물며 익히기</p></div>
+</header>
+<nav>
+  <div class="navgroups">
+    <div class="navg"><span class="gl">기초</span><div class="tabs" role="tablist">
+      <button class="tab" role="tab" data-view="kana">가나 익히기</button>
+      <button class="tab" role="tab" data-view="kanji">한자 읽기</button>
+      <button class="tab" role="tab" data-view="compare">한중일 비교</button>
+    </div></div>
+    <div class="navg"><span class="gl">꼬리잡기</span><div class="tabs" role="tablist">
+      <button class="tab" role="tab" data-view="explore">꼬리 탐험</button>
+      <button class="tab" role="tab" data-view="quiz">꼬리 퀴즈</button>
+      <button class="tab" role="tab" data-view="shiritori">끝말잇기</button>
+      <button class="tab" role="tab" data-view="list">단어장</button>
+    </div></div>
+  </div>
+  <div class="range" id="rangeBox" hidden>범위
+    <div class="seg" id="rangeSeg"><button data-r="5">N5</button><button data-r="4">N4까지</button><button data-r="3">N3까지</button><button data-r="2">N2까지</button></div>
+  </div>
+</nav>
+
+<section class="view" id="v-kana">
+  <div class="sec">
+    <h2>오십음도 <small>글자를 누르면 소리와 원래 한자가 나옵니다</small></h2>
+    <p class="lead">가나는 한자에서 나왔습니다. 히라가나는 한자 전체를 흘려 쓴 것이고, 가타카나는 한자의 한 부분을 떼어낸 것입니다. 원래 한자의 한국어 음이 가나 소리와 비슷한 경우가 많아서, 한자를 아는 한국인에게 유리합니다. 예를 들어 加(가) → か, 波(파) → は, 美(미) → み.</p>
+    <div class="controls">
+      <div class="seg" id="scriptSeg">
+        <button data-s="hira" aria-pressed="true">히라가나</button>
+        <button data-s="kata" aria-pressed="false">가타카나</button>
+        <button data-s="both" aria-pressed="false">함께 보기</button>
+      </div>
+      <div class="seg" id="setSeg">
+        <button data-t="base" aria-pressed="true">청음</button>
+        <button data-t="daku" aria-pressed="false">탁음·반탁음</button>
+      </div>
+      <label class="chk"><input type="checkbox" id="showOrigin" checked> 원래 한자 표시</label>
+      <label class="chk"><input type="checkbox" id="showRoma"> 로마자 표시</label>
+    </div>
+    <div class="gojuon-layout">
+      <div class="grid50" id="grid50"></div>
+      <aside class="panel detail" id="kanaDetail"></aside>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2>한국인을 위한 발음 요령</h2>
+    <p class="lead">한국어에 있는 소리와 없는 소리를 구분하면 금방 익숙해집니다.</p>
+    <div class="cards" id="tips"></div>
+  </div>
+
+  <div class="sec">
+    <h2>헷갈리는 글자 짝</h2>
+    <p class="lead">처음 배울 때 가장 많이 틀리는 짝들입니다. 차이점 하나만 기억하세요.</p>
+    <div class="cards" id="pairs"></div>
+  </div>
+
+  <div class="sec">
+    <h2>가나 퀴즈 <small>틀린 글자는 더 자주 나옵니다</small></h2>
+    <div class="controls">
+      <div class="seg" id="qScript">
+        <button data-s="hira" aria-pressed="true">히라가나</button>
+        <button data-s="kata" aria-pressed="false">가타카나</button>
+        <button data-s="mix" aria-pressed="false">섞어서</button>
+      </div>
+      <div class="seg" id="qSet">
+        <button data-t="base" aria-pressed="true">청음</button>
+        <button data-t="all" aria-pressed="false">탁음 포함</button>
+      </div>
+      <div class="seg" id="qAns">
+        <button data-a="ko" aria-pressed="true">한글로 답</button>
+        <button data-a="ro" aria-pressed="false">로마자로 답</button>
+      </div>
+    </div>
+    <div class="quiz">
+      <div class="panel qbox" id="kanaQuiz"></div>
+      <div class="panel stats">
+        <div class="score"><div><b id="kqRight">0</b><small>맞춤</small></div><div><b id="kqWrong">0</b><small>틀림</small></div><div><b id="kqStreak">0</b><small>연속</small></div></div>
+        <div><div class="muted" style="margin-bottom:6px">자주 틀린 글자</div><div class="weaklist" id="kqWeak"></div></div>
+        <button class="btn ghost" id="kqReset">기록 지우기</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="view" id="v-kanji" hidden>
+  <div class="sec">
+    <h2>음독과 훈독</h2>
+    <p class="lead">일본 한자는 읽는 법이 두 가지입니다. 한국어 한자음과 연결되는 쪽은 음독입니다.</p>
+    <div class="explain">
+      <div class="card"><div class="big">山 → さん</div><h3>음독 (音読み)</h3><p>중국에서 들어온 소리. 한국 한자음과 뿌리가 같아서 규칙으로 추측할 수 있습니다. 주로 한자 두 글자 이상의 단어에서 씁니다. 富士山 ふじさん</p></div>
+      <div class="card"><div class="big">山 → やま</div><h3>훈독 (訓読み)</h3><p>한자에 일본 고유어를 붙인 읽기. 한국어로 치면 山을 '뫼'라고 읽는 것과 같습니다. 한 글자로 쓰거나 뒤에 히라가나가 붙을 때 많이 씁니다.</p></div>
+      <div class="card"><div class="big">食べる</div><h3>오쿠리가나</h3><p>한자 뒤에 붙은 히라가나는 훈독이라는 신호입니다. 食べる たべる(먹다), 食事 しょくじ(식사)는 음독.</p></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2>한국 한자음 → 일본어 음독 변환 규칙</h2>
+    <p class="lead">한국어 받침과 첫소리에 규칙적인 대응이 있습니다. 예시를 누르면 발음을 들을 수 있습니다.</p>
+    <div class="rulegrid" id="rules"></div>
+  </div>
+
+  <div class="sec">
+    <h2>규칙 연습 <small>한국음을 보고 음독 고르기</small></h2>
+    <p class="lead">규칙을 실제 단어에 적용해 보려면 '한중일 비교' 탭의 읽기 추측 퀴즈를 풀어 보세요.</p>
+    <div class="quiz">
+      <div class="panel qbox" id="ruleQuiz"></div>
+      <div class="panel stats">
+        <div class="score"><div><b id="rqRight">0</b><small>맞춤</small></div><div><b id="rqWrong">0</b><small>틀림</small></div></div>
+        <p class="muted" style="margin:0">받침만 보고 일본어 끝소리를 먼저 떠올려 보세요. ㄱ → く·き, ㄹ → つ·ち, ㅇ·ㅂ → う·い, ㄴ·ㅁ → ん.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2>한국·일본·중국 글자 모양 비교</h2>
+    <p class="lead">한국은 옛 글자(정자)를, 중국은 크게 줄인 간체자를, 일본은 그 사이쯤인 신자체를 씁니다. 정자를 알면 일본 글자는 대부분 알아볼 수 있습니다. 파란 칸은 일본 글자와 같은 모양입니다.</p>
+    <div class="tablewrap"><table id="shapes"></table></div>
+  </div>
+
+  <div class="sec">
+    <h2>쪼개서 외우는 한자</h2>
+    <p class="lead">한자를 부품으로 나누고 이야기를 붙이면 오래 기억됩니다. 노란 표시는 일본에서 만든 한자(국자)로, 한국에서는 거의 쓰지 않습니다.</p>
+    <div class="parts" id="parts"></div>
+  </div>
+</section>
+
+<section class="view" id="v-compare" hidden>
+  <div class="sec">
+    <h2>한·중·일 비교 <small>꼬리잡기 단어 전체를 한국어·중국어와 나란히</small></h2>
+    <p class="lead">일본어 단어의 절반 이상은 한국어와 같은 한자어입니다. 한국 한자음을 알면 뜻을 바로 알 수 있고, 규칙만 익히면 일본어 읽기도 짐작할 수 있습니다. 같은 것부터 모아 외우고, 뜻이 다른 단어는 따로 주의하세요.</p>
+    <div class="legend" id="cLegend"></div>
+  </div>
+  <div class="sec">
+    <div class="toolbar" style="margin-bottom:12px">
+      <div class="seg" id="cMode"><button data-m="type" aria-pressed="true">종류별 보기</button><button data-m="kanji" aria-pressed="false">한자별로 모으기</button></div>
+      <input class="search" id="cSearch" type="search" placeholder="한자, 일본어, 한국어, 중국어로 찾기" style="flex:1 1 220px;width:auto">
+    </div>
+    <div class="tybar" id="cTypes"></div>
+    <p class="cdesc" id="cDesc" style="margin:10px 0 14px"></p>
+    <div id="cList"></div>
+    <div class="more"><button class="btn ghost" id="cMore" hidden>더 보기</button></div>
+  </div>
+  <div class="sec">
+    <h2>읽기 추측 퀴즈 <small>한국 한자음으로 일본어 읽기 맞히기</small></h2>
+    <div class="quiz">
+      <div class="panel qbox" id="cQuiz"></div>
+      <div class="panel stats">
+        <div class="score"><div><b id="cqRight">0</b><small>맞춤</small></div><div><b id="cqWrong">0</b><small>틀림</small></div></div>
+        <p class="muted" style="margin:0">받침을 먼저 보세요. ㄱ → く·き, ㄹ → つ·ち, ㅇ·ㅂ → う·い, ㄴ·ㅁ → ん. 자세한 규칙은 '한자 읽기' 탭에 있습니다.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="view" id="v-explore">
+  <div class="toolbar">
+    <div class="searchwrap"><input class="search" id="exSearch" type="search" placeholder="단어 찾기: 한자, 히라가나, 한국어 뜻" autocomplete="off"><div class="results" id="exResults" hidden></div></div>
+    <button class="btn" id="exRandom">랜덤 출발</button>
+    <button class="btn ghost" id="exClear">꼬리 지우기</button>
+  </div>
+  <div class="panel">
+    <div class="muted" style="margin-bottom:6px">지나온 꼬리 <span id="trailCount"></span></div>
+    <div class="chainbox" id="trailBox"><div class="chain" id="trail"></div></div>
+  </div>
+  <div class="stage">
+    <div class="panel hero" id="hero"></div>
+    <div class="tails" id="tails"></div>
+  </div>
+</section>
+
+<section class="view" id="v-quiz" hidden>
+  <div class="toolbar">
+    <div class="seg" id="qMode"><button data-m="mean" aria-pressed="true">뜻 맞히기</button><button data-m="read" aria-pressed="false">읽기 맞히기</button></div>
+    <label class="chk"><input type="checkbox" id="qShowRead" checked> 문제에 읽기 표시</label>
+    <button class="btn ghost" id="qRestart">새 꼬리 시작</button>
+  </div>
+  <div class="panel"><div class="muted" style="margin-bottom:6px">이번 꼬리</div><div class="chainbox"><div class="chain" id="qChain"></div></div></div>
+  <div class="quiz">
+    <div class="panel qbox" id="qBox"></div>
+    <div class="panel stats">
+      <div class="score"><div><b id="qLen">0</b><small>꼬리 길이</small></div><div><b id="qBest">0</b><small>최고 기록</small></div></div>
+      <p class="muted" style="margin:0">맞히면 앞 단어와 이어진 단어(같은 한자·반대말·같은 주제)가 다음 문제로 나옵니다. 틀리면 꼬리가 끊어집니다.</p>
+    </div>
+  </div>
+</section>
+
+<section class="view" id="v-shiritori" hidden>
+  <div class="toolbar">
+    <button class="btn ghost" id="sRestart">새로 시작</button>
+    <span class="muted">보기에는 읽기가 없습니다. 한자를 읽을 수 있어야 이을 수 있어요. ん으로 끝나는 단어를 고르면 끝납니다.</span>
+  </div>
+  <div class="panel"><div class="muted" style="margin-bottom:6px">끝말 사슬</div><div class="chainbox"><div class="chain" id="sChain"></div></div></div>
+  <div class="quiz">
+    <div class="panel qbox" id="sBox"></div>
+    <div class="panel stats">
+      <div class="score"><div><b id="sLen">0</b><small>이은 단어</small></div><div><b id="sBest">0</b><small>최고 기록</small></div></div>
+      <p class="muted" style="margin:0">장음 ー는 앞 글자로, 작은 ゃゅょ는 큰 글자(や·ゆ·よ)로 이어 갑니다.</p>
+    </div>
+  </div>
+</section>
+
+<section class="view" id="v-list" hidden>
+  <div class="prog" id="prog"></div>
+  <div class="filters" id="lFilters">
+    <button class="chip" data-l="all" aria-pressed="true">전체</button>
+    <button class="chip" data-l="5" aria-pressed="false">N5</button>
+    <button class="chip" data-l="4" aria-pressed="false">N4</button>
+    <button class="chip" data-l="3" aria-pressed="false">N3</button>
+    <button class="chip" data-l="2" aria-pressed="false">N2</button>
+    <select id="lTopic" aria-label="주제"></select>
+    <label class="chk"><input type="checkbox" id="lHide"> 외운 단어 숨기기</label>
+    <input class="search" id="lSearch" type="search" placeholder="찾기" style="flex:1 1 160px;width:auto">
+  </div>
+  <div class="wl" id="wl"></div>
+</section>
+
+<div class="modal" id="pop" hidden role="dialog" aria-modal="true" aria-label="단어 자세히 보기"><div class="scrim" data-close></div><div class="sheet" id="popSheet"></div></div>
+
+<footer>JLPT는 2010년 개정 이후 공식 어휘 목록을 공개하지 않아, 급수는 널리 쓰이는 학습용 목록을 기준으로 정했습니다. 중국어는 표준어(간체자) 기준이며, 소리는 브라우저의 일본어·중국어 음성으로 재생됩니다. 외운 단어와 기록은 이 브라우저에만 저장됩니다.</footer>
+</div>
+
+<script>
+(function(){
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const SPK='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 6h3l4-3v10l-4-3H2z" fill="currentColor"/><path d="M11 5.5a3.5 3.5 0 0 1 0 5M12.8 3.5a6 6 0 0 1 0 9"/></svg>';
+function speak(t,lang){try{const u=new SpeechSynthesisUtterance(t);u.lang=lang||'ja-JP';u.rate=.85;const v=speechSynthesis.getVoices().find(v=>v.lang&&v.lang.replace('_','-').startsWith((lang||'ja-JP').slice(0,2)));if(v)u.voice=v;speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){}}
+try{speechSynthesis.getVoices();}catch(e){}
+const store={get(k,d){try{const v=localStorage.getItem('kanada.'+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem('kanada.'+k,JSON.stringify(v))}catch(e){}}};
+const toKata=s=>s.replace(/[ぁ-ゖ]/g,c=>String.fromCharCode(c.charCodeAt(0)+0x60));
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+
+/* ---------- 데이터: 가나 ---------- */
+// [히라, 로마자, 한글, 히라 원형, 가타 원형]
+const BASE=[
+['a',[['あ','a','아','安','阿'],['い','i','이','以','伊'],['う','u','우','宇','宇'],['え','e','에','衣','江'],['お','o','오','於','於']]],
+['k',[['か','ka','카','加','加'],['き','ki','키','幾','幾'],['く','ku','쿠','久','久'],['け','ke','케','計','介'],['こ','ko','코','己','己']]],
+['s',[['さ','sa','사','左','散'],['し','shi','시','之','之'],['す','su','스','寸','須'],['せ','se','세','世','世'],['そ','so','소','曽','曽']]],
+['t',[['た','ta','타','太','多'],['ち','chi','치','知','千'],['つ','tsu','츠','川','川'],['て','te','테','天','天'],['と','to','토','止','止']]],
+['n',[['な','na','나','奈','奈'],['に','ni','니','仁','二'],['ぬ','nu','누','奴','奴'],['ね','ne','네','祢','祢'],['の','no','노','乃','乃']]],
+['h',[['は','ha','하','波','八'],['ひ','hi','히','比','比'],['ふ','fu','후','不','不'],['へ','he','헤','部','部'],['ほ','ho','호','保','保']]],
+['m',[['ま','ma','마','末','万'],['み','mi','미','美','三'],['む','mu','무','武','牟'],['め','me','메','女','女'],['も','mo','모','毛','毛']]],
+['y',[['や','ya','야','也','也'],null,['ゆ','yu','유','由','由'],null,['よ','yo','요','与','與']]],
+['r',[['ら','ra','라','良','良'],['り','ri','리','利','利'],['る','ru','루','留','流'],['れ','re','레','礼','礼'],['ろ','ro','로','呂','呂']]],
+['w',[['わ','wa','와','和','和'],null,null,null,['を','wo','오','遠','乎']]],
+['ん',[['ん','n','ㄴ·응','无','尓'],null,null,null,null]]
+];
+const DAKU=[
+['g',[['が','ga','가'],['ぎ','gi','기'],['ぐ','gu','구'],['げ','ge','게'],['ご','go','고']]],
+['z',[['ざ','za','자'],['じ','ji','지'],['ず','zu','즈'],['ぜ','ze','제'],['ぞ','zo','조']]],
+['d',[['だ','da','다'],['ぢ','ji','지'],['づ','zu','즈'],['で','de','데'],['ど','do','도']]],
+['b',[['ば','ba','바'],['び','bi','비'],['ぶ','bu','부'],['べ','be','베'],['ぼ','bo','보']]],
+['p',[['ぱ','pa','파'],['ぴ','pi','피'],['ぷ','pu','푸'],['ぺ','pe','페'],['ぽ','po','포']]]
+];
+const OKO={安:'편안 안',以:'써 이',宇:'집 우',衣:'옷 의',於:'어조사 어',加:'더할 가',幾:'몇 기',久:'오랠 구',計:'셀 계',己:'몸 기',左:'왼 좌',之:'갈 지',寸:'마디 촌',世:'인간 세',曽:'일찍 증',太:'클 태',知:'알 지',川:'내 천',天:'하늘 천',止:'그칠 지',奈:'어찌 내',仁:'어질 인',奴:'종 노',祢:'사당 녜',乃:'이에 내',波:'물결 파',比:'견줄 비',不:'아닐 불',部:'떼 부',保:'지킬 보',末:'끝 말',美:'아름다울 미',武:'호반 무',女:'여자 녀',毛:'털 모',也:'어조사 야',由:'말미암을 유',与:'줄 여',良:'어질 량',利:'이로울 리',留:'머무를 류',礼:'예도 례',呂:'법칙 려',和:'화할 화',遠:'멀 원',无:'없을 무',阿:'언덕 아',伊:'저 이',江:'강 강',介:'낄 개',散:'흩을 산',須:'모름지기 수',多:'많을 다',千:'일천 천',二:'두 이',八:'여덟 팔',万:'일만 만',三:'석 삼',牟:'보리 모',與:'줄 여',流:'흐를 류',乎:'어조사 호',尓:'너 이'};
+const ALLK={};
+BASE.forEach(([r,cs])=>cs.forEach(c=>{if(c)ALLK[c[0]]={h:c[0],ro:c[1],ko:c[2],oh:c[3],ok:c[4],daku:false}}));
+DAKU.forEach(([r,cs])=>cs.forEach(c=>{ALLK[c[0]]={h:c[0],ro:c[1],ko:c[2],daku:true}}));
+
+/* ---------- 50음도 ---------- */
+let gScript='hira', gSet='base', selKana='あ';
+function weakSet(){const st=store.get('kq',{});return new Set(Object.keys(st).filter(k=>st[k].w>=2&&st[k].w>st[k].r/2))}
+function renderGrid(){
+  const rows=gSet==='base'?BASE:DAKU, so=$('#showOrigin').checked, sr=$('#showRoma').checked, weak=weakSet();
+  let h='<div class="hdr"></div>'+['a','i','u','e','o'].map(v=>`<div class="hdr">${v}</div>`).join('');
+  rows.forEach(([lab,cs])=>{
+    h+=`<div class="rl">${lab==='ん'?'n':lab==='a'?'·':lab}</div>`;
+    cs.forEach(c=>{
+      if(!c){h+='<div class="ch empty"></div>';return}
+      const k=ALLK[c[0]], main=gScript==='kata'?toKata(k.h):k.h;
+      const sub=gScript==='both'?`<span class="k2">${toKata(k.h)}</span>`:'';
+      const org=so&&k.oh&&gScript!=='both'?`<span class="o">${gScript==='kata'?k.ok:k.oh}</span>`:'';
+      const wk=weak.has(k.h)||weak.has(toKata(k.h))?'<i class="weak" title="자주 틀림"></i>':'';
+      h+=`<button class="ch${selKana===k.h?' sel':''}" data-k="${k.h}" aria-label="${k.ko}">${wk}<span class="k">${main}</span>${sub}<span class="r">${sr?k.ro:k.ko}</span>${org}</button>`;
+    });
+  });
+  $('#grid50').innerHTML=h;
+}
+function renderDetail(){
+  const k=ALLK[selKana]; if(!k)return;
+  const hk=k.h, kk=toKata(k.h);
+  let org='';
+  if(k.oh){org=`<div class="origin"><div class="muted">원래 한자</div><div class="pair">
+    <div><span class="h">${k.oh}</span><small>${OKO[k.oh]||''}</small><small>→ ${hk} (흘려 씀)</small></div>
+    <div><span class="h">${k.ok}</span><small>${OKO[k.ok]||''}</small><small>→ ${kk} (일부를 뗌)</small></div></div></div>`}
+  else{org=`<div class="origin muted">탁점(゛)은 소리를 흐리게(유성음), 반탁점(゜)은 'ㅍ' 소리로 바꿉니다. ${hk.normalize('NFD')[0]} → ${hk}</div>`}
+  $('#kanaDetail').innerHTML=`<div class="big"><span class="k">${hk}</span><span class="k2">${kk}</span>
+    <button class="say" data-say="${hk}" aria-label="듣기" style="margin-left:auto">${SPK}</button></div>
+    <dl class="kv"><dt>한글 소리</dt><dd>${k.ko}</dd><dt>로마자</dt><dd class="mono">${k.ro}</dd><dt>히라가나</dt><dd class="jp">${hk}</dd><dt>가타카나</dt><dd class="jp">${kk}</dd></dl>${org}`;
+}
+$('#grid50').addEventListener('click',e=>{const b=e.target.closest('.ch[data-k]');if(!b)return;selKana=b.dataset.k;renderGrid();renderDetail();speak(selKana)});
+function segBind(id,attr,cb){$(id).addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;$$(id+' button').forEach(x=>x.setAttribute('aria-pressed',x===b));cb(b.dataset[attr])})}
+segBind('#scriptSeg','s',v=>{gScript=v;renderGrid()});
+segBind('#setSeg','t',v=>{gSet=v;selKana=v==='base'?'あ':'が';renderGrid();renderDetail()});
+$('#showOrigin').addEventListener('change',renderGrid);$('#showRoma').addEventListener('change',renderGrid);
+
+/* ---------- 발음 요령 · 헷갈리는 짝 ---------- */
+const TIPS=[
+['つ (tsu)','\'츠\'와 \'쓰\' 사이 소리. 혀끝을 윗니 뒤에 붙였다 떼며 짧게 냅니다. つき(달)'],
+['ん (n)','한국어 받침처럼 뒤 소리에 따라 ㄴ·ㅁ·ㅇ으로 바뀝니다. さんぽ(삼뽀) かんじ(칸지) りんご(링고)'],
+['작은 っ (촉음)','받침처럼 한 박자 쉬었다 다음 소리를 셉니다. がっこう = 각·꼬·오. 한국어의 \'학교\'를 떠올리면 쉽습니다.'],
+['장음 (길게)','おう·えい·ああ 같은 모음 연속은 길게 두 박자로. こうこう(고등학교)는 코오코오, ここ(여기)는 코코.'],
+['か와 が','한국어에는 g/k 구분이 약해서 がくせい를 \'각세\'처럼 말하기 쉽습니다. が는 목이 울리는 소리, 단어 첫머리의 か는 \'카\'를 약하게 낸 소리입니다.'],
+['ら행','한국어 \'라리루레로\'의 ㄹ과 거의 같습니다. 영어 r처럼 굴리지 마세요.'],
+['ふ (fu)','\'후\'를 입술을 살짝 모아 바람만 내듯이. 윗니를 아랫입술에 대는 f가 아닙니다.'],
+['요음 (ゃゅょ)','작은 ゃ·ゅ·ょ는 앞 글자와 합쳐 한 박자. きゃ=캬, しゅ=슈, ちょ=쵸. 한글의 ㅑ·ㅠ·ㅛ와 같은 원리입니다.']
+];
+$('#tips').innerHTML=TIPS.map(([t,d])=>`<div class="card"><h3 class="jp">${t}</h3><p>${d}</p></div>`).join('');
+const PAIRS=[
+[['さ','ち'],'좌우가 뒤집힌 모양. ち는 숫자 5처럼 오른쪽이 둥글게 열립니다.'],
+[['ぬ','め'],'끝에 작은 고리(매듭)가 있으면 ぬ. 고리가 없으면 め.'],
+[['ね','れ','わ'],'끝 모양만 다릅니다. ね는 고리, れ는 밖으로 튕김, わ는 둥글게 닫힘.'],
+[['る','ろ'],'る는 끝에 고리, ろ는 열려 있습니다.'],
+[['は','ほ'],'ほ는 오른쪽 위에 가로획이 하나 더 있습니다.'],
+[['い','り'],'り는 오른쪽 획이 길게 내려옵니다.'],
+[['シ','ツ'],'シ는 점이 왼쪽에 세로로 놓이고 마지막 획이 아래에서 위로. ツ는 점이 위에 가로로 놓이고 획이 위에서 아래로.'],
+[['ソ','ン'],'ソ는 획이 위에서 아래로, ン은 아래에서 위로 올려 긋습니다.'],
+[['ク','ケ','タ'],'ク에 점을 하나 넣으면 タ. ケ는 가로획이 오른쪽으로 길게 뻗습니다.'],
+[['ウ','ワ','フ'],'ウ는 위에 점, ワ는 왼쪽에 짧은 세로획, フ는 세로획이 없습니다.']
+];
+const roOf=c=>{const h=c.replace(/[ァ-ヶ]/g,x=>String.fromCharCode(x.charCodeAt(0)-0x60));return ALLK[h]?ALLK[h].ko:''};
+$('#pairs').innerHTML=PAIRS.map(([cs,d])=>`<div class="card"><div class="pairglyph">${cs.map(c=>`<span>${c}<small>${roOf(c)}</small></span>`).join('')}</div><p>${d}</p></div>`).join('');
+
+/* ---------- 가나 퀴즈 ---------- */
+let qScript='hira',qSet='base',qAns='ko',kq={r:0,w:0,s:0},curK=null,locked=false;
+function kanaPool(){return Object.values(ALLK).filter(k=>(qSet==='all'||!k.daku)&&k.h!=='を'&&k.h!=='ぢ'&&k.h!=='づ')}
+function pickWeighted(pool,stats,keyf){let tot=0;const ws=pool.map(x=>{const s=stats[keyf(x)]||{r:0,w:0};const w=Math.max(.3,1+s.w*2-Math.min(s.r,4)*.2);tot+=w;return w});let r=Math.random()*tot;for(let i=0;i<pool.length;i++){r-=ws[i];if(r<=0)return pool[i]}return pool[0]}
+function nextKana(){
+  const pool=kanaPool(),st=store.get('kq',{});
+  const sc=qScript==='mix'?(Math.random()<.5?'hira':'kata'):qScript;
+  let k;do{k=pickWeighted(pool,st,x=>sc==='kata'?toKata(x.h):x.h)}while(curK&&k.h===curK.k.h&&pool.length>1);
+  const lab=x=>qAns==='ko'?x.ko:x.ro;
+  const opts=[lab(k)];shuffle(pool.slice()).forEach(x=>{if(opts.length<4&&!opts.includes(lab(x)))opts.push(lab(x))});
+  curK={k,ch:sc==='kata'?toKata(k.h):k.h,opts:shuffle(opts)};locked=false;
+  $('#kanaQuiz').innerHTML=`<div class="qglyph">${curK.ch}</div><div class="qsub">이 글자의 소리는?</div>
+   <div class="opts">${curK.opts.map(o=>`<button class="opt" data-o="${esc(o)}">${esc(o)}</button>`).join('')}</div><div class="feedback" id="kqFb"></div>`;
+}
+$('#kanaQuiz').addEventListener('click',e=>{
+  const b=e.target.closest('.opt');if(b&&!locked){
+    locked=true;const correct=qAns==='ko'?curK.k.ko:curK.k.ro, ok=b.dataset.o===correct, st=store.get('kq',{}), key=curK.ch;
+    st[key]=st[key]||{r:0,w:0};ok?st[key].r++:st[key].w++;store.set('kq',st);
+    if(ok){kq.r++;kq.s++}else{kq.w++;kq.s=0}
+    $$('#kanaQuiz .opt').forEach(x=>{if(x.dataset.o===correct)x.classList.add('ok');else if(x===b)x.classList.add('no')});
+    const k=curK.k;speak(k.h);
+    $('#kqFb').innerHTML=(ok?'<b style="color:var(--good)">정답</b>':'<b style="color:var(--bad)">오답</b>')+` · ${curK.ch} = ${k.ko} (${k.ro})`+(k.oh?` · 원래 한자 <span class="jp">${curK.ch===k.h?k.oh:k.ok}</span>(${OKO[curK.ch===k.h?k.oh:k.ok]})`:'')+`<div style="margin-top:8px"><button class="btn" id="kqNext">다음</button></div>`;
+    updKq();
+  }
+  if(e.target.id==='kqNext')nextKana();
+});
+function updKq(){$('#kqRight').textContent=kq.r;$('#kqWrong').textContent=kq.w;$('#kqStreak').textContent=kq.s;
+  const st=store.get('kq',{});const w=Object.entries(st).filter(([k,v])=>v.w>0).sort((a,b)=>(b[1].w-b[1].r*.3)-(a[1].w-a[1].r*.3)).slice(0,12);
+  $('#kqWeak').innerHTML=w.length?w.map(([k])=>`<span title="${roOf(k)}">${k}</span>`).join(''):'<span class="muted" style="font-family:var(--f-body);font-size:13px;border:0;background:none;color:var(--muted);padding:0">아직 없습니다</span>'}
+segBind('#qScript','s',v=>{qScript=v;nextKana()});segBind('#qSet','t',v=>{qSet=v;nextKana()});segBind('#qAns','a',v=>{qAns=v;nextKana()});
+$('#kqReset').addEventListener('click',()=>{store.set('kq',{});kq={r:0,w:0,s:0};updKq();renderGrid()});
+
+/* ---------- 한자: 변환 규칙 ---------- */
+// [한자, 한국음, 음독, 뜻]
+const RULES=[
+{from:'받침 ㅇ',to:'う · い',d:'한국어 ㅇ받침은 일본어에서 장음 う나 い가 됩니다.',ex:[['生','생','せい','날'],['東','동','とう','동녘'],['上','상','じょう','위'],['京','경','きょう','서울'],['空','공','くう','빌'],['名','명','めい','이름'],['王','왕','おう','임금'],['動','동','どう','움직일']]},
+{from:'받침 ㄱ',to:'く · き',d:'ㄱ받침은 く 또는 き로 끝납니다.',ex:[['学','학','がく','배울'],['国','국','こく','나라'],['食','식','しょく','먹을'],['力','력','りょく','힘'],['駅','역','えき','역'],['石','석','せき','돌'],['薬','약','やく','약'],['北','북','ほく','북녘']]},
+{from:'받침 ㄴ',to:'ん',d:'ㄴ받침은 그대로 ん입니다. 가장 쉬운 규칙.',ex:[['山','산','さん','뫼'],['文','문','ぶん','글월'],['新','신','しん','새'],['安','안','あん','편안'],['間','간','かん','사이'],['先','선','せん','먼저'],['円','원','えん','둥글'],['電','전','でん','번개']]},
+{from:'받침 ㅁ',to:'ん',d:'ㅁ받침도 ん이 됩니다. 일본어에는 ㅁ받침이 따로 없기 때문입니다.',ex:[['心','심','しん','마음'],['南','남','なん','남녘'],['金','금','きん','쇠'],['感','감','かん','느낄'],['三','삼','さん','석'],['音','음','おん','소리'],['林','림','りん','수풀'],['談','담','だん','말씀']]},
+{from:'받침 ㄹ',to:'つ · ち',d:'ㄹ받침은 つ 또는 ち로 끝납니다.',ex:[['一','일','いち','한'],['月','월','げつ','달'],['発','발','はつ','필'],['物','물','ぶつ','물건'],['室','실','しつ','집'],['熱','열','ねつ','더울'],['出','출','しゅつ','날'],['八','팔','はち','여덟']]},
+{from:'받침 ㅂ',to:'う',d:'ㅂ받침은 う가 됩니다. 옛 일본어에서는 ふ로 적었습니다.',ex:[['習','습','しゅう','익힐'],['入','입','にゅう','들'],['法','법','ほう','법'],['十','십','じゅう','열'],['急','급','きゅう','급할'],['業','업','ぎょう','업'],['合','합','ごう','합할'],['葉','엽','よう','잎']]},
+{from:'첫소리 ㅎ',to:'か행 · が행',d:'한국어 ㅎ으로 시작하면 일본어는 か·が행인 경우가 많습니다.',ex:[['学','학','がく','배울'],['韓','한','かん','나라'],['海','해','かい','바다'],['会','회','かい','모일'],['火','화','か','불'],['漢','한','かん','한수'],['下','하','か','아래'],['号','호','ごう','부르짖을']]},
+{from:'첫소리 ㅁ',to:'ば행 · ま행',d:'ㅁ으로 시작하면 ば행(ぶ·び·ぼ)이나 ま행으로 읽힙니다.',ex:[['文','문','ぶん','글월'],['物','물','ぶつ','물건'],['美','미','び','아름다울'],['無','무','む','없을'],['万','만','まん','일만'],['毎','매','まい','매양'],['木','목','もく','나무'],['母','모','ぼ','어미']]},
+{from:'ㄱ·ㄹ받침 + か·さ·た·ぱ행',to:'っ',d:'두 글자가 이어질 때 앞 글자가 ㄱ·ㄹ받침이면 작은 っ으로 줄어듭니다. 한국어로도 \'학꾜\'처럼 들리는 것과 같습니다.',ex:[['学校','학교','がっこう','학교'],['国家','국가','こっか','국가'],['日記','일기','にっき','일기'],['結婚','결혼','けっこん','결혼'],['出発','출발','しゅっぱつ','출발'],['一緒','일서','いっしょ','함께']]}
+];
+$('#rules').innerHTML=RULES.map(r=>`<div class="rule"><div class="arrow"><span class="from">${r.from}</span><span class="muted">→</span><span class="to">${r.to}</span></div><p>${r.d}</p>
+  <div class="exs">${r.ex.map(x=>`<button class="ex" data-say="${x[2]}" aria-label="${x[0]} ${x[2]} 듣기"><span class="c">${x[0]}</span><span class="y">${x[2]}</span><span class="kk">${x[1]}</span></button>`).join('')}</div></div>`).join('');
+
+const RPOOL=[];const seen=new Set();
+RULES.slice(0,8).forEach(r=>r.ex.forEach(x=>{if(!seen.has(x[0])){seen.add(x[0]);RPOOL.push({c:x[0],ko:x[1],y:x[2],m:x[3],rule:r})}}));
+let rq={r:0,w:0},curR=null,rLocked=false;
+function nextRule(){
+  let it;do{it=RPOOL[Math.floor(Math.random()*RPOOL.length)]}while(curR&&it===curR.it);
+  const opts=[it.y];shuffle(RPOOL.slice()).forEach(x=>{if(opts.length<4&&!opts.includes(x.y))opts.push(x.y)});
+  curR={it,opts:shuffle(opts)};rLocked=false;
+  $('#ruleQuiz').innerHTML=`<div class="qglyph">${it.c}</div><div class="qsub">${it.m} <b>${it.ko}</b> · 음독은?</div>
+  <div class="opts">${curR.opts.map(o=>`<button class="opt jpopt" data-o="${o}">${o}</button>`).join('')}</div><div class="feedback" id="rqFb"></div>`;
+}
+$('#ruleQuiz').addEventListener('click',e=>{
+  const b=e.target.closest('.opt');if(b&&!rLocked){rLocked=true;const it=curR.it,ok=b.dataset.o===it.y;ok?rq.r++:rq.w++;
+    $$('#ruleQuiz .opt').forEach(x=>{if(x.dataset.o===it.y)x.classList.add('ok');else if(x===b)x.classList.add('no')});
+    speak(it.y);
+    $('#rqFb').innerHTML=(ok?'<b style="color:var(--good)">정답</b>':'<b style="color:var(--bad)">오답</b>')+` · ${it.c}(${it.ko}) → ${it.y} · 규칙: ${it.rule.from} → ${it.rule.to}<div style="margin-top:8px"><button class="btn" id="rqNext">다음</button></div>`;
+    $('#rqRight').textContent=rq.r;$('#rqWrong').textContent=rq.w}
+  if(e.target.id==='rqNext')nextRule();
+});
+
+/* ---------- 자형 비교 ---------- */
+const SHAPES=[['學','学','学','학','배울'],['國','国','国','국','나라'],['氣','気','气','기','기운'],['圖','図','图','도','그림'],['讀','読','读','독','읽을'],['樂','楽','乐','락·악','즐길'],['發','発','发','발','필'],['廣','広','广','광','넓을'],['驛','駅','驿','역','역'],['藝','芸','艺','예','재주'],['體','体','体','체','몸'],['對','対','对','대','대할'],['會','会','会','회','모일'],['戰','戦','战','전','싸울'],['實','実','实','실','열매'],['惡','悪','恶','악','악할'],['賣','売','卖','매','팔'],['鐵','鉄','铁','철','쇠'],['醫','医','医','의','의원'],['單','単','单','단','홑'],['寫','写','写','사','베낄'],['邊','辺','边','변','가'],['電','電','电','전','번개'],['東','東','东','동','동녘'],['語','語','语','어','말씀']];
+$('#shapes').innerHTML='<thead><tr><th>뜻·음</th><th>한국 (정자)</th><th>일본 (신자체)</th><th>중국 (간체)</th></tr></thead><tbody>'+
+ SHAPES.map(s=>`<tr><td>${s[4]} ${s[3]}</td><td class="g jp${s[0]===s[1]?' match':''}">${s[0]}</td><td class="g jp">${s[1]}</td><td class="g zh${s[2]===s[1]?' match':''}" lang="zh-CN">${s[2]}</td></tr>`).join('')+'</tbody>';
+
+/* ---------- 쪼개서 외우기 ---------- */
+// [한자, 부품[], 한국 훈음, 음독, 훈독, 이야기, 국자?]
+const PARTS=[
+['休',['亻','木'],'쉴 휴','きゅう','やす(む)','사람(亻)이 나무(木)에 기대어 쉰다.'],
+['明',['日','月'],'밝을 명','めい','あか(るい)','해와 달이 함께 있으니 밝다.'],
+['好',['女','子'],'좋을 호','こう','す(き)','엄마(女)가 아이(子)를 안고 있으니 좋다. 好き = 좋아함.'],
+['男',['田','力'],'사내 남','だん','おとこ','밭(田)에서 힘(力)을 쓰는 사람.'],
+['森',['木','木','木'],'수풀 삼','しん','もり','나무가 셋이면 숲. 둘이면 林(はやし).'],
+['岩',['山','石'],'바위 암','がん','いわ','산(山)에 있는 큰 돌(石).'],
+['鳴',['口','鳥'],'울 명','めい','な(く)','새(鳥)가 입(口)으로 운다.'],
+['信',['亻','言'],'믿을 신','しん','—','사람(亻)의 말(言)은 믿을 수 있어야 한다.'],
+['晴',['日','青'],'갤 청','せい','は(れる)','해(日)가 나고 하늘이 파래지면(青) 맑음. 晴れ = 맑은 날씨.'],
+['間',['門','日'],'사이 간','かん','あいだ・ま','문(門) 틈 사이로 햇빛(日)이 들어온다.'],
+['聞',['門','耳'],'들을 문','ぶん','き(く)','문(門)에 귀(耳)를 대고 듣는다.'],
+['安',['宀','女'],'편안 안','あん','やす(い)','집(宀) 안에 여자(女)가 있어 편안하다. 일본어 安い는 \'싸다\'라는 뜻도 됩니다.'],
+['畑',['火','田'],'밭','—','はたけ','불(火)을 놓아 일군 밭(田). 일본에서 만든 글자.',1],
+['峠',['山','上','下'],'고개','—','とうげ','산(山)을 오르고(上) 내려가는(下) 곳.',1],
+['働',['亻','動'],'일할 동','どう','はたら(く)','사람(亻)이 움직이니(動) 일한다. 일본에서 만든 글자.',1],
+['込',['辶','入'],'담을','—','こ(む)','길(辶)로 들어간다(入). 申し込み = 신청.',1]
+];
+$('#parts').innerHTML=PARTS.map(p=>`<div class="part">${p[6]?'<span class="kokuji">국자 (일본 한자)</span>':''}
+  <div class="eq">${p[1].map((x,i)=>(i?'<span class="op">+</span>':'')+`<span>${x}</span>`).join('')}<span class="op">=</span><span class="res">${p[0]}</span>
+  <button class="say" data-say="${(p[4]!=='—'?p[4]:p[3]).replace(/[()]/g,'').split('・')[0]}" aria-label="듣기" style="margin-left:auto">${SPK}</button></div>
+  <div class="yomi">${p[2]} · 음독 <span>${p[3]}</span> · 훈독 <span>${p[4]}</span></div><p>${p[5]}</p></div>`).join('');
+
+/* ---------- 듣기 (페이지 전체) ---------- */
+document.addEventListener('click',e=>{const b=e.target.closest('[data-say]');if(b&&!b.classList.contains('ch'))speak(b.dataset.say,b.dataset.lang)});
+renderGrid();renderDetail();nextKana();updKq();nextRule();
+
+})();
+</script>
+<script>
+(function(){
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const SPK='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 6h3l4-3v10l-4-3H2z" fill="currentColor"/><path d="M11 5.5a3.5 3.5 0 0 1 0 5M12.8 3.5a6 6 0 0 1 0 9"/></svg>';
+function speak(t){try{const u=new SpeechSynthesisUtterance(t);u.lang='ja-JP';u.rate=.85;const v=speechSynthesis.getVoices().find(v=>/^ja/i.test(v.lang));if(v)u.voice=v;speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
+try{speechSynthesis.getVoices()}catch(e){}
+const store={get(k,d){try{const v=localStorage.getItem('kkori.'+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem('kkori.'+k,JSON.stringify(v))}catch(e){}}};
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+
+/* ===== 단어 데이터: 표기|읽기|뜻|급수|주제 ===== */
+const RAW=`学生|がくせい|학생|5|학교
+先生|せんせい|선생님|5|학교
+学校|がっこう|학교|5|학교
+大学|だいがく|대학|5|학교
+留学生|りゅうがくせい|유학생|5|학교
+生徒|せいと|(중·고교) 학생|5|학교
+教室|きょうしつ|교실|5|학교
+勉強|べんきょう|공부|5|학교
+宿題|しゅくだい|숙제|5|학교
+問題|もんだい|문제|5|학교
+質問|しつもん|질문|5|학교
+辞書|じしょ|사전|5|학교
+本|ほん|책|5|학교
+本棚|ほんだな|책장|5|집
+図書館|としょかん|도서관|5|장소
+日本|にほん|일본|5|사회
+日本語|にほんご|일본어|5|학교
+英語|えいご|영어|5|학교
+作文|さくぶん|작문|5|학교
+練習|れんしゅう|연습|5|학교
+教える|おしえる|가르치다|5|학교
+習う|ならう|배우다|5|학교
+外国|がいこく|외국|5|사회
+外国人|がいこくじん|외국인|5|사람
+人|ひと|사람|5|사람
+男|おとこ|남자|5|사람
+女|おんな|여자|5|사람
+男の子|おとこのこ|남자아이|5|사람
+女の子|おんなのこ|여자아이|5|사람
+子供|こども|아이|5|사람
+大人|おとな|어른|5|사람
+友達|ともだち|친구|5|사람
+父|ちち|(나의) 아버지|5|가족
+母|はは|(나의) 어머니|5|가족
+お父さん|おとうさん|아버지|5|가족
+お母さん|おかあさん|어머니|5|가족
+兄|あに|형·오빠|5|가족
+姉|あね|누나·언니|5|가족
+弟|おとうと|남동생|5|가족
+妹|いもうと|여동생|5|가족
+兄弟|きょうだい|형제|5|가족
+家族|かぞく|가족|5|가족
+家|いえ|집|5|집
+部屋|へや|방|5|집
+台所|だいどころ|부엌|5|집
+窓|まど|창문|5|집
+花瓶|かびん|꽃병|5|집
+今日|きょう|오늘|5|시간
+明日|あした|내일|5|시간
+昨日|きのう|어제|5|시간
+毎日|まいにち|매일|5|시간
+毎朝|まいあさ|매일 아침|5|시간
+朝|あさ|아침|5|시간
+昼|ひる|낮|5|시간
+晩|ばん|저녁|5|시간
+夜|よる|밤|5|시간
+今晩|こんばん|오늘 밤|5|시간
+今年|ことし|올해|5|시간
+来年|らいねん|내년|5|시간
+去年|きょねん|작년|5|시간
+今週|こんしゅう|이번 주|5|시간
+来週|らいしゅう|다음 주|5|시간
+先週|せんしゅう|지난주|5|시간
+来月|らいげつ|다음 달|5|시간
+先月|せんげつ|지난달|5|시간
+時間|じかん|시간|5|시간
+午前|ごぜん|오전|5|시간
+午後|ごご|오후|5|시간
+初めて|はじめて|처음으로|5|시간
+春|はる|봄|5|날씨·자연
+夏|なつ|여름|5|날씨·자연
+秋|あき|가을|5|날씨·자연
+冬|ふゆ|겨울|5|날씨·자연
+天気|てんき|날씨|5|날씨·자연
+雨|あめ|비|5|날씨·자연
+雪|ゆき|눈(雪)|5|날씨·자연
+風|かぜ|바람|5|날씨·자연
+空|そら|하늘|5|날씨·자연
+山|やま|산|5|날씨·자연
+川|かわ|강|5|날씨·자연
+花|はな|꽃|5|날씨·자연
+暑い|あつい|덥다|5|날씨·자연
+寒い|さむい|춥다|5|날씨·자연
+犬|いぬ|개|5|동물
+猫|ねこ|고양이|5|동물
+動物|どうぶつ|동물|5|동물
+水|みず|물|5|음식
+食べ物|たべもの|음식|5|음식
+飲み物|のみもの|음료|5|음식
+朝ご飯|あさごはん|아침밥|5|음식
+昼ご飯|ひるごはん|점심밥|5|음식
+晩ご飯|ばんごはん|저녁밥|5|음식
+肉|にく|고기|5|음식
+牛肉|ぎゅうにく|소고기|5|음식
+牛乳|ぎゅうにゅう|우유|5|음식
+魚|さかな|생선|5|음식
+野菜|やさい|채소|5|음식
+果物|くだもの|과일|5|음식
+卵|たまご|달걀|5|음식
+お茶|おちゃ|차(茶)|5|음식
+料理|りょうり|요리|5|음식
+食堂|しょくどう|식당|5|장소
+駅|えき|역|5|교통
+電車|でんしゃ|전철|5|교통
+自転車|じてんしゃ|자전거|5|교통
+自動車|じどうしゃ|자동차|5|교통
+車|くるま|차, 자동차|5|교통
+道|みち|길|5|교통
+地下鉄|ちかてつ|지하철|5|교통
+飛行機|ひこうき|비행기|5|교통
+旅行|りょこう|여행|5|취미
+電話|でんわ|전화|5|생활
+電気|でんき|전기, 불|5|생활
+番号|ばんごう|번호|5|생활
+手紙|てがみ|편지|5|생활
+切手|きって|우표|5|생활
+名前|なまえ|이름|5|생활
+新聞|しんぶん|신문|5|생활
+時計|とけい|시계|5|생활
+地図|ちず|지도|5|생활
+会社|かいしゃ|회사|5|일·회사
+仕事|しごと|일|5|일·회사
+銀行|ぎんこう|은행|5|장소
+病院|びょういん|병원|5|장소
+大使館|たいしかん|대사관|5|장소
+映画館|えいがかん|영화관|5|장소
+入口|いりぐち|입구|5|장소
+出口|でぐち|출구|5|장소
+所|ところ|곳|5|장소
+病気|びょうき|병|5|몸·건강
+風邪|かぜ|감기|5|몸·건강
+元気|げんき|건강함, 기운참|5|몸·건강
+目|め|눈(目)|5|몸·건강
+口|くち|입|5|몸·건강
+耳|みみ|귀|5|몸·건강
+手|て|손|5|몸·건강
+足|あし|발, 다리|5|몸·건강
+上|うえ|위|5|위치
+下|した|아래|5|위치
+右|みぎ|오른쪽|5|위치
+左|ひだり|왼쪽|5|위치
+前|まえ|앞|5|위치
+後ろ|うしろ|뒤|5|위치
+外|そと|밖|5|위치
+中|なか|안|5|위치
+食べる|たべる|먹다|5|동작
+飲む|のむ|마시다|5|동작
+見る|みる|보다|5|동작
+聞く|きく|듣다, 묻다|5|동작
+話す|はなす|이야기하다|5|동작
+読む|よむ|읽다|5|동작
+書く|かく|쓰다|5|동작
+行く|いく|가다|5|동작
+来る|くる|오다|5|동작
+帰る|かえる|돌아가다|5|동작
+入る|はいる|들어가다|5|동작
+出る|でる|나가다|5|동작
+出かける|でかける|외출하다|5|동작
+会う|あう|만나다|5|동작
+休む|やすむ|쉬다|5|동작
+起きる|おきる|일어나다|5|동작
+寝る|ねる|자다|5|동작
+立つ|たつ|서다|5|동작
+歩く|あるく|걷다|5|동작
+待つ|まつ|기다리다|5|동작
+作る|つくる|만들다|5|동작
+切る|きる|자르다|5|동작
+知る|しる|알다|5|동작
+開ける|あける|열다|5|동작
+閉める|しめる|닫다|5|동작
+押す|おす|누르다, 밀다|5|동작
+引く|ひく|당기다|5|동작
+貸す|かす|빌려주다|5|동작
+借りる|かりる|빌리다|5|동작
+終わる|おわる|끝나다|5|동작
+死ぬ|しぬ|죽다|5|동작
+買う|かう|사다|5|쇼핑·돈
+売る|うる|팔다|5|쇼핑·돈
+買い物|かいもの|쇼핑|5|쇼핑·돈
+お金|おかね|돈|5|쇼핑·돈
+店|みせ|가게|5|쇼핑·돈
+安い|やすい|싸다|5|쇼핑·돈
+高い|たかい|높다, 비싸다|5|상태
+大きい|おおきい|크다|5|상태
+小さい|ちいさい|작다|5|상태
+新しい|あたらしい|새롭다|5|상태
+古い|ふるい|낡다, 오래되다|5|상태
+長い|ながい|길다|5|상태
+短い|みじかい|짧다|5|상태
+多い|おおい|많다|5|상태
+少ない|すくない|적다|5|상태
+近い|ちかい|가깝다|5|상태
+遠い|とおい|멀다|5|상태
+広い|ひろい|넓다|5|상태
+明るい|あかるい|밝다|5|상태
+暗い|くらい|어둡다|5|상태
+強い|つよい|강하다|5|상태
+弱い|よわい|약하다|5|상태
+重い|おもい|무겁다|5|상태
+軽い|かるい|가볍다|5|상태
+早い|はやい|이르다|5|상태
+便利|べんり|편리함|5|상태
+上手|じょうず|잘함|5|상태
+下手|へた|서투름|5|상태
+危ない|あぶない|위험하다|5|상태
+好き|すき|좋아함|5|감정
+嫌い|きらい|싫어함|5|감정
+大好き|だいすき|아주 좋아함|5|감정
+映画|えいが|영화|5|취미
+音楽|おんがく|음악|5|취미
+写真|しゃしん|사진|5|취미
+散歩|さんぽ|산책|5|취미
+始まる|はじまる|시작되다|4|동작
+始める|はじめる|시작하다|4|동작
+動く|うごく|움직이다|4|동작
+急ぐ|いそぐ|서두르다|4|동작
+生きる|いきる|살다|4|동작
+生まれる|うまれる|태어나다|4|동작
+住む|すむ|살다, 거주하다|4|생활
+送る|おくる|보내다|4|동작
+考える|かんがえる|생각하다|4|동작
+思う|おもう|생각하다|4|동작
+思い出す|おもいだす|생각해 내다|4|동작
+知らせる|しらせる|알리다|4|동작
+見える|みえる|보이다|4|동작
+聞こえる|きこえる|들리다|4|동작
+集める|あつめる|모으다|4|동작
+集まる|あつまる|모이다|4|동작
+決める|きめる|정하다|4|동작
+変わる|かわる|바뀌다|4|동작
+建てる|たてる|세우다|4|동작
+運ぶ|はこぶ|나르다|4|동작
+合う|あう|맞다|4|동작
+残る|のこる|남다|4|동작
+引っ越す|ひっこす|이사하다|4|생활
+増える|ふえる|늘다|4|상태
+減る|へる|줄다|4|상태
+答える|こたえる|대답하다|4|학교
+答え|こたえ|대답, 답|4|학교
+意味|いみ|의미|4|학교
+説明|せつめい|설명|4|학교
+試験|しけん|시험|4|학교
+研究|けんきゅう|연구|4|학교
+研究室|けんきゅうしつ|연구실|4|학교
+教育|きょういく|교육|4|학교
+小学校|しょうがっこう|초등학교|4|학교
+中学校|ちゅうがっこう|중학교|4|학교
+高校|こうこう|고등학교|4|학교
+高校生|こうこうせい|고등학생|4|학교
+大学生|だいがくせい|대학생|4|학교
+入学|にゅうがく|입학|4|학교
+卒業|そつぎょう|졸업|4|학교
+文学|ぶんがく|문학|4|학교
+文法|ぶんぽう|문법|4|학교
+会話|かいわ|회화|4|학교
+科学|かがく|과학|4|학교
+数学|すうがく|수학|4|학교
+運動|うんどう|운동|4|취미
+運転|うんてん|운전|4|교통
+運転手|うんてんしゅ|운전기사|4|일·회사
+空港|くうこう|공항|4|교통
+港|みなと|항구|4|장소
+急行|きゅうこう|급행|4|교통
+特急|とっきゅう|특급|4|교통
+出発|しゅっぱつ|출발|4|교통
+交通|こうつう|교통|4|교통
+旅館|りょかん|여관|4|장소
+会議|かいぎ|회의|4|일·회사
+会議室|かいぎしつ|회의실|4|일·회사
+社長|しゃちょう|사장|4|일·회사
+会社員|かいしゃいん|회사원|4|일·회사
+店員|てんいん|점원|4|일·회사
+意見|いけん|의견|4|일·회사
+予定|よてい|예정|4|일·회사
+計画|けいかく|계획|4|일·회사
+相談|そうだん|상담|4|일·회사
+給料|きゅうりょう|급료, 월급|4|일·회사
+勤める|つとめる|근무하다|4|일·회사
+医者|いしゃ|의사|4|몸·건강
+歯医者|はいしゃ|치과 의사|4|몸·건강
+入院|にゅういん|입원|4|몸·건강
+退院|たいいん|퇴원|4|몸·건강
+熱|ねつ|열|4|몸·건강
+薬|くすり|약|4|몸·건강
+力|ちから|힘|4|몸·건강
+治る|なおる|낫다|4|몸·건강
+具合|ぐあい|상태, 컨디션|4|몸·건강
+社会|しゃかい|사회|4|사회
+文化|ぶんか|문화|4|사회
+工業|こうぎょう|공업|4|사회
+産業|さんぎょう|산업|4|사회
+世界|せかい|세계|4|사회
+自由|じゆう|자유|4|사회
+経済|けいざい|경제|4|사회
+政治|せいじ|정치|4|사회
+法律|ほうりつ|법률|4|사회
+戦争|せんそう|전쟁|4|사회
+人気|にんき|인기|4|사회
+国|くに|나라|4|사회
+自分|じぶん|자기 자신|4|사람
+生活|せいかつ|생활|4|생활
+世話|せわ|돌봄|4|생활
+注意|ちゅうい|주의|4|생활
+用事|ようじ|볼일|4|생활
+火事|かじ|화재|4|생활
+予約|よやく|예약|4|생활
+約束|やくそく|약속|4|생활
+理由|りゆう|이유|4|생활
+住所|じゅうしょ|주소|4|생활
+都合|つごう|사정, 형편|4|생활
+場合|ばあい|경우|4|생활
+道具|どうぐ|도구|4|생활
+招待|しょうたい|초대|4|생활
+食事|しょくじ|식사|4|음식
+味|あじ|맛|4|음식
+食料品|しょくりょうひん|식료품|4|쇼핑·돈
+品物|しなもの|물건|4|쇼핑·돈
+売り場|うりば|매장|4|쇼핑·돈
+値段|ねだん|가격|4|쇼핑·돈
+場所|ばしょ|장소|4|장소
+会場|かいじょう|행사장|4|장소
+工場|こうじょう|공장|4|장소
+近所|きんじょ|근처, 이웃|4|장소
+神社|じんじゃ|신사|4|장소
+寺|てら|절|4|장소
+建物|たてもの|건물|4|장소
+屋上|おくじょう|옥상|4|집
+美術館|びじゅつかん|미술관|4|장소
+地震|じしん|지진|4|날씨·자연
+台風|たいふう|태풍|4|날씨·자연
+天気予報|てんきよほう|일기예보|4|날씨·자연
+空気|くうき|공기|4|날씨·자연
+季節|きせつ|계절|4|날씨·자연
+安心|あんしん|안심|4|감정
+心配|しんぱい|걱정|4|감정
+心|こころ|마음|4|감정
+親切|しんせつ|친절함|4|감정
+大切|たいせつ|소중함|4|감정
+大事|だいじ|중요함|4|감정
+気分|きぶん|기분|4|감정
+気持ち|きもち|기분, 마음|4|감정
+興味|きょうみ|흥미|4|감정
+失礼|しつれい|실례|4|감정
+安全|あんぜん|안전함|4|상태
+危険|きけん|위험함|4|상태
+不便|ふべん|불편함|4|상태
+趣味|しゅみ|취미|4|취미
+試合|しあい|시합|4|취미
+勝つ|かつ|이기다|4|취미
+負ける|まける|지다|4|취미
+番組|ばんぐみ|방송 프로그램|4|취미
+放送|ほうそう|방송|4|취미
+見物|けんぶつ|구경|4|취미
+美術|びじゅつ|미술|4|취미
+将来|しょうらい|장래|4|시간
+活動|かつどう|활동|3|사회
+生産|せいさん|생산|3|사회
+国際|こくさい|국제|3|사회
+国民|こくみん|국민|3|사회
+市民|しみん|시민|3|사회
+住民|じゅうみん|주민|3|사회
+人口|じんこう|인구|3|사회
+成長|せいちょう|성장|3|사회
+情報|じょうほう|정보|3|사회
+増加|ぞうか|증가|3|사회
+減少|げんしょう|감소|3|사회
+環境|かんきょう|환경|3|사회
+変化|へんか|변화|3|사회
+作家|さっか|작가|3|일·회사
+商売|しょうばい|장사|3|일·회사
+発表|はっぴょう|발표|3|일·회사
+実力|じつりょく|실력|3|일·회사
+協力|きょうりょく|협력|3|일·회사
+成功|せいこう|성공|3|일·회사
+失敗|しっぱい|실패|3|일·회사
+経験|けいけん|경험|3|일·회사
+報告|ほうこく|보고|3|일·회사
+資料|しりょう|자료|3|일·회사
+通勤|つうきん|통근|3|일·회사
+残業|ざんぎょう|잔업, 야근|3|일·회사
+技術|ぎじゅつ|기술|3|일·회사
+作品|さくひん|작품|3|취미
+商品|しょうひん|상품|3|쇼핑·돈
+発売|はつばい|발매|3|쇼핑·돈
+広告|こうこく|광고|3|쇼핑·돈
+交換|こうかん|교환|3|쇼핑·돈
+料金|りょうきん|요금|3|쇼핑·돈
+貯金|ちょきん|저금|3|쇼핑·돈
+税金|ぜいきん|세금|3|쇼핑·돈
+現金|げんきん|현금|3|쇼핑·돈
+割引|わりびき|할인|3|쇼핑·돈
+節約|せつやく|절약|3|쇼핑·돈
+発見|はっけん|발견|3|학교
+表現|ひょうげん|표현|3|학교
+実験|じっけん|실험|3|학교
+結果|けっか|결과|3|학교
+理解|りかい|이해|3|학교
+化学|かがく|화학|3|학교
+表|おもて|겉, 앞면|3|위치
+現在|げんざい|현재|3|시간
+未来|みらい|미래|3|시간
+過去|かこ|과거|3|시간
+最近|さいきん|최근|3|시간
+最後|さいご|마지막|3|시간
+最初|さいしょ|처음|3|시간
+期間|きかん|기간|3|시간
+実際|じっさい|실제|3|생활
+原因|げんいん|원인|3|생활
+目的|もくてき|목적|3|생활
+目標|もくひょう|목표|3|생활
+解決|かいけつ|해결|3|생활
+習慣|しゅうかん|습관|3|생활
+慣れる|なれる|익숙해지다|3|생활
+方法|ほうほう|방법|3|생활
+努力|どりょく|노력|3|감정
+関係|かんけい|관계|3|사람
+関心|かんしん|관심|3|감정
+感動|かんどう|감동|3|감정
+感じる|かんじる|느끼다|3|감정
+感謝|かんしゃ|감사|3|감정
+感情|かんじょう|감정|3|감정
+感想|かんそう|감상, 소감|3|감정
+想像|そうぞう|상상|3|감정
+期待|きたい|기대|3|감정
+決心|けっしん|결심|3|감정
+自信|じしん|자신감|3|감정
+信じる|しんじる|믿다|3|감정
+不安|ふあん|불안|3|감정
+運|うん|운|3|감정
+長所|ちょうしょ|장점|3|상태
+短所|たんしょ|단점|3|상태
+少年|しょうねん|소년|3|사람
+青年|せいねん|청년|3|사람
+相手|あいて|상대|3|사람
+健康|けんこう|건강|3|몸·건강
+手術|しゅじゅつ|수술|3|몸·건강
+自然|しぜん|자연|3|날씨·자연
+地球|ちきゅう|지구|3|날씨·자연
+気温|きおん|기온|3|날씨·자연
+温度|おんど|온도|3|날씨·자연
+温泉|おんせん|온천|3|장소
+地方|ちほう|지방|3|장소
+都会|とかい|도시|3|장소
+歩道|ほどう|보도, 인도|3|교통
+進む|すすむ|나아가다|3|동작
+学問|がくもん|학문|2|학교
+学者|がくしゃ|학자|2|학교
+学期|がっき|학기|2|학교
+奨学金|しょうがくきん|장학금|2|학교
+講義|こうぎ|강의|2|학교
+課題|かだい|과제|2|학교
+専門|せんもん|전문, 전공|2|학교
+論文|ろんぶん|논문|2|학교
+知識|ちしき|지식|2|학교
+知恵|ちえ|지혜|2|학교
+解答|かいとう|해답|2|학교
+回答|かいとう|회답, 응답|2|사회
+合格|ごうかく|합격|2|학교
+受験|じゅけん|수험, 시험을 봄|2|학교
+暗記|あんき|암기|2|학교
+予習|よしゅう|예습|2|학교
+復習|ふくしゅう|복습|2|학교
+集中|しゅうちゅう|집중|2|학교
+比較|ひかく|비교|2|학교
+文章|ぶんしょう|문장, 글|2|학교
+文字|もじ|문자, 글자|2|학교
+単語|たんご|단어|2|학교
+語学|ごがく|어학|2|학교
+発音|はつおん|발음|2|학교
+翻訳|ほんやく|번역|2|일·회사
+通訳|つうやく|통역|2|일·회사
+就職|しゅうしょく|취직|2|일·회사
+退職|たいしょく|퇴직|2|일·회사
+職業|しょくぎょう|직업|2|일·회사
+職場|しょくば|직장|2|일·회사
+営業|えいぎょう|영업|2|일·회사
+契約|けいやく|계약|2|일·회사
+取引|とりひき|거래|2|일·회사
+担当|たんとう|담당|2|일·회사
+責任|せきにん|책임|2|일·회사
+上司|じょうし|상사|2|일·회사
+部下|ぶか|부하|2|일·회사
+同僚|どうりょう|동료|2|일·회사
+出張|しゅっちょう|출장|2|일·회사
+経営|けいえい|경영|2|일·회사
+事業|じぎょう|사업|2|일·회사
+開発|かいはつ|개발|2|일·회사
+締め切り|しめきり|마감|2|일·회사
+決定|けってい|결정|2|일·회사
+予算|よさん|예산|2|일·회사
+調査|ちょうさ|조사|2|일·회사
+企業|きぎょう|기업|2|사회
+製品|せいひん|제품|2|쇼핑·돈
+品質|ひんしつ|품질|2|쇼핑·돈
+価格|かかく|가격|2|쇼핑·돈
+会計|かいけい|회계, 계산|2|쇼핑·돈
+支払う|しはらう|지불하다|2|쇼핑·돈
+請求|せいきゅう|청구|2|쇼핑·돈
+費用|ひよう|비용|2|쇼핑·돈
+収入|しゅうにゅう|수입(소득)|2|쇼핑·돈
+支出|ししゅつ|지출|2|쇼핑·돈
+損|そん|손해|2|쇼핑·돈
+得|とく|이득|2|쇼핑·돈
+輸入|ゆにゅう|수입(물건)|2|사회
+輸出|ゆしゅつ|수출|2|사회
+消費|しょうひ|소비|2|사회
+政府|せいふ|정부|2|사회
+政策|せいさく|정책|2|사회
+選挙|せんきょ|선거|2|사회
+賛成|さんせい|찬성|2|사회
+反対|はんたい|반대|2|사회
+議論|ぎろん|논의|2|사회
+権利|けんり|권리|2|사회
+義務|ぎむ|의무|2|사회
+平和|へいわ|평화|2|사회
+事件|じけん|사건|2|사회
+事故|じこ|사고|2|사회
+犯人|はんにん|범인|2|사회
+警察|けいさつ|경찰|2|사회
+被害|ひがい|피해|2|사회
+避難|ひなん|피난|2|사회
+影響|えいきょう|영향|2|사회
+状況|じょうきょう|상황|2|사회
+上昇|じょうしょう|상승|2|사회
+低下|ていか|저하|2|사회
+拡大|かくだい|확대|2|사회
+縮小|しゅくしょう|축소|2|사회
+進歩|しんぽ|진보|2|사회
+発展|はってん|발전|2|사회
+発生|はっせい|발생|2|사회
+発達|はったつ|발달|2|사회
+現象|げんしょう|현상|2|사회
+注目|ちゅうもく|주목|2|사회
+共通|きょうつう|공통|2|사회
+交流|こうりゅう|교류|2|사회
+伝統|でんとう|전통|2|사회
+行事|ぎょうじ|행사|2|사회
+参加|さんか|참가|2|사회
+世代|せだい|세대|2|사회
+資源|しげん|자원|2|사회
+都市|とし|도시|2|장소
+郊外|こうがい|교외|2|장소
+田舎|いなか|시골|2|장소
+首都|しゅと|수도|2|장소
+地域|ちいき|지역|2|장소
+観光|かんこう|관광|2|취미
+宿泊|しゅくはく|숙박|2|취미
+往復|おうふく|왕복|2|교통
+片道|かたみち|편도|2|교통
+乗車|じょうしゃ|승차|2|교통
+渋滞|じゅうたい|교통 체증|2|교통
+到着|とうちゃく|도착|2|교통
+信号|しんごう|신호(등)|2|교통
+横断|おうだん|횡단|2|교통
+道路|どうろ|도로|2|교통
+景色|けしき|경치|2|날씨·자연
+気候|きこう|기후|2|날씨·자연
+湿度|しつど|습도|2|날씨·자연
+晴れる|はれる|맑아지다|2|날씨·자연
+曇る|くもる|흐려지다|2|날씨·자연
+災害|さいがい|재해|2|날씨·자연
+宇宙|うちゅう|우주|2|날씨·자연
+植物|しょくぶつ|식물|2|날씨·자연
+生物|せいぶつ|생물|2|날씨·자연
+栄養|えいよう|영양|2|몸·건강
+症状|しょうじょう|증상|2|몸·건강
+診察|しんさつ|진찰|2|몸·건강
+患者|かんじゃ|환자|2|몸·건강
+怪我|けが|부상, 상처|2|몸·건강
+体力|たいりょく|체력|2|몸·건강
+体重|たいじゅう|체중|2|몸·건강
+予防|よぼう|예방|2|몸·건강
+検査|けんさ|검사|2|몸·건강
+食欲|しょくよく|식욕|2|몸·건강
+感覚|かんかく|감각|2|감정
+印象|いんしょう|인상|2|감정
+満足|まんぞく|만족|2|감정
+不満|ふまん|불만|2|감정
+後悔|こうかい|후회|2|감정
+緊張|きんちょう|긴장|2|감정
+感激|かんげき|감격|2|감정
+尊敬|そんけい|존경|2|감정
+我慢|がまん|참음|2|감정
+迷惑|めいわく|폐, 성가심|2|감정
+遠慮|えんりょ|사양, 삼감|2|감정
+表情|ひょうじょう|표정|2|감정
+記憶|きおく|기억|2|감정
+落ち着く|おちつく|진정되다|2|감정
+驚く|おどろく|놀라다|2|감정
+喜ぶ|よろこぶ|기뻐하다|2|감정
+悲しむ|かなしむ|슬퍼하다|2|감정
+怒る|おこる|화내다|2|감정
+疑う|うたがう|의심하다|2|감정
+悩む|なやむ|고민하다|2|감정
+性格|せいかく|성격|2|사람
+個人|こじん|개인|2|사람
+個性|こせい|개성|2|사람
+人生|じんせい|인생|2|사람
+人物|じんぶつ|인물|2|사람
+人間|にんげん|인간, 사람|2|사람
+親友|しんゆう|절친한 친구|2|사람
+年齢|ねんれい|연령, 나이|2|사람
+選手|せんしゅ|선수|2|취미
+夫婦|ふうふ|부부|2|가족
+祖父|そふ|(나의) 할아버지|2|가족
+祖母|そぼ|(나의) 할머니|2|가족
+親戚|しんせき|친척|2|가족
+家庭|かてい|가정|2|가족
+家事|かじ|가사, 집안일|2|집
+家具|かぐ|가구|2|집
+掃除|そうじ|청소|2|집
+洗濯|せんたく|빨래|2|집
+暖房|だんぼう|난방|2|집
+冷房|れいぼう|냉방|2|집
+冷蔵庫|れいぞうこ|냉장고|2|집
+玄関|げんかん|현관|2|집
+食器|しょっき|식기|2|집
+材料|ざいりょう|재료|2|음식
+外食|がいしょく|외식|2|음식
+自炊|じすい|직접 밥을 해 먹음|2|음식
+留守|るす|부재중|2|생활
+手続き|てつづき|수속, 절차|2|생활
+申し込む|もうしこむ|신청하다|2|생활
+届ける|とどける|전해 주다, 신고하다|2|생활
+届く|とどく|도착하다, 닿다|2|생활
+確認|かくにん|확인|2|생활
+連絡|れんらく|연락|2|생활
+返事|へんじ|대답, 답장|2|생활
+準備|じゅんび|준비|2|생활
+利用|りよう|이용|2|생활
+使用|しよう|사용|2|생활
+禁止|きんし|금지|2|생활
+許可|きょか|허가|2|생활
+規則|きそく|규칙|2|생활
+効果|こうか|효과|2|생활
+判断|はんだん|판단|2|생활
+現実|げんじつ|현실|2|생활
+理想|りそう|이상|2|생활
+実現|じつげん|실현|2|생활
+暮らす|くらす|살다, 생활하다|2|생활
+状態|じょうたい|상태|2|상태
+特徴|とくちょう|특징|2|상태
+特別|とくべつ|특별함|2|상태
+普通|ふつう|보통|2|상태
+正確|せいかく|정확함|2|상태
+複雑|ふくざつ|복잡함|2|상태
+単純|たんじゅん|단순함|2|상태
+重要|じゅうよう|중요함|2|상태
+豊か|ゆたか|풍부함|2|상태
+貧しい|まずしい|가난하다|2|상태
+深い|ふかい|깊다|2|상태
+浅い|あさい|얕다|2|상태
+厚い|あつい|두껍다|2|상태
+薄い|うすい|얇다, 연하다|2|상태
+濃い|こい|진하다|2|상태
+細かい|こまかい|잘다, 세세하다|2|상태
+鋭い|するどい|날카롭다|2|상태
+表面|ひょうめん|표면|2|위치
+裏|うら|뒤, 뒷면|2|위치
+内側|うちがわ|안쪽|2|위치
+外側|そとがわ|바깥쪽|2|위치
+周り|まわり|주위|2|위치
+中心|ちゅうしん|중심|2|위치
+方向|ほうこう|방향|2|위치
+以前|いぜん|이전|2|시간
+以後|いご|이후|2|시간
+当時|とうじ|당시|2|시간
+時代|じだい|시대|2|시간
+時期|じき|시기|2|시간
+期限|きげん|기한|2|시간
+深夜|しんや|심야|2|시간
+早朝|そうちょう|이른 아침|2|시간
+祭り|まつり|축제|2|취미
+芸術|げいじゅつ|예술|2|취미
+演奏|えんそう|연주|2|취미
+演劇|えんげき|연극|2|취미
+読書|どくしょ|독서|2|취미
+登山|とざん|등산|2|취미
+優勝|ゆうしょう|우승|2|취미
+記録|きろく|기록|2|취미
+記事|きじ|기사|2|취미
+選ぶ|えらぶ|고르다|2|동작
+比べる|くらべる|비교하다|2|동작
+守る|まもる|지키다|2|동작
+破る|やぶる|찢다, 어기다|2|동작
+助ける|たすける|돕다|2|동작
+支える|ささえる|지탱하다|2|동작
+育てる|そだてる|기르다|2|동작
+育つ|そだつ|자라다|2|동작
+伸びる|のびる|자라다, 늘다|2|동작
+含む|ふくむ|포함하다|2|동작
+加える|くわえる|더하다|2|동작
+除く|のぞく|제외하다|2|동작
+失う|うしなう|잃다|2|동작
+得る|える|얻다|2|동작
+求める|もとめる|구하다, 요구하다|2|동작
+与える|あたえる|주다|2|동작
+流れる|ながれる|흐르다|2|동작
+離れる|はなれる|떨어지다|2|동작
+迷う|まよう|헤매다, 망설이다|2|동작
+戻る|もどる|돌아오다|2|동작
+進める|すすめる|진행하다|2|동작
+勧める|すすめる|권하다|2|동작
+簡単|かんたん|간단함|4|상태
+有名|ゆうめい|유명함|5|사회
+必要|ひつよう|필요함|4|상태
+歴史|れきし|역사|4|학교
+結婚|けっこん|결혼|4|가족
+野球|やきゅう|야구|4|취미
+無料|むりょう|무료|3|쇼핑·돈
+大丈夫|だいじょうぶ|괜찮음|5|감정
+汽車|きしゃ|기차|4|교통
+工夫|くふう|궁리, 고안|2|생활
+東西|とうざい|동서|2|위치`;
+const W=RAW.trim().split('\n').map((l,i)=>{const[w,r,m,lv,t]=l.split('|');return{id:i,w,r,m,lv:+lv,t}});
+const BYW={};W.forEach(x=>BYW[x.w]=x);
+/* ===== 예문: 표기|예문|해석 ===== */
+const EXRAW=`学生|私は大学の学生です。|저는 대학 학생입니다.
+先生|田中先生は日本語の先生です。|다나카 선생님은 일본어 선생님입니다.
+学校|毎朝八時に学校へ行きます。|매일 아침 8시에 학교에 갑니다.
+大学|兄は東京の大学に通っています。|형은 도쿄의 대학에 다니고 있습니다.
+留学生|このクラスには留学生が多いです。|이 반에는 유학생이 많습니다.
+生徒|生徒たちは静かに本を読んでいます。|학생들은 조용히 책을 읽고 있습니다.
+教室|教室には誰もいません。|교실에는 아무도 없습니다.
+勉強|毎晩二時間勉強します。|매일 밤 두 시간 공부합니다.
+宿題|宿題はもう終わりましたか。|숙제는 벌써 끝났습니까?
+問題|この問題は難しいです。|이 문제는 어렵습니다.
+質問|質問がある人は手を上げてください。|질문이 있는 사람은 손을 들어 주세요.
+辞書|分からない言葉を辞書で調べました。|모르는 말을 사전으로 찾아봤습니다.
+本|図書館で本を借りました。|도서관에서 책을 빌렸습니다.
+本棚|本棚に漫画がたくさんあります。|책장에 만화가 많이 있습니다.
+図書館|日曜日は図書館で勉強します。|일요일에는 도서관에서 공부합니다.
+日本|来年、日本へ旅行に行きます。|내년에 일본으로 여행을 갑니다.
+日本語|日本語を少し話せます。|일본어를 조금 말할 수 있습니다.
+英語|英語の授業は月曜日です。|영어 수업은 월요일입니다.
+作文|夏休みについて作文を書きました。|여름방학에 대해 작문을 썼습니다.
+練習|毎日ピアノを練習しています。|매일 피아노를 연습하고 있습니다.
+教える|母が料理を教えてくれました。|어머니가 요리를 가르쳐 주었습니다.
+習う|子供のとき、水泳を習いました。|어릴 때 수영을 배웠습니다.
+外国|いつか外国に住んでみたいです。|언젠가 외국에 살아 보고 싶습니다.
+外国人|この町には外国人が多いです。|이 동네에는 외국인이 많습니다.
+人|あの人は誰ですか。|저 사람은 누구입니까?
+男|男の人が店の前に立っています。|남자가 가게 앞에 서 있습니다.
+女|女の人が電話で話しています。|여자가 전화로 이야기하고 있습니다.
+男の子|男の子が公園で遊んでいます。|남자아이가 공원에서 놀고 있습니다.
+女の子|女の子が花を持っています。|여자아이가 꽃을 들고 있습니다.
+子供|うちには子供が二人います。|우리 집에는 아이가 둘 있습니다.
+大人|大人になったら医者になりたいです。|어른이 되면 의사가 되고 싶습니다.
+友達|友達と映画を見に行きました。|친구와 영화를 보러 갔습니다.
+父|父は銀行で働いています。|아버지는 은행에서 일하고 있습니다.
+母|母は料理が上手です。|어머니는 요리를 잘합니다.
+お父さん|お父さんはお元気ですか。|아버님은 잘 지내십니까?
+お母さん|お母さん、ただいま。|엄마, 다녀왔어요.
+兄|兄は私より三歳上です。|형은 저보다 세 살 위입니다.
+姉|姉は東京に住んでいます。|누나는 도쿄에 살고 있습니다.
+弟|弟はまだ小学生です。|남동생은 아직 초등학생입니다.
+妹|妹とよくけんかをします。|여동생과 자주 싸웁니다.
+兄弟|兄弟は何人いますか。|형제는 몇 명 있습니까?
+家族|週末は家族と過ごします。|주말은 가족과 함께 보냅니다.
+家|家から駅まで歩いて十分です。|집에서 역까지 걸어서 10분입니다.
+部屋|私の部屋は二階にあります。|제 방은 2층에 있습니다.
+台所|母は台所で料理をしています。|어머니는 부엌에서 요리를 하고 있습니다.
+窓|暑いので窓を開けました。|더워서 창문을 열었습니다.
+花瓶|テーブルの上に花瓶があります。|테이블 위에 꽃병이 있습니다.
+今日|今日はとても暑いですね。|오늘은 정말 덥네요.
+明日|明日、また来ます。|내일 또 오겠습니다.
+昨日|昨日は一日中雨でした。|어제는 하루 종일 비가 왔습니다.
+毎日|毎日コーヒーを飲みます。|매일 커피를 마십니다.
+毎朝|毎朝六時に起きます。|매일 아침 6시에 일어납니다.
+朝|朝はいつも忙しいです。|아침은 늘 바쁩니다.
+昼|昼は会社の近くで食べます。|점심은 회사 근처에서 먹습니다.
+晩|晩は家で本を読みます。|저녁에는 집에서 책을 읽습니다.
+夜|夜遅くまで仕事をしました。|밤늦게까지 일을 했습니다.
+今晩|今晩、一緒に食事しませんか。|오늘 밤 같이 식사하지 않겠습니까?
+今年|今年の夏はとても暑いです。|올해 여름은 매우 덥습니다.
+来年|来年、大学を卒業します。|내년에 대학을 졸업합니다.
+去年|去年、京都へ行きました。|작년에 교토에 갔습니다.
+今週|今週は忙しいです。|이번 주는 바쁩니다.
+来週|来週の月曜日に試験があります。|다음 주 월요일에 시험이 있습니다.
+先週|先週、新しい靴を買いました。|지난주에 새 신발을 샀습니다.
+来月|来月から新しい仕事を始めます。|다음 달부터 새 일을 시작합니다.
+先月|先月、引っ越しました。|지난달에 이사했습니다.
+時間|今日は時間がありません。|오늘은 시간이 없습니다.
+午前|午前中は授業があります。|오전 중에는 수업이 있습니다.
+午後|午後三時に会いましょう。|오후 3시에 만납시다.
+初めて|初めて日本に来ました。|처음으로 일본에 왔습니다.
+春|春になると桜が咲きます。|봄이 되면 벚꽃이 핍니다.
+夏|夏は海へ行きたいです。|여름에는 바다에 가고 싶습니다.
+秋|秋は食べ物がおいしいです。|가을은 음식이 맛있습니다.
+冬|冬はスキーをします。|겨울에는 스키를 탑니다.
+天気|明日の天気はどうですか。|내일 날씨는 어떻습니까?
+雨|外は雨が降っています。|밖에 비가 내리고 있습니다.
+雪|昨日の夜、雪が降りました。|어젯밤 눈이 내렸습니다.
+風|今日は風が強いです。|오늘은 바람이 강합니다.
+空|空がとてもきれいです。|하늘이 정말 예쁩니다.
+山|週末、友達と山に登りました。|주말에 친구와 산에 올랐습니다.
+川|川で魚を釣りました。|강에서 물고기를 낚았습니다.
+花|庭に花が咲いています。|정원에 꽃이 피어 있습니다.
+暑い|今日は本当に暑いです。|오늘은 정말 덥습니다.
+寒い|北海道の冬はとても寒いです。|홋카이도의 겨울은 매우 춥습니다.
+犬|毎朝犬と散歩します。|매일 아침 개와 산책합니다.
+猫|猫がいすの上で寝ています。|고양이가 의자 위에서 자고 있습니다.
+動物|どんな動物が好きですか。|어떤 동물을 좋아합니까?
+水|水を一杯ください。|물 한 잔 주세요.
+食べ物|好きな食べ物は何ですか。|좋아하는 음식은 무엇입니까?
+飲み物|飲み物は何にしますか。|음료는 무엇으로 하시겠습니까?
+朝ご飯|今朝は朝ご飯を食べませんでした。|오늘 아침은 아침밥을 먹지 않았습니다.
+昼ご飯|昼ご飯にラーメンを食べました。|점심으로 라멘을 먹었습니다.
+晩ご飯|晩ご飯は七時ごろです。|저녁밥은 7시쯤입니다.
+肉|肉より魚が好きです。|고기보다 생선을 좋아합니다.
+牛肉|牛肉を三百グラム買いました。|소고기를 300그램 샀습니다.
+牛乳|毎朝牛乳を飲みます。|매일 아침 우유를 마십니다.
+魚|この魚はとても新しいです。|이 생선은 아주 신선합니다.
+野菜|野菜をたくさん食べましょう。|채소를 많이 먹읍시다.
+果物|果物の中でりんごが一番好きです。|과일 중에서 사과를 제일 좋아합니다.
+卵|このケーキには卵を二つ使います。|이 케이크에는 달걀을 두 개 씁니다.
+お茶|お茶をどうぞ。|차 드세요.
+料理|姉は料理が得意です。|언니는 요리를 잘합니다.
+食堂|学校の食堂は安いです。|학교 식당은 쌉니다.
+駅|駅の前で待っています。|역 앞에서 기다리고 있겠습니다.
+電車|電車で会社に行きます。|전철로 회사에 갑니다.
+自転車|自転車で学校に行きます。|자전거로 학교에 갑니다.
+自動車|父は自動車の会社で働いています。|아버지는 자동차 회사에서 일하고 있습니다.
+車|ここから車で一時間かかります。|여기서 차로 한 시간 걸립니다.
+道|この道をまっすぐ行ってください。|이 길을 똑바로 가 주세요.
+地下鉄|バスより地下鉄のほうが速いです。|버스보다 지하철이 빠릅니다.
+飛行機|飛行機で大阪へ行きました。|비행기로 오사카에 갔습니다.
+旅行|夏休みに家族で旅行します。|여름방학에 가족끼리 여행합니다.
+電話|夜、母に電話をかけました。|밤에 어머니께 전화를 걸었습니다.
+電気|部屋の電気を消してください。|방 불을 꺼 주세요.
+番号|電話番号を教えてください。|전화번호를 알려 주세요.
+手紙|祖母に手紙を書きました。|할머니께 편지를 썼습니다.
+切手|郵便局で切手を買いました。|우체국에서 우표를 샀습니다.
+名前|お名前は何ですか。|성함이 어떻게 되십니까?
+新聞|父は毎朝新聞を読みます。|아버지는 매일 아침 신문을 읽습니다.
+時計|この時計は高かったです。|이 시계는 비쌌습니다.
+地図|地図を見ながら歩きました。|지도를 보면서 걸었습니다.
+会社|会社は駅の近くにあります。|회사는 역 근처에 있습니다.
+仕事|仕事は六時に終わります。|일은 6시에 끝납니다.
+銀行|銀行でお金を下ろしました。|은행에서 돈을 찾았습니다.
+病院|風邪で病院へ行きました。|감기 때문에 병원에 갔습니다.
+大使館|ビザのことで大使館に行きました。|비자 일로 대사관에 갔습니다.
+映画館|映画館の前で会いましょう。|영화관 앞에서 만납시다.
+入口|入口はあちらです。|입구는 저쪽입니다.
+出口|東の出口で待っています。|동쪽 출구에서 기다리겠습니다.
+所|静かな所に住みたいです。|조용한 곳에 살고 싶습니다.
+病気|病気で学校を休みました。|병으로 학교를 쉬었습니다.
+風邪|風邪をひいて熱があります。|감기에 걸려서 열이 있습니다.
+元気|お元気ですか。|잘 지내십니까?
+目|朝から目が痛いです。|아침부터 눈이 아픕니다.
+口|口を大きく開けてください。|입을 크게 벌려 주세요.
+耳|祖父は耳が遠いです。|할아버지는 귀가 어두우십니다.
+手|食べる前に手を洗います。|먹기 전에 손을 씻습니다.
+足|たくさん歩いて足が痛いです。|많이 걸어서 다리가 아픕니다.
+上|机の上に本があります。|책상 위에 책이 있습니다.
+下|いすの下に猫がいます。|의자 아래에 고양이가 있습니다.
+右|次の角を右に曲がってください。|다음 모퉁이에서 오른쪽으로 돌아 주세요.
+左|銀行は駅の左にあります。|은행은 역 왼쪽에 있습니다.
+前|家の前に公園があります。|집 앞에 공원이 있습니다.
+後ろ|後ろの人に渡してください。|뒷사람에게 건네주세요.
+外|外は寒いですよ。|밖은 추워요.
+中|かばんの中に何がありますか。|가방 안에 무엇이 있습니까?
+食べる|朝はパンを食べます。|아침에는 빵을 먹습니다.
+飲む|寝る前に水を飲みます。|자기 전에 물을 마십니다.
+見る|夜はテレビを見ます。|밤에는 텔레비전을 봅니다.
+聞く|音楽を聞くのが好きです。|음악 듣는 것을 좋아합니다.
+話す|日本語で話しましょう。|일본어로 이야기합시다.
+読む|電車の中で本を読みます。|전철 안에서 책을 읽습니다.
+書く|ここに名前を書いてください。|여기에 이름을 써 주세요.
+行く|週末は海へ行きます。|주말에는 바다에 갑니다.
+来る|今日、友達が家に来ます。|오늘 친구가 집에 옵니다.
+帰る|七時に家に帰ります。|7시에 집에 돌아갑니다.
+入る|どうぞ部屋に入ってください。|어서 방에 들어오세요.
+出る|八時に家を出ます。|8시에 집을 나섭니다.
+出かける|日曜日は家族と出かけます。|일요일에는 가족과 외출합니다.
+会う|駅で友達に会いました。|역에서 친구를 만났습니다.
+休む|疲れたので少し休みます。|피곤해서 조금 쉬겠습니다.
+起きる|毎朝七時に起きます。|매일 아침 7시에 일어납니다.
+寝る|昨日は十一時に寝ました。|어제는 11시에 잤습니다.
+立つ|ドアの前に立たないでください。|문 앞에 서지 마세요.
+歩く|駅まで歩きましょう。|역까지 걸어갑시다.
+待つ|ちょっと待ってください。|잠깐 기다려 주세요.
+作る|母がケーキを作りました。|어머니가 케이크를 만들었습니다.
+切る|はさみで紙を切ります。|가위로 종이를 자릅니다.
+知る|あの人を知っていますか。|저 사람을 알고 있습니까?
+開ける|窓を開けてもいいですか。|창문을 열어도 됩니까?
+閉める|寒いのでドアを閉めてください。|추우니까 문을 닫아 주세요.
+押す|このボタンを押してください。|이 버튼을 눌러 주세요.
+引く|このドアは引いて開けます。|이 문은 당겨서 엽니다.
+貸す|ペンを貸してください。|펜을 빌려주세요.
+借りる|友達に傘を借りました。|친구에게 우산을 빌렸습니다.
+終わる|授業は三時に終わります。|수업은 3시에 끝납니다.
+死ぬ|飼っていた金魚が死にました。|기르던 금붕어가 죽었습니다.
+買う|スーパーで野菜を買いました。|슈퍼에서 채소를 샀습니다.
+売る|あの店では古い本を売っています。|저 가게에서는 헌책을 팔고 있습니다.
+買い物|母と買い物に行きます。|어머니와 장을 보러 갑니다.
+お金|お金が足りません。|돈이 부족합니다.
+店|この店のパンはおいしいです。|이 가게의 빵은 맛있습니다.
+安い|この服はとても安かったです。|이 옷은 아주 쌌습니다.
+高い|東京のホテルは高いです。|도쿄의 호텔은 비쌉니다.
+大きい|公園に大きい犬がいます。|공원에 큰 개가 있습니다.
+小さい|小さいかばんを買いました。|작은 가방을 샀습니다.
+新しい|新しい携帯電話がほしいです。|새 휴대전화를 갖고 싶습니다.
+古い|この寺はとても古いです。|이 절은 매우 오래되었습니다.
+長い|夏休みは長いです。|여름방학은 깁니다.
+短い|冬は昼が短いです。|겨울은 낮이 짧습니다.
+多い|この道は車が多いです。|이 길은 차가 많습니다.
+少ない|今日はお客さんが少ないです。|오늘은 손님이 적습니다.
+近い|駅は家から近いです。|역은 집에서 가깝습니다.
+遠い|会社は家から少し遠いです。|회사는 집에서 조금 멉니다.
+広い|この部屋は広くて明るいです。|이 방은 넓고 밝습니다.
+明るい|彼女はいつも明るいです。|그녀는 항상 밝습니다.
+暗い|外はもう暗いです。|밖은 벌써 어둡습니다.
+強い|弟は私より力が強いです。|남동생은 저보다 힘이 셉니다.
+弱い|私はお酒に弱いです。|저는 술이 약합니다.
+重い|このかばんは重いです。|이 가방은 무겁습니다.
+軽い|このパソコンはとても軽いです。|이 노트북은 아주 가볍습니다.
+早い|今日はいつもより早く起きました。|오늘은 평소보다 일찍 일어났습니다.
+便利|コンビニは二十四時間開いていて便利です。|편의점은 24시간 열려 있어서 편리합니다.
+上手|山田さんは歌が上手です。|야마다 씨는 노래를 잘합니다.
+下手|私は絵が下手です。|저는 그림을 못 그립니다.
+危ない|道で遊ぶのは危ないです。|길에서 노는 것은 위험합니다.
+好き|私は猫が好きです。|저는 고양이를 좋아합니다.
+嫌い|弟は野菜が嫌いです。|남동생은 채소를 싫어합니다.
+大好き|甘いものが大好きです。|단것을 아주 좋아합니다.
+映画|週末に映画を見ました。|주말에 영화를 봤습니다.
+音楽|どんな音楽をよく聞きますか。|어떤 음악을 자주 듣습니까?
+写真|ここで写真を撮ってもいいですか。|여기서 사진을 찍어도 됩니까?
+散歩|夕方、公園を散歩します。|저녁에 공원을 산책합니다.
+始まる|授業は九時に始まります。|수업은 9시에 시작됩니다.
+始める|来月からテニスを始めます。|다음 달부터 테니스를 시작합니다.
+動く|この時計は動いていません。|이 시계는 멈춰 있습니다.
+急ぐ|遅れるので急ぎましょう。|늦겠으니 서두릅시다.
+生きる|祖母は百歳まで生きました。|할머니는 100세까지 사셨습니다.
+生まれる|私はソウルで生まれました。|저는 서울에서 태어났습니다.
+住む|今、大阪に住んでいます。|지금 오사카에 살고 있습니다.
+送る|友達にメールを送りました。|친구에게 메일을 보냈습니다.
+考える|よく考えてから答えてください。|잘 생각하고 나서 대답해 주세요.
+思う|明日は雨が降ると思います。|내일은 비가 올 것 같습니다.
+思い出す|この歌を聞くと昔を思い出します。|이 노래를 들으면 옛날이 떠오릅니다.
+知らせる|結果はメールで知らせます。|결과는 메일로 알려 드리겠습니다.
+見える|窓から富士山が見えます。|창문으로 후지산이 보입니다.
+聞こえる|隣の部屋から音楽が聞こえます。|옆방에서 음악이 들립니다.
+集める|弟は切手を集めています。|남동생은 우표를 모으고 있습니다.
+集まる|駅の前に人が集まっています。|역 앞에 사람들이 모여 있습니다.
+決める|旅行の日を決めました。|여행 날짜를 정했습니다.
+変わる|この町はずいぶん変わりました。|이 동네는 꽤 바뀌었습니다.
+建てる|父は新しい家を建てました。|아버지는 새집을 지었습니다.
+運ぶ|この箱を二階に運んでください。|이 상자를 2층으로 옮겨 주세요.
+合う|この服はあなたによく合います。|이 옷은 당신에게 잘 어울립니다.
+残る|ケーキが一つ残っています。|케이크가 하나 남아 있습니다.
+引っ越す|来月、東京に引っ越します。|다음 달에 도쿄로 이사합니다.
+増える|最近、外国人の観光客が増えました。|최근 외국인 관광객이 늘었습니다.
+減る|運動して体重が減りました。|운동해서 체중이 줄었습니다.
+答える|先生の質問に答えました。|선생님의 질문에 대답했습니다.
+答え|答えを紙に書いてください。|답을 종이에 써 주세요.
+意味|この言葉の意味が分かりません。|이 말의 의미를 모르겠습니다.
+説明|もう一度説明してください。|한 번 더 설명해 주세요.
+試験|明日、日本語の試験があります。|내일 일본어 시험이 있습니다.
+研究|大学で日本の歴史を研究しています。|대학에서 일본 역사를 연구하고 있습니다.
+研究室|先生は研究室にいらっしゃいます。|선생님은 연구실에 계십니다.
+教育|子供の教育はとても大切です。|아이 교육은 매우 중요합니다.
+小学校|弟は小学校の三年生です。|남동생은 초등학교 3학년입니다.
+中学校|中学校で英語を習い始めました。|중학교에서 영어를 배우기 시작했습니다.
+高校|高校のとき、野球部でした。|고등학교 때 야구부였습니다.
+高校生|妹は高校生です。|여동생은 고등학생입니다.
+大学生|大学生のとき、日本に留学しました。|대학생 때 일본에 유학했습니다.
+入学|四月に大学に入学します。|4월에 대학에 입학합니다.
+卒業|来年の三月に卒業します。|내년 3월에 졸업합니다.
+文学|日本の文学に興味があります。|일본 문학에 흥미가 있습니다.
+文法|日本語の文法は韓国語に似ています。|일본어 문법은 한국어와 비슷합니다.
+会話|会話の練習をしましょう。|회화 연습을 합시다.
+科学|科学の本を読むのが好きです。|과학 책 읽는 것을 좋아합니다.
+数学|数学のテストは難しかったです。|수학 시험은 어려웠습니다.
+運動|健康のために毎日運動しています。|건강을 위해 매일 운동하고 있습니다.
+運転|父は車の運転が上手です。|아버지는 차 운전을 잘합니다.
+運転手|タクシーの運転手に道を聞きました。|택시 기사에게 길을 물었습니다.
+空港|空港までバスで行きます。|공항까지 버스로 갑니다.
+港|港にたくさんの船があります。|항구에 배가 많이 있습니다.
+急行|急行はこの駅に止まりません。|급행은 이 역에 서지 않습니다.
+特急|特急に乗れば一時間で着きます。|특급을 타면 한 시간 만에 도착합니다.
+出発|飛行機は十時に出発します。|비행기는 10시에 출발합니다.
+交通|東京は交通が便利です。|도쿄는 교통이 편리합니다.
+旅館|京都の旅館に泊まりました。|교토의 료칸에 묵었습니다.
+会議|午後二時から会議があります。|오후 2시부터 회의가 있습니다.
+会議室|会議室は三階です。|회의실은 3층입니다.
+社長|社長は今、出かけています。|사장님은 지금 외출 중입니다.
+会社員|兄は会社員です。|형은 회사원입니다.
+店員|店員さんに値段を聞きました。|점원에게 가격을 물었습니다.
+意見|あなたの意見を聞かせてください。|당신의 의견을 들려주세요.
+予定|週末は何か予定がありますか。|주말에 무슨 예정이 있습니까?
+計画|夏休みの計画を立てました。|여름방학 계획을 세웠습니다.
+相談|先生に進学のことを相談しました。|선생님께 진학 문제를 상담했습니다.
+給料|今日は給料日です。|오늘은 월급날입니다.
+勤める|姉は銀行に勤めています。|언니는 은행에 근무하고 있습니다.
+医者|将来、医者になりたいです。|장래에 의사가 되고 싶습니다.
+歯医者|歯が痛いので歯医者に行きます。|이가 아파서 치과에 갑니다.
+入院|祖父は一週間入院しました。|할아버지는 일주일 동안 입원했습니다.
+退院|明日退院できるそうです。|내일 퇴원할 수 있다고 합니다.
+熱|昨日から熱があります。|어제부터 열이 있습니다.
+薬|食後にこの薬を飲んでください。|식후에 이 약을 드세요.
+力|この仕事には力が必要です。|이 일에는 힘이 필요합니다.
+治る|風邪はもう治りました。|감기는 벌써 나았습니다.
+具合|体の具合はどうですか。|몸 상태는 어떻습니까?
+社会|社会のルールを守りましょう。|사회 규칙을 지킵시다.
+文化|日本の文化を勉強しています。|일본 문화를 공부하고 있습니다.
+工業|この町は工業が盛んです。|이 도시는 공업이 발달했습니다.
+産業|観光はこの島の大切な産業です。|관광은 이 섬의 중요한 산업입니다.
+世界|世界でいちばん高い山はどこですか。|세계에서 가장 높은 산은 어디입니까?
+自由|週末は自由に過ごしたいです。|주말은 자유롭게 보내고 싶습니다.
+経済|大学で経済を勉強しています。|대학에서 경제를 공부하고 있습니다.
+政治|政治のニュースはよく分かりません。|정치 뉴스는 잘 모르겠습니다.
+法律|それは法律で決まっています。|그것은 법률로 정해져 있습니다.
+戦争|戦争のない世界になってほしいです。|전쟁 없는 세상이 되었으면 좋겠습니다.
+人気|この歌手は若い人に人気があります。|이 가수는 젊은 사람들에게 인기가 있습니다.
+国|お国はどちらですか。|고향(나라)이 어디십니까?
+自分|自分の部屋は自分で掃除します。|자기 방은 스스로 청소합니다.
+生活|日本の生活にもう慣れました。|일본 생활에 벌써 익숙해졌습니다.
+世話|旅行の間、犬の世話をお願いします。|여행하는 동안 개를 돌봐 주세요.
+注意|車に注意してください。|차를 조심하세요.
+用事|今日は用事があって行けません。|오늘은 볼일이 있어서 못 갑니다.
+火事|近所で火事がありました。|근처에서 화재가 났습니다.
+予約|レストランを予約しました。|레스토랑을 예약했습니다.
+約束|友達と会う約束をしました。|친구와 만날 약속을 했습니다.
+理由|遅れた理由を話してください。|늦은 이유를 말해 주세요.
+住所|ここに住所を書いてください。|여기에 주소를 써 주세요.
+都合|明日のご都合はいかがですか。|내일 사정은 어떠십니까?
+場合|雨の場合は中止です。|비가 올 경우에는 중지합니다.
+道具|料理の道具をそろえました。|요리 도구를 갖췄습니다.
+招待|友達を誕生日パーティーに招待しました。|친구를 생일 파티에 초대했습니다.
+食事|一緒に食事をしましょう。|같이 식사합시다.
+味|このスープは味が薄いです。|이 수프는 맛이 싱겁습니다.
+食料品|食料品は地下一階で売っています。|식료품은 지하 1층에서 팝니다.
+品物|この店は品物がいいです。|이 가게는 물건이 좋습니다.
+売り場|靴売り場は三階です。|신발 매장은 3층입니다.
+値段|値段は少し高いですが、おいしいです。|가격은 조금 비싸지만 맛있습니다.
+場所|会議の場所を教えてください。|회의 장소를 알려 주세요.
+会場|コンサートの会場は人でいっぱいでした。|콘서트장은 사람들로 가득했습니다.
+工場|父は車の工場で働いています。|아버지는 자동차 공장에서 일하고 있습니다.
+近所|近所に大きいスーパーがあります。|근처에 큰 슈퍼가 있습니다.
+神社|お正月に神社へ行きました。|설날에 신사에 갔습니다.
+寺|京都には古い寺がたくさんあります。|교토에는 오래된 절이 많이 있습니다.
+建物|あの高い建物は病院です。|저 높은 건물은 병원입니다.
+屋上|屋上から花火を見ました。|옥상에서 불꽃놀이를 봤습니다.
+美術館|日曜日に美術館へ行きました。|일요일에 미술관에 갔습니다.
+地震|日本は地震が多い国です。|일본은 지진이 많은 나라입니다.
+台風|台風で電車が止まりました。|태풍으로 전철이 멈췄습니다.
+天気予報|天気予報によると、明日は雨です。|일기예보에 따르면 내일은 비가 옵니다.
+空気|山の空気はきれいです。|산 공기는 깨끗합니다.
+季節|どの季節がいちばん好きですか。|어느 계절을 가장 좋아합니까?
+安心|無事だと聞いて安心しました。|무사하다는 말을 듣고 안심했습니다.
+心配|母はいつも私のことを心配しています。|어머니는 늘 저를 걱정하십니다.
+心|心から感謝しています。|진심으로 감사하고 있습니다.
+親切|駅員さんがとても親切でした。|역무원이 아주 친절했습니다.
+大切|健康がいちばん大切です。|건강이 가장 소중합니다.
+大事|大事な話があります。|중요한 이야기가 있습니다.
+気分|今日は気分がいいです。|오늘은 기분이 좋습니다.
+気持ち|あなたの気持ちはよく分かります。|당신의 마음은 잘 압니다.
+興味|日本のアニメに興味があります。|일본 애니메이션에 흥미가 있습니다.
+失礼|お先に失礼します。|먼저 가 보겠습니다.
+安全|この町は夜も安全です。|이 동네는 밤에도 안전합니다.
+危険|ここで泳ぐのは危険です。|여기서 수영하는 것은 위험합니다.
+不便|駅から遠くて不便です。|역에서 멀어서 불편합니다.
+趣味|私の趣味は料理です。|제 취미는 요리입니다.
+試合|明日サッカーの試合があります。|내일 축구 시합이 있습니다.
+勝つ|昨日の試合は三対一で勝ちました。|어제 시합은 3대 1로 이겼습니다.
+負ける|残念ながら試合に負けました。|아쉽게도 시합에 졌습니다.
+番組|この番組は毎週見ています。|이 프로그램은 매주 보고 있습니다.
+放送|その試合はテレビで放送されます。|그 시합은 텔레비전으로 방송됩니다.
+見物|お祭りを見物しに行きました。|축제를 구경하러 갔습니다.
+美術|高校で美術を教えています。|고등학교에서 미술을 가르치고 있습니다.
+将来|将来は先生になりたいです。|장래에는 선생님이 되고 싶습니다.
+活動|週末はボランティア活動をしています。|주말에는 봉사 활동을 하고 있습니다.
+生産|この工場では車を生産しています。|이 공장에서는 자동차를 생산하고 있습니다.
+国際|国際電話のかけ方を教えてください。|국제 전화 거는 법을 알려 주세요.
+国民|政府は国民の意見を聞くべきです。|정부는 국민의 의견을 들어야 합니다.
+市民|ここは市民のための図書館です。|여기는 시민을 위한 도서관입니다.
+住民|住民が集まって話し合いました。|주민들이 모여서 의논했습니다.
+人口|東京は人口が多いです。|도쿄는 인구가 많습니다.
+成長|子供の成長は早いですね。|아이들은 정말 빨리 자라네요.
+情報|インターネットで情報を集めます。|인터넷으로 정보를 모읍니다.
+増加|観光客の数が増加しています。|관광객 수가 증가하고 있습니다.
+減少|この村の人口は減少しています。|이 마을의 인구는 감소하고 있습니다.
+環境|環境を守るためにごみを減らしましょう。|환경을 지키기 위해 쓰레기를 줄입시다.
+変化|この季節は気温の変化が大きいです。|이 계절은 기온 변화가 큽니다.
+作家|作家になるのが夢です。|작가가 되는 것이 꿈입니다.
+商売|祖父は長い間商売をしていました。|할아버지는 오랫동안 장사를 하셨습니다.
+発表|明日、授業で発表します。|내일 수업에서 발표합니다.
+実力|試験で実力を出せませんでした。|시험에서 실력을 발휘하지 못했습니다.
+協力|皆さんのご協力をお願いします。|여러분의 협력을 부탁드립니다.
+成功|実験は成功しました。|실험은 성공했습니다.
+失敗|失敗しても、またやればいいです。|실패해도 다시 하면 됩니다.
+経験|海外で働いた経験があります。|해외에서 일한 경험이 있습니다.
+報告|部長に結果を報告しました。|부장님께 결과를 보고했습니다.
+資料|会議の資料をコピーしてください。|회의 자료를 복사해 주세요.
+通勤|毎日電車で通勤しています。|매일 전철로 통근하고 있습니다.
+残業|今日も残業で遅くなります。|오늘도 야근 때문에 늦어집니다.
+技術|この会社は技術が高いです。|이 회사는 기술력이 뛰어납니다.
+作品|これは有名な画家の作品です。|이것은 유명한 화가의 작품입니다.
+商品|新しい商品が来週発売されます。|새 상품이 다음 주에 발매됩니다.
+発売|そのゲームは明日発売です。|그 게임은 내일 발매됩니다.
+広告|新聞に広告を出しました。|신문에 광고를 냈습니다.
+交換|サイズが合わないので交換してください。|사이즈가 맞지 않으니 교환해 주세요.
+料金|タクシーの料金はいくらですか。|택시 요금은 얼마입니까?
+貯金|旅行のために貯金しています。|여행을 위해 저금하고 있습니다.
+税金|毎年、税金を払います。|매년 세금을 냅니다.
+現金|現金で払ってもいいですか。|현금으로 내도 됩니까?
+割引|学生は二割引です。|학생은 20% 할인입니다.
+節約|電気を節約しましょう。|전기를 절약합시다.
+発見|新しい星が発見されました。|새로운 별이 발견되었습니다.
+表現|日本語の敬語の表現は難しいです。|일본어 존댓말 표현은 어렵습니다.
+実験|理科の時間に実験をしました。|과학 시간에 실험을 했습니다.
+結果|試験の結果は来週出ます。|시험 결과는 다음 주에 나옵니다.
+理解|先生の説明はよく理解できました。|선생님의 설명은 잘 이해했습니다.
+化学|化学の授業で実験をしました。|화학 수업에서 실험을 했습니다.
+表|紙の表に名前を書いてください。|종이 앞면에 이름을 써 주세요.
+現在|現在、東京に住んでいます。|현재 도쿄에 살고 있습니다.
+未来|未来のことは誰にも分かりません。|미래의 일은 아무도 모릅니다.
+過去|過去のことは忘れましょう。|지난 일은 잊읍시다.
+最近|最近、忙しくて寝る時間がありません。|요즘 바빠서 잘 시간이 없습니다.
+最後|最後まであきらめないでください。|마지막까지 포기하지 마세요.
+最初|最初はひらがなから勉強しました。|처음에는 히라가나부터 공부했습니다.
+期間|試験期間は図書館が混みます。|시험 기간에는 도서관이 붐빕니다.
+実際|実際に行ってみると、とても広かったです。|실제로 가 보니 매우 넓었습니다.
+原因|警察が事故の原因を調べています。|경찰이 사고 원인을 조사하고 있습니다.
+目的|旅行の目的は何ですか。|여행 목적은 무엇입니까?
+目標|今年の目標はN3に合格することです。|올해 목표는 N3에 합격하는 것입니다.
+解決|問題はもう解決しました。|문제는 이미 해결되었습니다.
+習慣|毎朝走るのが習慣です。|매일 아침 달리는 것이 습관입니다.
+慣れる|新しい仕事にもう慣れました。|새 일에 벌써 익숙해졌습니다.
+方法|もっといい方法を考えましょう。|더 좋은 방법을 생각해 봅시다.
+努力|努力すれば必ず上手になります。|노력하면 반드시 잘하게 됩니다.
+関係|私はこの問題とは関係がありません。|저는 이 문제와 관계가 없습니다.
+関心|政治に関心がありますか。|정치에 관심이 있습니까?
+感動|その映画を見て感動しました。|그 영화를 보고 감동했습니다.
+感じる|朝晩は寒さを感じます。|아침저녁으로는 추위가 느껴집니다.
+感謝|皆さんに感謝しています。|여러분께 감사하고 있습니다.
+感情|彼はあまり感情を顔に出しません。|그는 감정을 얼굴에 잘 드러내지 않습니다.
+感想|映画の感想を聞かせてください。|영화 본 소감을 들려주세요.
+想像|想像したより難しかったです。|상상했던 것보다 어려웠습니다.
+期待|新しい先生に期待しています。|새 선생님께 기대하고 있습니다.
+決心|毎日日記を書こうと決心しました。|매일 일기를 쓰기로 결심했습니다.
+自信|日本語の会話に自信があります。|일본어 회화에 자신이 있습니다.
+信じる|私はあなたを信じています。|저는 당신을 믿고 있습니다.
+不安|一人で行くのは少し不安です。|혼자 가는 것은 조금 불안합니다.
+運|今日は運がいいです。|오늘은 운이 좋습니다.
+長所|彼の長所はまじめなところです。|그의 장점은 성실한 점입니다.
+短所|私の短所は時間に遅れることです。|제 단점은 시간에 늦는 것입니다.
+少年|少年はサッカー選手になる夢を持っています。|소년은 축구 선수가 되는 꿈을 갖고 있습니다.
+青年|まじめな青年が店を手伝っています。|성실한 청년이 가게 일을 돕고 있습니다.
+相手|試合の相手は強いチームです。|시합 상대는 강한 팀입니다.
+健康|健康のために野菜を食べます。|건강을 위해 채소를 먹습니다.
+手術|祖父は来週手術を受けます。|할아버지는 다음 주에 수술을 받습니다.
+自然|この島は自然が豊かです。|이 섬은 자연이 풍부합니다.
+地球|地球を大切にしましょう。|지구를 소중히 합시다.
+気温|今日の気温は三十度です。|오늘 기온은 30도입니다.
+温度|部屋の温度を少し下げてください。|방 온도를 조금 낮춰 주세요.
+温泉|冬は温泉に入りたいです。|겨울에는 온천에 들어가고 싶습니다.
+地方|地方の小さな町で育ちました。|지방의 작은 마을에서 자랐습니다.
+都会|都会の生活は便利ですが忙しいです。|도시 생활은 편리하지만 바쁩니다.
+歩道|自転車で歩道を走らないでください。|자전거로 인도를 달리지 마세요.
+進む|この道をまっすぐ進んでください。|이 길을 쭉 가 주세요.
+学問|学問に王道はありません。|학문에는 왕도가 없습니다.
+学者|彼は有名な歴史の学者です。|그는 유명한 역사학자입니다.
+学期|新しい学期が始まりました。|새 학기가 시작되었습니다.
+奨学金|奨学金をもらって大学に通っています。|장학금을 받아 대학에 다니고 있습니다.
+講義|午後は経済の講義があります。|오후에는 경제 강의가 있습니다.
+課題|今週中に課題を出さなければなりません。|이번 주 안에 과제를 내야 합니다.
+専門|大学での専門は何ですか。|대학 전공은 무엇입니까?
+論文|卒業論文を書いています。|졸업 논문을 쓰고 있습니다.
+知識|彼は歴史の知識が豊富です。|그는 역사 지식이 풍부합니다.
+知恵|みんなで知恵を出し合いましょう。|모두 함께 지혜를 모읍시다.
+解答|解答用紙に名前を書いてください。|해답 용지에 이름을 써 주세요.
+回答|アンケートの回答をお願いします。|설문 응답을 부탁드립니다.
+合格|試験に合格しました。|시험에 합격했습니다.
+受験|弟は来年大学を受験します。|남동생은 내년에 대학 시험을 봅니다.
+暗記|単語を毎日十個暗記します。|단어를 매일 열 개 암기합니다.
+予習|明日の授業の予習をしました。|내일 수업 예습을 했습니다.
+復習|授業の後で必ず復習します。|수업 후에 반드시 복습합니다.
+集中|静かな所で勉強に集中します。|조용한 곳에서 공부에 집중합니다.
+比較|二つの製品を比較しました。|두 제품을 비교했습니다.
+文章|彼の文章は分かりやすいです。|그의 글은 이해하기 쉽습니다.
+文字|画面の文字が小さくて読めません。|화면 글자가 작아서 읽을 수 없습니다.
+単語|新しい単語をノートに書きました。|새 단어를 노트에 적었습니다.
+語学|語学の勉強は毎日続けることが大切です。|어학 공부는 매일 계속하는 것이 중요합니다.
+発音|日本語の発音を練習しています。|일본어 발음을 연습하고 있습니다.
+翻訳|この小説は韓国語に翻訳されました。|이 소설은 한국어로 번역되었습니다.
+通訳|会議で通訳をしました。|회의에서 통역을 했습니다.
+就職|来年の春、銀行に就職します。|내년 봄에 은행에 취직합니다.
+退職|父は今年会社を退職しました。|아버지는 올해 회사를 퇴직하셨습니다.
+職業|ご職業は何ですか。|직업이 무엇입니까?
+職場|職場の人たちはみんな親切です。|직장 사람들은 모두 친절합니다.
+営業|兄は営業の仕事をしています。|형은 영업 일을 하고 있습니다.
+契約|新しい会社と契約を結びました。|새 회사와 계약을 맺었습니다.
+取引|あの会社とは長い取引があります。|그 회사와는 오랜 거래가 있습니다.
+担当|この仕事の担当は私です。|이 일의 담당은 저입니다.
+責任|失敗の責任は私にあります。|실패의 책임은 저에게 있습니다.
+上司|上司に相談してから決めます。|상사와 상담한 후에 정하겠습니다.
+部下|部下の意見もよく聞きます。|부하의 의견도 잘 듣습니다.
+同僚|同僚と昼ご飯を食べました。|동료와 점심을 먹었습니다.
+出張|来週大阪へ出張します。|다음 주 오사카로 출장 갑니다.
+経営|父は小さなレストランを経営しています。|아버지는 작은 레스토랑을 경영하고 있습니다.
+事業|新しい事業を始めました。|새 사업을 시작했습니다.
+開発|新しい薬の開発に成功しました。|새 약 개발에 성공했습니다.
+締め切り|なんとか締め切りに間に合いました。|겨우 마감에 맞췄습니다.
+決定|会議で来年の予算が決定しました。|회의에서 내년 예산이 결정되었습니다.
+予算|予算が足りません。|예산이 부족합니다.
+調査|市民の意見を調査しました。|시민의 의견을 조사했습니다.
+企業|大きな企業に就職したいです。|큰 기업에 취직하고 싶습니다.
+製品|この会社の製品は品質がいいです。|이 회사 제품은 품질이 좋습니다.
+品質|値段より品質を重視します。|가격보다 품질을 중시합니다.
+価格|野菜の価格が上がりました。|채소 가격이 올랐습니다.
+会計|お会計をお願いします。|계산 부탁합니다.
+支払う|カードで支払いました。|카드로 지불했습니다.
+請求|電気代の請求が来ました。|전기 요금 청구서가 왔습니다.
+費用|旅行の費用はいくらかかりますか。|여행 비용은 얼마나 듭니까?
+収入|今年は収入が増えました。|올해는 수입이 늘었습니다.
+支出|今月は支出が多かったです。|이번 달은 지출이 많았습니다.
+損|安い物を買って損をしました。|싼 물건을 사서 손해를 봤습니다.
+得|まとめて買うと得です。|한꺼번에 사면 이득입니다.
+輸入|日本は多くの食料を輸入しています。|일본은 많은 식량을 수입하고 있습니다.
+輸出|この国は車を輸出しています。|이 나라는 자동차를 수출하고 있습니다.
+消費|電気の消費を減らしましょう。|전기 소비를 줄입시다.
+政府|政府は新しい政策を発表しました。|정부는 새로운 정책을 발표했습니다.
+政策|この政策に賛成ですか。|이 정책에 찬성합니까?
+選挙|来月、選挙があります。|다음 달에 선거가 있습니다.
+賛成|私はその意見に賛成です。|저는 그 의견에 찬성합니다.
+反対|親は留学に反対しました。|부모님은 유학에 반대했습니다.
+議論|会議で長い議論が続きました。|회의에서 긴 논의가 이어졌습니다.
+権利|誰にでも教育を受ける権利があります。|누구에게나 교육을 받을 권리가 있습니다.
+義務|税金を払うのは国民の義務です。|세금을 내는 것은 국민의 의무입니다.
+平和|世界の平和を願っています。|세계 평화를 바라고 있습니다.
+事件|近所で事件が起きました。|근처에서 사건이 일어났습니다.
+事故|交通事故で電車が遅れました。|교통사고로 전철이 늦었습니다.
+犯人|警察は犯人を捕まえました。|경찰은 범인을 잡았습니다.
+警察|財布を落として警察に届けました。|지갑을 잃어버려서 경찰에 신고했습니다.
+被害|台風で大きな被害が出ました。|태풍으로 큰 피해가 났습니다.
+避難|地震のとき、学校に避難しました。|지진 때 학교로 피난했습니다.
+影響|台風の影響で電車が止まりました。|태풍 영향으로 전철이 멈췄습니다.
+状況|今の状況を説明してください。|지금 상황을 설명해 주세요.
+上昇|気温が上昇しています。|기온이 상승하고 있습니다.
+低下|年を取って体力が低下しました。|나이가 들어 체력이 떨어졌습니다.
+拡大|写真を拡大して見ました。|사진을 확대해서 봤습니다.
+縮小|会社は事業を縮小しました。|회사는 사업을 축소했습니다.
+進歩|科学技術は大きく進歩しました。|과학 기술은 크게 진보했습니다.
+発展|この町は急速に発展しました。|이 도시는 급속히 발전했습니다.
+発生|高速道路で事故が発生しました。|고속도로에서 사고가 발생했습니다.
+発達|この国は交通が発達しています。|이 나라는 교통이 발달해 있습니다.
+現象|これは珍しい自然現象です。|이것은 드문 자연현상입니다.
+注目|新しい技術が注目されています。|새로운 기술이 주목받고 있습니다.
+共通|二人には共通の趣味があります。|두 사람에게는 공통 취미가 있습니다.
+交流|国際交流のイベントに参加しました。|국제 교류 행사에 참가했습니다.
+伝統|伝統を大切にする町です。|전통을 소중히 하는 마을입니다.
+行事|学校の行事に参加しました。|학교 행사에 참가했습니다.
+参加|マラソン大会に参加しました。|마라톤 대회에 참가했습니다.
+世代|若い世代の考え方は違います。|젊은 세대의 사고방식은 다릅니다.
+資源|日本は資源が少ない国です。|일본은 자원이 적은 나라입니다.
+都市|東京は世界有数の大都市です。|도쿄는 세계 유수의 대도시입니다.
+郊外|郊外の静かな町に住んでいます。|교외의 조용한 마을에 살고 있습니다.
+田舎|夏休みは田舎の祖母の家に行きます。|여름방학에는 시골 할머니 댁에 갑니다.
+首都|韓国の首都はソウルです。|한국의 수도는 서울입니다.
+地域|この地域は雪が多いです。|이 지역은 눈이 많습니다.
+観光|京都は観光客でいっぱいです。|교토는 관광객으로 가득합니다.
+宿泊|ホテルの宿泊料金を調べました。|호텔 숙박 요금을 알아봤습니다.
+往復|往復の切符を買いました。|왕복 표를 샀습니다.
+片道|片道二時間かかります。|편도 두 시간 걸립니다.
+乗車|乗車券を見せてください。|승차권을 보여 주세요.
+渋滞|道が渋滞していて遅れました。|길이 막혀서 늦었습니다.
+到着|飛行機は予定通りに到着しました。|비행기는 예정대로 도착했습니다.
+信号|信号が青になったら渡りましょう。|신호가 파란불이 되면 건넙시다.
+横断|ここで道路を横断しないでください。|여기서 도로를 횡단하지 마세요.
+道路|雪で道路が滑りやすいです。|눈 때문에 도로가 미끄럽습니다.
+景色|山の上からの景色はすばらしいです。|산 위에서 보는 경치는 훌륭합니다.
+気候|この地方は気候が温暖です。|이 지방은 기후가 온난합니다.
+湿度|夏の日本は湿度が高いです。|여름의 일본은 습도가 높습니다.
+晴れる|明日は晴れるそうです。|내일은 맑을 거라고 합니다.
+曇る|午後から空が曇ってきました。|오후부터 하늘이 흐려졌습니다.
+災害|災害に備えて水を買っておきます。|재해에 대비해 물을 사 둡니다.
+宇宙|いつか宇宙に行ってみたいです。|언젠가 우주에 가 보고 싶습니다.
+植物|部屋に植物を置いています。|방에 식물을 두고 있습니다.
+生物|海にはたくさんの生物がいます。|바다에는 많은 생물이 있습니다.
+栄養|栄養のある物を食べてください。|영양가 있는 것을 드세요.
+症状|どんな症状がありますか。|어떤 증상이 있습니까?
+診察|医者に診察してもらいました。|의사에게 진찰을 받았습니다.
+患者|待合室に患者が大勢います。|대기실에 환자가 많이 있습니다.
+怪我|サッカーで足に怪我をしました。|축구하다가 다리를 다쳤습니다.
+体力|毎日走って体力をつけています。|매일 달려서 체력을 기르고 있습니다.
+体重|最近体重が増えました。|최근 체중이 늘었습니다.
+予防|風邪の予防に手を洗いましょう。|감기 예방을 위해 손을 씻읍시다.
+検査|病院で目の検査を受けました。|병원에서 눈 검사를 받았습니다.
+食欲|風邪で食欲がありません。|감기로 식욕이 없습니다.
+感覚|寒くて指の感覚がありません。|추워서 손가락 감각이 없습니다.
+印象|日本の第一印象はどうでしたか。|일본의 첫인상은 어땠습니까?
+満足|今の生活に満足しています。|지금 생활에 만족하고 있습니다.
+不満|社員は給料に不満があります。|사원들은 월급에 불만이 있습니다.
+後悔|もっと勉強すればよかったと後悔しています。|더 공부할걸 하고 후회하고 있습니다.
+緊張|面接でとても緊張しました。|면접에서 매우 긴장했습니다.
+感激|ファンの声に感激しました。|팬들의 목소리에 감격했습니다.
+尊敬|私は父を尊敬しています。|저는 아버지를 존경합니다.
+我慢|痛いのを我慢しました。|아픈 것을 참았습니다.
+迷惑|周りの人に迷惑をかけないでください。|주위 사람들에게 폐를 끼치지 마세요.
+遠慮|遠慮しないで食べてください。|사양하지 말고 드세요.
+表情|彼女はうれしそうな表情をしました。|그녀는 기뻐하는 표정을 지었습니다.
+記憶|子供のころの記憶はあまりありません。|어릴 적 기억은 별로 없습니다.
+落ち着く|深呼吸をすると落ち着きます。|심호흡을 하면 진정됩니다.
+驚く|ニュースを聞いて驚きました。|뉴스를 듣고 놀랐습니다.
+喜ぶ|プレゼントをもらって喜びました。|선물을 받고 기뻐했습니다.
+悲しむ|みんなが別れを悲しみました。|모두가 이별을 슬퍼했습니다.
+怒る|約束に遅れて友達が怒りました。|약속에 늦어서 친구가 화를 냈습니다.
+疑う|自分の目を疑いました。|제 눈을 의심했습니다.
+悩む|進路について悩んでいます。|진로에 대해 고민하고 있습니다.
+性格|姉は明るい性格です。|언니는 밝은 성격입니다.
+個人|個人の情報を守りましょう。|개인 정보를 지킵시다.
+個性|彼の絵には個性があります。|그의 그림에는 개성이 있습니다.
+人生|人生は一度しかありません。|인생은 한 번뿐입니다.
+人物|歴史上の人物で誰が好きですか。|역사상 인물 중 누구를 좋아합니까?
+人間|人間は一人では生きられません。|인간은 혼자서는 살 수 없습니다.
+親友|彼とは高校時代からの親友です。|그와는 고등학교 때부터 절친입니다.
+年齢|年齢は関係ありません。|나이는 상관없습니다.
+選手|彼はサッカーの選手です。|그는 축구 선수입니다.
+夫婦|隣の夫婦はとても仲がいいです。|옆집 부부는 사이가 아주 좋습니다.
+祖父|祖父は九十歳です。|할아버지는 아흔 살입니다.
+祖母|祖母の料理が大好きです。|할머니 요리를 아주 좋아합니다.
+親戚|お正月に親戚が集まります。|설날에 친척들이 모입니다.
+家庭|仕事と家庭を両立しています。|일과 가정을 양립하고 있습니다.
+家事|夫と家事を分担しています。|남편과 집안일을 분담하고 있습니다.
+家具|新しい家具を買いました。|새 가구를 샀습니다.
+掃除|週末に部屋を掃除します。|주말에 방을 청소합니다.
+洗濯|天気がいいので洗濯をしました。|날씨가 좋아서 빨래를 했습니다.
+暖房|寒いので暖房をつけました。|추워서 난방을 켰습니다.
+冷房|冷房が強すぎて寒いです。|냉방이 너무 세서 춥습니다.
+冷蔵庫|牛乳は冷蔵庫に入れてください。|우유는 냉장고에 넣어 주세요.
+玄関|玄関で靴を脱いでください。|현관에서 신발을 벗어 주세요.
+食器|食事の後で食器を洗いました。|식사 후에 설거지를 했습니다.
+材料|カレーの材料を買いました。|카레 재료를 샀습니다.
+外食|週末はよく外食します。|주말에는 자주 외식합니다.
+自炊|お金を節約するために自炊しています。|돈을 절약하려고 직접 해 먹고 있습니다.
+留守|母は今、留守です。|어머니는 지금 집에 안 계십니다.
+手続き|入学の手続きをしました。|입학 수속을 했습니다.
+申し込む|ホームページで申し込んでください。|홈페이지에서 신청해 주세요.
+届ける|落とし物を交番に届けました。|분실물을 파출소에 갖다주었습니다.
+届く|注文した本が届きました。|주문한 책이 도착했습니다.
+確認|もう一度予約を確認します。|한 번 더 예약을 확인하겠습니다.
+連絡|着いたら連絡してください。|도착하면 연락해 주세요.
+返事|メールの返事がまだ来ません。|메일 답장이 아직 오지 않습니다.
+準備|旅行の準備はできましたか。|여행 준비는 다 됐습니까?
+利用|図書館を利用する人が増えました。|도서관을 이용하는 사람이 늘었습니다.
+使用|ここでは携帯電話の使用は禁止です。|여기서는 휴대전화 사용이 금지입니다.
+禁止|ここは駐車禁止です。|여기는 주차 금지입니다.
+許可|写真を撮る許可をもらいました。|사진 찍을 허가를 받았습니다.
+規則|学校の規則を守ってください。|학교 규칙을 지켜 주세요.
+効果|この薬はよく効果があります。|이 약은 효과가 좋습니다.
+判断|正しい判断をしました。|올바른 판단을 했습니다.
+現実|夢と現実は違います。|꿈과 현실은 다릅니다.
+理想|理想の家はどんな家ですか。|이상적인 집은 어떤 집입니까?
+実現|夢を実現するために努力します。|꿈을 실현하기 위해 노력합니다.
+暮らす|田舎で静かに暮らしたいです。|시골에서 조용히 살고 싶습니다.
+状態|機械の状態を調べます。|기계 상태를 조사합니다.
+特徴|この車の特徴は燃費がいいことです。|이 차의 특징은 연비가 좋다는 것입니다.
+特別|今日は特別な日です。|오늘은 특별한 날입니다.
+普通|普通の電車で行きます。|보통 열차로 갑니다.
+正確|正確な時間を教えてください。|정확한 시간을 알려 주세요.
+複雑|この問題は複雑です。|이 문제는 복잡합니다.
+単純|単純なミスをしました。|단순한 실수를 했습니다.
+重要|これは重要な書類です。|이것은 중요한 서류입니다.
+豊か|この国は自然が豊かです。|이 나라는 자연이 풍부합니다.
+貧しい|昔、この村は貧しかったです。|옛날에 이 마을은 가난했습니다.
+深い|この湖はとても深いです。|이 호수는 매우 깊습니다.
+浅い|子供は浅いプールで遊びます。|아이들은 얕은 수영장에서 놉니다.
+厚い|厚い本を一日で読みました。|두꺼운 책을 하루 만에 읽었습니다.
+薄い|このコーヒーは薄いです。|이 커피는 연합니다.
+濃い|この料理は味が濃いです。|이 요리는 맛이 진합니다.
+細かい|細かいことは気にしないでください。|사소한 일은 신경 쓰지 마세요.
+鋭い|彼は鋭い質問をしました。|그는 날카로운 질문을 했습니다.
+表面|月の表面には石が多いです。|달 표면에는 돌이 많습니다.
+裏|紙の裏にも書いてください。|종이 뒷면에도 써 주세요.
+内側|白い線の内側に下がってください。|흰 선 안쪽으로 물러나 주세요.
+外側|箱の外側に名前を書きました。|상자 바깥쪽에 이름을 썼습니다.
+周り|家の周りに木がたくさんあります。|집 주위에 나무가 많이 있습니다.
+中心|駅は町の中心にあります。|역은 도시 중심에 있습니다.
+方向|駅はどちらの方向ですか。|역은 어느 방향입니까?
+以前|以前、ここに住んでいました。|이전에 여기 살았습니다.
+以後|十時以後は静かにしてください。|10시 이후에는 조용히 해 주세요.
+当時|当時、私はまだ学生でした。|당시 저는 아직 학생이었습니다.
+時代|江戸時代の町を見学しました。|에도 시대의 마을을 견학했습니다.
+時期|今は桜の時期です。|지금은 벚꽃 시기입니다.
+期限|レポートの期限は金曜日です。|리포트 기한은 금요일입니다.
+深夜|深夜までテレビを見ていました。|심야까지 텔레비전을 보고 있었습니다.
+早朝|早朝に家を出ました。|이른 아침에 집을 나섰습니다.
+祭り|夏祭りで花火を見ました。|여름 축제에서 불꽃놀이를 봤습니다.
+芸術|芸術に国境はありません。|예술에는 국경이 없습니다.
+演奏|彼のピアノの演奏はすばらしかったです。|그의 피아노 연주는 훌륭했습니다.
+演劇|大学で演劇部に入りました。|대학에서 연극부에 들어갔습니다.
+読書|私の趣味は読書です。|제 취미는 독서입니다.
+登山|秋は登山にいい季節です。|가을은 등산하기 좋은 계절입니다.
+優勝|私たちのチームが優勝しました。|우리 팀이 우승했습니다.
+記録|新しい世界記録が出ました。|새로운 세계 기록이 나왔습니다.
+記事|新聞の記事を読みました。|신문 기사를 읽었습니다.
+選ぶ|好きな色を選んでください。|좋아하는 색을 골라 주세요.
+比べる|去年と比べて暖かいです。|작년과 비교해서 따뜻합니다.
+守る|約束を守ってください。|약속을 지켜 주세요.
+破る|約束を破ってはいけません。|약속을 어겨서는 안 됩니다.
+助ける|困っている人を助けました。|곤란한 사람을 도왔습니다.
+支える|家族が私を支えてくれました。|가족이 저를 지탱해 주었습니다.
+育てる|母は三人の子供を育てました。|어머니는 세 아이를 길렀습니다.
+育つ|私は田舎で育ちました。|저는 시골에서 자랐습니다.
+伸びる|一年で子供の背が伸びました。|1년 사이에 아이 키가 자랐습니다.
+含む|料金には税金が含まれています。|요금에는 세금이 포함되어 있습니다.
+加える|塩を少し加えてください。|소금을 조금 넣어 주세요.
+除く|日曜日を除いて毎日営業しています。|일요일을 제외하고 매일 영업합니다.
+失う|試合に負けて自信を失いました。|시합에 져서 자신감을 잃었습니다.
+得る|この仕事で多くの経験を得ました。|이 일로 많은 경험을 얻었습니다.
+求める|会社は新しい社員を求めています。|회사는 새 사원을 구하고 있습니다.
+与える|この映画は多くの人に感動を与えました。|이 영화는 많은 사람에게 감동을 주었습니다.
+流れる|町の中を川が流れています。|도시 한가운데를 강이 흐르고 있습니다.
+離れる|家族と離れて暮らしています。|가족과 떨어져 살고 있습니다.
+迷う|道に迷ってしまいました。|길을 잃고 말았습니다.
+戻る|すぐ戻りますから待っていてください。|곧 돌아올 테니 기다려 주세요.
+進める|この計画を進めましょう。|이 계획을 진행합시다.
+勧める|医者に運動を勧められました。|의사에게 운동을 권유받았습니다.
+簡単|この問題は簡単です。|이 문제는 간단합니다.
+有名|ここは有名なお寺です。|여기는 유명한 절입니다.
+必要|旅行にはパスポートが必要です。|여행에는 여권이 필요합니다.
+歴史|日本の歴史を勉強しています。|일본 역사를 공부하고 있습니다.
+結婚|姉は来月結婚します。|언니는 다음 달 결혼합니다.
+野球|週末に野球の試合を見ました。|주말에 야구 시합을 봤습니다.
+無料|子供は入場が無料です。|어린이는 입장이 무료입니다.
+大丈夫|大丈夫ですか。|괜찮으세요?
+汽車|昔はこの駅に汽車が走っていました。|옛날에는 이 역에 기차가 다녔습니다.
+工夫|料理に少し工夫をしました。|요리에 약간 궁리를 더했습니다.
+東西|この道は町を東西に通っています。|이 길은 도시를 동서로 가로지릅니다.`;
+const EX={};EXRAW.split('\n').forEach(l=>{const[w,j,k]=l.split('|');EX[w]={j,k}});
+function markEx(w,j){for(const t of [w,w.slice(0,-1),w.length>2?w.slice(0,-2):'']){if(t&&j.includes(t))return j.split(t).join('<mark>'+t+'</mark>')}return j}
+function exHTML(x){const e=EX[x.w];if(!e)return '';return `<div class="exm"><span class="lab">예문</span><div class="j"><span>${markEx(x.w,e.j)}</span><button class="say" data-say="${e.j}" aria-label="예문 듣기">${SPK}</button></div><div class="k">${e.k}</div></div>`}
+
+// 반대말(ant)과 짝꿍(pair: 자동사·타동사, 한 쌍으로 외우면 좋은 말)
+const PAIRS=`大きい-小さい|高い-安い|新しい-古い|暑い-寒い|長い-短い|多い-少ない|近い-遠い|明るい-暗い|強い-弱い|重い-軽い|好き-嫌い|上手-下手|便利-不便|安全-危険|行く-来る|入る-出る|開ける-閉める|売る-買う|貸す-借りる|教える-習う|勝つ-負ける|増える-減る|押す-引く|生まれる-死ぬ|起きる-寝る|上-下|右-左|前-後ろ|外-中|入口-出口|入院-退院|入学-卒業|成功-失敗|長所-短所|増加-減少|過去-未来|最初-最後|原因-結果|男-女|父-母|兄-弟|姉-妹|大人-子供|朝-夜|先週-来週|先月-来月|去年-来年|午前-午後|春-秋|夏-冬|始まる-終わる|問題-答え|安心-心配|簡単-複雑|輸入-輸出|賛成-反対|収入-支出|損-得|権利-義務|上昇-低下|拡大-縮小|満足-不満|深い-浅い|厚い-薄い|豊か-貧しい|複雑-単純|上司-部下|就職-退職|往復-片道|暖房-冷房|内側-外側|表-裏|以前-以後|早朝-深夜|理想-現実|祖父-祖母|予習-復習|失う-得る|守る-破る|都会-田舎|晴れる-曇る|濃い-薄い|喜ぶ-悲しむ|許可-禁止|疑う-信じる|平和-戦争`.split('|').map(p=>[...p.split('-'),'ant']);
+const PAIRS2=`始まる-始める|集まる-集める|見る-見える|聞く-聞こえる|知る-知らせる|学生-先生|父-お父さん|母-お母さん|雨-天気|風-風邪|医者-病院|薬-病気|切手-手紙|試験-勉強|質問-答える|会社-仕事|駅-電車|地震-台風|作る-料理|空港-飛行機|貯金-節約|目的-目標|現在-過去|住む-住所|感じる-感情|汽車-電車|野球-試合|無料-料金|結婚-夫婦|有名-人気|歴史-時代|必要-重要|工夫-方法|東西-方向|大丈夫-心配|育つ-育てる|届く-届ける|進む-進める|解答-回答|性格-正確|家事-火事|翻訳-通訳|診察-患者|事件-犯人|災害-避難|地震-避難|選手-優勝|試合-優勝|試験-合格|受験-合格|比べる-比較|選ぶ-選挙|助ける-協力|育てる-教育|戻る-帰る|暮らす-生活|掃除-洗濯|冷房-冷蔵庫|予算-費用|経営-社長|契約-取引|就職-職業|記録-記憶|規則-守る|準備-予定|連絡-返事|申し込む-手続き|祭り-行事|観光-旅行|景色-観光|渋滞-交通|栄養-健康|悩む-相談|怒る-我慢|驚く-感激|夫婦-家族|宇宙-地球|伝統-文化|同僚-上司|責任-担当|専門-研究|影響-効果|伸びる-成長|含む-加える|勧める-進める|周り-中心|尊敬-先生|細かい-複雑|鋭い-質問|与える-得る|離れる-近い`.split('|').map(p=>[...p.split('-'),'pair']);
+const PAIRMAP={};[...PAIRS,...PAIRS2].forEach(([a,b,t])=>{const A=BYW[a],B=BYW[b];if(!A||!B)return;(PAIRMAP[A.id]=PAIRMAP[A.id]||[]).push({id:B.id,t});(PAIRMAP[B.id]=PAIRMAP[B.id]||[]).push({id:A.id,t})});
+
+const KRE=/[一-鿿]/g;
+const BYK={};W.forEach(x=>{[...new Set(x.w.match(KRE)||[])].forEach(k=>(BYK[k]=BYK[k]||[]).push(x.id))});
+const BYT={};W.forEach(x=>(BYT[x.t]=BYT[x.t]||[]).push(x.id));
+const SMALL={'ゃ':'や','ゅ':'ゆ','ょ':'よ','ぁ':'あ','ぃ':'い','ぅ':'う','ぇ':'え','ぉ':'お','っ':'つ'};
+function lastKana(r){let s=r.replace(/ー+$/,'');const c=s[s.length-1];return SMALL[c]||c}
+const BYF={};W.forEach(x=>(BYF[x.r[0]]=BYF[x.r[0]]||[]).push(x.id));
+
+/* ===== 상태 ===== */
+let range=store.get('range',5);
+let known=new Set(store.get('known',[]));
+const inRange=x=>x.lv>=range;
+const saveKnown=()=>store.set('known',[...known]);
+const lvTag=lv=>`<span class="lv lv${lv}">N${lv}</span>`;
+
+function linksOf(id){
+  const x=W[id],out=[];
+  // 같은 한자
+  [...new Set(x.w.match(KRE)||[])].forEach(k=>{const ids=BYK[k].filter(i=>i!==id&&inRange(W[i]));if(ids.length)out.push({kind:'kanji',key:k,ids:ids.sort((a,b)=>W[b].lv-W[a].lv)})});
+  const pr=(PAIRMAP[id]||[]).filter(p=>inRange(W[p.id]));
+  const ant=pr.filter(p=>p.t==='ant').map(p=>p.id),pa=pr.filter(p=>p.t==='pair').map(p=>p.id);
+  if(ant.length)out.push({kind:'ant',ids:ant});
+  if(pa.length)out.push({kind:'pair',ids:pa});
+  const lk=lastKana(x.r);
+  if(!x.r.endsWith('ん')){const sh=(BYF[lk]||[]).filter(i=>i!==id&&inRange(W[i]));if(sh.length)out.push({kind:'shiri',key:lk,ids:sh.slice().sort((a,b)=>W[b].lv-W[a].lv).slice(0,10)})}
+  const tp=BYT[x.t].filter(i=>i!==id&&inRange(W[i]));
+  const usedIds=new Set(out.flatMap(o=>o.ids));
+  const tp2=tp.filter(i=>!usedIds.has(i));if(tp2.length)out.push({kind:'topic',key:x.t,ids:tp2.slice(0,12)});
+  return out;
+}
+const reasonLabel=(o)=>o.kind==='kanji'?o.key:o.kind==='ant'?'반대말':o.kind==='pair'?'짝꿍':o.kind==='shiri'?'끝말 '+o.key:'같은 주제';
+
+/* ===== 범위 ===== */
+function setRange(r){range=r;store.set('range',r);$$('#rangeSeg button').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.r===r));renderExplore();renderList();qRestart();sRestart();cLimit=CSTEP;renderCompare();nextCQ()}
+$('#rangeSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setRange(+b.dataset.r)});
+
+/* ===== 꼬리 탐험 ===== */
+let trail=store.get('trail',[]).filter(t=>W[t.id]);
+function chainHTML(items,opts={}){
+  if(!items.length)return `<div class="chain-empty">${opts.empty||'아직 꼬리가 없습니다.'}</div>`;
+  return items.map((t,i)=>{const x=W[t.id];return (i?`<div class="link" title="${t.reason||''}"><span>${t.reason||''}</span></div>`:'')+
+   `<button class="node${i===items.length-1&&!opts.noCur?' cur':''}${t.bad?' bad':''}" data-go="${opts.click?t.id:''}" ${opts.click?'':'tabindex="-1"'}><span class="w">${x.w}</span><span class="r">${opts.hideRead&&i===items.length-1?'？':x.r}</span></button>`}).join('');
+}
+function scrollEnd(sel){const b=$(sel);if(b)b.parentElement.scrollLeft=1e6}
+function go(id,reason){
+  if(trail.length&&trail[trail.length-1].id===id)return;
+  trail.push({id,reason:reason||''});if(trail.length>40)trail=trail.slice(-40);store.set('trail',trail);renderExplore();
+}
+function renderExplore(){
+  if(!trail.length||!inRange(W[trail[trail.length-1].id])){trail=[{id:pick(W.filter(inRange)).id,reason:''}];store.set('trail',trail)}
+  const cur=W[trail[trail.length-1].id],seen=new Set(trail.map(t=>t.id));
+  $('#trail').innerHTML=chainHTML(trail,{click:true});$('#trailCount').textContent=`· ${trail.length}개`;
+  $('#trailBox').scrollLeft=1e6;
+  $('#hero').innerHTML=`<div class="meta">${lvTag(cur.lv)}<span class="topic">${cur.t}</span></div>
+   <div class="word">${cur.w}</div>
+   <div class="read">${cur.r}<button class="say" data-say="${cur.r}" aria-label="듣기">${SPK}</button></div>
+   <div class="mean">${cur.m}</div>
+   ${cmpHTML(cur)}
+   ${exHTML(cur)}
+   <div class="acts"><button class="known-btn" id="heroKnown" aria-pressed="${known.has(cur.id)}">${known.has(cur.id)?'외웠어요 ✓':'외웠어요'}</button><button class="btn ghost" id="heroNext">다음 꼬리 자동</button></div>
+   <div class="next-hint">아래 단어를 누르면 꼬리가 이어집니다. 초록 점은 외운 단어.</div>`;
+  const L=linksOf(cur.id);
+  const title=o=>o.kind==='kanji'?`<span class="k">${o.key}</span> 이(가) 들어간 단어 <small>${o.ids.length}개</small>`:
+    o.kind==='ant'?'반대말 <small>짝으로 외우기</small>':o.kind==='pair'?'짝꿍 단어 <small>자동사·타동사, 함께 쓰는 말</small>':
+    o.kind==='shiri'?`끝말잇기 <small>「${o.key}」로 시작</small>`:`같은 주제 <small>${o.key}</small>`;
+  const hl=(x,o)=>o.kind==='kanji'?x.w.split(o.key).join(`<span class="hl">${o.key}</span>`):x.w;
+  $('#tails').innerHTML=L.length?L.map(o=>`<div class="panel tg"><h3>${title(o)}</h3><div class="tlist">${o.ids.map(i=>{const x=W[i];return `<button class="t${seen.has(i)?' seen':''}${known.has(i)?' kn':''}" data-link="${i}" data-reason="${reasonLabel(o)}"><span class="tw">${hl(x,o)} ${lvTag(x.lv)}</span><span class="tm">${x.r} · ${x.m}</span></button>`}).join('')}</div></div>`).join(''):
+   '<div class="panel muted">이 범위에서는 이어지는 단어가 없습니다. 범위를 넓히거나 랜덤 출발을 눌러 보세요.</div>';
+}
+$('#tails').addEventListener('click',e=>{const b=e.target.closest('[data-link]');if(b)openPop(+b.dataset.link,{action:'go',reason:b.dataset.reason,from:'tail'})});
+$('#trail').addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(!b||b.dataset.go==='')return;const id=+b.dataset.go;const i=trail.findIndex(t=>t.id===id);openPop(id,{action:i===trail.length-1?'view':'back',idx:i,reason:trail[i].reason})});
+$('#hero').addEventListener('click',e=>{
+  if(e.target.id==='heroKnown'){const id=trail[trail.length-1].id;known.has(id)?known.delete(id):known.add(id);saveKnown();renderExplore();renderList()}
+  if(e.target.id==='heroNext'){const cur=trail[trail.length-1].id,seen=new Set(trail.map(t=>t.id));const L=linksOf(cur);
+    const cands=[];L.forEach(o=>o.ids.forEach(i=>{if(!seen.has(i))cands.push({i,r:reasonLabel(o),w:(known.has(i)?1:4)*(o.kind==='topic'?1:3)})}));
+    if(!cands.length){openPop(pick(W.filter(inRange)).id,{action:'go',reason:'점프',suggest:true});return}
+    let tot=cands.reduce((s,c)=>s+c.w,0),r=Math.random()*tot;const c=cands.find(c=>(r-=c.w)<=0)||cands[0];openPop(c.i,{action:'go',reason:c.r,suggest:true})}
+});
+$('#exRandom').addEventListener('click',()=>{go(pick(W.filter(inRange)).id,'점프')});
+$('#exClear').addEventListener('click',()=>{trail=[trail[trail.length-1]];store.set('trail',trail);renderExplore()});
+$('#exSearch').addEventListener('input',e=>{const q=e.target.value.trim().toLowerCase(),box=$('#exResults');if(!q){box.hidden=true;return}
+  const res=W.filter(x=>inRange(x)&&(x.w.includes(q)||x.r.includes(q)||x.m.toLowerCase().includes(q))).slice(0,12);
+  box.innerHTML=res.length?res.map(x=>`<button data-pick="${x.id}"><span class="jp" style="font-size:17px">${x.w}</span><span class="jp muted">${x.r}</span><span class="muted">${x.m}</span>${lvTag(x.lv)}</button>`).join(''):'<div class="muted" style="padding:8px 10px">이 범위에 없는 단어입니다. 범위를 넓혀 보세요.</div>';box.hidden=false});
+$('#exResults').addEventListener('click',e=>{const b=e.target.closest('[data-pick]');if(!b)return;$('#exResults').hidden=true;$('#exSearch').value='';openPop(+b.dataset.pick,{action:'go',reason:'검색'})});
+document.addEventListener('click',e=>{if(!e.target.closest('.searchwrap'))$('#exResults').hidden=true});
+
+/* ===== 꼬리잡기 퀴즈 ===== */
+let qMode='mean',qChain=[],qLocked=false,qCur=null,qBest=store.get('qbest',0);
+function qRestart(){qChain=[{id:pick(W.filter(inRange)).id,reason:''}];qAsk()}
+function qNextId(){
+  const cur=qChain[qChain.length-1].id,used=new Set(qChain.map(t=>t.id));const L=linksOf(cur).filter(o=>o.kind!=='shiri');
+  const strong=[],weak=[];L.forEach(o=>o.ids.forEach(i=>{if(!used.has(i))(o.kind==='topic'?weak:strong).push({i,r:reasonLabel(o)})}));
+  return strong.length?pick(strong):weak.length?pick(weak):{i:pick(W.filter(x=>inRange(x)&&!used.has(x.id))).id,r:'점프'};
+}
+function qAsk(){
+  const t=qChain[qChain.length-1],x=W[t.id],pool=W.filter(inRange);
+  const key=qMode==='mean'?'m':'r';const opts=[x];
+  shuffle(pool.slice()).forEach(y=>{if(opts.length<4&&!opts.some(o=>o[key]===y[key]))opts.push(y)});
+  qCur={x,opts:shuffle(opts)};qLocked=false;
+  const showRead=qMode==='mean'&&$('#qShowRead').checked;
+  $('#qBox').innerHTML=`<div class="qreason">${t.reason?`앞 단어와 <b>${t.reason}</b>(으)로 이어짐`:'꼬리의 첫 단어'}</div>
+   <div class="qword">${x.w}</div><div class="qread">${showRead?x.r:''}</div>
+   <div class="muted">${qMode==='mean'?'뜻은?':'읽는 법은?'} ${lvTag(x.lv)}</div>
+   <div class="opts">${qCur.opts.map(o=>`<button class="opt${qMode==='read'?' jpo':''}" data-o="${o.id}">${qMode==='mean'?o.m:o.r}</button>`).join('')}</div><div class="fb" id="qFb"></div>`;
+  $('#qChain').innerHTML=chainHTML(qChain,{hideRead:true});$('#qChain').parentElement.scrollLeft=1e6;
+  $('#qLen').textContent=qChain.length-1;$('#qBest').textContent=qBest;
+}
+$('#qBox').addEventListener('click',e=>{
+  const b=e.target.closest('.opt');
+  if(b&&!qLocked){qLocked=true;const x=qCur.x,ok=+b.dataset.o===x.id;
+    $$('#qBox .opt').forEach(o=>{if(+o.dataset.o===x.id)o.classList.add('ok');else if(o===b)o.classList.add('no')});
+    speak(x.r);$('.qread').textContent=x.r;
+    if(ok){known.add(x.id);saveKnown();const len=qChain.length;if(len>qBest){qBest=len;store.set('qbest',qBest)}
+      $('#qLen').textContent=len;$('#qBest').textContent=qBest;
+      $('#qFb').innerHTML=`<b style="color:var(--take)">정답!</b> ${x.w} ${x.r} = ${x.m}${exHTML(x)}<div style="margin-top:8px"><button class="btn" id="qGo">꼬리 잇기</button></div>`}
+    else{qChain[qChain.length-1].bad=true;$('#qChain').innerHTML=chainHTML(qChain,{});
+      $('#qFb').innerHTML=`<b style="color:var(--bad)">꼬리가 끊어졌어요.</b> ${x.w} ${x.r} = ${x.m} · 이번 꼬리 ${qChain.length-1}개${exHTML(x)}<div style="margin-top:8px"><button class="btn" id="qAgain">새 꼬리 시작</button> <button class="btn ghost" id="qExplore">이 단어 탐험하기</button></div>`}
+  }
+  if(e.target.id==='qGo'){const n=qNextId();qChain.push({id:n.i,reason:n.r});qAsk()}
+  if(e.target.id==='qAgain')qRestart();
+  if(e.target.id==='qExplore'){go(qCur.x.id,'퀴즈');location.hash='explore'}
+});
+$('#qMode').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;$$('#qMode button').forEach(x=>x.setAttribute('aria-pressed',x===b));qMode=b.dataset.m;qAsk()});
+$('#qShowRead').addEventListener('change',()=>{if(!qLocked)qAsk()});
+$('#qRestart').addEventListener('click',qRestart);
+
+/* ===== 끝말잇기 ===== */
+let sChain=[],sLocked=false,sCur=null,sBest=store.get('sbest',0);
+function canContinue(x,used){const k=lastKana(x.r);return !x.r.endsWith('ん')&&(BYF[k]||[]).some(i=>!used.has(i)&&inRange(W[i]))}
+function sRestart(){const used=new Set();const starts=W.filter(x=>inRange(x)&&canContinue(x,used));sChain=[{id:pick(starts).id,reason:''}];sAsk()}
+function sAsk(){
+  const cur=W[sChain[sChain.length-1].id],used=new Set(sChain.map(t=>t.id)),need=lastKana(cur.r);
+  const pool=W.filter(x=>inRange(x)&&!used.has(x.id));
+  const right=pool.filter(x=>x.r[0]===need);
+  if(!right.length){$('#sBox').innerHTML=`<div class="need">${need}</div><div class="fb"><b style="color:var(--take)">이 범위에는 「${need}」로 시작하는 단어가 더 없어요.</b> 꼬리를 끝까지 이었습니다! 이은 단어 ${sChain.length-1}개<div style="margin-top:8px"><button class="btn" id="sAgain">다시 하기</button></div></div>`;sEnd();return}
+  // 정답 후보는 ん으로 끝나지 않는 것을 우선, 가끔 ん 함정도 섞음
+  const safe=right.filter(x=>!x.r.endsWith('ん')),trap=right.filter(x=>x.r.endsWith('ん'));
+  const ans=safe.length?pick(safe):pick(right);
+  const opts=[ans];
+  if(trap.length&&ans!==trap[0]&&Math.random()<.5)opts.push(pick(trap.filter(t=>t!==ans).length?trap.filter(t=>t!==ans):trap));
+  shuffle(pool.filter(x=>x.r[0]!==need)).forEach(x=>{if(opts.length<4&&!opts.includes(x))opts.push(x)});
+  sCur={need,opts:shuffle([...new Set(opts)])};sLocked=false;
+  $('#sBox').innerHTML=`<div class="muted">앞 단어 <span class="jp" style="font-size:18px;color:var(--ink)">${cur.w}</span> <span class="jp">${cur.r.slice(0,-1)}<b style="color:var(--fuji)">${cur.r.slice(-1)}</b></span></div>
+   <div class="need">${need}</div><div class="muted">「${need}」로 시작하는 단어는?</div>
+   <div class="opts">${sCur.opts.map(o=>`<button class="opt jpo" data-o="${o.id}">${o.w}<span class="sub">${o.m}</span></button>`).join('')}</div><div class="fb" id="sFb"></div>`;
+  $('#sChain').innerHTML=chainHTML(sChain,{});$('#sChain').parentElement.scrollLeft=1e6;$('#sLen').textContent=sChain.length-1;$('#sBest').textContent=sBest;
+}
+function sEnd(){const len=sChain.length-1;if(len>sBest){sBest=len;store.set('sbest',sBest)}$('#sBest').textContent=sBest;$('#sLen').textContent=len}
+$('#sBox').addEventListener('click',e=>{
+  const b=e.target.closest('.opt');
+  if(b&&!sLocked){sLocked=true;const x=W[+b.dataset.o],ok=x.r[0]===sCur.need;
+    $$('#sBox .opt').forEach(o=>{const y=W[+o.dataset.o];o.innerHTML=`${y.w}<span class="sub">${y.r} · ${y.m}</span>`;if(y.r[0]===sCur.need&&!y.r.endsWith('ん'))o.classList.add('ok');else if(o===b)o.classList.add('no')});
+    speak(x.r);
+    if(ok&&!x.r.endsWith('ん')){sChain.push({id:x.id,reason:sCur.need});sEnd();
+      $('#sFb').innerHTML=`<b style="color:var(--take)">이어졌어요!</b> ${x.w} ${x.r} → 다음은 「${lastKana(x.r)}」${exHTML(x)}<div style="margin-top:8px"><button class="btn" id="sGo">계속</button></div>`}
+    else if(ok){sChain.push({id:x.id,reason:sCur.need,bad:true});$('#sChain').innerHTML=chainHTML(sChain,{});sEnd();
+      $('#sFb').innerHTML=`<b style="color:var(--bad)">${x.r}는 ん으로 끝나요!</b> 일본 끝말잇기에서 ん으로 끝나면 집니다. 이은 단어 ${sChain.length-2}개<div style="margin-top:8px"><button class="btn" id="sAgain">다시 하기</button></div>`}
+    else{sEnd();$('#sFb').innerHTML=`<b style="color:var(--bad)">아쉬워요.</b> ${x.w}는 「${x.r}」라서 「${sCur.need}」로 시작하지 않아요.<div style="margin-top:8px"><button class="btn" id="sAgain">다시 하기</button></div>`}
+  }
+  if(e.target.id==='sGo')sAsk();
+  if(e.target.id==='sAgain')sRestart();
+});
+$('#sRestart').addEventListener('click',sRestart);
+
+/* ===== 단어장 ===== */
+let lLv='all';
+const topics=[...new Set(W.map(x=>x.t))];
+$('#lTopic').innerHTML='<option value="">모든 주제</option>'+topics.map(t=>`<option>${t}</option>`).join('');
+function renderList(){
+  $('#prog').innerHTML=[5,4,3,2].map(l=>{const all=W.filter(x=>x.lv===l),k=all.filter(x=>known.has(x.id)).length,p=Math.round(k/all.length*100);
+    return `<div class="pg"><div class="top"><span>${lvTag(l)} 외운 단어</span><span><b>${k}</b> / ${all.length}</span></div><div class="bar"><i style="width:${p}%;background:var(--n${l})"></i></div></div>`}).join('');
+  const q=$('#lSearch').value.trim().toLowerCase(),tp=$('#lTopic').value,hide=$('#lHide').checked;
+  const list=W.filter(x=>(lLv==='all'||x.lv===+lLv)&&(!tp||x.t===tp)&&(!hide||!known.has(x.id))&&(!q||x.w.includes(q)||x.r.includes(q)||x.m.toLowerCase().includes(q)));
+  $('#wl').innerHTML=list.length?list.map(x=>`<div class="wi${known.has(x.id)?' kn':''}"><button class="w" data-ex="${x.id}" title="자세히 보기">${x.w}</button>${lvTag(x.lv)}
+   <span class="r">${x.r}</span><button class="ck" data-ck="${x.id}">${known.has(x.id)?'외움':'외웠어요'}</button><span class="m">${x.m}</span></div>`).join(''):'<p class="muted">조건에 맞는 단어가 없습니다.</p>';
+}
+$('#lFilters').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;$$('#lFilters .chip').forEach(x=>x.setAttribute('aria-pressed',x===b));lLv=b.dataset.l;renderList()});
+$('#lTopic').addEventListener('change',renderList);$('#lHide').addEventListener('change',renderList);$('#lSearch').addEventListener('input',renderList);
+$('#wl').addEventListener('click',e=>{
+  const c=e.target.closest('[data-ck]');if(c){const id=+c.dataset.ck;known.has(id)?known.delete(id):known.add(id);saveKnown();renderList();return}
+  const w=e.target.closest('[data-ex]');if(w)openPop(+w.dataset.ex,{action:'go',reason:'단어장',from:'list'})
+});
+
+/* ===== 한중일 비교 ===== */
+const CMP=[["same","학생","學生","学生","xuéshēng","",""],["diff","선생","","老师","lǎoshī","","한·일: 선생님 · 중국어 先生 xiānsheng은 '~씨(남성 존칭), 남편'."],["same","학교","學校","学校","xuéxiào","",""],["same","대학","大學","大学","dàxué","",""],["same","유학생","留學生","留学生","liúxuéshēng","",""],["jp","생도","","学生","xuésheng","학생","한국어 '생도'는 사관생도처럼 특별한 경우에만 써요."],["same","교실","","教室","jiàoshì","",""],["diff","면강","","学习","xuéxí","공부","일본어: 공부 · 중국어 勉强 miǎnqiǎng: 억지로 하다 · 한국어 '면강'은 거의 안 써요."],["kj","숙제","","作业","zuòyè","",""],["same","문제","","问题","wèntí","",""],["kj","질문","","提问","tíwèn","","중국어 质问 zhìwèn은 '따져 묻다'."],["jp","사서","辭書","词典","cídiǎn","사전","한국어는 辭典(사전)을 써요."],["zj","본","","书","shū","책","本(본)은 한국어에서 '근본'의 뜻. 중국어 本은 책을 세는 말(一本书)로 남아 있어요."],["native","本 본 · 棚 붕","","本棚","běn péng","",""],["same","도서관","圖書館","图书馆","túshūguǎn","",""],["same","일본","","日本","rìběn","",""],["same","일본어","","日本语","rìběnyǔ","",""],["same","영어","","英语","yīngyǔ","",""],["same","작문","","作文","zuòwén","",""],["same","연습","","练习","liànxí","",""],["native","教 교","","教","jiào","",""],["native","習 습","","习","xí","",""],["same","외국","外國","外国","wàiguó","",""],["same","외국인","外國人","外国人","wàiguórén","",""],["native","人 인","","人","rén","",""],["native","男 남","","男","nán","",""],["native","女 여","","女","nǚ","",""],["native","男 남 · 子 자","","男子","nán zǐ","",""],["native","女 여 · 子 자","","女子","nǚ zǐ","",""],["native","子 자 · 供 공","","子供","zǐ gōng","",""],["native","大 대 · 人 인","","大人","dà rén","",""],["native","友 우 · 達 달","","友达","yǒu dá","",""],["native","父 부","","父","fù","",""],["native","母 모","","母","mǔ","",""],["native","父 부","","父","fù","",""],["native","母 모","","母","mǔ","",""],["native","兄 형","","兄","xiōng","",""],["native","姉 자","","姐","zǐ","",""],["native","弟 제","","弟","dì","",""],["native","妹 매","","妹","mèi","",""],["same","형제","","兄弟","xiōngdì","",""],["same","가족","","家族","jiāzú","","중국어 家族는 '가문'에 가깝고, 보통은 家人이라고 해요."],["native","家 가","","家","jiā","",""],["native","部 부 · 屋 옥","","部屋","bù wū","",""],["native","台 대 · 所 소","","台所","tái suǒ","",""],["native","窓 창","","窗","chuāng","",""],["same","화병","花甁","花瓶","huāpíng","",""],["native","今 금 · 日 일","","今日","jīn rì","",""],["native","明 명 · 日 일","","明日","míng rì","",""],["native","昨 작 · 日 일","","昨日","zuó rì","",""],["same","매일","每日","每日","měirì","",""],["native","毎 매 · 朝 조","","每朝","měi zhāo","",""],["native","朝 조","","朝","zhāo","",""],["native","昼 주","","昼","zhòu","",""],["native","晩 만","","晚","wǎn","",""],["native","夜 야","","夜","yè","",""],["zj","금만","","今晚","jīnwǎn","오늘 밤",""],["same","금년","","今年","jīnnián","","읽기는 ことし(특별한 읽기). 한국어 '금년'과 같아요."],["kj","내년","來年","明年","míngnián","",""],["zj","거년","","去年","qùnián","작년",""],["kj","금주","","这周","zhè zhōu","","한국어 '금주'와 같아요."],["kj","내주","來週","下周","xià zhōu","","한국어 '내주'와 같아요."],["jp","선주","","上周","shàng zhōu","지난주",""],["jp","내월","來月","下个月","xià ge yuè","다음 달",""],["jp","선월","","上个月","shàng ge yuè","지난달",""],["same","시간","","时间","shíjiān","",""],["kj","오전","","上午","shàngwǔ","",""],["kj","오후","","下午","xiàwǔ","",""],["native","初 초","","初","chū","",""],["native","春 춘","","春","chūn","",""],["native","夏 하","","夏","xià","",""],["native","秋 추","","秋","qiū","",""],["native","冬 동","","冬","dōng","",""],["zj","천기","天氣","天气","tiānqì","날씨",""],["native","雨 우","","雨","yǔ","",""],["native","雪 설","","雪","xuě","",""],["native","風 풍","","风","fēng","",""],["native","空 공","","空","kōng","",""],["native","山 산","","山","shān","",""],["native","川 천","","川","chuān","",""],["native","花 화","","花","huā","",""],["native","暑 서","","暑","shǔ","",""],["native","寒 한","","寒","hán","",""],["native","犬 견","","犬","quǎn","",""],["native","猫 묘","","猫","māo","",""],["same","동물","","动物","dòngwù","",""],["native","水 수","","水","shuǐ","",""],["native","食 식 · 物 물","","食物","shí wù","",""],["native","飲 음 · 物 물","","饮物","yǐn wù","",""],["native","朝 조 · 飯 반","","朝饭","zhāo fàn","",""],["native","昼 주 · 飯 반","","昼饭","zhòu fàn","",""],["native","晩 만 · 飯 반","","晚饭","wǎn fàn","",""],["zj","육","","肉","ròu","고기","한국어는 고기, 한자어로는 육(肉)식처럼 써요."],["zj","우육","","牛肉","niúròu","소고기","한국어 '우육'은 거의 안 써요."],["kj","우유","","牛奶","niúnǎi","",""],["native","魚 어","","鱼","yú","",""],["kj","야채","","蔬菜","shūcài","","중국어 野菜는 '산나물'."],["native","果 과 · 物 물","","果物","guǒ wù","",""],["native","卵 난","","卵","luǎn","",""],["native","茶 다","","茶","chá","",""],["diff","요리","","做菜","zuò cài","요리","한·일: 요리 · 중국어 料理 liàolǐ: 처리하다, 돌보다."],["same","식당","","食堂","shítáng","","중국어에서는 주로 구내식당을 뜻해요."],["kj","역","驛","站","zhàn","","한국어 '역(驛)'과 같아요."],["diff","전차","","电车","diànchē","전철","일본어는 '전철'. 한국어 '전차'와 중국어 电车는 노면전차·트롤리버스."],["kj","자전거","自轉車","自行车","zìxíngchē","","車는 한국어로 '차'와 '거' 두 가지로 읽어요."],["kj","자동차","","汽车","qìchē","",""],["native","車 차","","车","chē","",""],["native","道 도","","道","dào","",""],["same","지하철","地下鐵","地铁","dìtiě","",""],["kj","비행기","","飞机","fēijī","",""],["same","여행","","旅行","lǚxíng","",""],["same","전화","","电话","diànhuà","",""],["kj","전기","電氣","电","diàn","",""],["kj","번호","番號","号码","hàomǎ","",""],["diff","수지","","信","xìn","편지","일본어: 편지 · 중국어 手纸 shǒuzhǐ: 화장지."],["native","切 절 · 手 수","","切手","qiē shǒu","",""],["native","名 명 · 前 전","","名前","míng qián","",""],["kj","신문","","报纸","bàozhǐ","","중국어 新闻 xīnwén은 '뉴스'."],["native","時 시 · 計 계","","时计","shí jì","",""],["same","지도","地圖","地图","dìtú","",""],["kj","회사","會社","公司","gōngsī","",""],["native","仕 사 · 事 사","","仕事","shì shì","",""],["same","은행","","银行","yínháng","",""],["kj","병원","","医院","yīyuàn","",""],["same","대사관","","大使馆","dàshǐguǎn","",""],["kj","영화관","映畫館","电影院","diànyǐngyuàn","",""],["same","입구","","入口","rùkǒu","","읽기는 훈독(いりぐち)이지만 한·중과 같은 한자어예요."],["same","출구","","出口","chūkǒu","","읽기는 훈독(でぐち)이지만 한·중과 같은 한자어예요."],["native","所 소","","所","suǒ","",""],["jp","병기","病氣","病","bìng","병",""],["native","風 풍 · 邪 사","","风邪","fēng xié","",""],["same","원기","元氣","元气","yuánqì","","한국어 '원기'(기운)와 뿌리가 같아요. お元気ですか = 잘 지내세요?"],["native","目 목","","目","mù","",""],["native","口 구","","口","kǒu","",""],["native","耳 이","","耳","ěr","",""],["native","手 수","","手","shǒu","",""],["native","足 족","","足","zú","",""],["native","上 상","","上","shàng","",""],["native","下 하","","下","xià","",""],["native","右 우","","右","yòu","",""],["native","左 좌","","左","zuǒ","",""],["native","前 전","","前","qián","",""],["native","後 후","","后","hòu","",""],["native","外 외","","外","wài","",""],["native","中 중","","中","zhōng","",""],["native","食 식","","食","shí","",""],["native","飲 음","","饮","yǐn","",""],["native","見 견","","见","jiàn","",""],["native","聞 문","","闻","wén","",""],["native","話 화","","话","huà","",""],["native","読 독","","读","dú","",""],["native","書 서","","书","shū","",""],["native","行 행","","行","xíng","",""],["native","来 내","","来","lái","",""],["native","帰 귀","","归","guī","",""],["native","入 입","","入","rù","",""],["native","出 출","","出","chū","",""],["native","出 출","","出","chū","",""],["native","会 회","","会","huì","",""],["native","休 휴","","休","xiū","",""],["native","起 기","","起","qǐ","",""],["native","寝 침","","寝","qǐn","",""],["native","立 입","","立","lì","",""],["native","歩 보","","步","bù","",""],["native","待 대","","待","dài","",""],["native","作 작","","作","zuò","",""],["native","切 절","","切","qiē","",""],["native","知 지","","知","zhī","",""],["native","開 개","","开","kāi","",""],["native","閉 폐","","闭","bì","",""],["native","押 압","","押","yā","",""],["native","引 인","","引","yǐn","",""],["native","貸 대","","贷","dài","",""],["native","借 차","","借","jiè","",""],["native","終 종","","终","zhōng","",""],["native","死 사","","死","sǐ","",""],["native","買 매","","买","mǎi","",""],["native","売 매","","卖","mài","",""],["native","買 매 · 物 물","","买物","mǎi wù","",""],["native","金 금","","金","jīn","",""],["native","店 점","","店","diàn","",""],["native","安 안","","安","ān","",""],["native","高 고","","高","gāo","",""],["native","大 대","","大","dà","",""],["native","小 소","","小","xiǎo","",""],["native","新 신","","新","xīn","",""],["native","古 고","","古","gǔ","",""],["native","長 장","","长","cháng","",""],["native","短 단","","短","duǎn","",""],["native","多 다","","多","duō","",""],["native","少 소","","少","shǎo","",""],["native","近 근","","近","jìn","",""],["native","遠 원","","远","yuǎn","",""],["native","広 광","","广","guǎng","",""],["native","明 명","","明","míng","",""],["native","暗 암","","暗","àn","",""],["native","強 강","","强","qiáng","",""],["native","弱 약","","弱","ruò","",""],["native","重 중","","重","zhòng","",""],["native","軽 경","","轻","qīng","",""],["native","早 조","","早","zǎo","",""],["same","편리","","便利","biànlì","",""],["jp","상수","","擅长","shàncháng","잘함","한국어 '상수'(고수)와 비슷한 느낌."],["jp","하수","","不擅长","bú shàncháng","서투름","한국어 '하수'와 비슷한 느낌."],["native","危 위","","危","wēi","",""],["native","好 호","","好","hǎo","",""],["native","嫌 혐","","嫌","xián","",""],["native","大 대 · 好 호","","大好","dà hǎo","",""],["kj","영화","映畫","电影","diànyǐng","",""],["same","음악","音樂","音乐","yīnyuè","",""],["kj","사진","寫眞","照片","zhàopiàn","","중국어 写真은 '화보'."],["same","산보","散步","散步","sànbù","",""],["native","始 시","","始","shǐ","",""],["native","始 시","","始","shǐ","",""],["native","動 동","","动","dòng","",""],["native","急 급","","急","jí","",""],["native","生 생","","生","shēng","",""],["native","生 생","","生","shēng","",""],["native","住 주","","住","zhù","",""],["native","送 송","","送","sòng","",""],["native","考 고","","考","kǎo","",""],["native","思 사","","思","sī","",""],["native","思 사 · 出 출","","思出","sī chū","",""],["native","知 지","","知","zhī","",""],["native","見 견","","见","jiàn","",""],["native","聞 문","","闻","wén","",""],["native","集 집","","集","jí","",""],["native","集 집","","集","jí","",""],["native","決 결","","決","jué","",""],["native","変 변","","变","biàn","",""],["native","建 건","","建","jiàn","",""],["native","運 운","","运","yùn","",""],["native","合 합","","合","hé","",""],["native","残 잔","","残","cán","",""],["native","引 인 · 越 월","","引越","yǐn yuè","",""],["native","増 증","","增","zēng","",""],["native","減 감","","减","jiǎn","",""],["native","答 답","","答","dá","",""],["native","答 답","","答","dá","",""],["kj","의미","","意思","yìsi","","중국어 意味는 '뜻하다, 암시하다'."],["same","설명","說明","说明","shuōmíng","",""],["kj","시험","試驗","考试","kǎoshì","","중국어 试验은 '실험'."],["same","연구","硏究","研究","yánjiū","",""],["same","연구실","硏究室","研究室","yánjiūshì","",""],["same","교육","","教育","jiàoyù","",""],["jp","소학교","小學校","小学","xiǎoxué","초등학교",""],["kj","중학교","中學校","中学","zhōngxué","",""],["diff","고교","","高中","gāozhōng","고등학교","한국어 '고교'와 같아요. 중국어 高校 gāoxiào는 '대학교'."],["kj","고교생","","高中生","gāozhōngshēng","",""],["same","대학생","大學生","大学生","dàxuéshēng","",""],["same","입학","入學","入学","rùxué","",""],["kj","졸업","","毕业","bìyè","",""],["same","문학","文學","文学","wénxué","",""],["same","문법","","文法","wénfǎ","",""],["same","회화","會話","会话","huìhuà","",""],["same","과학","科學","科学","kēxué","",""],["same","수학","數學","数学","shùxué","",""],["same","운동","","运动","yùndòng","",""],["kj","운전","運轉","开车","kāichē","","중국어 运转은 '기계가 돌아가다'."],["jp","운전수","運轉手","司机","sījī","운전기사",""],["kj","공항","","机场","jīchǎng","",""],["native","港 항","","港","gǎng","",""],["kj","급행","","快车","kuàichē","",""],["kj","특급","","特快","tèkuài","",""],["same","출발","出發","出发","chūfā","",""],["same","교통","","交通","jiāotōng","",""],["same","여관","","旅馆","lǚguǎn","",""],["same","회의","會議","会议","huìyì","",""],["same","회의실","會議室","会议室","huìyìshì","",""],["kj","사장","","总经理","zǒngjīnglǐ","",""],["kj","회사원","會社員","公司职员","gōngsī zhíyuán","",""],["same","점원","","店员","diànyuán","",""],["same","의견","","意见","yìjiàn","",""],["kj","예정","豫定","安排","ānpái","","중국어 预定은 '예약하다'."],["same","계획","計畫","计划","jìhuà","",""],["jp","상담","","商量","shāngliang","상의","한국어 '상담'과 같은 한자지만 일본어는 '의논'에 가까워요."],["kj","급료","","工资","gōngzī","",""],["native","勤 근","","勤","qín","",""],["jp","의자","醫者","医生","yīshēng","의사",""],["jp","치의자","齒醫者","牙医","yáyī","치과 의사",""],["kj","입원","","住院","zhùyuàn","",""],["kj","퇴원","","出院","chūyuàn","",""],["same","열","","热","rè","",""],["native","薬 약","","药","yào","",""],["native","力 역","","力","lì","",""],["native","治 치","","治","zhì","",""],["jp","구합","","情况","qíngkuàng","상태",""],["same","사회","社會","社会","shèhuì","",""],["same","문화","","文化","wénhuà","",""],["same","공업","","工业","gōngyè","",""],["same","산업","","产业","chǎnyè","",""],["same","세계","","世界","shìjiè","",""],["same","자유","","自由","zìyóu","",""],["same","경제","經濟","经济","jīngjì","",""],["same","정치","","政治","zhèngzhì","",""],["same","법률","","法律","fǎlǜ","",""],["same","전쟁","戰爭","战争","zhànzhēng","",""],["same","인기","人氣","人气","rénqì","",""],["native","国 국","","国","guó","",""],["jp","자분","","自己","zìjǐ","자기 자신",""],["same","생활","","生活","shēnghuó","",""],["jp","세화","","照顾","zhàogù","돌봄",""],["same","주의","","注意","zhùyì","",""],["jp","용사","","事情","shìqing","볼일",""],["jp","화사","","火灾","huǒzāi","화재",""],["same","예약","豫約","预约","yùyuē","",""],["diff","약속","","约定","yuēdìng","약속","중국어 约束 yuēshù: 구속, 제약."],["same","이유","","理由","lǐyóu","",""],["kj","주소","","地址","dìzhǐ","","중국어 住所는 '거처'."],["jp","도합","","方便","fāngbiàn","사정, 형편","한국어 '도합'(합계)과는 달라요."],["diff","장합","","情况","qíngkuàng","경우","중국어 场合는 '자리, 장소'."],["kj","도구","","工具","gōngjù","","중국어 道具는 '연극 소품'."],["kj","초대","","邀请","yāoqǐng","","중국어 招待는 '접대하다'."],["kj","식사","","吃饭","chīfàn","",""],["native","味 미","","味","wèi","",""],["kj","식료품","","食品","shípǐn","",""],["native","品 품 · 物 물","","品物","pǐn wù","",""],["native","売 매 · 場 장","","卖场","mài chǎng","",""],["native","値 치 · 段 단","","值段","zhí duàn","",""],["same","장소","","场所","chǎngsuǒ","","ば(훈)+しょ(음)로 섞어 읽어요."],["same","회장","會場","会场","huìchǎng","",""],["same","공장","","工厂","gōngchǎng","",""],["jp","근소","","附近","fùjìn","근처, 이웃",""],["same","신사","","神社","shénshè","",""],["native","寺 사","","寺","sì","",""],["native","建 건 · 物 물","","建物","jiàn wù","",""],["kj","옥상","","楼顶","lóudǐng","",""],["same","미술관","","美术馆","měishùguǎn","",""],["same","지진","","地震","dìzhèn","",""],["same","태풍","臺風","台风","táifēng","",""],["zj","천기예보","天氣豫報","天气预报","tiānqì yùbào","일기예보",""],["same","공기","空氣","空气","kōngqì","",""],["same","계절","","季节","jìjié","",""],["same","안심","","安心","ānxīn","",""],["jp","심배","","担心","dānxīn","걱정",""],["native","心 심","","心","xīn","",""],["same","친절","","亲切","qīnqiè","",""],["jp","대절","","珍贵","zhēnguì","소중함",""],["diff","대사","","重要","zhòngyào","중요함","한·중 대사(大事)는 '큰일'. 일본어는 '소중함, 중요함'."],["kj","기분","氣分","心情","xīnqíng","",""],["native","気 기 · 持 지","","气持","qì chí","",""],["kj","흥미","","兴趣","xìngqù","",""],["same","실례","失禮","失礼","shīlǐ","",""],["same","안전","","安全","ānquán","",""],["same","위험","危險","危险","wēixiǎn","",""],["same","불편","","不便","bùbiàn","",""],["diff","취미","","爱好","àihào","취미","중국어 趣味 qùwèi는 '재미'."],["kj","시합","","比赛","bǐsài","",""],["native","勝 승","","胜","shèng","",""],["native","負 부","","负","fù","",""],["jp","번조","","节目","jiémù","방송 프로그램",""],["kj","방송","","广播","guǎngbō","",""],["jp","견물","","游览","yóulǎn","구경",""],["same","미술","","美术","měishù","",""],["same","장래","將來","将来","jiānglái","",""],["same","활동","","活动","huódòng","",""],["same","생산","","生产","shēngchǎn","",""],["same","국제","國際","国际","guójì","",""],["same","국민","國民","国民","guómín","",""],["same","시민","","市民","shìmín","",""],["kj","주민","","居民","jūmín","",""],["same","인구","","人口","rénkǒu","",""],["same","성장","","成长","chéngzhǎng","",""],["diff","정보","","信息","xìnxī","정보","중국어 情报는 '첩보'."],["same","증가","增加","增加","zēngjiā","",""],["same","감소","","减少","jiǎnshǎo","",""],["same","환경","","环境","huánjìng","",""],["same","변화","變化","变化","biànhuà","",""],["same","작가","","作家","zuòjiā","",""],["jp","상매","商賣","生意","shēngyi","장사",""],["same","발표","發表","发表","fābiǎo","",""],["same","실력","實力","实力","shílì","",""],["same","협력","","协力","xiélì","",""],["same","성공","","成功","chénggōng","",""],["same","실패","","失败","shībài","",""],["same","경험","經驗","经验","jīngyàn","",""],["same","보고","","报告","bàogào","",""],["same","자료","","资料","zīliào","",""],["same","통근","","通勤","tōngqín","",""],["jp","잔업","殘業","加班","jiābān","야근",""],["same","기술","","技术","jìshù","",""],["same","작품","","作品","zuòpǐn","",""],["same","상품","","商品","shāngpǐn","",""],["kj","발매","發賣","发售","fāshòu","",""],["same","광고","廣告","广告","guǎnggào","",""],["same","교환","","交换","jiāohuàn","",""],["kj","요금","","费用","fèiyòng","",""],["kj","저금","","存款","cúnkuǎn","",""],["same","세금","稅金","税金","shuìjīn","",""],["same","현금","","现金","xiànjīn","",""],["native","割 할 · 引 인","","割引","gē yǐn","",""],["same","절약","","节约","jiéyuē","",""],["same","발견","發見","发见","fājiàn","",""],["same","표현","","表现","biǎoxiàn","",""],["same","실험","實驗","实验","shíyàn","",""],["same","결과","","结果","jiéguǒ","",""],["same","이해","","理解","lǐjiě","",""],["same","화학","化學","化学","huàxué","",""],["native","表 표","","表","biǎo","",""],["same","현재","","现在","xiànzài","",""],["same","미래","未來","未来","wèilái","",""],["same","과거","","过去","guòqù","",""],["same","최근","","最近","zuìjìn","",""],["same","최후","","最后","zuìhòu","",""],["same","최초","","最初","zuìchū","",""],["same","기간","","期间","qījiān","",""],["same","실제","實際","实际","shíjì","",""],["same","원인","","原因","yuányīn","",""],["same","목적","","目的","mùdì","",""],["same","목표","","目标","mùbiāo","",""],["same","해결","","解決","jiějué","",""],["same","습관","","习惯","xíguàn","",""],["native","慣 관","","惯","guàn","",""],["same","방법","","方法","fāngfǎ","",""],["same","노력","","努力","nǔlì","",""],["same","관계","關係","关系","guānxì","",""],["same","관심","關心","关心","guānxīn","",""],["same","감동","","感动","gǎndòng","",""],["native","感 감","","感","gǎn","",""],["same","감사","","感谢","gǎnxiè","",""],["same","감정","","感情","gǎnqíng","",""],["same","감상","","感想","gǎnxiǎng","",""],["same","상상","","想像","xiǎngxiàng","",""],["same","기대","","期待","qīdài","",""],["same","결심","","決心","juéxīn","",""],["same","자신","","自信","zìxìn","",""],["native","信 신","","信","xìn","",""],["same","불안","","不安","bù'ān","",""],["same","운","","运气","yùnqi","",""],["jp","장소","","优点","yōudiǎn","장점",""],["jp","단소","","缺点","quēdiǎn","단점",""],["same","소년","","少年","shǎonián","",""],["same","청년","靑年","青年","qīngnián","",""],["native","相 상 · 手 수","","相手","xiāng shǒu","",""],["same","건강","","健康","jiànkāng","",""],["same","수술","","手术","shǒushù","",""],["same","자연","","自然","zìrán","",""],["same","지구","","地球","dìqiú","",""],["same","기온","氣溫","气温","qìwēn","",""],["same","온도","溫度","温度","wēndù","",""],["same","온천","溫泉","温泉","wēnquán","",""],["same","지방","","地方","dìfāng","",""],["jp","도회","都會","城市","chéngshì","도시",""],["kj","보도","步道","人行道","rénxíngdào","",""],["native","進 진","","进","jìn","",""],["same","학문","學問","学问","xuéwèn","",""],["same","학자","學者","学者","xuézhě","",""],["same","학기","學期","学期","xuéqī","",""],["same","장학금","獎學金","奖学金","jiǎngxuéjīn","",""],["kj","강의","","讲课","jiǎngkè","","중국어 讲义는 '강의 교재'."],["same","과제","","课题","kètí","",""],["same","전문","專門","专门","zhuānmén","",""],["same","논문","","论文","lùnwén","",""],["same","지식","","知识","zhīshí","",""],["same","지혜","知惠","智慧","zhìhuì","",""],["same","해답","","解答","jiědá","",""],["same","회답","","回答","huídá","",""],["same","합격","","合格","hégé","",""],["kj","수험","受驗","应考","yìngkǎo","",""],["kj","암기","","背诵","bèisòng","",""],["same","예습","豫習","预习","yùxí","",""],["same","복습","","复习","fùxí","",""],["same","집중","","集中","jízhōng","",""],["same","비교","","比较","bǐjiào","",""],["same","문장","","文章","wénzhāng","",""],["same","문자","","文字","wénzì","",""],["kj","단어","單語","单词","dāncí","",""],["kj","어학","語學","语言学习","yǔyán xuéxí","",""],["same","발음","發音","发音","fāyīn","",""],["same","번역","翻譯","翻译","fānyì","",""],["kj","통역","通譯","口译","kǒuyì","",""],["kj","취직","","就业","jiùyè","",""],["same","퇴직","","退职","tuìzhí","",""],["same","직업","","职业","zhíyè","",""],["same","직장","","职场","zhíchǎng","",""],["same","영업","營業","营业","yíngyè","",""],["same","계약","","契约","qìyuē","",""],["native","取 취 · 引 인","","取引","qǔ yǐn","",""],["kj","담당","擔當","负责","fùzé","",""],["same","책임","","责任","zérèn","",""],["same","상사","","上司","shàngsī","",""],["same","부하","","部下","bùxià","",""],["same","동료","","同僚","tóngliáo","",""],["kj","출장","","出差","chūchāi","",""],["same","경영","經營","经营","jīngyíng","",""],["same","사업","","事业","shìyè","",""],["same","개발","開發","开发","kāifā","",""],["native","締 체 · 切 절","","缔切","dì qiē","",""],["same","결정","","決定","juédìng","",""],["same","예산","豫算","预算","yùsuàn","",""],["same","조사","","调查","diàochá","",""],["same","기업","","企业","qǐyè","",""],["kj","제품","","产品","chǎnpǐn","",""],["kj","품질","","质量","zhìliàng","",""],["same","가격","價格","价格","jiàgé","",""],["same","회계","會計","会计","kuàijì","",""],["native","支 지 · 払 불","","支拂","zhī fú","",""],["same","청구","","请求","qǐngqiú","",""],["same","비용","","费用","fèiyòng","",""],["same","수입","收入","收入","shōurù","",""],["same","지출","","支出","zhīchū","",""],["same","손","","亏","kuī","","한국어 '손해(損害)'의 손."],["same","득","","划算","huásuàn","","한국어 '이득(利得)'의 득."],["same","수입","","输入","shūrù","",""],["same","수출","","输出","shūchū","",""],["same","소비","","消费","xiāofèi","",""],["same","정부","","政府","zhèngfǔ","",""],["same","정책","","政策","zhèngcè","",""],["same","선거","選擧","选举","xuǎnjǔ","",""],["same","찬성","贊成","赞成","zànchéng","",""],["same","반대","反對","反对","fǎnduì","",""],["same","의론","","议论","yìlùn","",""],["same","권리","權利","权利","quánlì","",""],["same","의무","","义务","yìwù","",""],["kj","평화","","和平","hépíng","","중국어는 글자 순서가 바뀐 和平."],["same","사건","","事件","shìjiàn","",""],["same","사고","","事故","shìgù","",""],["same","범인","","犯人","fànrén","",""],["same","경찰","","警察","jǐngchá","",""],["same","피해","","被害","bèihài","",""],["same","피난","","避难","bìnàn","",""],["same","영향","","影响","yǐngxiǎng","",""],["same","상황","狀況","状况","zhuàngkuàng","",""],["same","상승","","上升","shàngshēng","",""],["same","저하","","低下","dīxià","",""],["same","확대","擴大","扩大","kuòdà","",""],["same","축소","","缩小","suōxiǎo","",""],["same","진보","進步","进步","jìnbù","",""],["same","발전","發展","发展","fāzhǎn","",""],["same","발생","發生","发生","fāshēng","",""],["same","발달","發達","发达","fādá","",""],["same","현상","","现象","xiànxiàng","",""],["same","주목","","注目","zhùmù","",""],["kj","공통","","共同","gòngtóng","",""],["same","교류","","交流","jiāoliú","",""],["same","전통","傳統","传统","chuántǒng","",""],["kj","행사","","活动","huódòng","",""],["same","참가","參加","参加","cānjiā","",""],["same","세대","","世代","shìdài","",""],["same","자원","","资源","zīyuán","",""],["same","도시","","都市","dūshì","",""],["same","교외","","郊外","jiāowài","",""],["native","田 전 · 舎 사","","田舍","tián shè","",""],["same","수도","","首都","shǒudū","",""],["same","지역","","地域","dìyù","",""],["same","관광","觀光","观光","guānguāng","",""],["kj","숙박","","住宿","zhùsù","",""],["kj","왕복","","往返","wǎngfǎn","",""],["native","片 편 · 道 도","","片道","piàn dào","",""],["same","승차","乘車","乘车","chéngchē","",""],["jp","삽체","澁滯","堵车","dǔchē","교통 체증, 정체",""],["kj","도착","","到达","dàodá","",""],["same","신호","信號","信号","xìnhào","",""],["same","횡단","橫斷","横断","héngduàn","",""],["same","도로","","道路","dàolù","",""],["zj","경색","","景色","jǐngsè","경치",""],["same","기후","氣候","气候","qìhòu","",""],["same","습도","濕度","湿度","shīdù","",""],["native","晴 청","","晴","qíng","",""],["native","曇 담","","昙","tán","",""],["same","재해","","災害","zāihài","",""],["same","우주","","宇宙","yǔzhòu","",""],["same","식물","","植物","zhíwù","",""],["same","생물","","生物","shēngwù","",""],["same","영양","榮養","荣养","róngyǎng","",""],["same","증상","症狀","症状","zhèngzhuàng","",""],["same","진찰","","診察","zhěnchá","",""],["same","환자","","患者","huànzhě","",""],["native","怪 괴 · 我 아","","怪我","guài wǒ","",""],["same","체력","體力","体力","tǐlì","",""],["same","체중","體重","体重","tǐzhòng","",""],["same","예방","豫防","预防","yùfáng","",""],["same","검사","檢査","检查","jiǎnchá","",""],["same","식욕","","食欲","shíyù","",""],["same","감각","感覺","感觉","gǎnjué","",""],["same","인상","","印象","yìnxiàng","",""],["same","만족","滿足","满足","mǎnzú","",""],["same","불만","不滿","不满","bùmǎn","",""],["same","후회","","后悔","hòuhuǐ","",""],["same","긴장","","紧张","jǐnzhāng","",""],["same","감격","","感激","gǎnjī","",""],["same","존경","","尊敬","zūnjìng","",""],["jp","아만","","忍耐","rěnnài","참음",""],["diff","미혹","","麻烦","máfan","폐, 성가심","한국어 '미혹'은 '홀림'. 일본어는 '남에게 끼치는 폐'."],["jp","원려","","客气","kèqi","사양","한국어 '원려'(먼 앞날을 생각함)와 달라요."],["same","표정","","表情","biǎoqíng","",""],["same","기억","","记忆","jìyì","",""],["native","落 낙 · 着 착","","落着","luò zhuó","",""],["native","驚 경","","惊","jīng","",""],["native","喜 희","","喜","xǐ","",""],["native","悲 비","","悲","bēi","",""],["native","怒 노","","怒","nù","",""],["native","疑 의","","疑","yí","",""],["native","悩 뇌","","恼","nǎo","",""],["same","성격","","性格","xìnggé","",""],["same","개인","","个人","gèrén","",""],["same","개성","","个性","gèxìng","",""],["same","인생","","人生","rénshēng","",""],["same","인물","","人物","rénwù","",""],["diff","인간","","人","rén","인간","한·일: 사람 · 중국어 人间 rénjiān: 인간 세상."],["same","친우","","亲友","qīnyǒu","",""],["same","연령","年齡","年龄","niánlíng","",""],["same","선수","","选手","xuǎnshǒu","",""],["same","부부","","夫妇","fūfù","",""],["same","조부","","祖父","zǔfù","",""],["same","조모","","祖母","zǔmǔ","",""],["same","친척","","亲戚","qīnqī","",""],["same","가정","","家庭","jiātíng","",""],["kj","가사","","家务","jiāwù","",""],["same","가구","","家具","jiājù","",""],["jp","소제","","打扫","dǎsǎo","청소",""],["jp","세탁","","洗衣服","xǐ yīfu","빨래",""],["kj","난방","","暖气","nuǎnqì","",""],["kj","냉방","","冷气","lěngqì","",""],["kj","냉장고","冷藏庫","冰箱","bīngxiāng","",""],["kj","현관","玄關","门口","ménkǒu","",""],["kj","식기","","餐具","cānjù","",""],["same","재료","","材料","cáiliào","",""],["same","외식","","外食","wàishí","",""],["kj","자취","","自己做饭","zìjǐ zuòfàn","",""],["diff","유수","","不在家","bú zài jiā","부재중","중국어 留守 liúshǒu: 남아서 지킴."],["native","手 수 · 続 속","","手续","shǒu xù","",""],["native","申 신 · 込 입","","申入","shēn rù","",""],["native","届 계","","届","jiè","",""],["native","届 계","","届","jiè","",""],["same","확인","","确认","quèrèn","",""],["kj","연락","","联系","liánxì","",""],["jp","반사","","回复","huífù","대답, 답장",""],["same","준비","","准备","zhǔnbèi","",""],["same","이용","","利用","lìyòng","",""],["same","사용","","使用","shǐyòng","",""],["same","금지","","禁止","jìnzhǐ","",""],["same","허가","","许可","xǔkě","",""],["same","규칙","","规则","guīzé","",""],["same","효과","效果","效果","xiàoguǒ","",""],["same","판단","判斷","判断","pànduàn","",""],["same","현실","現實","现实","xiànshí","",""],["same","이상","","理想","lǐxiǎng","",""],["same","실현","實現","实现","shíxiàn","",""],["native","暮 모","","暮","mù","",""],["same","상태","狀態","状态","zhuàngtài","",""],["same","특징","特徵","特征","tèzhēng","",""],["same","특별","","特别","tèbié","",""],["same","보통","","普通","pǔtōng","",""],["same","정확","","正确","zhèngquè","",""],["same","복잡","複雜","复杂","fùzá","",""],["same","단순","單純","单纯","dānchún","",""],["same","중요","","重要","zhòngyào","",""],["native","豊 풍","","丰","fēng","",""],["native","貧 빈","","贫","pín","",""],["native","深 심","","深","shēn","",""],["native","浅 천","","浅","qiǎn","",""],["native","厚 후","","厚","hòu","",""],["native","薄 박","","薄","báo","",""],["native","濃 농","","濃","nóng","",""],["native","細 세","","细","xì","",""],["native","鋭 예","","锐","ruì","",""],["same","표면","","表面","biǎomiàn","",""],["native","裏 이","","里","lǐ","",""],["native","内 내 · 側 측","","内侧","nèi cè","",""],["native","外 외 · 側 측","","外侧","wài cè","",""],["native","周 주","","周","zhōu","",""],["same","중심","","中心","zhōngxīn","",""],["same","방향","","方向","fāngxiàng","",""],["same","이전","","以前","yǐqián","",""],["same","이후","","以后","yǐhòu","",""],["same","당시","當時","当时","dāngshí","",""],["same","시대","","时代","shídài","",""],["same","시기","","时期","shíqī","",""],["same","기한","","期限","qīxiàn","",""],["same","심야","","深夜","shēnyè","",""],["kj","조조","","清晨","qīngchén","","중국어 早朝는 '아침 조회'."],["native","祭 제","","祭","jì","",""],["same","예술","藝術","艺术","yìshù","",""],["same","연주","","演奏","yǎnzòu","",""],["same","연극","","演剧","yǎnjù","",""],["same","독서","讀書","读书","dúshū","",""],["same","등산","","登山","dēngshān","",""],["kj","우승","","夺冠","duóguàn","",""],["same","기록","記錄","记录","jìlù","",""],["kj","기사","","报道","bàodào","","중국어 记事는 '기록'."],["native","選 선","","选","xuǎn","",""],["native","比 비","","比","bǐ","",""],["native","守 수","","守","shǒu","",""],["native","破 파","","破","pò","",""],["native","助 조","","助","zhù","",""],["native","支 지","","支","zhī","",""],["native","育 육","","育","yù","",""],["native","育 육","","育","yù","",""],["native","伸 신","","伸","shēn","",""],["native","含 함","","含","hán","",""],["native","加 가","","加","jiā","",""],["native","除 제","","除","chú","",""],["native","失 실","","失","shī","",""],["native","得 득","","得","dé","",""],["native","求 구","","求","qiú","",""],["native","与 여","","与","yǔ","",""],["native","流 유","","流","liú","",""],["native","離 이","","离","lí","",""],["native","迷 미","","迷","mí","",""],["native","戻 여","","戾","lì","",""],["native","進 진","","进","jìn","",""],["native","勧 권","","劝","quàn","",""],["same","간단","簡單","简单","jiǎndān","",""],["same","유명","","有名","yǒumíng","",""],["same","필요","","必要","bìyào","",""],["same","역사","歷史","历史","lìshǐ","",""],["same","결혼","","结婚","jiéhūn","",""],["kj","야구","","棒球","bàngqiú","",""],["kj","무료","","免费","miǎnfèi","",""],["diff","대장부","","没关系","méi guānxi","괜찮다","한·중: 사내대장부 · 일본어: 괜찮다."],["diff","기차","","火车","huǒchē","기차","한·일: 기차 · 중국어 汽车 qìchē: 자동차."],["diff","공부","","办法","bànfǎ","궁리, 고안","한국어 공부(工夫)와 같은 한자 · 중국어 工夫 gōngfu: 시간, 솜씨."],["diff","동서","","东西","dōngxi","동서","한·일: 동쪽과 서쪽 · 중국어: 물건."]];
+const CH={"験":["험","驗","验","yàn"],"着":["착","","着","zhuó"],"科":["과","","科","kē"],"拡":["확","擴","扩","kuò"],"曇":["담","","昙","tán"],"代":["대","","代","dài"],"祖":["조","","祖","zǔ"],"勤":["근","","勤","qín"],"栄":["영","榮","荣","róng"],"意":["의","","意","yì"],"田":["전","","田","tián"],"経":["경","經","经","jīng"],"青":["청","靑","青","qīng"],"表":["표","","表","biǎo"],"算":["산","","算","suàn"],"本":["본","","本","běn"],"春":["춘","","春","chūn"],"年":["연","","年","nián"],"準":["준","","准","zhǔn"],"医":["의","醫","医","yī"],"毎":["매","每","每","měi"],"鋭":["예","銳","锐","ruì"],"運":["운","","运","yùn"],"光":["광","","光","guāng"],"勉":["면","","勉","miǎn"],"卒":["졸","","卒","zú"],"邪":["사","","邪","xié"],"雨":["우","","雨","yǔ"],"実":["실","實","实","shí"],"思":["사","","思","sī"],"製":["제","","制","zhì"],"濯":["탁","","濯","zhuó"],"薄":["박","","薄","báo"],"歴":["역","歷","历","lì"],"先":["선","","先","xiān"],"禁":["금","","禁","jìn"],"喜":["희","","喜","xǐ"],"協":["협","","协","xié"],"敬":["경","","敬","jìng"],"校":["교","","校","xiào"],"建":["건","","建","jiàn"],"加":["가","","加","jiā"],"品":["품","","品","pǐn"],"費":["비","","费","fèi"],"成":["성","","成","chéng"],"災":["재","","災","zāi"],"急":["급","","急","jí"],"感":["감","","感","gǎn"],"企":["기","","企","qǐ"],"転":["전","轉","转","zhuǎn"],"動":["동","","动","dòng"],"同":["동","","同","tóng"],"聞":["문","","闻","wén"],"謝":["사","","谢","xiè"],"帰":["귀","歸","归","guī"],"楽":["낙","樂","乐","lè"],"親":["친","","亲","qīn"],"往":["왕","","往","wǎng"],"日":["일","","日","rì"],"短":["단","","短","duǎn"],"専":["전","專","专","zhuān"],"結":["결","","结","jié"],"室":["실","","室","shì"],"挙":["거","擧","举","jǔ"],"勧":["권","勸","劝","quàn"],"員":["원","","员","yuán"],"題":["제","","题","tí"],"婚":["혼","","婚","hūn"],"悔":["회","","悔","huǐ"],"時":["시","","时","shí"],"比":["비","","比","bǐ"],"口":["구","","口","kǒu"],"済":["제","濟","济","jì"],"休":["휴","","休","xiū"],"許":["허","","许","xǔ"],"持":["지","","持","chí"],"滞":["체","滯","滞","zhì"],"肉":["육","","肉","ròu"],"渋":["삽","澁","涩","sè"],"書":["서","","书","shū"],"間":["간","","间","jiān"],"収":["수","收","收","shōu"],"締":["체","","缔","dì"],"請":["청","","请","qǐng"],"茶":["다","","茶","chá"],"任":["임","","任","rèn"],"裏":["이","","里","lǐ"],"果":["과","","果","guǒ"],"決":["결","","決","jué"],"当":["당","當","当","dāng"],"調":["조","","调","diào"],"民":["민","","民","mín"],"問":["문","","问","wèn"],"育":["육","","育","yù"],"炊":["취","","炊","chuī"],"少":["소","","少","shǎo"],"印":["인","","印","yìn"],"給":["급","","给","gěi"],"税":["세","稅","税","shuì"],"門":["문","","门","mén"],"備":["비","","备","bèi"],"候":["후","","候","hòu"],"強":["강","","强","qiáng"],"力":["역","","力","lì"],"関":["관","關","关","guān"],"語":["어","","语","yǔ"],"値":["치","","值","zhí"],"緊":["긴","","紧","jǐn"],"奨":["장","獎","奖","jiǎng"],"失":["실","","失","shī"],"女":["여","","女","nǚ"],"閉":["폐","","闭","bì"],"菜":["채","","菜","cài"],"味":["미","","味","wèi"],"火":["화","","火","huǒ"],"礼":["예","禮","礼","lǐ"],"答":["답","","答","dá"],"慢":["만","","慢","màn"],"限":["한","","限","xiàn"],"説":["설","說","说","shuō"],"数":["수","數","数","shù"],"午":["오","","午","wǔ"],"被":["피","","被","bèi"],"商":["상","","商","shāng"],"確":["확","","确","què"],"昼":["주","晝","昼","zhòu"],"首":["수","","首","shǒu"],"始":["시","","始","shǐ"],"練":["연","","练","liàn"],"目":["목","","目","mù"],"伝":["전","傳","传","chuán"],"業":["업","","业","yè"],"足":["족","","足","zú"],"想":["상","","想","xiǎng"],"続":["속","續","续","xù"],"棚":["붕","","棚","péng"],"伸":["신","","伸","shēn"],"際":["제","","际","jì"],"欲":["욕","","欲","yù"],"植":["식","","植","zhí"],"査":["사","","查","chá"],"早":["조","","早","zǎo"],"寒":["한","","寒","hán"],"外":["외","","外","wài"],"慣":["관","","惯","guàn"],"音":["음","","音","yīn"],"深":["심","","深","shēn"],"効":["효","效","效","xiào"],"死":["사","","死","sǐ"],"活":["활","","活","huó"],"祭":["제","","祭","jì"],"花":["화","","花","huā"],"記":["기","","记","jì"],"今":["금","","今","jīn"],"養":["양","","养","yǎng"],"道":["도","","道","dào"],"色":["색","","色","sè"],"暮":["모","","暮","mù"],"写":["사","寫","写","xiě"],"奏":["주","","奏","zòu"],"飲":["음","","饮","yǐn"],"路":["노","","路","lù"],"兄":["형","","兄","xiōng"],"犯":["범","","犯","fàn"],"診":["진","","診","zhěn"],"作":["작","","作","zuò"],"男":["남","","男","nán"],"慮":["여","","虑","lǜ"],"宿":["숙","","宿","sù"],"引":["인","","引","yǐn"],"術":["술","","术","shù"],"究":["구","","究","jiū"],"功":["공","","功","gōng"],"症":["증","","症","zhèng"],"払":["불","拂","拂","fú"],"劇":["극","","剧","jù"],"避":["피","","避","bì"],"行":["행","","行","xíng"],"注":["주","","注","zhù"],"厚":["후","","厚","hòu"],"弱":["약","","弱","ruò"],"合":["합","","合","hé"],"魚":["어","","鱼","yú"],"球":["구","","球","qiú"],"患":["환","","患","huàn"],"悩":["뇌","惱","恼","nǎo"],"豊":["풍","豐","丰","fēng"],"連":["연","","連","lián"],"会":["회","會","会","huì"],"留":["유","","留","liú"],"貧":["빈","","贫","pín"],"換":["환","","换","huàn"],"較":["교","","较","jiào"],"晴":["청","","晴","qíng"],"退":["퇴","","退","tuì"],"齢":["영","齡","龄","líng"],"画":["화","畫","画","huà"],"則":["칙","","则","zé"],"供":["공","","供","gōng"],"参":["참","參","参","cān"],"川":["천","","川","chuān"],"心":["심","","心","xīn"],"入":["입","","入","rù"],"配":["배","","配","pèi"],"契":["계","","契","qì"],"以":["이","","以","yǐ"],"都":["도","","都","dū"],"考":["고","","考","kǎo"],"名":["명","","名","míng"],"流":["유","","流","liú"],"選":["선","","选","xuǎn"],"責":["책","","责","zé"],"内":["내","內","内","nèi"],"細":["세","","细","xì"],"生":["생","","生","shēng"],"所":["소","","所","suǒ"],"中":["중","","中","zhōng"],"過":["과","","过","guò"],"損":["손","","损","sǔn"],"去":["거","","去","qù"],"件":["건","","件","jiàn"],"判":["판","","判","pàn"],"険":["험","險","险","xiǎn"],"知":["지","","知","zhī"],"疑":["의","","疑","yí"],"節":["절","","节","jié"],"原":["원","","原","yuán"],"張":["장","","张","zhāng"],"雑":["잡","雜","杂","zá"],"離":["이","","离","lí"],"職":["직","","职","zhí"],"別":["별","","别","bié"],"貸":["대","","贷","dài"],"防":["방","","防","fáng"],"敗":["패","","败","bài"],"絡":["낙","","络","luò"],"話":["화","","话","huà"],"共":["공","","共","gòng"],"無":["무","","无","wú"],"複":["복","","复","fù"],"掃":["소","","扫","sǎo"],"耳":["이","","耳","ěr"],"徴":["징","徵","征","zhēng"],"手":["수","","手","shǒu"],"雪":["설","","雪","xuě"],"含":["함","","含","hán"],"康":["강","","康","kāng"],"使":["사","","使","shǐ"],"求":["구","","求","qiú"],"然":["연","","然","rán"],"単":["단","單","单","dān"],"買":["매","","买","mǎi"],"物":["물","","物","wù"],"便":["편","","便","biàn"],"前":["전","","前","qián"],"通":["통","","通","tōng"],"価":["가","價","价","jià"],"分":["분","","分","fēn"],"在":["재","","在","zài"],"多":["다","","多","duō"],"化":["화","","化","huà"],"大":["대","","大","dà"],"権":["권","權","权","quán"],"猫":["묘","","猫","māo"],"暗":["암","","暗","àn"],"恵":["혜","惠","惠","huì"],"申":["신","","申","shēn"],"務":["무","","务","wù"],"初":["초","","初","chū"],"高":["고","","高","gāo"],"惑":["혹","","惑","huò"],"仕":["사","","仕","shì"],"習":["습","","习","xí"],"増":["증","增","增","zēng"],"縮":["축","","缩","suō"],"観":["관","觀","观","guān"],"像":["상","","像","xiàng"],"低":["저","","低","dī"],"昇":["승","","升","shēng"],"込":["입","","入","rù"],"普":["보","","普","pǔ"],"情":["정","","情","qíng"],"落":["낙","","落","luò"],"文":["문","","文","wén"],"環":["환","","环","huán"],"府":["부","","府","fǔ"],"策":["책","","策","cè"],"方":["방","","方","fāng"],"図":["도","圖","图","tú"],"冬":["동","","冬","dōng"],"境":["경","","境","jìng"],"夏":["하","","夏","xià"],"暑":["서","","暑","shǔ"],"相":["상","","相","xiāng"],"近":["근","","近","jìn"],"見":["견","","见","jiàn"],"返":["반","","返","fǎn"],"犬":["견","","犬","quǎn"],"季":["계","","季","jì"],"組":["조","","组","zǔ"],"風":["풍","","风","fēng"],"台":["대","臺","台","tái"],"号":["호","號","号","hào"],"蔵":["장","藏","藏","cáng"],"興":["흥","","兴","xìng"],"解":["해","","解","jiě"],"格":["격","","格","gé"],"報":["보","","报","bào"],"不":["부","","不","bù"],"市":["시","","市","shì"],"特":["특","","特","tè"],"質":["질","","质","zhì"],"議":["의","","议","yì"],"寺":["사","","寺","sì"],"与":["여","與","与","yǔ"],"進":["진","","进","jìn"],"登":["등","","登","dēng"],"元":["원","","元","yuán"],"紙":["지","","纸","zhǐ"],"泊":["박","","泊","bó"],"立":["입","","立","lì"],"届":["계","屆","届","jiè"],"濃":["농","","濃","nóng"],"港":["항","","港","gǎng"],"約":["약","","约","yuē"],"迷":["미","","迷","mí"],"薬":["약","藥","药","yào"],"律":["율","","律","lǜ"],"窓":["창","","窗","chuāng"],"態":["태","","态","tài"],"反":["반","","反","fǎn"],"右":["우","","右","yòu"],"堂":["당","","堂","táng"],"機":["기","","机","jī"],"界":["계","","界","jiè"],"東":["동","","东","dōng"],"広":["광","廣","广","guǎng"],"変":["변","變","变","biàn"],"就":["취","","就","jiù"],"段":["단","","段","duàn"],"束":["속","","束","shù"],"駅":["역","驛","驿","yì"],"必":["필","","必","bì"],"震":["진","","震","zhèn"],"認":["인","","认","rèn"],"番":["번","","番","fān"],"夫":["부","","夫","fū"],"戻":["여","戾","戾","lì"],"洗":["세","","洗","xǐ"],"飛":["비","","飞","fēi"],"気":["기","氣","气","qì"],"標":["표","","标","biāo"],"婦":["부","","妇","fù"],"故":["고","","故","gù"],"房":["방","","房","fáng"],"将":["장","將","将","jiāng"],"重":["중","","重","zhòng"],"父":["부","","父","fù"],"庫":["고","","库","kù"],"週":["주","","周","zhōu"],"散":["산","","散","sàn"],"字":["자","","字","zì"],"係":["계","","系","xì"],"病":["병","","病","bìng"],"上":["상","","上","shàng"],"利":["이","","利","lì"],"響":["향","","响","xiǎng"],"人":["인","","人","rén"],"玄":["현","","玄","xuán"],"我":["아","","我","wǒ"],"復":["복","","复","fù"],"事":["사","","事","shì"],"簡":["간","","简","jiǎn"],"信":["신","","信","xìn"],"鉄":["철","鐵","铁","tiě"],"定":["정","","定","dìng"],"屋":["옥","","屋","wū"],"牛":["우","","牛","niú"],"芸":["예","藝","艺","yì"],"個":["개","","个","gè"],"国":["국","國","国","guó"],"現":["현","","现","xiàn"],"車":["차","","车","chē"],"法":["법","","法","fǎ"],"西":["서","","西","xī"],"趣":["취","","趣","qù"],"僚":["요","","僚","liáo"],"新":["신","","新","xīn"],"争":["쟁","爭","争","zhēng"],"用":["용","","用","yòng"],"検":["검","檢","检","jiǎn"],"売":["매","賣","卖","mài"],"研":["연","硏","研","yán"],"交":["교","","交","jiāo"],"工":["공","","工","gōng"],"越":["월","","越","yuè"],"泉":["천","","泉","quán"],"要":["요","","要","yào"],"有":["유","","有","yǒu"],"驚":["경","","惊","jīng"],"湿":["습","濕","湿","shī"],"送":["송","","送","sòng"],"昨":["작","","昨","zuó"],"怪":["괴","","怪","guài"],"産":["산","","产","chǎn"],"発":["발","發","发","fā"],"瓶":["병","甁","瓶","píng"],"終":["종","","终","zhōng"],"割":["할","","割","gē"],"未":["미","","未","wèi"],"覚":["각","覺","觉","jué"],"天":["천","","天","tiān"],"体":["체","體","体","tǐ"],"除":["제","","除","chú"],"映":["영","","映","yìng"],"暖":["난","","暖","nuǎn"],"可":["가","","可","kě"],"治":["치","","治","zhì"],"面":["면","","面","miàn"],"負":["부","","负","fù"],"和":["화","","和","hé"],"乳":["유","","乳","rǔ"],"戦":["전","戰","战","zhàn"],"守":["수","","守","shǒu"],"尊":["존","","尊","zūn"],"予":["예","豫","预","yù"],"旅":["여","","旅","lǚ"],"小":["소","","小","xiǎo"],"担":["담","擔","担","dān"],"館":["관","","馆","guǎn"],"庭":["정","","庭","tíng"],"食":["식","","食","shí"],"輸":["수","","输","shū"],"左":["좌","","左","zuǒ"],"告":["고","","告","gào"],"講":["강","","讲","jiǎng"],"全":["전","","全","quán"],"店":["점","","店","diàn"],"嫌":["혐","","嫌","xián"],"空":["공","","空","kōng"],"況":["황","","况","kuàng"],"者":["자","","者","zhě"],"統":["통","","统","tǒng"],"残":["잔","殘","残","cán"],"技":["기","","技","jì"],"憶":["억","","忆","yì"],"朝":["조","","朝","zhāo"],"晩":["만","","晚","wǎn"],"自":["자","","自","zì"],"家":["가","","家","jiā"],"真":["진","眞","真","zhēn"],"軽":["경","輕","轻","qīng"],"課":["과","","课","kè"],"妹":["매","","妹","mèi"],"支":["지","","支","zhī"],"住":["주","","住","zhù"],"史":["사","","史","shǐ"],"破":["파","","破","pò"],"激":["격","","激","jī"],"山":["산","","山","shān"],"断":["단","斷","断","duàn"],"性":["성","","性","xìng"],"談":["담","","谈","tán"],"努":["노","","努","nǔ"],"来":["내","來","来","lái"],"勝":["승","","胜","shèng"],"計":["계","","计","jì"],"集":["집","","集","jí"],"世":["세","","世","shì"],"向":["향","","向","xiàng"],"好":["호","","好","hǎo"],"警":["경","","警","jǐng"],"最":["최","","最","zuì"],"対":["대","對","对","duì"],"賛":["찬","贊","赞","zàn"],"待":["대","","待","dài"],"消":["소","","消","xiāo"],"状":["상","狀","状","zhuàng"],"放":["방","","放","fàng"],"平":["평","","平","píng"],"地":["지","","地","dì"],"悲":["비","","悲","bēi"],"銀":["은","","银","yín"],"美":["미","","美","měi"],"母":["모","","母","mǔ"],"起":["기","","起","qǐ"],"古":["고","","古","gǔ"],"義":["의","","义","yì"],"翻":["번","","翻","fān"],"訳":["역","譯","译","yì"],"優":["우","","优","yōu"],"営":["영","營","营","yíng"],"影":["영","","影","yǐng"],"後":["후","","后","hòu"],"徒":["도","","徒","tú"],"温":["온","溫","温","wēn"],"乗":["승","乘","乘","chéng"],"識":["식","","识","shí"],"招":["초","","招","zhāo"],"景":["경","","景","jǐng"],"司":["사","","司","sī"],"冷":["냉","","冷","lěng"],"片":["편","","片","piàn"],"飯":["반","","饭","fàn"],"章":["장","","章","zhāng"],"舎":["사","舍","舍","shè"],"明":["명","","明","míng"],"英":["영","","英","yīng"],"達":["달","","达","dá"],"卵":["난","","卵","luǎn"],"安":["안","","安","ān"],"域":["역","","域","yù"],"危":["위","","危","wēi"],"押":["압","","押","yā"],"難":["난","","难","nàn"],"郊":["교","","郊","jiāo"],"度":["도","","度","dù"],"政":["정","","政","zhèng"],"的":["적","","的","dì"],"試":["시","","试","shì"],"秋":["추","","秋","qiū"],"熱":["열","","热","rè"],"正":["정","","正","zhèng"],"借":["차","","借","jiè"],"材":["재","","材","cái"],"満":["만","滿","满","mǎn"],"料":["요","","料","liào"],"辞":["사","辭","辞","cí"],"源":["원","","源","yuán"],"減":["감","","减","jiǎn"],"出":["출","","出","chū"],"場":["장","","场","chǎng"],"健":["건","","健","jiàn"],"寝":["침","寢","寝","qǐn"],"因":["인","","因","yīn"],"害":["해","","害","hài"],"神":["신","","神","shén"],"到":["도","","到","dào"],"録":["녹","錄","录","lù"],"取":["취","","取","qǔ"],"弟":["제","","弟","dì"],"部":["부","","部","bù"],"切":["절","","切","qiē"],"側":["측","","侧","cè"],"理":["이","","理","lǐ"],"下":["하","","下","xià"],"汽":["기","","汽","qì"],"宙":["주","","宙","zhòu"],"受":["수","","受","shòu"],"金":["금","","金","jīn"],"演":["연","","演","yǎn"],"回":["회","","回","huí"],"期":["기","","期","qī"],"貯":["저","","贮","zhù"],"友":["우","","友","yǒu"],"族":["족","","族","zú"],"教":["교","","教","jiào"],"丈":["장","","丈","zhàng"],"院":["원","","院","yuàn"],"長":["장","","长","cháng"],"横":["횡","橫","横","héng"],"夜":["야","","夜","yè"],"月":["월","","月","yuè"],"察":["찰","","察","chá"],"象":["상","","象","xiàng"],"遠":["원","","远","yuǎn"],"開":["개","","开","kāi"],"論":["논","","论","lùn"],"展":["전","","展","zhǎn"],"具":["구","","具","jù"],"周":["주","","周","zhōu"],"歩":["보","步","步","bù"],"器":["기","","器","qì"],"得":["득","","得","dé"],"浅":["천","淺","浅","qiǎn"],"戚":["척","","戚","qī"],"学":["학","學","学","xué"],"規":["규","","规","guī"],"資":["자","","资","zī"],"怒":["노","","怒","nù"],"野":["야","","野","yě"],"助":["조","","助","zhù"],"純":["순","","纯","chún"],"子":["자","","子","zǐ"],"社":["사","","社","shè"],"止":["지","","止","zhǐ"],"水":["수","","水","shuǐ"],"宇":["우","","宇","yǔ"],"由":["유","","由","yóu"],"読":["독","讀","读","dú"],"電":["전","","电","diàn"],"姉":["자","姊","姐","zǐ"],"歯":["치","齒","齿","chǐ"]};
+const TY={
+ same:{l:'한·중·일 같음',d:'세 나라가 같은 한자어를 같은 뜻으로 써요. 한국 한자음만 알면 뜻은 바로 알 수 있어요.'},
+ kj:{l:'한·일 같음',d:'한국어와 일본어는 같은 한자어를 쓰고, 중국어만 다른 단어를 써요.'},
+ zj:{l:'중·일 같음',d:'중국어와 일본어는 같은 말을 쓰고, 한국어는 고유어나 다른 말을 써요.'},
+ jp:{l:'일본식 한자어',d:'한자는 알아도 한국어에서는 이렇게 말하지 않아요. 한국어 단어와 짝지어 외우세요.'},
+ diff:{l:'뜻이 달라요',d:'같은 한자인데 나라마다 뜻이 달라요. 실수하기 쉬우니 주의하세요.'},
+ native:{l:'고유어(훈독)',d:'한자에 일본 고유어 읽기를 붙인 말이에요. 한국 한자음을 뜻의 힌트로 삼아 외우세요.'}};
+const TYO=Object.keys(TY);
+function zhSay(z){return z?`<button class="say sm" data-say="${z}" data-lang="zh-CN" aria-label="중국어 듣기">${SPK}</button>`:'<span></span>'}
+function cmpRows(x,withJp){const c=CMP[x.id];if(!c)return '';const[ty,kr,tr,zh,py,ko]=c;let h='';
+  if(withJp)h+=`<span class="cl">일본</span><span class="cv"><span class="jr">${x.r}</span> · ${x.m}</span><button class="say sm" data-say="${x.r}" aria-label="일본어 듣기">${SPK}</button>`;
+  if(ty==='native'){h+=`<span class="cl">한자 힌트</span><span class="cv">${kr}</span><span></span>`;
+    h+=`<span class="cl">중국 글자</span><span class="cv"><span class="zh">${zh}</span> <span class="mono muted">${py}</span></span>${zhSay(zh)}`}
+  else{h+=`<span class="cl">한국</span><span class="cv"><b>${kr}</b>${tr?` <span class="trad">${tr}</span>`:''}${ko?` <span class="muted">→ 한국어로는</span> <b>${ko}</b>`:''}</span><span></span>`;
+    h+=`<span class="cl">중국</span><span class="cv"><span class="zh" lang="zh-CN">${zh}</span> <span class="mono muted">${py}</span></span>${zhSay(zh)}`}
+  return `<div class="crows">${h}</div>`}
+function cmpHTML(x){const c=CMP[x.id];if(!c)return '';
+  return `<div class="cmp"><div class="ctop"><span class="ctag c-${c[0]}">${TY[c[0]].l}</span></div>${cmpRows(x,false)}${c[6]?`<div class="cnote">${c[6]}</div>`:''}</div>`}
+$('#cLegend').innerHTML=TYO.map(t=>`<div><span class="ctag c-${t}">${TY[t].l}</span>${TY[t].d}</div>`).join('');
+const CSTEP=60;let cTy='all',cMode='type',cLimit=CSTEP;
+function cPool(){const q=$('#cSearch').value.trim().toLowerCase();
+  return W.filter(x=>{if(!inRange(x))return false;if(!q)return true;const c=CMP[x.id];return [x.w,x.r,x.m,c[1],c[2],c[3],c[5]].some(s=>s&&s.toLowerCase().includes(q))})}
+function renderCompare(){
+  const pool=cPool(),cnt={all:pool.length};pool.forEach(x=>{const t=CMP[x.id][0];cnt[t]=(cnt[t]||0)+1});
+  $('#cTypes').innerHTML=['all',...TYO].map(t=>`<button class="tyb c-${t}" data-ty="${t}" aria-pressed="${cTy===t}"><span>${t==='all'?'전체':TY[t].l}</span><b>${cnt[t]||0}</b></button>`).join('');
+  $('#cDesc').textContent=cTy==='all'?'종류를 누르면 그 단어만 모아 볼 수 있어요. 단어를 누르면 꼬리 탐험으로 이어집니다.':TY[cTy].d;
+  const list=pool.filter(x=>cTy==='all'||CMP[x.id][0]===cTy).sort((a,b)=>TYO.indexOf(CMP[a.id][0])-TYO.indexOf(CMP[b.id][0])||b.lv-a.lv);
+  let total;
+  if(cMode==='type'){total=list.length;
+    $('#cList').innerHTML=list.length?`<div class="cwgrid">${list.slice(0,cLimit).map(x=>{const c=CMP[x.id];return `<article class="cw"><div class="cwtop"><button class="cwword" data-cpop="${x.id}">${x.w}</button>${lvTag(x.lv)}<span class="ctag c-${c[0]}">${TY[c[0]].l}</span></div>${cmpRows(x,true)}${c[6]?`<div class="cnote">${c[6]}</div>`:''}</article>`}).join('')}</div>`:'<p class="muted">조건에 맞는 단어가 없습니다. 범위를 넓히거나 다른 말로 찾아보세요.</p>'}
+  else{const g={};list.forEach(x=>{if(CMP[x.id][0]==='native')return;[...new Set(x.w.match(KRE)||[])].forEach(k=>(g[k]=g[k]||[]).push(x))});
+    const gs=Object.entries(g).filter(([k,v])=>v.length>=2).sort((a,b)=>b[1].length-a[1].length);total=gs.length;
+    $('#cList').innerHTML=gs.length?`<div class="kgrid">${gs.slice(0,cLimit/2).map(([k,v])=>{const h=CH[k];return `<div class="kgrp"><div class="khead"><span class="gk">${k}</span>${h[1]?`<span class="trad">${h[1]}</span>`:''}<span class="kr">${h[0]}</span><span class="zh">${h[2]}</span><span class="mono muted">${h[3]}</span><span class="n">${v.length}개</span></div>
+      <div class="kchips">${v.map(x=>`<button class="kchip" data-cpop="${x.id}"><span class="w">${x.w.split(k).join(`<span class="hl" style="color:var(--fuji)">${k}</span>`)}</span><span class="s">${x.r} · ${CMP[x.id][1]}</span></button>`).join('')}</div></div>`}).join('')}</div>`:'<p class="muted">함께 모을 한자가 없습니다.</p>';
+    total=gs.length*2}
+  $('#cMore').hidden=cLimit>=total;
+}
+$('#cTypes').addEventListener('click',e=>{const b=e.target.closest('[data-ty]');if(!b)return;cTy=b.dataset.ty;cLimit=CSTEP;renderCompare()});
+$('#cMode').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;$$('#cMode button').forEach(x=>x.setAttribute('aria-pressed',x===b));cMode=b.dataset.m;cLimit=CSTEP;renderCompare()});
+$('#cSearch').addEventListener('input',()=>{cLimit=CSTEP;renderCompare()});
+$('#cMore').addEventListener('click',()=>{cLimit+=CSTEP;renderCompare()});
+$('#cList').addEventListener('click',e=>{const b=e.target.closest('[data-cpop]');if(b)openPop(+b.dataset.cpop,{action:'go',reason:'비교',from:'list'})});
+
+let cq={r:0,w:0},curC=null,cLocked=false;
+const ALLK=/^[一-鿿]{2,}$/;
+function nextCQ(){
+  const pool=W.filter(x=>inRange(x)&&ALLK.test(x.w)&&['same','kj','jp','diff','zj'].includes(CMP[x.id][0]));if(!pool.length)return;
+  let x;do{x=pick(pool)}while(curC&&x===curC&&pool.length>1);
+  const opts=[x.r];shuffle(pool.slice()).forEach(y=>{if(opts.length<4&&!opts.includes(y.r)&&Math.abs(y.r.length-x.r.length)<=1)opts.push(y.r)});
+  shuffle(pool.slice()).forEach(y=>{if(opts.length<4&&!opts.includes(y.r))opts.push(y.r)});
+  curC=x;cLocked=false;
+  $('#cQuiz').innerHTML=`<div class="qglyph" style="font-size:clamp(46px,10vw,68px)">${x.w}</div><div class="qkr">한국 한자음 <b>${CMP[x.id][1]}</b>${CMP[x.id][2]?` <span class="trad">${CMP[x.id][2]}</span>`:''}</div>
+   <div class="muted">일본어로는 어떻게 읽을까요? ${lvTag(x.lv)}</div>
+   <div class="opts">${shuffle(opts).map(o=>`<button class="opt jpopt" data-o="${o}">${o}</button>`).join('')}</div><div class="feedback" id="cqFb"></div>`;
+}
+$('#cQuiz').addEventListener('click',e=>{
+  const b=e.target.closest('.opt');
+  if(b&&!cLocked){cLocked=true;const x=curC,ok=b.dataset.o===x.r;ok?cq.r++:cq.w++;
+    $$('#cQuiz .opt').forEach(o=>{if(o.dataset.o===x.r)o.classList.add('ok');else if(o===b)o.classList.add('no')});speak(x.r);
+    $('#cqFb').innerHTML=(ok?'<b style="color:var(--take)">정답!</b>':'<b style="color:var(--bad)">아쉬워요.</b>')+` ${x.w} = ${x.r} · ${x.m}${cmpHTML(x)}<div style="margin-top:8px"><button class="btn" id="cqNext">다음</button></div>`;
+    $('#cqRight').textContent=cq.r;$('#cqWrong').textContent=cq.w}
+  if(e.target.id==='cqNext')nextCQ();
+});
+
+/* ===== 팝업 ===== */
+let popCtx=null,popReturn=null;
+function openPop(id,ctx){popCtx=Object.assign({id},ctx);popReturn=document.activeElement;renderPop();$('#pop').hidden=false;document.body.style.overflow='hidden';
+  setTimeout(()=>{const f=$('#popGo')||$('#popClose');if(f)f.focus()},0);speak(W[id].r)}
+function closePop(){$('#pop').hidden=true;document.body.style.overflow='';popCtx=null;if(popReturn&&popReturn.focus)try{popReturn.focus()}catch(e){}}
+function renderPop(){
+  const c=popCtx,x=W[c.id],act=c.action;
+  const label=act==='back'?'여기로 되돌아가기':c.from==='list'?'이 단어부터 꼬리 탐험':'이 단어로 꼬리 잇기';
+  const reason=c.reason&&!['검색','단어장','점프','비교'].includes(c.reason)&&act==='go'?`<div class="preason">지금 단어와 <b>${c.reason}</b>(으)로 이어져요</div>`:c.suggest&&c.reason==='점프'?'<div class="preason">이어지는 단어를 다 봤어요. 새로운 곳으로 점프!</div>':'';
+  const L=linksOf(x.id).filter(o=>o.kind!=='topic');
+  const lk=L.length?`<div class="plinks">이 단어의 꼬리 ${L.map(o=>`<span>${o.kind==='kanji'?`<b>${o.key}</b>`:reasonLabel(o)} ${o.ids.length}</span>`).join('')}</div>`:'';
+  $('#popSheet').innerHTML=`<div class="ptop">${lvTag(x.lv)}<span class="muted">${x.t}</span><button class="x" id="popClose" aria-label="닫기" data-close>×</button></div>
+   ${reason}
+   <button class="pword${act==='view'?' static':''}" ${act==='view'?'tabindex="-1"':'id="popWord"'}><span class="w">${x.w}</span><span class="r">${x.r}</span><span class="m">${x.m}</span>${act==='view'?'':`<span class="go">카드를 누르면 ${act==='back'?'이 단어로 되돌아갑니다':'꼬리가 이어집니다'}</span>`}</button>
+   <div class="prow"><button class="say" data-say="${x.r}" aria-label="단어 듣기">${SPK}</button><span class="muted">단어 듣기</span></div>
+   ${cmpHTML(x)}
+   ${exHTML(x)}
+   ${lk}
+   <div class="pacts">${act==='view'?'':`<button class="btn" id="popGo">${label}</button>`}${c.suggest?'<button class="btn ghost" id="popAnother">다른 추천</button>':''}
+     <button class="known-btn" id="popKnown" aria-pressed="${known.has(x.id)}">${known.has(x.id)?'외웠어요 ✓':'외웠어요'}</button></div>`;
+}
+function popDo(){const c=popCtx;closePop();
+  if(c.action==='back'){trail=trail.slice(0,c.idx+1);store.set('trail',trail);renderExplore();return}
+  if(!inRange(W[c.id]))setRange(W[c.id].lv);
+  go(c.id,c.reason);if(location.hash!=='#explore')location.hash='explore';window.scrollTo({top:0,behavior:'smooth'})}
+$('#pop').addEventListener('click',e=>{
+  if(e.target.closest('[data-close]')){closePop();return}
+  if(e.target.closest('#popGo')||e.target.closest('#popWord')){popDo();return}
+  if(e.target.closest('#popAnother')){closePop();$('#heroNext').click();return}
+  if(e.target.closest('#popKnown')){const id=popCtx.id;known.has(id)?known.delete(id):known.add(id);saveKnown();renderPop();renderExplore();renderList()}
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#pop').hidden)closePop()});
+
+/* ===== 공통 ===== */
+
+
+$$('#rangeSeg button').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.r===range));
+renderExplore();renderList();qRestart();sRestart();renderCompare();nextCQ();
+window.KK={onShow(v){if(v==='explore')renderExplore();if(v==='list')renderList();if(v==='compare')renderCompare();
+  ['#trailBox','#qChain','#sChain'].forEach(s=>{const el=$(s);const box=el.classList.contains('chainbox')?el:el.parentElement;box.scrollLeft=1e6})}};
+})();
+</script>
+<script>
+(function(){
+const VIEWS=['kana','kanji','compare','explore','quiz','shiritori','list'],RANGED=['compare','explore','quiz','shiritori','list'];
+function saved(){try{return localStorage.getItem('kanada.view')}catch(e){return null}}
+function show(v){if(!VIEWS.includes(v))v=saved();if(!VIEWS.includes(v))v='kana';
+  VIEWS.forEach(x=>{document.getElementById('v-'+x).hidden=x!==v});
+  document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.view===v));
+  document.getElementById('rangeBox').hidden=!RANGED.includes(v);
+  try{localStorage.setItem('kanada.view',v)}catch(e){}
+  if(window.KK)window.KK.onShow(v)}
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{const v=t.dataset.view;if(location.hash!=='#'+v)location.hash=v;else show(v);window.scrollTo({top:0})}));
+window.addEventListener('hashchange',()=>show(location.hash.slice(1)));
+show(location.hash.slice(1));
+})();
+</script>
+</body>
+</html>
