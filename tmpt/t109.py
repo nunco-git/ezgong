@@ -1,41 +1,23 @@
-import os, sys, time, tempfile, json
+import os, sys, time, base64, io
 sys.path.insert(0, "smart-explorer")
 import smart_explorer as S, tkinter as tk
-H = {"User-Agent": "SmartExplorer/test", "Accept": "application/vnd.github+json"}
-r = json.loads(S._wininet_request("https://api.github.com/repos/nunco-git/ezgong/releases?per_page=3", "GET", dict(H), None, 2**21, 10))
-print("wininet GET", len(r), r[0]["tag_name"], flush=True)
-try:
-    S._wininet_request("https://api.github.com/repos/nunco-git/nope-nope", "GET", dict(H), None, 2**20, 10); print("404 FAIL")
-except S.NetHTTPError as e:
-    print("wininet 404 ok", e.code, flush=True)
-b = json.loads(S._wininet_request("https://httpbin.org/anything", "PATCH", {"User-Agent": "t", "Content-Type": "application/json"}, b'{"a": 1}', 2**20, 15))
-print("wininet PATCH", b.get("method"), b.get("json"), flush=True)
-import urllib.request, urllib.error
-def boom(*a, **k): raise urllib.error.URLError("simulated proxy failure")
-urllib.request.urlopen = boom
-r = json.loads(S.net_request("https://api.github.com/repos/nunco-git/ezgong/releases?per_page=2", headers=dict(H)))
-print("fallback ok", len(r), flush=True)
-try:
-    S.net_request("https://nonexistent.invalid/x")
-except Exception as e:
-    print("err text:", S.net_error_text(e), flush=True)
-# browse sort
-d = tempfile.mkdtemp(); d2 = tempfile.mkdtemp()
-for i, n in enumerate(["a.txt", "b.txt", "c.txt"]):
-    p = os.path.join(d, n); open(p, "w").write("x"); os.utime(p, (1e9 + i * 1000, 1e9 + i * 1000))
-os.makedirs(os.path.join(d, "zdir"))
-for i in range(200):
-    open(os.path.join(d2, "f%03d.txt" % i), "w").write("x")
+from PIL import ImageGrab
 inst = S.SingleInstance(); root = tk.Tk(); app = S.App(root, inst)
+def grab(win, tag, full=False):
+    win.update(); time.sleep(0.5); win.update()
+    x, y, w, h = win.winfo_rootx(), win.winfo_rooty(), win.winfo_width(), win.winfo_height()
+    im = ImageGrab.grab((x, y, x + w, y + (h if full else min(h, 700))))
+    b = io.BytesIO(); im.save(b, "PNG")
+    print(tag + ":" + base64.b64encode(b.getvalue()).decode(), flush=True)
 def go():
-    p = app.panes[0]
-    p.navigate(d2); root.update(); p.tree.yview_moveto(0.8); root.update()
-    p.sort_by("name"); root.update()
-    p.navigate(d); root.update()
-    names = [p.hits[i]["name"] for i in p.tree.get_children()]
-    print("order", names, "y", p.tree.yview()[0], flush=True)
-    p.navigate(d2); root.update()
-    print("d2 top", p.tree.yview()[0], [p.hits[i]["name"] for i in p.tree.get_children()][:2], flush=True)
+    dlg = S.SettingsDialog(app)
+    grab(dlg.win, "IMG1", True)
+    dlg.builtin_bg("하늘")
+    print("bg", S.THEME.get("bg_image"), os.path.exists(S.THEME.get("bg_image", "")), flush=True)
+    dlg.ok() if hasattr(dlg, "ok") else None
+    root.update(); time.sleep(0.5)
+    app.panes[0].preview.clear(); root.update()
+    grab(root, "IMG2")
     os._exit(0)
 root.after(2500, go)
 root.after(60000, lambda: os._exit(1))

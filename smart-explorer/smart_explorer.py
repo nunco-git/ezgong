@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.13"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.14"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -5072,6 +5072,103 @@ def theme_dir_color():
 
 _bg_cache = {}
 
+# ───────────── 기본 배경 그림 (프로그램이 직접 그림 — 저작권 걱정 없음) ─────────────
+BUILTIN_BGS = ["하늘", "노을", "숲", "바다", "밤하늘", "종이"]
+BUILTIN_BG_DIR = os.path.join(APP_DIR, "backgrounds")
+
+
+def _grad(size, stops, horizontal=False):
+    """여러 색을 부드럽게 잇는 그라데이션. stops = [(위치 0~1, '#색'), ...]"""
+    w, h = size
+    n = w if horizontal else h
+    line = Image.new("RGB", (n, 1) if horizontal else (1, n))
+    px = line.load()
+    for i in range(n):
+        t = i / max(1, n - 1)
+        for (t0, c0), (t1, c1) in zip(stops, stops[1:]):
+            if t0 <= t <= t1:
+                a, b = _hex_to_rgb(c0), _hex_to_rgb(c1)
+                k = (t - t0) / max(1e-6, t1 - t0)
+                col = tuple(int(a[j] + (b[j] - a[j]) * k) for j in range(3))
+                break
+        else:
+            col = _hex_to_rgb(stops[-1][1])
+        px[(i, 0) if horizontal else (0, i)] = col
+    return line.resize((w, h))
+
+
+def make_builtin_bg(name, size=(1600, 1000)):
+    import random
+    from PIL import ImageDraw, ImageFilter
+    w, h = size
+    rnd = random.Random(name)
+    sc = w / 1600
+    if name == "하늘":
+        im = _grad(size, [(0, "#9ccbf5"), (0.65, "#dcefff"), (1, "#ffffff")])
+        mask = Image.new("L", size, 0)                       # 구름: 모양(투명도)만 흐리게 해서 흰색을 얹음
+        d = ImageDraw.Draw(mask)
+        for _ in range(9):
+            cx, cy = rnd.randint(0, w), rnd.randint(int(h * 0.1), int(h * 0.75))
+            for _ in range(5):
+                rx, ry = rnd.randint(60, 160) * sc, rnd.randint(30, 70) * sc
+                ox, oy = rnd.randint(-120, 120) * sc, rnd.randint(-30, 30) * sc
+                d.ellipse((cx + ox - rx, cy + oy - ry, cx + ox + rx, cy + oy + ry), fill=170)
+        im.paste((255, 255, 255), (0, 0, w, h), mask.filter(ImageFilter.GaussianBlur(18 * sc)))
+    elif name == "노을":
+        im = _grad(size, [(0, "#ff9a76"), (0.45, "#ffc79a"), (0.8, "#ffe6cf"), (1, "#fff6ec")])
+        mask = Image.new("L", size, 0)
+        d = ImageDraw.Draw(mask)
+        r = 170 * sc                                         # 해
+        d.ellipse((w * 0.7 - r, h * 0.62 - r, w * 0.7 + r, h * 0.62 + r), fill=210)
+        im.paste((255, 240, 200), (0, 0, w, h), mask.filter(ImageFilter.GaussianBlur(40 * sc)))
+        d = ImageDraw.Draw(im)                               # 먼 산
+        for k, col in ((0.78, "#e7a383"), (0.86, "#d98d70")):
+            pts = [(0, h)] + [(x, h * k + 40 * sc * __import__("math").sin(x / (180 * sc) + k * 7)) for x in range(0, w + 20, 20)] + [(w, h)]
+            d.polygon(pts, fill=col)
+    elif name == "숲":
+        im = _grad(size, [(0, "#d9efd6"), (0.6, "#a9d4a3"), (1, "#6fae6a")])
+        mask = Image.new("L", size, 0)
+        d = ImageDraw.Draw(mask)
+        for _ in range(40):                                  # 빛망울
+            r = rnd.randint(20, 90) * sc
+            x, y = rnd.randint(0, w), rnd.randint(0, h)
+            d.ellipse((x - r, y - r, x + r, y + r), fill=rnd.randint(40, 110))
+        im.paste((255, 255, 225), (0, 0, w, h), mask.filter(ImageFilter.GaussianBlur(10 * sc)))
+    elif name == "바다":
+        import math
+        im = _grad(size, [(0, "#bfe9f2"), (0.5, "#7fcfe0"), (1, "#3f9fbf")])
+        d = ImageDraw.Draw(im)
+        for i in range(14):                                  # 물결
+            y0 = h * (0.35 + i * 0.05)
+            amp, ph = (8 + i * 1.5) * sc, rnd.random() * 6
+            pts = [(x, y0 + amp * math.sin(x / ((120 + i * 8) * sc) + ph)) for x in range(0, w + 10, 10)]
+            d.line(pts, fill=(255, 255, 255), width=max(1, int(2 * sc)))
+        im = Image.blend(im, _grad(size, [(0, "#bfe9f2"), (0.5, "#7fcfe0"), (1, "#3f9fbf")]), 0.55)
+    elif name == "밤하늘":
+        im = _grad(size, [(0, "#0b1430"), (0.6, "#1c2a55"), (1, "#3a3f6e")])
+        d = ImageDraw.Draw(im)
+        for _ in range(int(260 * sc * sc) + 40):             # 별
+            x, y = rnd.randint(0, w), rnd.randint(0, int(h * 0.9))
+            r = rnd.choice((0.6, 0.8, 1, 1, 1.4, 2)) * sc
+            v = rnd.randint(170, 255)
+            d.ellipse((x - r, y - r, x + r, y + r), fill=(v, v, min(255, v + 20)))
+    else:                                                    # 종이
+        im = Image.new("RGB", size, _hex_to_rgb("#f4ead7"))
+        noise = Image.effect_noise(size, 28).convert("RGB")
+        im = Image.blend(im, noise, 0.06)
+        im = Image.blend(im, _grad(size, [(0, "#fbf5e9"), (1, "#eadcc1")]), 0.5)
+    return im.convert("RGB")
+
+
+def builtin_bg_path(name):
+    """기본 배경 그림 파일 경로 (처음 고를 때 한 번 그려서 저장)"""
+    os.makedirs(BUILTIN_BG_DIR, exist_ok=True)
+    path = os.path.join(BUILTIN_BG_DIR, f"bg_{BUILTIN_BGS.index(name) + 1}.png")
+    if not os.path.exists(path):
+        make_builtin_bg(name).save(path + ".part.png")
+        os.replace(path + ".part.png", path)
+    return path
+
 
 def background_photo(w, h):
     """배경 그림을 (w, h) 크기에 맞춰 만든 tk 그림. 설정이 없거나 못 읽으면 None"""
@@ -5208,6 +5305,26 @@ class SettingsDialog:
         pf.grid(row=0, column=1, columnspan=3, sticky="w", pady=(0, 8))
         for i, name in enumerate(THEME_PRESETS):
             ttk.Button(pf, text=name, command=lambda n=name: self.preset(n)).grid(row=i // 3, column=i % 3, padx=2, pady=2, sticky="ew")
+        if Image is not None:                         # 배경 그림 빠른 선택 (작은 그림을 누르면 바로 골라짐)
+            from PIL import ImageTk
+            gf = ttk.Frame(pf)
+            gf.grid(row=(len(THEME_PRESETS) + 2) // 3, column=0, columnspan=3, sticky="w", pady=(6, 0))
+            ttk.Label(gf, text="배경 그림:").pack(side="left", padx=(2, 4))
+            self._thumbs = []
+            for name in BUILTIN_BGS:
+                try:
+                    th = ImageTk.PhotoImage(make_builtin_bg(name, (72, 45)))
+                except Exception:
+                    continue
+                self._thumbs.append(th)
+                b = tk.Label(gf, image=th, text=name, compound="top", cursor="hand2", font=(FONT[0], fsz(8)),
+                             relief="solid", borderwidth=1, padx=1, pady=1)
+                b.pack(side="left", padx=2)
+                b.bind("<Button-1>", lambda e, n=name: self.builtin_bg(n))
+            nb = tk.Label(gf, text="없음", width=6, height=3, cursor="hand2", relief="solid", borderwidth=1,
+                          font=(FONT[0], fsz(8)))
+            nb.pack(side="left", padx=2)
+            nb.bind("<Button-1>", lambda e: (self.img_var.set(""), self._sync(), self.apply()))
 
         # 글꼴
         ttk.Separator(body).grid(row=1, column=0, columnspan=4, sticky="ew", pady=6)
@@ -5255,7 +5372,7 @@ class SettingsDialog:
         self.dim_var = tk.BooleanVar(value=self.t.get("bg_dim", True))
         ttk.Checkbutton(body, text="흐리게 (글씨가 잘 보이게)", variable=self.dim_var,
                         command=self._sync).grid(row=12, column=2, columnspan=2, sticky="w", pady=(6, 0))
-        ttk.Label(body, text="배경 그림은 미리보기가 비어 있을 때(파일을 고르기 전) 보입니다.",
+        ttk.Label(body, text="배경 그림은 미리보기가 비어 있을 때(파일을 고르기 전) 보입니다. 위 '빠른 선택'에서 기본 그림을 고를 수 있습니다.",
                   foreground="#888").grid(row=13, column=0, columnspan=4, sticky="w", pady=(4, 0))
 
         # 미리보기
@@ -5363,6 +5480,15 @@ class SettingsDialog:
     def reset_color(self, key):
         self.t[key] = ""
         self._refresh()
+
+    def builtin_bg(self, name):
+        try:
+            self.img_var.set(builtin_bg_path(name))
+        except Exception as e:
+            messagebox.showerror(APP_NAME, f"배경 그림을 만들지 못했습니다.\n{e}", parent=self.win)
+            return
+        self._sync()
+        self.apply()                                  # 고르면 바로 미리보기 칸에 보이게
 
     def pick_image(self):
         p = filedialog.askopenfilename(parent=self.win, title="배경 그림 고르기",
