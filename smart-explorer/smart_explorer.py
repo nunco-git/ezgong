@@ -67,11 +67,11 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.11"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.12"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
-UPDATE_CHECK_HOURS = 12        # 새 버전 확인 간격
+UPDATE_CHECK_HOURS = 3         # 새 버전 확인 간격 (켤 때·창을 띄울 때도 확인)
 _LOCAL = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
 APP_DIR = os.path.join(_LOCAL, "SmartExplorer")
 if not os.path.isdir(APP_DIR) and os.path.isdir(os.path.join(_LOCAL, "BodySearch")):
@@ -6499,7 +6499,8 @@ class App:
         saved = self.s.get("update_avail")               # 지난번에 찾아 둔 새 버전 (12시간마다 확인하므로 기억)
         if isinstance(saved, dict) and self._ver_tuple(saved.get("version", "0")) > self._ver_tuple(APP_VERSION):
             self.update_info = saved
-        root.after(8000, self.check_update)
+        root.after(8000, lambda: self.check_update(force=True))   # 켤 때마다 바로 확인
+        root.after(30 * 60 * 1000, self._update_tick)
         root.after(300, self.setup_ole_drop)             # 탐색기·바탕화면에서 끌어 온 파일 받기
         root.bind_all("<FocusIn>", self._focus_in, add="+")
         root.bind_all("<Control-f>", self._focus_query)
@@ -6893,6 +6894,7 @@ class App:
         r.attributes("-topmost", True)
         r.after(300, lambda: r.attributes("-topmost", False))
         r.focus_force()
+        r.after(1500, lambda: self.check_update(within=3600))   # 트레이에서 불러올 때 1시간 넘었으면 다시 확인
         if self.active:
             self.active.query_entry.focus_set()
 
@@ -6990,17 +6992,24 @@ class App:
         nums = re.findall(r"\d+", str(v))[:4]
         return tuple(int(n) for n in nums) + (0,) * (4 - len(nums))
 
-    def check_update(self, manual=False, done=None):
+    def _update_tick(self):
+        """트레이에 늘 켜 두는 프로그램이라 30분마다 '확인할 때가 됐나' 살펴봄 (절전에서 깨어나도 이어짐)"""
+        self.check_update()
+        self.root.after(30 * 60 * 1000, self._update_tick)
+
+    def check_update(self, manual=False, done=None, force=False, within=None):
         """깃허브의 최신 릴리스 버전을 확인. manual=True면 결과를 done(메시지)로 알려 줌"""
         if not GITHUB_REPO:
             if done:
                 done("새 버전 확인 주소(GITHUB_REPO)가 설정돼 있지 않습니다.")
             return
-        if not manual:
+        if not manual and not force:
             last = self.s.get("update_checked", 0)
-            if time.time() - last < UPDATE_CHECK_HOURS * 3600 - 60:
-                self.root.after(3600 * 1000, self.check_update)
+            if time.time() - last < (within or UPDATE_CHECK_HOURS * 3600) - 60:
                 return
+        if getattr(self, "_upd_running", False) and not manual:
+            return
+        self._upd_running = True
 
         def work():
             import urllib.request
@@ -7028,11 +7037,10 @@ class App:
                 self.bgq.put(("update", (info if newer else None, manual)))
             except Exception as e:
                 msg = f"새 버전을 확인하지 못했습니다 (인터넷 연결 확인): {str(e)[:80]}"
+            self._upd_running = False
             if done:
                 self.root.after(0, lambda: done(msg))
         threading.Thread(target=work, daemon=True).start()
-        if not manual:
-            self.root.after(UPDATE_CHECK_HOURS * 3600 * 1000, self.check_update)
 
     def on_update(self, info, manual):
         self.s["update_checked"] = time.time()

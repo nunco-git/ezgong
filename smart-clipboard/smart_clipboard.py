@@ -81,7 +81,7 @@ from tkinter import messagebox
 # 설정
 # ─────────────────────────────────────────────────────────────
 APP_NAME = "스마트클립"
-APP_VERSION = "1.1.4"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
+APP_VERSION = "1.1.5"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
 
 MOD_ALT, MOD_CONTROL, MOD_SHIFT, MOD_WIN, MOD_NOREPEAT = 0x1, 0x2, 0x4, 0x8, 0x4000
 HOTKEY_MODS = MOD_CONTROL | MOD_SHIFT      # 단축키 조합
@@ -1411,7 +1411,7 @@ CONTACT_EMAIL = "smartgongmaster@gmail.com"   # 오류·개선 제안 받는 주
 GITHUB_REPO = "nunco-git/ezgong"              # 새 버전 확인 (깃허브 릴리스)
 RELEASE_TAG_PREFIX = "smartclipboard-v"
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-clipboard"   # 항상 최신 버전 exe
-UPDATE_CHECK_HOURS = 12
+UPDATE_CHECK_HOURS = 3
 
 
 def ver_tuple(v):
@@ -2552,7 +2552,7 @@ class App:
             self.show(None)        # 실행하면 창을 바로 띄움 (트레이 아이콘도 함께 표시)
         self.root.after(50, self.poll)
         self._show_update_btn()
-        self.root.after(5000, self.check_update)
+        self.root.after(5000, lambda: self.check_update(force=True))   # 켤 때마다 확인
 
     # ─────────────────────── 화면 구성 ───────────────────────
     def _build(self):
