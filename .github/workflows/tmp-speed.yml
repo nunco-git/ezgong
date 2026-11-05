@@ -11,4 +11,6 @@ jobs:
         with: { python-version: "3.12" }
       - run: pip install -r smart-explorer/requirements-build.txt
       - env: { PYTHONIOENCODING: utf-8 }
-        run: python tmpt/bench.py
+        run: |
+          python tmpt/idx.py
+          python tmpt/bench.py
