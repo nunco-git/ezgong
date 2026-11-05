@@ -1,52 +1,38 @@
-import os, sys, time, tempfile, queue, threading, base64, io
+import os, sys, time, tempfile, base64, io
 sys.path.insert(0, "smart-explorer")
 import smart_explorer as S, tkinter as tk
+from PIL import ImageGrab
+print("ocr engine", S.ocr_engine() is not None, "no_korean", S._ocr["no_korean"], S._ocr["error"], flush=True)
 d = tempfile.mkdtemp()
-for i in range(30):
-    sub = os.path.join(d, "예산폴더%d" % (i % 3))
-    os.makedirs(sub, exist_ok=True)
-    open(os.path.join(sub, "doc%d.txt" % i), "w", encoding="utf-8").write("내용 %d 예산집행" % i)
-open(os.path.join(d, "예산보고.txt"), "w", encoding="utf-8").write("아무거나")
-# name worker
-q = queue.Queue(); st = threading.Event()
-S.name_worker(d, [S.make_pattern("예산", True)], True, q, st)
-hits = []
-while not q.empty():
-    m = q.get()
-    if m[0] == "hit": hits.append(m[1])
-    if m[0] == "done": print("done", m[1:])
-print("name hits", len(hits), "dirs", sum(h["is_dir"] for h in hits), flush=True)
-print("OK name" if len(hits) == 4 and sum(h["is_dir"] for h in hits) == 3 else "FAIL name", flush=True)
+fp = os.path.join(d, "보고서.txt"); open(fp, "w", encoding="utf-8").write("x")
 inst = S.SingleInstance(); root = tk.Tk(); app = S.App(root, inst)
-print("ocr cfg", app.indexer.cfg.get("ocr"), app.s.get("index_ocr_v109"), flush=True)
-ix = app.indexer
-ix.stop_flag.set(); time.sleep(0.5); ix.stop_flag.clear()
-ix.folders = lambda: [d]
-ix._wait_idle = lambda: True
-ix._pass(); print("pass1 total", ix.total, "read", ix.read, ix.summary(), flush=True)
-ix._pass(); print("pass2 read", ix.read, flush=True)
-p = app.panes[0]
-p.query_var.set("예산")
-def go():
-    p.cwd = d; p.folder_var.set(d); p.start("name")
-    def chk():
-        if p.busy(): return root.after(200, chk)
-        root.after(500, shot)
-    root.after(300, chk)
-def shot():
-    print("pane hits", len(p.hits), p.status_var.get(), flush=True)
-    from PIL import ImageGrab
-    root.update()
-    x, y, w, h = root.winfo_rootx(), root.winfo_rooty(), root.winfo_width(), root.winfo_height()
-    im = ImageGrab.grab((x, y, x + w, y + min(h, 500)))
+def grab(win, tag):
+    win.update(); time.sleep(0.3); win.update()
+    x, y, w, h = win.winfo_rootx(), win.winfo_rooty(), win.winfo_width(), win.winfo_height()
+    im = ImageGrab.grab((x - 8, y - 32, x + w + 8, y + h + 8))
     b = io.BytesIO(); im.save(b, "PNG")
-    print("IMG64:" + base64.b64encode(b.getvalue()).decode(), flush=True)
-    p.start("body")
-    def chk2():
-        if p.busy(): return root.after(200, chk2)
-        print("body hits", len(p.hits), p.status_var.get(), "mode", p.search_mode, flush=True)
-        os._exit(0)
-    root.after(300, chk2)
-root.after(1500, go)
+    print(tag + ":" + base64.b64encode(b.getvalue()).decode(), flush=True)
+def step1():
+    app.ocr_missing(force=True)
+    grab(app._ocr_dlg.win, "IMG1")
+    app._ocr_dlg.close()
+    p = app.panes[0]
+    dlg = S.RenameDialog(p, {"path": fp, "name": "보고서.txt"})
+    dlg.entry.focus_force(); root.update()
+    print("ime", S.ime_match_font(dlg.entry), flush=True)
+    grab(dlg.win, "IMG2")
+    dlg.win.destroy()
+    ix = app.indexer
+    ix.folders = lambda: [d]; ix._wait_idle = lambda: True
+    ix.cfg["ocr"] = True
+    app.s.pop("ocr_nag_at", None)
+    ix._pass()
+    try:
+        while True:
+            k, v = app.bgq.get_nowait(); print("bgq", k, flush=True)
+    except Exception:
+        pass
+    os._exit(0)
+root.after(2000, step1)
 root.after(60000, lambda: os._exit(1))
 root.mainloop()
