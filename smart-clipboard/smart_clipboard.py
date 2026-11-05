@@ -3638,7 +3638,7 @@ class App:
 
         def work():
             try:
-                rels = json.loads(net_request("https://api.github.com/repos/%s/releases?per_page=30" % GITHUB_REPO,
+                rels = json.loads(net_request("https://api.github.com/repos/%s/releases?per_page=100" % GITHUB_REPO,
                                               headers={"User-Agent": "SmartClip/%s" % APP_VERSION,
                                                        "Accept": "application/vnd.github+json"}).decode("utf-8"))
                 mine = [x for x in rels if isinstance(x, dict) and not x.get("draft") and not x.get("prerelease")

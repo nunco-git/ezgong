@@ -7148,7 +7148,7 @@ class App:
         def work():
             msg = None
             try:
-                rels = json.loads(net_request(f"https://api.github.com/repos/{GITHUB_REPO}/releases?per_page=30",
+                rels = json.loads(net_request(f"https://api.github.com/repos/{GITHUB_REPO}/releases?per_page=100",
                                               headers={"User-Agent": f"SmartExplorer/{APP_VERSION}",
                                                        "Accept": "application/vnd.github+json"}).decode("utf-8"))
                 # 이 프로그램 태그(smartexplorer-v1.2.3)가 붙은 정식 릴리스 중 가장 높은 버전
