@@ -1,4 +1,4 @@
-import os, sys, time, base64, io
+import os, sys, time, base64, io, faulthandler; faulthandler.enable()
 sys.path.insert(0, "smart-explorer")
 import smart_explorer as S, tkinter as tk
 from PIL import ImageGrab
@@ -10,7 +10,8 @@ def grab(win, tag, full=False):
     b = io.BytesIO(); im.save(b, "PNG")
     print(tag + ":" + base64.b64encode(b.getvalue()).decode(), flush=True)
 def go():
-    dlg = S.SettingsDialog(app)
+    print("go", flush=True)
+    dlg = S.SettingsDialog(app); print("dlg ok", flush=True)
     grab(dlg.win, "IMG1", True)
     dlg.builtin_bg("하늘")
     print("bg", S.THEME.get("bg_image"), os.path.exists(S.THEME.get("bg_image", "")), flush=True)
@@ -22,3 +23,5 @@ def go():
 root.after(2500, go)
 root.after(60000, lambda: os._exit(1))
 root.mainloop()
+
+print("end", flush=True)

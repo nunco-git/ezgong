@@ -11,4 +11,4 @@ jobs:
         with: { python-version: "3.12" }
       - run: pip install -r smart-explorer/requirements-build.txt
       - env: { PYTHONIOENCODING: utf-8 }
-        run: python tmpt/t109.py
+        run: python tmpt/t109.py; echo "exit=$LASTEXITCODE"
