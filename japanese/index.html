@@ -577,8 +577,32 @@ tr:last-child td{border-bottom:0}
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const SPK='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 6h3l4-3v10l-4-3H2z" fill="currentColor"/><path d="M11 5.5a3.5 3.5 0 0 1 0 5M12.8 3.5a6 6 0 0 1 0 9"/></svg>';
-function speak(t,lang){try{const u=new SpeechSynthesisUtterance(t);u.lang=lang||'ja-JP';u.rate=.85;const v=speechSynthesis.getVoices().find(v=>v.lang&&v.lang.replace('_','-').startsWith((lang||'ja-JP').slice(0,2)));if(v)u.voice=v;speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){}}
-try{speechSynthesis.getVoices();}catch(e){}
+/* 소리: 기기 음성 → (없거나 1.8초 안에 시작 안 하면) 인터넷 음성 */
+const TTS={el:new Audio(),loaded:false,u:null};
+function voicesNow(){try{const v=speechSynthesis.getVoices();if(v.length)TTS.loaded=true;return v}catch(e){return[]}}
+try{if('speechSynthesis' in window){voicesNow();speechSynthesis.addEventListener&&speechSynthesis.addEventListener('voiceschanged',voicesNow)}}catch(e){}
+function pickVoice(lang){const vs=voicesNow(),p=lang.slice(0,2).toLowerCase(),nm=p==='ja'?/japan|日本/i:/chinese|中文|普通话|mandarin/i;
+  return vs.find(v=>v.lang&&v.lang.replace('_','-').toLowerCase()===lang.toLowerCase())||vs.find(v=>v.lang&&v.lang.toLowerCase().startsWith(p))||vs.find(v=>nm.test(v.name))||null}
+function sayToast(m,ms){let t=document.getElementById('sayToast');if(!t){t=document.createElement('div');t.id='sayToast';t.setAttribute('role','status');
+  t.style.cssText='position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--sheet);padding:10px 16px;border-radius:10px;font-size:13px;line-height:1.5;z-index:60;max-width:min(92vw,520px);text-align:center';document.body.appendChild(t)}
+  t.textContent=m;t.hidden=false;clearTimeout(t._h);t._h=setTimeout(()=>{t.hidden=true},ms||3000)}
+function tryPlay(src,ms,ok,fail){const el=TTS.el;let good=false,dead=false;const bad=()=>{if(dead||good)return;dead=true;fail()};
+  el.onplaying=()=>{if(!good){good=true;ok&&ok()}};el.onerror=bad;
+  try{el.src=src;const p=el.play();if(p&&p.catch)p.catch(bad)}catch(e){bad();return}
+  setTimeout(()=>{if(!good){try{el.pause()}catch(e){}bad()}},ms)}
+function sayOnline(t,lang){const q=encodeURIComponent(t),zh=lang.startsWith('zh');
+  const urls=['https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl='+(zh?'zh-CN':'ja')+'&q='+q,'https://dict.youdao.com/dictvoice?le='+(zh?'zh':'jap')+'&audio='+q];
+  let i=0;const next=()=>{if(i>=urls.length){sayToast(zh?'중국어 음성을 재생할 수 없어요. 기기 설정에서 중국어 음성을 추가해 주세요.':'일본어 음성을 재생할 수 없어요. 윈도우는 설정 > 시간 및 언어 > 음성에서 일본어 음성을, 안드로이드는 설정 > 텍스트 음성 변환에서 일본어 음성 데이터를 추가해 주세요.',7000);return}
+    tryPlay(urls[i++],2500,null,next)};next()}
+function speak(t,lang){lang=lang||'ja-JP';try{TTS.el.pause()}catch(e){}
+  let started=false,moved=false;const fb=()=>{if(started||moved)return;moved=true;try{speechSynthesis.cancel()}catch(e){}sayOnline(t,lang)};
+  if(!('speechSynthesis' in window)){fb();return}
+  const v=pickVoice(lang);
+  if(!v&&TTS.loaded){fb();return}
+  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang=v?v.lang:lang;if(v)u.voice=v;u.rate=.85;
+    u.onstart=()=>{started=true};u.onerror=fb;TTS.u=u;
+    setTimeout(()=>{try{speechSynthesis.resume();speechSynthesis.speak(u)}catch(e){fb()}},60);setTimeout(fb,1800)}catch(e){fb()}}
+window.SAY=speak;
 const store={get(k,d){try{const v=localStorage.getItem('kanada.'+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem('kanada.'+k,JSON.stringify(v))}catch(e){}}};
 const toKata=s=>s.replace(/[ぁ-ゖ]/g,c=>String.fromCharCode(c.charCodeAt(0)+0x60));
 const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
@@ -781,8 +805,7 @@ renderGrid();renderDetail();nextKana();updKq();nextRule();
 (function(){
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const SPK='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 6h3l4-3v10l-4-3H2z" fill="currentColor"/><path d="M11 5.5a3.5 3.5 0 0 1 0 5M12.8 3.5a6 6 0 0 1 0 9"/></svg>';
-function speak(t){try{const u=new SpeechSynthesisUtterance(t);u.lang='ja-JP';u.rate=.85;const v=speechSynthesis.getVoices().find(v=>/^ja/i.test(v.lang));if(v)u.voice=v;speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
-try{speechSynthesis.getVoices()}catch(e){}
+function speak(t){if(window.SAY)window.SAY(t,'ja-JP')}
 const store={get(k,d){try{const v=localStorage.getItem('kkori.'+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem('kkori.'+k,JSON.stringify(v))}catch(e){}}};
 const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const pick=a=>a[Math.floor(Math.random()*a.length)];
