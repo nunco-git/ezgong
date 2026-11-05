@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.7"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.8"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -1200,6 +1200,18 @@ class Cache:
                 self.con.commit()
         return len(gone)
 
+    def get_many(self, keys):
+        """여러 파일 기록을 한 번에: {key: (mtime, size, text_blob, err, pend)}"""
+        out = {}
+        keys = list(keys)
+        with self.lock:
+            for i in range(0, len(keys), 400):
+                part = keys[i:i + 400]
+                q = "SELECT path, mtime, size, text, err, pend FROM docs WHERE path IN (%s)" % ",".join("?" * len(part))
+                for path, mtime, size, text, err, pend in self.con.execute(q, part):
+                    out[path] = (mtime, size, text, err, pend)
+        return out
+
     def commit(self):
         with self.lock:
             self.con.commit()
@@ -1286,69 +1298,108 @@ def iter_files(root, recursive):
             return
 
 
+def iter_entries(root, recursive):
+    """(경로, 이름, 수정시각, 크기) — 폴더 목록을 읽을 때 함께 오는 정보를 써서 파일마다 따로 묻지 않음
+    (공유 폴더·네트워크 드라이브에서 특히 빠름)"""
+    stack = [root]
+    while stack:
+        d = stack.pop()
+        try:
+            with os.scandir(d) as it:
+                subs = []
+                for e in it:
+                    try:
+                        if e.is_dir(follow_symlinks=False):
+                            if recursive and e.name.lower() not in SKIP_DIRS:
+                                subs.append(e.path)
+                            continue
+                        if not e.is_file():
+                            continue
+                        st = e.stat()
+                        yield e.path, e.name, st.st_mtime, st.st_size
+                    except OSError:
+                        continue
+        except OSError:
+            continue
+        stack.extend(reversed(subs))
+
+
 def search_worker(root, pats, exts, recursive, name_search, out_q, stop, cache, ocr=False):
     scanned = errors = found = 0
     if ocr and ocr_engine() is None:      # OCR을 못 쓰는 PC면 알리고 일반 검색만
         out_q.put(("warn", _ocr["error"]))
         ocr = False
     last = time.time()
-    for path in iter_files(root, recursive):
+    batch = []
+
+    def emit(path, name, mtime, count=0, snippets=(), name_hit=False):
+        out_q.put(("hit", {
+            "path": path, "name": name, "folder": os.path.dirname(path),
+            "mtime": datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M"),
+            "count": count, "snippets": list(snippets), "name_hit": name_hit}))
+
+    def flush():
+        """모아 둔 파일들의 색인을 한 번에 꺼내 와서 찾기"""
+        nonlocal scanned, errors, found, last
+        if not batch:
+            return False
+        rows = cache.get_many(Cache.key(b[0]) for b in batch)
+        for path, name, ext, mtime, size in batch:
+            if stop.is_set():
+                return True
+            row = rows.get(Cache.key(path))
+            if row and row[0] == mtime and row[1] == size and not (ocr and row[4]):
+                try:
+                    text, err = zlib.decompress(row[2]).decode("utf-8", "ignore"), row[3]
+                except Exception:
+                    text, err = "", "기록 손상"
+            else:
+                pend = False
+                try:
+                    text, pend = extract_text(path, ocr, lambda m: out_q.put(("progress", scanned, m)), stop)
+                    err = ""
+                except StopSearch:
+                    return True                             # 중간에 멈춘 OCR 결과는 저장하지 않음
+                except Exception as e:
+                    text, err = "", str(e)[:200]
+                cache.put(path, mtime, size, text, err, pend)
+            scanned += 1
+            if err:
+                errors += 1
+            count, snippets = match_text(text, pats, ext in ARCHIVE_EXTS)
+            name_hit = name_search and all(p.search(name) for p in pats)
+            if count or name_hit:
+                found += 1
+                emit(path, name, mtime, count, snippets, name_hit)
+            if time.time() - last > 0.2:
+                last = time.time()
+                out_q.put(("progress", scanned, path))
+                cache.commit()
+        batch.clear()
+        return False
+
+    for path, name, mtime, size in iter_entries(root, recursive):
         if stop.is_set():
             break
-        name = os.path.basename(path)
         ext = os.path.splitext(name)[1].lower()
         if name.startswith("~$"):
             continue
         if ext not in exts:
             # '기타 모든 파일'은 내용은 읽지 않고 이름만 비교
             if "*" in exts and (ext not in KNOWN_EXTS) and all(p.search(name) for p in pats):
-                try:
-                    st = os.stat(path)
-                except OSError:
-                    continue
                 found += 1
-                out_q.put(("hit", {
-                    "path": path, "name": name, "folder": os.path.dirname(path),
-                    "mtime": datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d %H:%M"),
-                    "count": 0, "snippets": [], "name_hit": True}))
+                emit(path, name, mtime, name_hit=True)
             continue
-        try:
-            st = os.stat(path)
-        except OSError:
+        if size > (MAX_ARCHIVE_SIZE if ext in ARCHIVE_EXTS else MAX_FILE_SIZE):
             continue
-        if st.st_size > (MAX_ARCHIVE_SIZE if ext in ARCHIVE_EXTS else MAX_FILE_SIZE):
-            continue
-        cached = cache.get(path, st.st_mtime, st.st_size, ocr)
-        if cached is None:
-            pend = False
-            try:
-                text, pend = extract_text(path, ocr, lambda m: out_q.put(("progress", scanned, m)), stop)
-                err = ""
-            except StopSearch:
-                break                                       # 중간에 멈춘 OCR 결과는 저장하지 않음
-            except Exception as e:
-                text, err = "", str(e)[:200]
-            cache.put(path, st.st_mtime, st.st_size, text, err, pend)
-        else:
-            text, err = cached
-        scanned += 1
-        if err:
-            errors += 1
-        count, snippets = match_text(text, pats, ext in ARCHIVE_EXTS)
-        name_hit = name_search and all(p.search(name) for p in pats)
-        if count or name_hit:
-            found += 1
-            out_q.put(("hit", {
-                "path": path, "name": name, "folder": os.path.dirname(path),
-                "mtime": datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d %H:%M"),
-                "count": count, "snippets": snippets, "name_hit": name_hit,
-            }))
-        if time.time() - last > 0.2:
-            last = time.time()
-            out_q.put(("progress", scanned, path))
-            cache.commit()
+        batch.append((path, name, ext, mtime, size))
+        if len(batch) >= 200 and flush():
+            break
+    else:
+        flush()
     cache.commit()
     out_q.put(("done", scanned, errors, stop.is_set()))
+
 
 
 # ───────────── 원래 모양 미리보기 (탐색기와 같은 윈도우 미리보기 처리기) ─────────────
@@ -5708,24 +5759,25 @@ class IdleIndexer:
         files = []
         seen = {f: set() for f in folders}
         for f in folders:
-            for path in iter_files(f, True):
+            for path, name, mtime, size in iter_entries(f, True):   # 목록과 함께 오는 크기·시각을 씀 (빠름)
                 if self.stop_flag.is_set():
                     return
                 seen[f].add(cache.key(path))          # 있는 파일은 모두 기억 (지워진 것만 정리하려고)
-                ext = os.path.splitext(path)[1].lower()
-                if ext in KNOWN_EXTS and ext not in INDEX_SKIP_EXTS and not os.path.basename(path).startswith("~$"):
-                    files.append(path)
+                ext = os.path.splitext(name)[1].lower()
+                if ext in KNOWN_EXTS and ext not in INDEX_SKIP_EXTS and not name.startswith("~$"):
+                    files.append((path, mtime, size))
         self.total = len(files)
         ocr = bool(self.cfg.get("ocr")) and ocr_engine() is not None
-        for i, path in enumerate(files):
+
+        class _St:
+            __slots__ = ("st_mtime", "st_size")
+        for i, (path, mtime, size) in enumerate(files):
             if not self._wait_idle():
                 return
             self.state = "색인 중"
             self.done = i
-            try:
-                st = os.stat(path)
-            except OSError:
-                continue
+            st = _St()
+            st.st_mtime, st.st_size = mtime, size
             ext = os.path.splitext(path)[1].lower()
             if st.st_size > (MAX_ARCHIVE_SIZE if ext in ARCHIVE_EXTS else MAX_FILE_SIZE):
                 continue
