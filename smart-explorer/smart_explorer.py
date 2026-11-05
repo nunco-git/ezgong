@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.8"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.9"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -1200,6 +1200,18 @@ class Cache:
                 self.con.commit()
         return len(gone)
 
+    def sigs_many(self, keys):
+        """여러 파일의 (수정시각, 크기, 글자인식 대기) — 내용은 꺼내지 않아 가벼움"""
+        out = {}
+        keys = list(keys)
+        with self.lock:
+            for i in range(0, len(keys), 400):
+                part = keys[i:i + 400]
+                q = "SELECT path, mtime, size, pend FROM docs WHERE path IN (%s)" % ",".join("?" * len(part))
+                for path, mtime, size, pend in self.con.execute(q, part):
+                    out[path] = (mtime, size, pend)
+        return out
+
     def get_many(self, keys):
         """여러 파일 기록을 한 번에: {key: (mtime, size, text_blob, err, pend)}"""
         out = {}
@@ -1298,9 +1310,9 @@ def iter_files(root, recursive):
             return
 
 
-def iter_entries(root, recursive):
+def iter_entries(root, recursive, dirs=False):
     """(경로, 이름, 수정시각, 크기) — 폴더 목록을 읽을 때 함께 오는 정보를 써서 파일마다 따로 묻지 않음
-    (공유 폴더·네트워크 드라이브에서 특히 빠름)"""
+    (공유 폴더·네트워크 드라이브에서 특히 빠름). dirs=True면 폴더도 내보냄(크기 -1)"""
     stack = [root]
     while stack:
         d = stack.pop()
@@ -1312,6 +1324,8 @@ def iter_entries(root, recursive):
                         if e.is_dir(follow_symlinks=False):
                             if recursive and e.name.lower() not in SKIP_DIRS:
                                 subs.append(e.path)
+                            if dirs:
+                                yield e.path, e.name, e.stat(follow_symlinks=False).st_mtime, -1
                             continue
                         if not e.is_file():
                             continue
@@ -1322,6 +1336,26 @@ def iter_entries(root, recursive):
         except OSError:
             continue
         stack.extend(reversed(subs))
+
+
+def name_worker(root, pats, recursive, out_q, stop):
+    """파일명 검색: 문서 내용은 읽지 않고 파일·폴더 이름만 비교 (아주 빠름)"""
+    scanned = found = 0
+    last = time.time()
+    for path, name, mtime, size in iter_entries(root, recursive, dirs=True):
+        if stop.is_set():
+            break
+        scanned += 1
+        if all(p.search(name) for p in pats):
+            found += 1
+            out_q.put(("hit", {
+                "path": path, "name": name, "folder": os.path.dirname(path),
+                "mtime": datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M"),
+                "count": 0, "snippets": [], "name_hit": True, "is_dir": size < 0}))
+        if time.time() - last > 0.2:
+            last = time.time()
+            out_q.put(("progress", scanned, path))
+    out_q.put(("done", scanned, 0, stop.is_set()))
 
 
 def search_worker(root, pats, exts, recursive, name_search, out_q, stop, cache, ocr=False):
@@ -3073,7 +3107,7 @@ class BatchRenameDialog:
 
 
 # ───────────────────────── 검색 칸(분할 화면 하나) ─────────────────────────
-OPTION_LABELS = [("recursive", "하위 폴더 포함", True), ("name_search", "파일명도 검색", True),
+OPTION_LABELS = [("recursive", "하위 폴더 포함", True), ("name_search", "본문 검색 때 파일명도 함께", True),
                  ("ignore_space", "띄어쓰기 무시", True), ("ocr", "스캔 PDF 글자 인식", True),
                  ("shell_preview", "원래 모양 미리보기", True)]
 
@@ -3565,18 +3599,21 @@ class SearchPane(tk.Frame):
         self.query_var = tk.StringVar(value=st.get("query", ""))
         self.query_entry = ttk.Entry(r2, textvariable=self.query_var, font=(FONT[0], fsz(11)))
         self.query_entry.pack(side="left", fill="x", expand=True, ipady=1)
-        self.query_entry.bind("<Return>", lambda e: self.start())
+        self.search_mode = st.get("search_mode", "body")     # Enter = 마지막에 누른 검색 버튼
+        self.query_entry.bind("<Return>", lambda e: self.start(self.search_mode))
         self.query_entry.bind("<Escape>", lambda e: self.clear_search())
         # 비어 있을 때 보이는 안내 글
-        self.ph = tk.Label(self.query_entry, text="찾을 단어 입력 후 Enter — 파일명과 문서 내용을 함께 찾습니다",
+        self.ph = tk.Label(self.query_entry, text="찾을 단어 입력 후 [파일명 검색] 또는 [본문 추가 검색]",
                            fg="#9a9a9a", bg="white", font=(FONT[0], fsz(10)), cursor="xterm")
         self.ph.bind("<Button-1>", lambda e: self.query_entry.focus_set())
         self.query_entry.bind("<FocusIn>", lambda e: self._placeholder(), add="+")
         self.query_entry.bind("<FocusOut>", lambda e: self._placeholder(), add="+")
         self.query_var.trace_add("write", lambda *a: self._placeholder())
         self.after_idle(self._placeholder)
-        self.search_btn = ttk.Button(r2, text="🔍 파일명 및 본문 내용 검색", style="Accent.TButton", command=self.start)
-        self.search_btn.pack(side="left", padx=(4, 0))
+        self.name_btn = ttk.Button(r2, text="🔍 파일명 검색", command=lambda: self.start("name"))
+        self.name_btn.pack(side="left", padx=(4, 0))
+        self.search_btn = ttk.Button(r2, text="📄 본문 추가 검색", style="Accent.TButton", command=lambda: self.start("body"))
+        self.search_btn.pack(side="left", padx=(2, 0))
         self.stop_btn = ttk.Button(r2, text="중지", width=5, command=self.stop, state="disabled")
         self.stop_btn.pack(side="left", padx=(2, 0))
         self.clear_btn = ttk.Button(r2, text="✕", width=3, command=self.clear_search)
@@ -3697,6 +3734,7 @@ class SearchPane(tk.Frame):
         except Exception:
             tab = 0
         return {"folder": self.folder_var.get(), "query": self.query_var.get(), "tab": tab,
+                "search_mode": self.search_mode,
                 "pinned": self.pinned_var.get(), "cwd": self.cwd or "", "preview_hidden": self.preview_hidden,
                 "hide_dirs": self.hide_dirs,
                 "sash_side": (self._sash_pos() if self.side_preview else self._sashes.get("side")),
@@ -4006,9 +4044,16 @@ class SearchPane(tk.Frame):
         return "break"
 
     # ───────── 검색 ─────────
-    def start(self):
+    def start(self, mode=None):
         if self.busy():
             return
+        mode = mode or self.search_mode
+        if mode != self.search_mode:
+            self.search_mode = mode
+            try:
+                self.app.schedule_save()
+            except Exception:
+                pass
         if not parse_query(self.query_var.get()):
             self.clear_search()                       # 검색어가 비면 폴더 둘러보기로
             return
@@ -4022,7 +4067,7 @@ class SearchPane(tk.Frame):
         for lb, ex, _ in TYPE_GROUPS:
             if self.type_vars[lb].get():
                 exts.update(ex)
-        if not exts:
+        if not exts and mode == "body":
             self.status_var.set("옵션에서 파일 종류를 하나 이상 선택하세요.")
             return
         o = {k: v.get() for k, v in self.opt_vars.items()}
@@ -4036,12 +4081,17 @@ class SearchPane(tk.Frame):
         self.stop_event = threading.Event()
         self.q = queue.Queue()
         self.warn = ""
-        self.worker = threading.Thread(target=search_worker, daemon=True, args=(
-            folder, self.pats, exts, o["recursive"], o["name_search"], self.q, self.stop_event,
-            self.app.cache, o["ocr"]))
+        if mode == "name":
+            self.worker = threading.Thread(target=name_worker, daemon=True, args=(
+                folder, self.pats, o["recursive"], self.q, self.stop_event))
+        else:
+            self.worker = threading.Thread(target=search_worker, daemon=True, args=(
+                folder, self.pats, exts, o["recursive"], o["name_search"], self.q, self.stop_event,
+                self.app.cache, o["ocr"]))
         self.t0 = time.time()
         self.worker.start()
         self.search_btn.configure(state="disabled")
+        self.name_btn.configure(state="disabled")
         self.stop_btn.configure(state="normal")
         self.progress.pack(side="left", padx=(0, 4), before=self.opt_btn)
         self.progress.start(12)
@@ -4072,6 +4122,7 @@ class SearchPane(tk.Frame):
                     self.progress.stop()
                     self.progress.pack_forget()
                     self.search_btn.configure(state="normal")
+                    self.name_btn.configure(state="normal")
                     self.stop_btn.configure(state="disabled")
                     if self.mode == "search":
                         txt = f"{'중지됨' if stopped else '완료'}: {scanned:,}개 중 {len(self.hits):,}개 찾음 ({time.time() - self.t0:.1f}초) · Esc = 폴더로"
@@ -4104,7 +4155,8 @@ class SearchPane(tk.Frame):
         iid = str(len(self.hits))
         h.setdefault("is_dir", False)
         self.hits[iid] = h
-        self.tree.insert("", "end", iid=iid, values=(h["name"], h["count"] or "이름", h["mtime"], h["folder"]))
+        self.tree.insert("", "end", iid=iid, values=(h["name"], h["count"] or ("폴더" if h["is_dir"] else "이름"),
+                                                      h["mtime"], h["folder"]))
 
     def sort_by(self, col):
         rev = self.sort_state.get(col, col in ("count", "mtime"))
@@ -5642,8 +5694,8 @@ class AlarmDialog:
 
 
 # ───────────── 쉬는 동안 색인 (문서 내용을 미리 읽어 두기) ─────────────
-DEFAULT_INDEX = {"enabled": True, "folders": [], "idle_min": 3, "every_hours": 2, "ocr": False}
-INDEX_SKIP_EXTS = set(IMAGE_EXTS)              # 그림은 글자 인식이 무거워서 색인에서 뺌
+DEFAULT_INDEX = {"enabled": True, "folders": [], "idle_min": 3, "every_hours": 2, "ocr": True}
+INDEX_SKIP_EXTS = set(IMAGE_EXTS)              # 글자 인식을 끄면 그림은 색인에서 뺌
 
 
 def user_idle_seconds():
@@ -5691,6 +5743,9 @@ class IdleIndexer:
 
     def __init__(self, app):
         self.app = app
+        if not app.s.get("index_ocr_v109"):          # 1.0.9부터 스캔 PDF·그림 글자 인식도 미리 색인 (한 번만 켜 줌)
+            app.s["index"] = dict(app.s.get("index", {}), ocr=True)
+            app.s["index_ocr_v109"] = True
         self.cfg = dict(DEFAULT_INDEX, **app.s.get("index", {}))
         self.state = "대기"          # 대기 · 색인 중 · 잠시 멈춤 · 완료
         self.done = 0
@@ -5753,8 +5808,12 @@ class IdleIndexer:
                 self.force.wait(30)
 
     def _pass(self):
+        """1단계: 본문 글자를 빠르게 모두 읽어 둠 → 2단계: 스캔 PDF·그림을 글자 인식(OCR)"""
         cache = self.app.cache
         folders = self.folders()
+        ocr = bool(self.cfg.get("ocr")) and ocr_engine() is not None
+        skip = set() if ocr else INDEX_SKIP_EXTS
+        self.phase = "본문"
         self.state, self.done, self.total, self.read = "목록 만드는 중", 0, 0, 0
         files = []
         seen = {f: set() for f in folders}
@@ -5764,40 +5823,57 @@ class IdleIndexer:
                     return
                 seen[f].add(cache.key(path))          # 있는 파일은 모두 기억 (지워진 것만 정리하려고)
                 ext = os.path.splitext(name)[1].lower()
-                if ext in KNOWN_EXTS and ext not in INDEX_SKIP_EXTS and not name.startswith("~$"):
+                if ext in KNOWN_EXTS and ext not in skip and not name.startswith("~$") \
+                        and size <= (MAX_ARCHIVE_SIZE if ext in ARCHIVE_EXTS else MAX_FILE_SIZE):
                     files.append((path, mtime, size))
         self.total = len(files)
-        ocr = bool(self.cfg.get("ocr")) and ocr_engine() is not None
+        sigs = cache.sigs_many(cache.key(p) for p, _, _ in files)
+        need_ocr = []
 
-        class _St:
-            __slots__ = ("st_mtime", "st_size")
+        def read_one(path, mtime, size, use_ocr):
+            try:
+                text, pend = extract_text(path, use_ocr, None, self.stop_flag)
+                err = ""
+            except StopSearch:
+                return None
+            except Exception as e:
+                text, pend, err = "", False, str(e)[:200]
+            cache.put(path, mtime, size, text, err, pend)
+            self.read += 1
+            if self.read % 20 == 0:
+                cache.commit()
+            time.sleep(0.01)                       # 다른 일에 양보
+            return pend
+
         for i, (path, mtime, size) in enumerate(files):
             if not self._wait_idle():
                 return
             self.state = "색인 중"
             self.done = i
-            st = _St()
-            st.st_mtime, st.st_size = mtime, size
-            ext = os.path.splitext(path)[1].lower()
-            if st.st_size > (MAX_ARCHIVE_SIZE if ext in ARCHIVE_EXTS else MAX_FILE_SIZE):
-                continue
-            if cache.fresh(path, st.st_mtime, st.st_size):
-                continue
-            try:
-                text, pend = extract_text(path, ocr, None, self.stop_flag)
-                err = ""
-            except StopSearch:
-                return
-            except Exception as e:
-                text, pend, err = "", False, str(e)[:200]
-            cache.put(path, st.st_mtime, st.st_size, text, err, pend)
-            self.read += 1
-            if self.read % 20 == 0:
-                cache.commit()
-            time.sleep(0.01)                       # 다른 일에 양보
+            sig = sigs.get(cache.key(path))
+            if sig and sig[0] == mtime and sig[1] == size:   # 내용이 그대로면 다시 읽지 않음
+                pend = bool(sig[2])
+            else:
+                pend = read_one(path, mtime, size, False)   # 글자 인식은 뒤로 미루고 본문부터 빠르게
+                if pend is None:
+                    return
+            if pend and ocr:
+                need_ocr.append((path, mtime, size))
         cache.commit()
+        if ocr and need_ocr:                       # 2단계: 스캔 PDF·그림 글자 인식
+            self.phase = "글자 인식"
+            self.done, self.total = 0, len(need_ocr)
+            for i, (path, mtime, size) in enumerate(need_ocr):
+                if not self._wait_idle():
+                    return
+                self.state = "색인 중"
+                self.done = i
+                if read_one(path, mtime, size, True) is None:
+                    return
+            cache.commit()
         for f in folders:                          # 지워진 파일 기록 정리
             cache.forget_missing(f, seen[f])
+        self.phase = "본문"
         self.done = self.total
         self.state = "완료"
         self.last_finish = time.time()
@@ -5806,7 +5882,8 @@ class IdleIndexer:
     def summary(self):
         if self.state in ("색인 중", "잠시 멈춤") and self.total:
             pct = int(self.done * 100 / self.total)
-            return f"🗂 색인 {pct}%" + (" (쉬는 동안 이어서)" if self.state == "잠시 멈춤" else "")
+            what = "글자 인식" if getattr(self, "phase", "본문") == "글자 인식" else "색인"
+            return f"🗂 {what} {pct}%" + (" (쉬는 동안 이어서)" if self.state == "잠시 멈춤" else "")
         if self.state == "목록 만드는 중":
             return "🗂 색인 준비 중"
         if self.last_finish:
@@ -5844,8 +5921,8 @@ class IndexDialog:
         self.every = tk.StringVar(value=str(c.get("every_hours", 2)))
         ttk.Spinbox(rf, from_=1, to=48, width=4, textvariable=self.every).pack(side="left", padx=4)
         ttk.Label(rf, text="시간마다 새로 바뀐 파일 확인").pack(side="left")
-        self.ocr = tk.BooleanVar(value=c.get("ocr", False))
-        ttk.Checkbutton(b, text="스캔 PDF도 글자 인식해서 색인 (오래 걸림)", variable=self.ocr).grid(
+        self.ocr = tk.BooleanVar(value=c.get("ocr", True))
+        ttk.Checkbutton(b, text="스캔 PDF·그림 글자도 미리 인식해서 색인 (본문을 다 읽은 뒤 천천히)", variable=self.ocr).grid(
             row=4, column=0, columnspan=3, sticky="w", pady=(4, 0))
 
         ttk.Label(b, text="색인할 폴더", font=bold).grid(row=5, column=0, columnspan=3, sticky="w", pady=(10, 2))
@@ -5925,13 +6002,15 @@ CONTACT_EMAIL = "smartgongmaster@gmail.com"   # 오류·개선 제안 받는 주
 INTRO_LINE = "파일명 + 본문 내용까지 검색  ·  PDF·엑셀·PPT·워드·이미지·압축파일 미리보기 (한글은 1쪽 미리보기)"
 GUIDE = [
     ("스마트탐색기  v" + APP_VERSION, "화면을 여러 칸으로 나눠 쓰는 탐색기에, 파일 이름은 물론 문서 안의 내용까지 찾아 주는 검색 기능을 더한 프로그램입니다."),
-    ("🔍 파일명 및 본문 내용 검색",
-     "검색어 칸에 찾을 말을 넣고 Enter(또는 [파일명 및 본문 내용 검색] 버튼).\n"
+    ("🔍 파일명 검색 · 📄 본문 추가 검색",
+     "검색어 칸에 찾을 말을 넣고 버튼을 고르세요. Enter는 마지막에 누른 버튼과 같게 검색합니다.\n"
+     "· [🔍 파일명 검색] 파일·폴더 이름만 찾습니다. 문서를 열지 않아 아주 빠릅니다.\n"
+     "· [📄 본문 추가 검색] 파일 이름 + 문서 안의 내용까지 찾습니다.\n"
      "· 한글(HWP·HWPX), 워드, 엑셀, 파워포인트, PDF, 텍스트, 메일(EML), 압축파일 속 문서까지 내용으로 찾습니다.\n"
      "· 여러 단어를 띄어 쓰면 모두 들어 있는 파일, \"따옴표\"로 묶으면 그 구절 그대로 찾습니다.\n"
      "· '띄어쓰기 무시'가 켜져 있으면 '예산집행'으로 '예산 집행'도 찾습니다.\n"
      "· 옵션에서 스캔 PDF·이미지 글자 인식, 파일 종류 선택, 하위 폴더 포함 여부를 정할 수 있습니다.\n"
-     "· 한 번 읽은 문서는 기억해 두어 두 번째 검색부터 빨라집니다.\n"
+     "· 쉬는 동안 바탕화면·문서·다운로드(와 📌 고정 폴더)의 본문, 스캔 PDF·그림 글자까지 미리 읽어 두어(색인) 검색이 빠릅니다.\n"
      "· 검색어를 지우거나 Esc를 누르면 다시 폴더 보기로 돌아옵니다."),
     ("👁 미리보기",
      "· PDF, 엑셀, 파워포인트, 워드, 이미지, 압축파일 내용을 바로 볼 수 있습니다.\n"
