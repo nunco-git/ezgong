@@ -8,7 +8,9 @@ def grab(win, tag, full=False):
     x, y, w, h = win.winfo_rootx(), win.winfo_rooty(), win.winfo_width(), win.winfo_height()
     print("g4", x, y, w, h, flush=True); im = ImageGrab.grab((x, y, x + w, y + (h if full else min(h, 700))))
     im = im.convert("RGB"); im.thumbnail((900, 900)); b = io.BytesIO(); im.save(b, "JPEG", quality=70)
-    print(tag + ":" + base64.b64encode(b.getvalue()).decode(), flush=True)
+    enc = base64.b64encode(b.getvalue()).decode()
+    for i in range(0, len(enc), 4000):
+        print(tag + ":" + enc[i:i + 4000], flush=True)
 def go():
     print("go", flush=True)
     dlg = S.SettingsDialog(app); print("dlg ok", flush=True)
