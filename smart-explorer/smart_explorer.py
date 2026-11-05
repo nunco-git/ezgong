@@ -608,7 +608,7 @@ def ocr_engine(recheck=False):
             if eng is None:
                 _ocr["no_korean"] = True           # 한국어 OCR 미설치 → 설치 안내 창
                 _ocr["error"] = "윈도우 한국어 OCR이 설치되어 있지 않음"
-                eng = OcrEngine.try_create_from_user_profile_languages()
+                # 영어 OCR로 한글을 읽으면 엉뚱한 글자가 저장되므로, 한국어 OCR을 설치할 때까지 미룸
             if eng is None:
                 raise RuntimeError("윈도우 한국어 OCR이 설치되어 있지 않음")
             _ocr["engine"] = eng
