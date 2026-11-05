@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.12"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.13"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -1228,6 +1228,130 @@ def extract_text(path, ocr=False, progress=None, stop=None, nested=False):
     return (t or ""), False
 
 
+# ───────────── 인터넷 연결 (파이썬 방식 → 안 되면 윈도우 방식) ─────────────
+# 회사·기관 PC는 프록시(자동 구성 스크립트)나 보안 프로그램의 인증서 때문에 파이썬 방식(urllib)이
+# "urlopen error"로 실패하는 일이 많음. 그때는 인터넷 익스플로러·엣지와 같은 윈도우 설정(WinINet)으로 다시 시도.
+_WININET_ERRORS = {
+    12002: "응답 시간 초과", 12007: "인터넷 주소를 찾지 못함(DNS)", 12029: "서버에 연결할 수 없음(방화벽·차단)",
+    12030: "연결이 끊어짐", 12031: "연결이 초기화됨", 12037: "보안 인증서 날짜 문제", 12038: "보안 인증서 이름 문제",
+    12044: "클라이언트 인증서 필요", 12045: "신뢰할 수 없는 보안 인증서", 12057: "인증서 해지 확인 실패",
+    12157: "보안 연결(SSL) 실패", 12175: "보안 인증서 오류",
+}
+
+
+class NetHTTPError(Exception):
+    def __init__(self, code):
+        super().__init__(f"HTTP {code}")
+        self.code = code
+
+
+def _wininet_request(url, method, headers, data, limit, timeout):
+    import ctypes
+    from ctypes import wintypes
+    from urllib.parse import urlsplit
+    wi = ctypes.WinDLL("wininet", use_last_error=True)
+    H = ctypes.c_void_p
+    wi.InternetOpenW.restype = H
+    wi.InternetOpenW.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.LPCWSTR, wintypes.LPCWSTR, wintypes.DWORD]
+    wi.InternetConnectW.restype = H
+    wi.InternetConnectW.argtypes = [H, wintypes.LPCWSTR, wintypes.WORD, wintypes.LPCWSTR, wintypes.LPCWSTR,
+                                    wintypes.DWORD, wintypes.DWORD, ctypes.c_size_t]
+    wi.HttpOpenRequestW.restype = H
+    wi.HttpOpenRequestW.argtypes = [H, wintypes.LPCWSTR, wintypes.LPCWSTR, wintypes.LPCWSTR, wintypes.LPCWSTR,
+                                    ctypes.c_void_p, wintypes.DWORD, ctypes.c_size_t]
+    wi.HttpSendRequestW.restype = wintypes.BOOL
+    wi.HttpSendRequestW.argtypes = [H, wintypes.LPCWSTR, wintypes.DWORD, ctypes.c_void_p, wintypes.DWORD]
+    wi.HttpQueryInfoW.restype = wintypes.BOOL
+    wi.HttpQueryInfoW.argtypes = [H, wintypes.DWORD, ctypes.c_void_p, ctypes.POINTER(wintypes.DWORD),
+                                  ctypes.POINTER(wintypes.DWORD)]
+    wi.InternetReadFile.restype = wintypes.BOOL
+    wi.InternetReadFile.argtypes = [H, ctypes.c_void_p, wintypes.DWORD, ctypes.POINTER(wintypes.DWORD)]
+    wi.InternetSetOptionW.restype = wintypes.BOOL
+    wi.InternetSetOptionW.argtypes = [H, wintypes.DWORD, ctypes.c_void_p, wintypes.DWORD]
+    wi.InternetCloseHandle.argtypes = [H]
+
+    def fail(what):
+        code = ctypes.get_last_error()
+        raise OSError(f"{what}: {_WININET_ERRORS.get(code, '윈도우 오류')} ({code})")
+
+    headers = dict(headers or {})
+    ua = headers.pop("User-Agent", "Mozilla/5.0")
+    sp = urlsplit(url)
+    https = sp.scheme == "https"
+    path = (sp.path or "/") + ("?" + sp.query if sp.query else "")
+    handles = []
+    try:
+        h = wi.InternetOpenW(ua, 0, None, None, 0)          # 0 = 윈도우 인터넷 설정(프록시 포함) 그대로
+        if not h:
+            fail("인터넷 시작 실패")
+        handles.append(h)
+        ms = wintypes.DWORD(int(timeout * 1000))
+        for opt in (2, 5, 6):                               # 연결·보내기·받기 시간 제한
+            wi.InternetSetOptionW(h, opt, ctypes.byref(ms), 4)
+        c = wi.InternetConnectW(h, sp.hostname, sp.port or (443 if https else 80), None, None, 3, 0, 0)
+        if not c:
+            fail("연결 실패")
+        handles.append(c)
+        flags = 0x80000000 | 0x04000000 | 0x00000200 | (0x00800000 if https else 0)   # 새로 받기·캐시 안 씀·창 없음·SSL
+        r = wi.HttpOpenRequestW(c, method, path, None, None, None, flags, 0)
+        if not r:
+            fail("요청 실패")
+        handles.append(r)
+        hdr = "".join(f"{k}: {v}\r\n" for k, v in headers.items())
+        body = data or b""
+        buf = ctypes.create_string_buffer(body, len(body)) if body else None
+        if not wi.HttpSendRequestW(r, hdr or None, len(hdr), buf, len(body)):
+            fail("보내기 실패")
+        status, n = wintypes.DWORD(0), wintypes.DWORD(4)
+        if wi.HttpQueryInfoW(r, 19 | 0x20000000, ctypes.byref(status), ctypes.byref(n), None) and status.value >= 400:
+            raise NetHTTPError(status.value)
+        out = bytearray()
+        chunk = ctypes.create_string_buffer(65536)
+        got = wintypes.DWORD(0)
+        while len(out) <= limit:
+            if not wi.InternetReadFile(r, chunk, 65536, ctypes.byref(got)):
+                fail("받기 실패")
+            if got.value == 0:
+                break
+            out += chunk.raw[:got.value]
+        return bytes(out)
+    finally:
+        for x in reversed(handles):
+            wi.InternetCloseHandle(x)
+
+
+def net_request(url, method="GET", headers=None, data=None, limit=2 * 1024 * 1024, timeout=10):
+    """인터넷에서 받기(또는 보내기) → 받은 내용(bytes). 서버가 오류(4xx·5xx)를 주면 NetHTTPError"""
+    import urllib.request
+    import urllib.error
+    try:
+        req = urllib.request.Request(url, data=data, method=method, headers=dict(headers or {}))
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return r.read(limit + 1)
+    except urllib.error.HTTPError as e:
+        raise NetHTTPError(e.code)
+    except Exception as e1:
+        if sys.platform != "win32":
+            raise
+        try:
+            return _wininet_request(url, method, headers, data, limit, timeout)
+        except NetHTTPError:
+            raise
+        except Exception as e2:
+            raise OSError(f"{e2}  [기본 방식: {str(e1)[:80]}]")
+
+
+def net_error_text(e):
+    """사용자에게 보여 줄 짧은 설명"""
+    if isinstance(e, NetHTTPError):
+        if e.code == 403:
+            return "확인 횟수 제한(잠시 뒤 다시 시도)"
+        if e.code == 404:
+            return "릴리스를 찾지 못함"
+        return f"서버 오류 (HTTP {e.code})"
+    return str(e)[:220]
+
+
 # ───────────────────────── 캐시(한 번 읽은 파일은 다시 안 읽음) ─────────────────────────
 class Cache:
     def __init__(self, path):
@@ -1832,12 +1956,10 @@ class AdManager:
         self.root.after(AD_REFRESH_MIN * 60 * 1000, self.fetch)
 
     def _fetch_worker(self):
-        import urllib.request
         import hashlib
         try:
-            req = urllib.request.Request(AD_FEED_URL, headers={"User-Agent": f"SmartExplorer/{APP_VERSION}"})
-            with urllib.request.urlopen(req, timeout=8) as r:
-                feed = json.loads(r.read(512 * 1024).decode("utf-8-sig"))
+            feed = json.loads(net_request(AD_FEED_URL, headers={"User-Agent": f"SmartExplorer/{APP_VERSION}"},
+                                          limit=512 * 1024, timeout=8).decode("utf-8-sig"))
             for ad in feed.get("ads", []):
                 url = ad.get("image") or ""
                 if not url.lower().startswith(("http://", "https://")):
@@ -1847,9 +1969,8 @@ class AdManager:
                 local = os.path.join(self.dir, hashlib.sha1(url.encode()).hexdigest()[:16] + ext)
                 try:                                   # 그림 하나가 안 받아져도 나머지 광고는 계속
                     if not os.path.exists(local):
-                        req = urllib.request.Request(url, headers={"User-Agent": f"SmartExplorer/{APP_VERSION}"})
-                        with urllib.request.urlopen(req, timeout=10) as r:
-                            data = r.read(AD_MAX_IMAGE + 1)
+                        data = net_request(url, headers={"User-Agent": f"SmartExplorer/{APP_VERSION}"},
+                                           limit=AD_MAX_IMAGE, timeout=10)
                         if len(data) > AD_MAX_IMAGE:
                             continue
                         with open(local + ".part", "wb") as f:
@@ -3032,7 +3153,7 @@ def list_folder(folder):
             is_dir = e.is_dir()
             out.append({"path": e.path, "name": e.name, "folder": folder, "is_dir": is_dir,
                         "size": -1 if is_dir else st.st_size, "count": 0, "snippets": [], "name_hit": False,
-                        "mtime": datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d %H:%M")})
+                        "mtime": datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d %H:%M"), "ts": st.st_mtime})
     return out
 
 
@@ -3772,6 +3893,7 @@ class SearchPane(tk.Frame):
         self.hits = {}
         self.pats = []
         self.sort_state = {}
+        self.browse_sort = ("mtime", True)      # 폴더 보기 정렬: 새 폴더를 열면 늘 '수정한 날짜 최신순'
         self.t0 = 0
         self.warn = ""
         self.preview_job = None
@@ -3958,6 +4080,9 @@ class SearchPane(tk.Frame):
             self.tree.heading(c, text=t, command=lambda c=c: self.sort_by(c))
             self.tree.column(c, width=w, minwidth=40, anchor=anchor, stretch=stretch)
         self.sort_state = {}
+        if mode == "browse":
+            col, rev = self.browse_sort
+            self.sort_state[col] = not rev
 
     def get_state(self):
         try:
@@ -4178,7 +4303,9 @@ class SearchPane(tk.Frame):
             self.folder_var.set(folder)
         if select is None and prev and is_inside(prev, folder) and os.path.normcase(prev) != os.path.normcase(folder):
             select = os.path.join(folder, os.path.relpath(prev, folder).split(os.sep)[0])   # 올라오면 나온 폴더 선택
-        self.load_browse(select=[select] if select else None)
+        if os.path.normcase(prev or "") != os.path.normcase(folder):
+            self.browse_sort = ("mtime", True)              # 다른 폴더로 가면 늘 수정한 날짜 최신순 + 맨 위
+        self.load_browse(select=[select] if select else None, top=True)
         self.app.add_recent(folder)
         self.app.schedule_save()
         self._update_location()
@@ -4209,11 +4336,11 @@ class SearchPane(tk.Frame):
         except OSError:
             return None
 
-    def load_browse(self, select=None):
-        """현재 폴더 내용을 목록에 채움. select = 선택해 둘 경로들"""
+    def load_browse(self, select=None, top=False):
+        """현재 폴더 내용을 목록에 채움. select = 선택해 둘 경로들, top = 맨 위로 스크롤"""
         self._set_columns("browse")
-        keep = select if select is not None else self.selected_paths()
-        y = self.tree.yview()[0] if select is None else 0
+        keep = select if select is not None else ([] if top else self.selected_paths())
+        y = 0 if (top or select is not None) else self.tree.yview()[0]
         self.tree.delete(*self.tree.get_children())
         self.hits.clear()
         self.pats = []
@@ -4227,7 +4354,10 @@ class SearchPane(tk.Frame):
         nf = len(items) - nd
         if self.hide_dirs:                               # 폴더 숨기기: 파일만
             items = [h for h in items if not h["is_dir"]]
-        items.sort(key=lambda h: (not h["is_dir"], h["name"].lower()))
+        col, rev = self.browse_sort
+        items.sort(key=lambda h: h["name"].lower())                      # 같은 값이면 이름순
+        items.sort(key=self._sort_key(col, True), reverse=rev)
+        items.sort(key=lambda h: not h["is_dir"])                       # 폴더는 늘 위에
         keep_n = {os.path.normcase(p) for p in (keep or [])}
         sel = []
         for i, h in enumerate(items):
@@ -4242,7 +4372,7 @@ class SearchPane(tk.Frame):
             self.tree.selection_set(sel)
             self.tree.focus(sel[0])
             self.tree.see(sel[0])
-        elif select is None:
+        else:
             self.tree.yview_moveto(y)
         self.status_var.set(f"폴더 {nd:,}개 숨김 · 파일 {nf:,}개" if self.hide_dirs and nd
                             else f"폴더 {nd:,}개 · 파일 {nf:,}개")
@@ -4389,21 +4519,25 @@ class SearchPane(tk.Frame):
         self.tree.insert("", "end", iid=iid, values=(h["name"], h["count"] or ("폴더" if h["is_dir"] else "이름"),
                                                       h["mtime"], h["folder"]))
 
+    def _sort_key(self, col, browse):
+        def key(h):
+            if col == "count":
+                return h.get("size", 0) if browse else h["count"]
+            if col == "folder":
+                return type_name(h) if browse else h["folder"].lower()
+            if col == "mtime":
+                return h.get("ts", 0) or h["mtime"]
+            return h["name"].lower()
+        return key
+
     def sort_by(self, col):
         rev = self.sort_state.get(col, col in ("count", "mtime"))
         self.sort_state[col] = not rev
         browse = self.mode == "browse"
-
-        def key(iid):
-            h = self.hits[iid]
-            if col == "count":
-                k = h.get("size", 0) if browse else h["count"]
-            elif col == "folder":
-                k = type_name(h) if browse else h["folder"].lower()
-            else:
-                k = {"name": h["name"].lower(), "mtime": h["mtime"]}[col]
-            return k
-        items = sorted(self.tree.get_children(), key=key, reverse=rev)
+        if browse:
+            self.browse_sort = (col, rev)          # 새로 고침해도 고른 정렬 유지
+        k = self._sort_key(col, browse)
+        items = sorted(self.tree.get_children(), key=lambda iid: k(self.hits[iid]), reverse=rev)
         if browse:                                     # 폴더는 늘 위에
             items = [i for i in items if self.hits[i]["is_dir"]] + [i for i in items if not self.hits[i]["is_dir"]]
         for i, iid in enumerate(items):
@@ -7012,14 +7146,11 @@ class App:
         self._upd_running = True
 
         def work():
-            import urllib.request
             msg = None
             try:
-                req = urllib.request.Request(f"https://api.github.com/repos/{GITHUB_REPO}/releases?per_page=30",
-                                             headers={"User-Agent": f"SmartExplorer/{APP_VERSION}",
-                                                      "Accept": "application/vnd.github+json"})
-                with urllib.request.urlopen(req, timeout=10) as r:
-                    rels = json.loads(r.read(2 * 1024 * 1024).decode("utf-8"))
+                rels = json.loads(net_request(f"https://api.github.com/repos/{GITHUB_REPO}/releases?per_page=100",
+                                              headers={"User-Agent": f"SmartExplorer/{APP_VERSION}",
+                                                       "Accept": "application/vnd.github+json"}).decode("utf-8"))
                 # 이 프로그램 태그(smartexplorer-v1.2.3)가 붙은 정식 릴리스 중 가장 높은 버전
                 mine = [x for x in rels if isinstance(x, dict) and not x.get("draft") and not x.get("prerelease")
                         and str(x.get("tag_name", "")).startswith(RELEASE_TAG_PREFIX)]
@@ -7036,7 +7167,7 @@ class App:
                 msg = (f"새 버전 {tag}이(가) 있습니다." if newer else f"지금이 최신 버전입니다 (v{APP_VERSION}).")
                 self.bgq.put(("update", (info if newer else None, manual)))
             except Exception as e:
-                msg = f"새 버전을 확인하지 못했습니다 (인터넷 연결 확인): {str(e)[:80]}"
+                msg = f"새 버전을 확인하지 못했습니다: {net_error_text(e)}"
             self._upd_running = False
             if done:
                 self.root.after(0, lambda: done(msg))
@@ -7119,13 +7250,9 @@ class App:
         iid = self.s["install_id"]
 
         def call(url, method="GET", body=None):
-            import urllib.request
             data = json.dumps(body).encode("utf-8") if body is not None else None
-            req = urllib.request.Request(url, data=data, method=method,
-                                         headers={"User-Agent": f"SmartExplorer/{APP_VERSION}",
-                                                  "Content-Type": "application/json"})
-            with urllib.request.urlopen(req, timeout=10) as r:
-                r.read(1024)
+            net_request(url, method, {"User-Agent": f"SmartExplorer/{APP_VERSION}",
+                                      "Content-Type": "application/json"}, data, limit=1024)
 
         def work():
             import urllib.parse

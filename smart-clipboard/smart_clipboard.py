@@ -81,7 +81,7 @@ from tkinter import messagebox
 # 설정
 # ─────────────────────────────────────────────────────────────
 APP_NAME = "스마트클립"
-APP_VERSION = "1.1.5"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
+APP_VERSION = "1.1.6"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
 
 MOD_ALT, MOD_CONTROL, MOD_SHIFT, MOD_WIN, MOD_NOREPEAT = 0x1, 0x2, 0x4, 0x8, 0x4000
 HOTKEY_MODS = MOD_CONTROL | MOD_SHIFT      # 단축키 조합
@@ -1411,6 +1411,130 @@ CONTACT_EMAIL = "smartgongmaster@gmail.com"   # 오류·개선 제안 받는 주
 GITHUB_REPO = "nunco-git/ezgong"              # 새 버전 확인 (깃허브 릴리스)
 RELEASE_TAG_PREFIX = "smartclipboard-v"
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-clipboard"   # 항상 최신 버전 exe
+# ───────────── 인터넷 연결 (파이썬 방식 → 안 되면 윈도우 방식) ─────────────
+# 회사·기관 PC는 프록시(자동 구성 스크립트)나 보안 프로그램의 인증서 때문에 파이썬 방식(urllib)이
+# "urlopen error"로 실패하는 일이 많음. 그때는 인터넷 익스플로러·엣지와 같은 윈도우 설정(WinINet)으로 다시 시도.
+_WININET_ERRORS = {
+    12002: "응답 시간 초과", 12007: "인터넷 주소를 찾지 못함(DNS)", 12029: "서버에 연결할 수 없음(방화벽·차단)",
+    12030: "연결이 끊어짐", 12031: "연결이 초기화됨", 12037: "보안 인증서 날짜 문제", 12038: "보안 인증서 이름 문제",
+    12044: "클라이언트 인증서 필요", 12045: "신뢰할 수 없는 보안 인증서", 12057: "인증서 해지 확인 실패",
+    12157: "보안 연결(SSL) 실패", 12175: "보안 인증서 오류",
+}
+
+
+class NetHTTPError(Exception):
+    def __init__(self, code):
+        super().__init__(f"HTTP {code}")
+        self.code = code
+
+
+def _wininet_request(url, method, headers, data, limit, timeout):
+    import ctypes
+    from ctypes import wintypes
+    from urllib.parse import urlsplit
+    wi = ctypes.WinDLL("wininet", use_last_error=True)
+    H = ctypes.c_void_p
+    wi.InternetOpenW.restype = H
+    wi.InternetOpenW.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.LPCWSTR, wintypes.LPCWSTR, wintypes.DWORD]
+    wi.InternetConnectW.restype = H
+    wi.InternetConnectW.argtypes = [H, wintypes.LPCWSTR, wintypes.WORD, wintypes.LPCWSTR, wintypes.LPCWSTR,
+                                    wintypes.DWORD, wintypes.DWORD, ctypes.c_size_t]
+    wi.HttpOpenRequestW.restype = H
+    wi.HttpOpenRequestW.argtypes = [H, wintypes.LPCWSTR, wintypes.LPCWSTR, wintypes.LPCWSTR, wintypes.LPCWSTR,
+                                    ctypes.c_void_p, wintypes.DWORD, ctypes.c_size_t]
+    wi.HttpSendRequestW.restype = wintypes.BOOL
+    wi.HttpSendRequestW.argtypes = [H, wintypes.LPCWSTR, wintypes.DWORD, ctypes.c_void_p, wintypes.DWORD]
+    wi.HttpQueryInfoW.restype = wintypes.BOOL
+    wi.HttpQueryInfoW.argtypes = [H, wintypes.DWORD, ctypes.c_void_p, ctypes.POINTER(wintypes.DWORD),
+                                  ctypes.POINTER(wintypes.DWORD)]
+    wi.InternetReadFile.restype = wintypes.BOOL
+    wi.InternetReadFile.argtypes = [H, ctypes.c_void_p, wintypes.DWORD, ctypes.POINTER(wintypes.DWORD)]
+    wi.InternetSetOptionW.restype = wintypes.BOOL
+    wi.InternetSetOptionW.argtypes = [H, wintypes.DWORD, ctypes.c_void_p, wintypes.DWORD]
+    wi.InternetCloseHandle.argtypes = [H]
+
+    def fail(what):
+        code = ctypes.get_last_error()
+        raise OSError(f"{what}: {_WININET_ERRORS.get(code, '윈도우 오류')} ({code})")
+
+    headers = dict(headers or {})
+    ua = headers.pop("User-Agent", "Mozilla/5.0")
+    sp = urlsplit(url)
+    https = sp.scheme == "https"
+    path = (sp.path or "/") + ("?" + sp.query if sp.query else "")
+    handles = []
+    try:
+        h = wi.InternetOpenW(ua, 0, None, None, 0)          # 0 = 윈도우 인터넷 설정(프록시 포함) 그대로
+        if not h:
+            fail("인터넷 시작 실패")
+        handles.append(h)
+        ms = wintypes.DWORD(int(timeout * 1000))
+        for opt in (2, 5, 6):                               # 연결·보내기·받기 시간 제한
+            wi.InternetSetOptionW(h, opt, ctypes.byref(ms), 4)
+        c = wi.InternetConnectW(h, sp.hostname, sp.port or (443 if https else 80), None, None, 3, 0, 0)
+        if not c:
+            fail("연결 실패")
+        handles.append(c)
+        flags = 0x80000000 | 0x04000000 | 0x00000200 | (0x00800000 if https else 0)   # 새로 받기·캐시 안 씀·창 없음·SSL
+        r = wi.HttpOpenRequestW(c, method, path, None, None, None, flags, 0)
+        if not r:
+            fail("요청 실패")
+        handles.append(r)
+        hdr = "".join(f"{k}: {v}\r\n" for k, v in headers.items())
+        body = data or b""
+        buf = ctypes.create_string_buffer(body, len(body)) if body else None
+        if not wi.HttpSendRequestW(r, hdr or None, len(hdr), buf, len(body)):
+            fail("보내기 실패")
+        status, n = wintypes.DWORD(0), wintypes.DWORD(4)
+        if wi.HttpQueryInfoW(r, 19 | 0x20000000, ctypes.byref(status), ctypes.byref(n), None) and status.value >= 400:
+            raise NetHTTPError(status.value)
+        out = bytearray()
+        chunk = ctypes.create_string_buffer(65536)
+        got = wintypes.DWORD(0)
+        while len(out) <= limit:
+            if not wi.InternetReadFile(r, chunk, 65536, ctypes.byref(got)):
+                fail("받기 실패")
+            if got.value == 0:
+                break
+            out += chunk.raw[:got.value]
+        return bytes(out)
+    finally:
+        for x in reversed(handles):
+            wi.InternetCloseHandle(x)
+
+
+def net_request(url, method="GET", headers=None, data=None, limit=2 * 1024 * 1024, timeout=10):
+    """인터넷에서 받기(또는 보내기) → 받은 내용(bytes). 서버가 오류(4xx·5xx)를 주면 NetHTTPError"""
+    import urllib.request
+    import urllib.error
+    try:
+        req = urllib.request.Request(url, data=data, method=method, headers=dict(headers or {}))
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return r.read(limit + 1)
+    except urllib.error.HTTPError as e:
+        raise NetHTTPError(e.code)
+    except Exception as e1:
+        if sys.platform != "win32":
+            raise
+        try:
+            return _wininet_request(url, method, headers, data, limit, timeout)
+        except NetHTTPError:
+            raise
+        except Exception as e2:
+            raise OSError(f"{e2}  [기본 방식: {str(e1)[:80]}]")
+
+
+def net_error_text(e):
+    """사용자에게 보여 줄 짧은 설명"""
+    if isinstance(e, NetHTTPError):
+        if e.code == 403:
+            return "확인 횟수 제한(잠시 뒤 다시 시도)"
+        if e.code == 404:
+            return "릴리스를 찾지 못함"
+        return f"서버 오류 (HTTP {e.code})"
+    return str(e)[:220]
+
+
 UPDATE_CHECK_HOURS = 3
 
 
@@ -3513,13 +3637,10 @@ class App:
         q = self.q
 
         def work():
-            import urllib.request
             try:
-                req = urllib.request.Request("https://api.github.com/repos/%s/releases?per_page=30" % GITHUB_REPO,
-                                             headers={"User-Agent": "SmartClip/%s" % APP_VERSION,
-                                                      "Accept": "application/vnd.github+json"})
-                with urllib.request.urlopen(req, timeout=10) as r:
-                    rels = json.loads(r.read(2 * 1024 * 1024).decode("utf-8"))
+                rels = json.loads(net_request("https://api.github.com/repos/%s/releases?per_page=100" % GITHUB_REPO,
+                                              headers={"User-Agent": "SmartClip/%s" % APP_VERSION,
+                                                       "Accept": "application/vnd.github+json"}).decode("utf-8"))
                 mine = [x for x in rels if isinstance(x, dict) and not x.get("draft") and not x.get("prerelease")
                         and str(x.get("tag_name", "")).startswith(RELEASE_TAG_PREFIX)]
                 if not mine:
