@@ -1,0 +1,23 @@
+name: tmp-edit-notes
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  edit:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import subprocess, os
+          repo = os.environ["GITHUB_REPOSITORY"]; tag = "smartexplorer-v1.0.15"
+          old = "(바뀐 점은 여기에 적어 주세요 — 프로그램의 새 버전 알림 창에 그대로 보입니다)"
+          new = ("### 1.0.15 에서 바뀐 점\n"
+                 "- **배경 사진 9가지** — 호수·숲길·벚꽃·설산·단풍·바다·라벤더·숲·밤하늘 실제 풍경 사진을 환경설정 '빠른 선택'의 '배경 사진'에서 눌러 바로 고를 수 있습니다. (모두 Wikimedia Commons의 퍼블릭 도메인 사진)\n\n"
+                 "### 1.0.14\n- 배경 그림 빠른 선택 (기본 그림 6가지)")
+          body = subprocess.check_output(["gh", "release", "view", tag, "--repo", repo, "--json", "body", "-q", ".body"], text=True)
+          body = body.replace(old, new) if old in body else new + "\n\n" + body
+          open("b.md", "w", encoding="utf-8").write(body)
+          subprocess.check_call(["gh", "release", "edit", tag, "--repo", repo, "--notes-file", "b.md"])
+          PY
