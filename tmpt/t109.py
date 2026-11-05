@@ -8,7 +8,7 @@ from pypdf import PdfWriter
 w = PdfWriter(); w.add_blank_page(300, 400); w.encrypt("1234")
 pdfp = os.path.join(d, "비밀.pdf"); w.write(pdfp)
 # encrypted xlsx
-import openpyxl, msoffcrypto
+import openpyxl, msoffcrypto.format.ooxml
 wb = openpyxl.Workbook(); ws = wb.active; ws["A1"] = "예산"; ws["B2"] = "1,000원"
 plain = os.path.join(d, "plain.xlsx"); wb.save(plain)
 xp = os.path.join(d, "급여.xlsx")
