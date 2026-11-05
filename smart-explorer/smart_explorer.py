@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.9"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.10"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -509,16 +509,96 @@ def xls_text(path):
     return "\n".join(out)
 
 
+# ───────────── 한글 입력(IME): 조합 중인 글자를 입력칸과 같은 글꼴·크기로 ─────────────
+_ime = {}
+
+
+def _ime_api():
+    if "imm" not in _ime:
+        import ctypes
+        from ctypes import wintypes
+
+        class LOGFONTW(ctypes.Structure):
+            _fields_ = [("lfHeight", wintypes.LONG), ("lfWidth", wintypes.LONG),
+                        ("lfEscapement", wintypes.LONG), ("lfOrientation", wintypes.LONG),
+                        ("lfWeight", wintypes.LONG), ("lfItalic", wintypes.BYTE),
+                        ("lfUnderline", wintypes.BYTE), ("lfStrikeOut", wintypes.BYTE),
+                        ("lfCharSet", wintypes.BYTE), ("lfOutPrecision", wintypes.BYTE),
+                        ("lfClipPrecision", wintypes.BYTE), ("lfQuality", wintypes.BYTE),
+                        ("lfPitchAndFamily", wintypes.BYTE), ("lfFaceName", ctypes.c_wchar * 32)]
+        u32, imm = ctypes.windll.user32, ctypes.windll.imm32
+        u32.GetFocus.restype = ctypes.c_void_p
+        imm.ImmGetContext.restype = ctypes.c_void_p
+        imm.ImmGetContext.argtypes = [ctypes.c_void_p]
+        imm.ImmReleaseContext.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+        imm.ImmSetCompositionFontW.argtypes = [ctypes.c_void_p, ctypes.POINTER(LOGFONTW)]
+        _ime.update(imm=imm, u32=u32, LOGFONTW=LOGFONTW, ctypes=ctypes)
+    return _ime
+
+
+def ime_match_font(widget):
+    """한글을 조합하는 동안 뜨는 IME 조합 창의 글꼴·크기를 입력칸과 똑같이 맞춤.
+    안 맞추면 윈도우 기본 글꼴로 크게 떴다가 글자가 완성돼야 칸에 들어가 어색함"""
+    if sys.platform != "win32":
+        return None
+    try:
+        from tkinter import font as tkfont
+        api = _ime_api()
+        hwnd = api["u32"].GetFocus()
+        if not hwnd:
+            return None
+        try:
+            spec = widget.cget("font")
+        except tk.TclError:
+            spec = ""
+        act = tkfont.Font(root=widget, font=spec or "TkTextFont").actual()
+        size = act["size"]
+        px = -size if size < 0 else max(8, round(size * widget.winfo_fpixels("1i") / 72))
+        himc = api["imm"].ImmGetContext(hwnd)
+        if not himc:
+            return None
+        try:
+            lf = api["LOGFONTW"]()
+            lf.lfHeight = -px
+            lf.lfWeight = 700 if act.get("weight") == "bold" else 400
+            lf.lfCharSet = 129                      # HANGUL_CHARSET
+            lf.lfQuality = 5                        # CLEARTYPE_QUALITY
+            lf.lfFaceName = act["family"][:31]
+            api["imm"].ImmSetCompositionFontW(himc, api["ctypes"].byref(lf))
+        finally:
+            api["imm"].ImmReleaseContext(hwnd, himc)
+        return act["family"], px
+    except Exception:
+        return None
+
+
+def install_ime_fix(root):
+    """모든 입력칸에서 포커스를 받을 때 IME 조합 창 글꼴을 맞춤"""
+    if sys.platform != "win32":
+        return
+
+    def on_focus(e):
+        w = e.widget
+        try:
+            w.after_idle(lambda: ime_match_font(w))
+        except (tk.TclError, AttributeError):
+            pass
+    for cls in ("TEntry", "Entry", "Text", "TSpinbox", "TCombobox", "Spinbox"):
+        root.bind_class(cls, "<FocusIn>", on_focus, add="+")
+
+
 # ───────────── PDF + 스캔 PDF 글자 인식(OCR, 윈도우 내장) ─────────────
 class StopSearch(Exception):
     pass
 
 
-_ocr = {"engine": None, "error": None, "tried": False}
+_ocr = {"engine": None, "error": None, "tried": False, "no_korean": False}
 _ocr_lock = threading.Lock()      # 여러 칸에서 동시에 검색해도 OCR은 한 번에 하나씩
 
 
-def ocr_engine():
+def ocr_engine(recheck=False):
+    if recheck:                          # 한국어 OCR을 막 설치했으면 다시 확인
+        _ocr.update(engine=None, error=None, tried=False, no_korean=False)
     if not _ocr["tried"]:
         _ocr["tried"] = True
         try:
@@ -526,7 +606,9 @@ def ocr_engine():
             from winrt.windows.globalization import Language
             eng = OcrEngine.try_create_from_language(Language("ko"))
             if eng is None:
-                eng = OcrEngine.try_create_from_user_profile_languages()
+                _ocr["no_korean"] = True           # 한국어 OCR 미설치 → 설치 안내 창
+                _ocr["error"] = "윈도우 한국어 OCR이 설치되어 있지 않음"
+                # 영어 OCR로 한글을 읽으면 엉뚱한 글자가 저장되므로, 한국어 OCR을 설치할 때까지 미룸
             if eng is None:
                 raise RuntimeError("윈도우 한국어 OCR이 설치되어 있지 않음")
             _ocr["engine"] = eng
@@ -5811,7 +5893,10 @@ class IdleIndexer:
         """1단계: 본문 글자를 빠르게 모두 읽어 둠 → 2단계: 스캔 PDF·그림을 글자 인식(OCR)"""
         cache = self.app.cache
         folders = self.folders()
-        ocr = bool(self.cfg.get("ocr")) and ocr_engine() is not None
+        want_ocr = bool(self.cfg.get("ocr"))
+        ocr = want_ocr and ocr_engine() is not None
+        if want_ocr and _ocr["no_korean"]:
+            self.app.bgq.put(("ocr_missing", None))   # 화면 쪽에서 설치 안내 창 (하루 한 번까지)
         skip = set() if ocr else INDEX_SKIP_EXTS
         self.phase = "본문"
         self.state, self.done, self.total, self.read = "목록 만드는 중", 0, 0, 0
@@ -5893,6 +5978,98 @@ class IdleIndexer:
         return "🗂 색인 전" if self.cfg.get("enabled", True) else ""
 
 
+OCR_CAPABILITY = "Language.OCR~~~ko-KR~0.0.1.0"
+
+
+class OcrInstallDialog:
+    """한국어 OCR(윈도우 기본 기능) 설치 안내"""
+
+    def __init__(self, app):
+        self.app = app
+        w = self.win = tk.Toplevel(app.root)
+        w.title("한국어 글자 인식(OCR) 설치 안내")
+        w.transient(app.root)
+        w.resizable(False, False)
+        w.protocol("WM_DELETE_WINDOW", self.close)
+        b = ttk.Frame(w, padding=16)
+        b.pack(fill="both", expand=True)
+        ttk.Label(b, text="🔤 이 PC에는 한국어 글자 인식(OCR)이 없습니다",
+                  font=(FONT[0], fsz(12), "bold")).pack(anchor="w")
+        ttk.Label(b, justify="left", text=(
+            "스캔한 PDF나 사진 속 글자를 검색하려면 윈도우의 '한국어 OCR' 기능이 필요합니다.\n"
+            "(무료, 윈도우에 들어 있는 기능이며 용량은 수 MB 정도입니다)\n\n"
+            "[지금 설치]를 누르면 관리자 권한 확인 창이 뜹니다. '예'를 누르면 검은 창에서\n"
+            "1~2분 정도 설치가 진행되고, 끝나면 스마트탐색기가 알아서 글자 인식을 시작합니다.\n\n"
+            "※ 회사·기관 PC라서 관리자 권한이 없으면 전산 담당자에게 아래 명령 실행을 요청하세요.")
+        ).pack(anchor="w", pady=(8, 4))
+        cmd = ttk.Entry(b, width=70)
+        cmd.insert(0, f"Add-WindowsCapability -Online -Name {OCR_CAPABILITY}")
+        cmd.configure(state="readonly")
+        cmd.pack(anchor="w", fill="x")
+        ttk.Label(b, text="글자 인식 없이도 파일명·일반 문서 본문 검색은 그대로 됩니다.",
+                  foreground="#777").pack(anchor="w", pady=(8, 0))
+        self.msg = ttk.Label(b, text="", foreground="#2a6fdb")
+        self.msg.pack(anchor="w", pady=(6, 0))
+        bf = ttk.Frame(w, padding=(16, 0, 16, 14))
+        bf.pack(fill="x")
+        self.never = tk.BooleanVar(value=False)
+        ttk.Checkbutton(bf, text="다시 보지 않기", variable=self.never).pack(side="left")
+        ttk.Button(bf, text="닫기", command=self.close).pack(side="right")
+        self.install_btn = ttk.Button(bf, text="지금 설치", style="Accent.TButton", command=self.install)
+        self.install_btn.pack(side="right", padx=4)
+        center_on(w, app.root)
+        w.lift()
+        w.focus_force()
+
+    def install(self):
+        script = (f"Write-Host '한국어 OCR 설치 중... (1~2분)'; "
+                  f"Add-WindowsCapability -Online -Name {OCR_CAPABILITY}; "
+                  f"Write-Host '끝났습니다. 이 창은 5초 뒤 닫힙니다.'; Start-Sleep 5")
+        enc = base64.b64encode(script.encode("utf-16-le")).decode()
+        try:
+            import ctypes
+            r = ctypes.windll.shell32.ShellExecuteW(None, "runas", "powershell.exe",
+                                                    f"-NoProfile -ExecutionPolicy Bypass -EncodedCommand {enc}", None, 1)
+        except Exception:
+            r = 0
+        if r <= 32:
+            self.msg.configure(text="설치를 시작하지 못했습니다 (관리자 권한 거부). 위 명령을 전산 담당자에게 요청하세요.",
+                               foreground="#b0412b")
+            return
+        self.install_btn.configure(state="disabled")
+        self.msg.configure(text="설치 중입니다… 끝나면 자동으로 알려 드립니다.", foreground="#2a6fdb")
+        self.tries = 0
+        self.win.after(15000, self.check)
+
+    def check(self):
+        """설치가 끝났는지 15초마다 확인 (최대 20분)"""
+        self.tries += 1
+        ocr_engine(recheck=True)
+        if not _ocr["no_korean"] and _ocr["engine"] is not None:
+            try:
+                self.msg.configure(text="✅ 설치 완료! 쉬는 동안 스캔 PDF·그림 글자 인식을 시작합니다.", foreground="#1f7a3a")
+                self.install_btn.configure(state="disabled")
+            except tk.TclError:
+                pass
+            self.app.indexer.run_now()
+            return
+        if self.tries < 80:
+            self.app.root.after(15000, self.check)
+        else:
+            try:
+                self.install_btn.configure(state="normal")
+                self.msg.configure(text="아직 설치가 확인되지 않습니다. PC를 다시 시작한 뒤 확인해 주세요.", foreground="#b0412b")
+            except tk.TclError:
+                pass
+
+    def close(self):
+        if self.never.get():
+            self.app.s["ocr_nag_off"] = True
+            self.app.schedule_save()
+        self.app._ocr_dlg = None
+        self.win.destroy()
+
+
 class IndexDialog:
     """🗂 색인 설정 창"""
 
@@ -5922,8 +6099,12 @@ class IndexDialog:
         ttk.Spinbox(rf, from_=1, to=48, width=4, textvariable=self.every).pack(side="left", padx=4)
         ttk.Label(rf, text="시간마다 새로 바뀐 파일 확인").pack(side="left")
         self.ocr = tk.BooleanVar(value=c.get("ocr", True))
-        ttk.Checkbutton(b, text="스캔 PDF·그림 글자도 미리 인식해서 색인 (본문을 다 읽은 뒤 천천히)", variable=self.ocr).grid(
-            row=4, column=0, columnspan=3, sticky="w", pady=(4, 0))
+        of = ttk.Frame(b)
+        of.grid(row=4, column=0, columnspan=3, sticky="w", pady=(4, 0))
+        ttk.Checkbutton(of, text="스캔 PDF·그림 글자도 미리 인식해서 색인 (본문을 다 읽은 뒤 천천히)", variable=self.ocr).pack(side="left")
+        ocr_engine()
+        if _ocr["no_korean"]:
+            ttk.Button(of, text="⚠ 한국어 OCR 설치…", command=lambda: app.ocr_missing(force=True)).pack(side="left", padx=(6, 0))
 
         ttk.Label(b, text="색인할 폴더", font=bold).grid(row=5, column=0, columnspan=3, sticky="w", pady=(10, 2))
         lf = ttk.Frame(b)
@@ -6107,6 +6288,7 @@ class App:
         self.root = root
         self.s = load_settings()
         self.bgq = queue.Queue()                       # 트레이·단축키·두 번째 실행에서 온 요청
+        install_ime_fix(root)                          # 한글 입력이 칸 안에서 같은 크기로 자연스럽게
         saved = self.s.get("alarm", {})
         self.alarm = dict(DEFAULT_ALARM, **saved) if "mode" in saved else dict(DEFAULT_ALARM)   # 예전 형식이면 새 기본값
         self.started = time.time()                    # 휴일 알람 기준: 프로그램을 켠 순간
@@ -6604,6 +6786,16 @@ class App:
             play_alarm_sound()
         AlarmPopup(self, self.alarm.get("message", ""))
 
+    def ocr_missing(self, force=False):
+        """한국어 OCR이 없는 PC: 색인할 때 설치 안내 창 (하루 한 번, '다시 보지 않기' 가능)"""
+        if not force and (self.s.get("ocr_nag_off") or time.time() - self.s.get("ocr_nag_at", 0) < 20 * 3600):
+            return
+        if getattr(self, "_ocr_dlg", None):
+            return
+        self.s["ocr_nag_at"] = time.time()
+        self.schedule_save()
+        self._ocr_dlg = OcrInstallDialog(self)
+
     def _bg_poll(self):
         try:
             while True:
@@ -6621,6 +6813,8 @@ class App:
                     return
                 elif kind == "update":
                     self.on_update(*data)
+                elif kind == "ocr_missing":
+                    self.ocr_missing()
                 elif kind == "index_done":
                     self.s["index_last"] = data
                     self.schedule_save()
