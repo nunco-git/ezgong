@@ -4,9 +4,9 @@ import smart_explorer as S, tkinter as tk
 from PIL import ImageGrab
 inst = S.SingleInstance(); root = tk.Tk(); app = S.App(root, inst)
 def grab(win, tag, full=False):
-    win.update(); time.sleep(0.5); win.update()
+    print("g1", flush=True); win.update_idletasks(); print("g2", flush=True); win.update(); print("g3", flush=True)
     x, y, w, h = win.winfo_rootx(), win.winfo_rooty(), win.winfo_width(), win.winfo_height()
-    im = ImageGrab.grab((x, y, x + w, y + (h if full else min(h, 700))))
+    print("g4", x, y, w, h, flush=True); im = ImageGrab.grab((x, y, x + w, y + (h if full else min(h, 700))))
     im = im.convert("RGB"); im.thumbnail((900, 900)); b = io.BytesIO(); im.save(b, "JPEG", quality=70)
     print(tag + ":" + base64.b64encode(b.getvalue()).decode(), flush=True)
 def go():
