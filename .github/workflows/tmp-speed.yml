@@ -1,0 +1,14 @@
+name: tmp-speed
+on:
+  push:
+    branches: [test-speed]
+jobs:
+  t:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r smart-explorer/requirements-build.txt
+      - env: { PYTHONIOENCODING: utf-8 }
+        run: python tmpt/bench.py 6000
