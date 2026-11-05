@@ -1998,14 +1998,15 @@
   }
 
   let __vsBusy = false;
-  async function vsTick() {
+  async function vsTick(isPageLoad) {
     const v = vsInit();
     if (!v || __vsBusy) return;
     __vsBusy = true;
     try {
       const today = vsKst();
-      const newVisitor = lsGet('sg_last_visit_date') !== today; // 하루 1회(브라우저 기준)
       const newSession = vsCheckSession();                       // 30분 무활동 기준
+      // 같은 사람이 하루에 여러 번 와도 매번 카운트: 페이지를 열 때마다 + 30분 이상 자리를 비웠다 돌아올 때마다
+      const newVisitor = !!isPageLoad || newSession;
       const dayRef = v.db.collection('visitorStats').doc('day_' + today);
       const totalRef = v.db.collection('visitorStats').doc('total');
       if (newVisitor || newSession) {
@@ -2014,7 +2015,6 @@
         batch.set(dayRef, { date: today, visitors: vsInc(vi), visits: vsInc(se) }, { merge: true });
         batch.set(totalRef, { visitors: vsInc(vi), visits: vsInc(se) }, { merge: true });
         await batch.commit();
-        if (newVisitor) lsSet('sg_last_visit_date', today);
       }
       const [d, t] = await Promise.all([dayRef.get(), totalRef.get()]);
       const dd = d.exists ? d.data() : {}, tt = t.exists ? t.data() : {};
@@ -2077,7 +2077,7 @@
       const dots = days.length > 60 ? '' : arr.map((v, i) => `<circle cx="${x(i)}" cy="${y(v)}" r="3" fill="${color}"><title>${days[i]} ${label} ${vsFmt(v)}</title></circle>`).join('');
       return `<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2.2" stroke-linejoin="round"/>${dots}`;
     };
-    const legend = `<g font-size="11.5" font-weight="700"><rect x="${L}" y="4" width="10" height="10" rx="2" fill="#3b82f6"/><text x="${L + 15}" y="13" fill="#334155">방문자(브라우저·일 1회)</text><rect x="${L + 170}" y="4" width="10" height="10" rx="2" fill="#f59e0b"/><text x="${L + 185}" y="13" fill="#334155">방문수(30분 기준)</text></g>`;
+    const legend = `<g font-size="11.5" font-weight="700"><rect x="${L}" y="4" width="10" height="10" rx="2" fill="#3b82f6"/><text x="${L + 15}" y="13" fill="#334155">방문자(접속할 때마다)</text><rect x="${L + 170}" y="4" width="10" height="10" rx="2" fill="#f59e0b"/><text x="${L + 185}" y="13" fill="#334155">방문수(30분 기준)</text></g>`;
     return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="일별 방문 추이">${legend}${g}${line(ses, '#f59e0b', '방문수')}${line(vis, '#3b82f6', '방문자')}</svg>`;
   }
 
@@ -2135,7 +2135,7 @@
           <thead><tr><th>#</th><th>앱</th><th>클릭수</th><th>방문자</th><th style="width:34%">클릭 비율</th></tr></thead>
           <tbody>${list.map((r, i) => `<tr><td>${i + 1}</td><td>${vsEsc(r.name)}</td><td>${vsFmt(r.clicks)}</td><td>${vsFmt(r.visitors)}</td><td><div class="ad-bar"><i style="width:${(r.clicks / maxClick * 100).toFixed(1)}%"></i></div></td></tr>`).join('')}</tbody>
         </table>
-        <p class="ad-note">방문자 = 같은 브라우저는 하루 1회 · 방문수 = 30분 이상 활동이 없으면 새 방문 · 앱 클릭수 = 탭/카드로 앱을 연 횟수 · 앱 방문자 = 그날 그 앱을 처음 연 브라우저 수(기간 합계)</p>`;
+        <p class="ad-note">방문자 = 같은 사람이 하루에 여러 번 접속해도 매번 집계 · 방문수 = 30분 이상 활동이 없으면 새 방문 · 앱 클릭수 = 탭/카드로 앱을 연 횟수 · 앱 방문자 = 그날 그 앱을 처음 연 브라우저 수(기간 합계)</p>`;
     } catch (e) {
       console.warn(e);
       body.innerHTML = e && e.code === 'permission-denied'
@@ -2171,7 +2171,7 @@
   if (location.hash === '#admin') setTimeout(openAdmin, 300); // 모바일 등에서 주소 뒤에 #admin 을 붙여 열기
 
   function vsStart() {
-    vsTick();
+    vsTick(true);
     // 탭이 열려 있는 동안 1분마다 활동으로 간주해 세션을 유지하고, 30분 이상 자리를 비웠다 돌아오면 새 방문으로 집계
     setInterval(() => { if (document.visibilityState === 'visible') vsTick(); }, 60 * 1000);
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') vsTick(); });
