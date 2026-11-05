@@ -964,39 +964,45 @@ function pickNext(){
   if(!c.length)c=D.map(d=>d.w).filter(x=>!S.learned.has(x)&&x!==S.cur);
   if(!c.length)c=D.map(d=>d.w).filter(x=>x!==S.cur);
   return c[Math.floor(Math.random()*c.length)]}
-const TTS={a:null,warm:false};
-function zhVoice(){try{const v=speechSynthesis.getVoices();return v.find(x=>/^zh[-_]?CN/i.test(x.lang))||v.find(x=>/^zh/i.test(x.lang))||v.find(x=>/chinese|中文|普通话|mandarin/i.test(x.name))||null}catch(e){return null}}
+const TTS={el:new Audio(),loaded:false,seq:0,netDead:false};
+function voicesNow(){try{const v=speechSynthesis.getVoices();if(v.length)TTS.loaded=true;return v}catch(e){return[]}}
+try{if('speechSynthesis' in window){voicesNow();speechSynthesis.addEventListener&&speechSynthesis.addEventListener('voiceschanged',voicesNow)}}catch(e){}
+function voicesReady(ms){return new Promise(res=>{let done=false,iv=0;const fin=()=>{if(done)return;done=true;clearInterval(iv);res(voicesNow())};
+  try{speechSynthesis.addEventListener('voiceschanged',fin,{once:true})}catch(e){}
+  iv=setInterval(()=>{if(voicesNow().length)fin()},100);setTimeout(fin,ms||1500)})}
+const langKey=l=>String(l||'').replace('_','-').toLowerCase();
+function pickVoice(vs){vs=vs||voicesNow();const nm=/chinese|中文|普通话|國語|mandarin|xiaoxiao|yunxi|yunyang|xiaoyi|ting-ting|tingting|meijia|sin-ji|huihui|kangkang|yaoyao/i;
+  const cand=vs.filter(v=>v&&(/^zh/.test(langKey(v.lang))||nm.test(v.name||''))&&!/hk|yue|cantonese|粤|廣東|tw|taiwan|台/i.test((v.lang||'')+(v.name||''))||(v&&/^zh-(cn|hans)/.test(langKey(v.lang))));
+  if(!cand.length)return null;
+  const score=v=>(langKey(v.lang)==='zh-cn'?4:0)+(/^zh/.test(langKey(v.lang))?3:0)+(/natural|premium|enhanced|neural|online/i.test(v.name||'')?2:0)+(v.localService?1:0);
+  return cand.slice().sort((a,b)=>score(b)-score(a))[0]}
 function sayToast(m){let t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.setAttribute('role','status');t.style.cssText='position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#14202c;color:#fff;padding:10px 16px;border-radius:10px;font-size:.9rem;z-index:50;max-width:90vw;text-align:center';document.body.appendChild(t)}t.textContent=m;t.hidden=false;clearTimeout(t._h);t._h=setTimeout(()=>{t.hidden=true},3500)}
-function sayOnline(t){const urls=['https://dict.youdao.com/dictvoice?le=zh&audio='+encodeURIComponent(t),'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=zh-CN&q='+encodeURIComponent(t),'https://fanyi.baidu.com/gettts?lan=zh&spd=5&source=web&text='+encodeURIComponent(t)];let i=0;
-  const tryNext=()=>{if(i>=urls.length){sayToast('중국어 음성을 재생할 수 없어요. 설치 안내를 열어요.');setTimeout(showHelp,600);return}
-    try{if(TTS.a){TTS.a.pause()}const a=new Audio(urls[i++]);TTS.a=a;a.onerror=tryNext;const p=a.play();if(p&&p.catch)p.catch(tryNext)}catch(e){tryNext()}};
-  tryNext()}
-function sayEngine(t){
-  try{if('speechSynthesis' in window){const v=zhVoice();
-    if(v){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.voice=v;u.lang=v.lang;u.rate=.85;let ok=false;u.onstart=()=>{ok=true};u.onerror=()=>{if(!ok)sayOnline(t)};
-      setTimeout(()=>speechSynthesis.speak(u),40);return}}}catch(e){}
-  sayOnline(t)}
 const AUDIO_BASE=/(^|\.)smartgong\.kr$/.test(location.hostname)?'/chinese/a/':'https://www.smartgong.kr/chinese/a/';
 function audioKey(s){let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0,c;i<s.length;i++){c=s.charCodeAt(i);h1=Math.imul(h1^c,2654435761);h2=Math.imul(h2^c,1597334677)}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return (4294967296*(2097151&h2)+(h1>>>0)).toString(16)}
-const EL=new Audio();
-function tryPlay(src,ms,onOk,onFail){let ok=false,dead=false;const bad=()=>{if(dead||ok)return;dead=true;onFail()};
-  EL.onplaying=()=>{if(!ok){ok=true;onOk&&onOk()}};EL.onerror=bad;
-  try{EL.src=src;const p=EL.play();if(p&&p.catch)p.catch(bad)}catch(e){bad();return}
-  setTimeout(()=>{if(!ok){try{EL.pause()}catch(e){}bad()}},ms)}
-function sayNetFallback(t){const q=encodeURIComponent(t);
-  tryPlay('https://dict.youdao.com/dictvoice?le=zh&audio='+q,1800,()=>sayToast('사전 음성'),()=>
-  tryPlay('https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=zh-CN&q='+q,1800,()=>sayToast('인터넷 음성'),()=>
-  sayToast('소리를 낼 수 없어요: 기기·내장·인터넷 음성 모두 실패')))}
-function sayLocal(t){const k=audioKey(t);
+function tryPlay(src,ms,ok,fail){const el=TTS.el;let good=false,dead=false;const bad=()=>{if(dead||good)return;dead=true;fail()};
+  el.onplaying=()=>{if(!good){good=true;ok&&ok()}};el.onerror=bad;
+  try{el.src=src;const p=el.play();if(p&&p.catch)p.catch(bad)}catch(e){bad();return}
+  setTimeout(()=>{if(!good){try{el.pause()}catch(e){}bad()}},ms)}
+function sayEmbedded(t){const k=audioKey(t);
   const src=(typeof AUDIO!=='undefined'&&AUDIO[k])?'data:audio/mpeg;base64,'+AUDIO[k]:AUDIO_BASE+k+'.mp3';
-  tryPlay(src,3000,()=>sayToast('내장 음성'),()=>sayNetFallback(t))}
-function say(t){
-  try{EL.pause()}catch(e){}
-  let moved=false,st=false;const next=()=>{if(moved||st)return;moved=true;try{speechSynthesis.cancel()}catch(e){}sayLocal(t)};
-  try{if('speechSynthesis' in window){const v=zhVoice();speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);if(v){u.voice=v;u.lang=v.lang}else u.lang='zh-CN';u.rate=.85;
-    u.onstart=()=>{st=true;sayToast('기기 음성')};u.onerror=next;speechSynthesis.speak(u);setTimeout(next,1300);return}}catch(e){}
-  next()}
-try{if('speechSynthesis' in window){speechSynthesis.getVoices();speechSynthesis.addEventListener&&speechSynthesis.addEventListener('voiceschanged',()=>{})}}catch(e){}
+  tryPlay(src,3000,null,()=>{sayToast('중국어 음성을 재생할 수 없어요. 기기 설정에서 중국어 음성을 추가해 주세요. (안드로이드: 설정 > 텍스트 음성 변환 > 중국어 음성 데이터 설치)',8000)})}
+function sayOnline(t,id){if(TTS.netDead){sayEmbedded(t);return}
+  const q=encodeURIComponent(t);
+  const urls=['https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=zh-CN&q='+q,'https://translate.googleapis.com/translate_tts?ie=UTF-8&client=gtx&tl=zh-CN&q='+q,'https://dict.youdao.com/dictvoice?le=zh&audio='+q];
+  let i=0;const next=()=>{if(id!==TTS.seq)return;if(i>=urls.length){TTS.netDead=true;sayEmbedded(t);return}tryPlay(urls[i++],2200,null,next)};next()}
+function say(t){const id=++TTS.seq;try{TTS.el.pause()}catch(e){}
+  if(!('speechSynthesis' in window)){sayOnline(t,id);return}
+  const go=vs=>{if(id!==TTS.seq)return;
+    const v=pickVoice(vs);
+    if(!v&&vs.length){sayOnline(t,id);return}
+    let started=false,moved=false;
+    const fb=()=>{if(started||moved||id!==TTS.seq)return;moved=true;try{speechSynthesis.cancel()}catch(e){}sayOnline(t,id)};
+    try{const u=new SpeechSynthesisUtterance(t);u.lang=v?v.lang:'zh-CN';if(v)u.voice=v;u.rate=.85;u.pitch=1;u.volume=1;
+      u.onstart=()=>{started=true};u.onerror=e=>{if(e&&(e.error==='interrupted'||e.error==='canceled'))return;fb()};
+      const run=()=>{if(id!==TTS.seq)return;try{speechSynthesis.resume();speechSynthesis.speak(u)}catch(e){fb()}setTimeout(fb,3500)};
+      if(speechSynthesis.speaking||speechSynthesis.pending){speechSynthesis.cancel();setTimeout(run,90)}else run()}catch(e){fb()}};
+  const vs=voicesNow();
+  if(vs.length||TTS.loaded)go(vs);else voicesReady(1500).then(go)}
 function showHelp(){
   const ua=navigator.userAgent||'',and=/Android/i.test(ua),ios=/iPhone|iPad|iPod/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1),win=/Windows/i.test(ua),mac=!ios&&/Macintosh|Mac OS/i.test(ua);
   let d=document.getElementById('vhelp');if(d)d.remove();
