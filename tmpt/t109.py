@@ -7,7 +7,7 @@ def grab(win, tag, full=False):
     win.update(); time.sleep(0.5); win.update()
     x, y, w, h = win.winfo_rootx(), win.winfo_rooty(), win.winfo_width(), win.winfo_height()
     im = ImageGrab.grab((x, y, x + w, y + (h if full else min(h, 700))))
-    b = io.BytesIO(); im.save(b, "PNG")
+    im = im.convert("RGB"); im.thumbnail((900, 900)); b = io.BytesIO(); im.save(b, "JPEG", quality=70)
     print(tag + ":" + base64.b64encode(b.getvalue()).decode(), flush=True)
 def go():
     print("go", flush=True)
