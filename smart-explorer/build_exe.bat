@@ -24,7 +24,7 @@ echo [3/4] exe 만들기
 %PY% -m PyInstaller --noconfirm --clean --onefile --noconsole --name SmartExplorer ^
   --icon smart_explorer.ico --version-file version_info.txt ^
   --collect-all pypdfium2 --collect-all pypdfium2_raw --collect-all winrt ^
-  --collect-submodules comtypes --hidden-import pystray._win32 ^
+  --collect-submodules comtypes --collect-submodules msoffcrypto --hidden-import pystray._win32 ^
   --exclude-module numpy --exclude-module pandas --exclude-module matplotlib --exclude-module scipy ^
   --exclude-module PyQt5 --exclude-module PyQt6 --exclude-module PySide6 --exclude-module IPython ^
   --exclude-module pytest --exclude-module pydoc_data ^

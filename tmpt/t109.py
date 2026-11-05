@@ -2,37 +2,37 @@ import os, sys, time, tempfile, base64, io
 sys.path.insert(0, "smart-explorer")
 import smart_explorer as S, tkinter as tk
 from PIL import ImageGrab
-print("ocr engine", S.ocr_engine() is not None, "no_korean", S._ocr["no_korean"], S._ocr["error"], flush=True)
 d = tempfile.mkdtemp()
-fp = os.path.join(d, "보고서.txt"); open(fp, "w", encoding="utf-8").write("x")
+# encrypted PDF
+from pypdf import PdfWriter
+w = PdfWriter(); w.add_blank_page(300, 400); w.encrypt("1234")
+pdfp = os.path.join(d, "비밀.pdf"); w.write(pdfp)
+# encrypted xlsx
+import openpyxl, msoffcrypto
+wb = openpyxl.Workbook(); ws = wb.active; ws["A1"] = "예산"; ws["B2"] = "1,000원"
+plain = os.path.join(d, "plain.xlsx"); wb.save(plain)
+xp = os.path.join(d, "급여.xlsx")
+with open(plain, "rb") as f, open(xp, "wb") as o:
+    msoffcrypto.format.ooxml.OOXMLFile(f).encrypt("abcd", o)
+os.remove(plain)
+print("kinds", S.locked_kind(pdfp, ".pdf"), S.locked_kind(xp, ".xlsx"), flush=True)
 inst = S.SingleInstance(); root = tk.Tk(); app = S.App(root, inst)
-def grab(win, tag):
-    win.update(); time.sleep(0.3); win.update()
-    x, y, w, h = win.winfo_rootx(), win.winfo_rooty(), win.winfo_width(), win.winfo_height()
-    im = ImageGrab.grab((x - 8, y - 32, x + w + 8, y + h + 8))
+def grab(tag):
+    root.update(); time.sleep(0.4); root.update()
+    pv = app.panes[0].preview
+    x, y, w_, h = pv.winfo_rootx(), pv.winfo_rooty(), pv.winfo_width(), pv.winfo_height()
+    im = ImageGrab.grab((x, y, x + w_, y + min(h, 420)))
     b = io.BytesIO(); im.save(b, "PNG")
     print(tag + ":" + base64.b64encode(b.getvalue()).decode(), flush=True)
-def step1():
-    app.ocr_missing(force=True)
-    grab(app._ocr_dlg.win, "IMG1")
-    app._ocr_dlg.close()
-    p = app.panes[0]
-    dlg = S.RenameDialog(p, {"path": fp, "name": "보고서.txt"})
-    dlg.entry.focus_force(); root.update()
-    print("ime", S.ime_match_font(dlg.entry), flush=True)
-    grab(dlg.win, "IMG2")
-    dlg.win.destroy()
-    ix = app.indexer
-    ix.folders = lambda: [d]; ix._wait_idle = lambda: True
-    ix.cfg["ocr"] = True
-    app.s.pop("ocr_nag_at", None)
-    ix._pass()
-    try:
-        while True:
-            k, v = app.bgq.get_nowait(); print("bgq", k, flush=True)
-    except Exception:
-        pass
+def step():
+    pv = app.panes[0].preview
+    pv.show(xp, [], None, True); grab("IMG1")
+    pv.pw_var.set("wrong"); pv._unlock(); print("wrong ->", pv.lock_msg.cget("text"), flush=True)
+    pv.pw_var.set("abcd"); print("right ->", pv._unlock(), flush=True); grab("IMG2")
+    pv.show(pdfp, [], None, True); pv.pw_var.set("1234"); print("pdf ->", pv._unlock(), flush=True); grab("IMG3")
+    pv.clear(); pv.show(xp, [], None, True); print("remembered", pv.lock_frame.winfo_ismapped() == 0, flush=True)
+    pv.clear(); print("tmp left", os.listdir(os.path.join(S.TMP_DIR, "unlocked")) if os.path.isdir(os.path.join(S.TMP_DIR, "unlocked")) else [], flush=True)
     os._exit(0)
-root.after(2000, step1)
+root.after(2500, step)
 root.after(60000, lambda: os._exit(1))
 root.mainloop()
