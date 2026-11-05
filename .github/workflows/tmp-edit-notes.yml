@@ -1,0 +1,24 @@
+name: tmp-edit-notes
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  edit:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import subprocess, os
+          repo = os.environ["GITHUB_REPOSITORY"]; tag = "smartexplorer-v1.0.10"
+          old = "(바뀐 점은 여기에 적어 주세요 — 프로그램의 새 버전 알림 창에 그대로 보입니다)"
+          new = ("### 1.0.10 에서 바뀐 점\n"
+                 "- **한국어 OCR 설치 안내** — 한국어 글자 인식이 없는 PC에서는 색인할 때 안내 창이 뜨고, [지금 설치] 한 번으로 설치할 수 있습니다. 설치가 끝나면 자동으로 글자 인식을 시작합니다.\n"
+                 "- **이름 바꾸기 한글 입력** — 입력하는 글자가 크게 따로 뜨지 않고 입력칸과 같은 크기로 자연스럽게 보입니다. (검색칸 등 모든 입력칸 동일)\n\n"
+                 "### 1.0.9\n- [🔍 파일명 검색] / [📄 본문 추가 검색] 버튼 분리, 스캔 PDF·그림 글자까지 미리 색인")
+          body = subprocess.check_output(["gh", "release", "view", tag, "--repo", repo, "--json", "body", "-q", ".body"], text=True)
+          body = body.replace(old, new) if old in body else new + "\n\n" + body
+          open("b.md", "w", encoding="utf-8").write(body)
+          subprocess.check_call(["gh", "release", "edit", tag, "--repo", repo, "--notes-file", "b.md"])
+          PY
