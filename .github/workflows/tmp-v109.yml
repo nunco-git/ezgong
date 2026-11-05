@@ -2,10 +2,17 @@ name: tmp-v109
 on:
   push:
     branches: [test-v109]
+permissions:
+  contents: write
 jobs:
   t:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - run: pip install pillow
-      - run: python tmpt/photos.py
+      - run: |
+          python tmpt/photos.py > /dev/null
+          python tmpt/photos2.py
+          mkdir -p tmpt/out && mv photo_walls.py tmpt/out/
+          git config user.name bot && git config user.email bot@users.noreply.github.com
+          git add tmpt/out && git commit -m "tmp photo module" && git push
