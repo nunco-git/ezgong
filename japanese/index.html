@@ -603,7 +603,10 @@ function sayOnline(t,lang,id){const q=encodeURIComponent(t),zh=lang.startsWith('
   let i=0;const next=()=>{if(id!==TTS.seq)return;
     if(i>=urls.length){const n=voicesNow().length;sayToast(zh?'중국어 음성을 재생할 수 없어요. 기기 설정에서 중국어 음성을 추가해 주세요.':'일본어 음성을 재생할 수 없어요'+(n?` (기기 음성 ${n}개 중 일본어 없음)`:'')+'. 윈도우: 설정 > 시간 및 언어 > 음성(언어 및 지역에서 일본어 추가) · 안드로이드: 설정 > 텍스트 음성 변환 > 일본어 음성 데이터 설치. 설치 후 브라우저를 다시 열어 주세요. 아이폰은 무음 모드를 해제해 주세요.',9000);return}
     tryPlay(urls[i++],4000,null,next)};next()}
-function speak(t,lang){lang=lang||'ja-JP';const id=++TTS.seq;try{TTS.el.pause()}catch(e){}
+/* 한 글자만 읽으면 음성 엔진이 어색하게 읽으므로 예시 단어를 붙여 읽음 (가타카나도 같은 소리) */
+const KSAY={あ:'あめ',い:'いぬ',う:'うみ',え:'えき',お:'おと',か:'かさ',き:'きつね',く:'くつ',け:'けむり',こ:'こえ',さ:'さくら',し:'しお',す:'すし',せ:'せんせい',そ:'そら',た:'たまご',ち:'ちず',つ:'つき',て:'てがみ',と:'とり',な:'なつ',に:'にく',ぬ:'ぬの',ね:'ねこ',の:'のり',は:'はな',ひ:'ひと',ふ:'ふね',へ:'へや',ほ:'ほし',ま:'まど',み:'みず',む:'むし',め:'めがね',も:'もり',や:'やま',ゆ:'ゆき',よ:'よる',ら:'らくだ',り:'りんご',る:'るす',れ:'れんが',ろ:'ろうそく',わ:'わに',を:'ほんを',ん:'ほん',が:'がっこう',ぎ:'ぎんこう',ぐ:'ぐあい',げ:'げんき',ご:'ごはん',ざ:'ざっし',じ:'じかん',ず:'ずぼん',ぜ:'ぜんぶ',ぞ:'ぞう',だ:'だいがく',ぢ:'はなぢ',づ:'つづく',で:'でんわ',ど:'どうぶつ',ば:'ばら',び:'びょういん',ぶ:'ぶた',べ:'べんり',ぼ:'ぼうし',ぱ:'ぱん',ぴ:'ぴあの',ぷ:'ぷりん',ぺ:'ぺん',ぽ:'ぽすと'};
+function kanaSpeech(t){if(!t||t.length!==1)return t;const h=t.replace(/[ァ-ヶ]/,c=>String.fromCharCode(c.charCodeAt(0)-0x60));return KSAY[h]?h+'、'+KSAY[h]:t}
+function speak(t,lang){lang=lang||'ja-JP';if(lang.startsWith('ja'))t=kanaSpeech(t);const id=++TTS.seq;try{TTS.el.pause()}catch(e){}
   if(!('speechSynthesis' in window)){sayOnline(t,lang,id);return}
   const go=vs=>{if(id!==TTS.seq)return;
     const v=pickVoice(lang,vs);
