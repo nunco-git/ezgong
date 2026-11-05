@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.14"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.15"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -5160,6 +5160,31 @@ def make_builtin_bg(name, size=(1600, 1000)):
     return im.convert("RGB")
 
 
+try:
+    from photo_walls import PHOTO_WALLS        # 기본 배경 사진 (퍼블릭 도메인)
+except Exception:
+    PHOTO_WALLS = []
+
+
+def photo_bg_path(name):
+    """기본 배경 사진을 꺼내 두고 그 경로를 돌려줌"""
+    os.makedirs(BUILTIN_BG_DIR, exist_ok=True)
+    i = [n for n, _, _ in PHOTO_WALLS].index(name)
+    path = os.path.join(BUILTIN_BG_DIR, f"photo_{i + 1}.jpg")
+    if not os.path.exists(path):
+        with open(path + ".part", "wb") as f:
+            f.write(base64.b64decode(PHOTO_WALLS[i][2]))
+        os.replace(path + ".part", path)
+    return path
+
+
+def photo_thumb(name, size=(72, 45)):
+    data = base64.b64decode(next(d for n, _, d in PHOTO_WALLS if n == name))
+    im = Image.open(io.BytesIO(data))
+    im.draft("RGB", (size[0] * 2, size[1] * 2))     # 큰 사진을 빨리 작게 읽기
+    return im.convert("RGB").resize(size)
+
+
 def builtin_bg_path(name):
     """기본 배경 그림 파일 경로 (처음 고를 때 한 번 그려서 저장)"""
     os.makedirs(BUILTIN_BG_DIR, exist_ok=True)
@@ -5325,6 +5350,20 @@ class SettingsDialog:
                           font=(FONT[0], fsz(8)))
             nb.pack(side="left", padx=2)
             nb.bind("<Button-1>", lambda e: (self.img_var.set(""), self._sync(), self.apply()))
+            if PHOTO_WALLS:                           # 실제 풍경 사진
+                ph = ttk.Frame(pf)
+                ph.grid(row=(len(THEME_PRESETS) + 2) // 3 + 1, column=0, columnspan=3, sticky="w", pady=(4, 0))
+                ttk.Label(ph, text="배경 사진:").grid(row=0, column=0, rowspan=2, sticky="n", padx=(2, 4), pady=(14, 0))
+                for i, (name, _, _) in enumerate(PHOTO_WALLS):
+                    try:
+                        th = ImageTk.PhotoImage(photo_thumb(name))
+                    except Exception:
+                        continue
+                    self._thumbs.append(th)
+                    b = tk.Label(ph, image=th, text=name, compound="top", cursor="hand2", font=(FONT[0], fsz(8)),
+                                 relief="solid", borderwidth=1, padx=1, pady=1)
+                    b.grid(row=i // 5, column=1 + i % 5, padx=2, pady=2)
+                    b.bind("<Button-1>", lambda e, n=name: self.builtin_bg(n, photo=True))
 
         # 글꼴
         ttk.Separator(body).grid(row=1, column=0, columnspan=4, sticky="ew", pady=6)
@@ -5481,9 +5520,9 @@ class SettingsDialog:
         self.t[key] = ""
         self._refresh()
 
-    def builtin_bg(self, name):
+    def builtin_bg(self, name, photo=False):
         try:
-            self.img_var.set(builtin_bg_path(name))
+            self.img_var.set(photo_bg_path(name) if photo else builtin_bg_path(name))
         except Exception as e:
             messagebox.showerror(APP_NAME, f"배경 그림을 만들지 못했습니다.\n{e}", parent=self.win)
             return

@@ -15,7 +15,7 @@ def go():
     print("go", flush=True)
     dlg = S.SettingsDialog(app); print("dlg ok", flush=True)
     grab(dlg.win, "IMG1", True)
-    dlg.builtin_bg("하늘")
+    dlg.builtin_bg("호수", photo=True)
     print("bg", S.THEME.get("bg_image"), os.path.exists(S.THEME.get("bg_image", "")), flush=True)
     dlg.ok() if hasattr(dlg, "ok") else None
     root.update(); time.sleep(0.5)
