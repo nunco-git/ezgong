@@ -7,6 +7,7 @@ comtypes
 pillow
 py7zr
 rarfile
+msoffcrypto-tool
 pystray
 winrt-runtime
 winrt-Windows.Foundation

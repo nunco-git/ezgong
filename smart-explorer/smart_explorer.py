@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.10"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.11"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -2024,6 +2024,69 @@ def make_photo(src, max_w, max_h, upscale=False):
     return (img.subsample(k) if k > 1 else img), (w, h)
 
 
+# ───────────── 암호 걸린 파일 미리보기 (PDF · 엑셀 · 워드 · 파워포인트) ─────────────
+OOXML_EXTS = (".xlsx", ".xlsm", ".docx", ".pptx")
+OLE_OFFICE_EXTS = (".xls", ".doc", ".ppt")
+SESSION_PASSWORDS = {}          # 이번에 켠 동안만 기억 (디스크에 저장하지 않음)
+
+
+def locked_kind(path, ext):
+    """암호가 걸린 파일이면 'pdf' / 'office' / 'hwp', 아니면 None"""
+    try:
+        if ext == ".pdf" and pdfium is not None:
+            try:
+                pdfium.PdfDocument(path).close()
+                return None
+            except pdfium.PdfiumError as e:
+                return "pdf" if getattr(e, "err_code", None) == 4 or "password" in str(e).lower() else None
+        if ext in OOXML_EXTS + OLE_OFFICE_EXTS:
+            with open(path, "rb") as f:
+                head = f.read(8)
+            if head != b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1":
+                return None
+            if ext in OOXML_EXTS:            # 암호 걸린 xlsx·docx는 압축(zip)이 아니라 OLE 상자 안에 들어 있음
+                return "office"
+            try:
+                import msoffcrypto
+                with open(path, "rb") as f:
+                    return "office" if msoffcrypto.OfficeFile(f).is_encrypted() else None
+            except Exception:
+                return None
+        if ext == ".hwp":
+            header = OleFile(path).read("FileHeader")
+            return "hwp" if struct.unpack_from("<I", header, 36)[0] & 2 else None
+        if ext == ".hwpx":
+            with zipfile.ZipFile(path) as zf:
+                if "META-INF/manifest.xml" in zf.namelist() and \
+                        b"encryption-data" in zf.read("META-INF/manifest.xml"):
+                    return "hwp"
+    except Exception:
+        return None
+    return None
+
+
+def office_decrypt(path, password):
+    """암호를 풀어 임시 폴더에 같은 이름으로 저장 → 그 경로 (암호가 틀리면 ValueError)"""
+    try:
+        import msoffcrypto
+    except ImportError:
+        raise RuntimeError("암호 해제 기능(msoffcrypto)이 없습니다")
+    out = io.BytesIO()
+    with open(path, "rb") as f:
+        of = msoffcrypto.OfficeFile(f)
+        try:
+            of.load_key(password=password)
+            of.decrypt(out)
+        except Exception as e:
+            raise ValueError(str(e))
+    d = os.path.join(TMP_DIR, "unlocked", str(int(time.time() * 1000)))
+    os.makedirs(d, exist_ok=True)
+    dest = os.path.join(d, os.path.basename(path))
+    with open(dest, "wb") as f:
+        f.write(out.getvalue())
+    return dest
+
+
 class PreviewPanel(ttk.Frame):
     """원래 모양(윈도우 처리기) → 직접 그리기(PDF·그림·표·압축 목록·문서 첫 쪽 그림+글자) 순서로 보여 줌"""
     MAX_PDF_PAGES = 30
@@ -2118,6 +2181,26 @@ class PreviewPanel(ttk.Frame):
         self.canvas.configure(cursor="fleur")
         self.canvas.bind("<Configure>", self._on_canvas_resize)
         self._pdf_path = None
+
+        # 암호 입력
+        self.lock_frame = ttk.Frame(self.body)
+        lk = ttk.Frame(self.lock_frame)
+        lk.place(relx=0.5, rely=0.4, anchor="center")
+        ttk.Label(lk, text="🔒", font=(FONT[0], fsz(26))).pack()
+        self.lock_title = ttk.Label(lk, text="", font=(FONT[0], fsz(11), "bold"), justify="center")
+        self.lock_title.pack(pady=(2, 8))
+        self.lock_row = ttk.Frame(lk)
+        self.lock_row.pack()
+        self.pw_var = tk.StringVar()
+        self.pw_entry = ttk.Entry(self.lock_row, textvariable=self.pw_var, show="●", width=22, font=(FONT[0], fsz(11)))
+        self.pw_entry.pack(side="left", ipady=1)
+        self.pw_entry.bind("<Return>", lambda e: self._unlock())
+        ttk.Button(self.lock_row, text="미리보기", style="Accent.TButton", command=self._unlock).pack(side="left", padx=(4, 0))
+        self.lock_msg = ttk.Label(lk, text="", foreground="#888", justify="center")
+        self.lock_msg.pack(pady=(8, 0))
+        self._lock = None
+        self._pdf_pw = None
+        self._unlocked = []
 
         # 문서(첫 쪽 그림 + 글자)
         self.doc_frame = ttk.Frame(self.body)
@@ -2218,7 +2301,8 @@ class PreviewPanel(ttk.Frame):
 
     # 공통
     def _show(self, w):
-        for x in (self.shell_frame, self.pic_frame, self.doc_frame, self.grid_frame, self.arc_frame, self.msg):
+        for x in (self.shell_frame, self.pic_frame, self.doc_frame, self.grid_frame, self.arc_frame, self.msg,
+                  self.lock_frame):
             if x is not w:
                 x.pack_forget()
         w.pack(fill="both", expand=True)
@@ -2254,6 +2338,11 @@ class PreviewPanel(ttk.Frame):
         self.images = []
         self._img_src = None
         self._pdf_path = None
+        self._pdf_pw = None
+        self._lock = None
+        for f in self._unlocked:                 # 암호를 푼 임시 파일은 바로 지움
+            shutil.rmtree(os.path.dirname(f), ignore_errors=True)
+        self._unlocked = []
         self.page_limit = self.MAX_PDF_PAGES
         self.canvas.delete("all")
         self.msg.configure(text="파일을 선택하면 미리보기가 나옵니다.")
@@ -2281,6 +2370,66 @@ class PreviewPanel(ttk.Frame):
             return
         self.msg.configure(anchor="center", justify="center")
         ext = os.path.splitext(path)[1].lower()
+        lock = locked_kind(path, ext)
+        if lock:
+            self._lock = (path, ext, lock, use_shell)
+            pw = SESSION_PASSWORDS.get(os.path.normcase(path))
+            if pw is None or not self._unlock(pw):
+                self._ask_password()
+            return
+        self._dispatch(path, ext, use_shell)
+
+    def _ask_password(self, wrong=False):
+        path, ext, lock, _ = self._lock
+        self.lock_title.configure(text=f"{os.path.basename(path)}\n암호가 걸린 파일입니다")
+        if lock == "hwp":
+            self.lock_row.pack_forget()
+            self.lock_msg.configure(foreground="#888", text=(
+                "한글(HWP·HWPX) 암호 문서는 암호 방식이 공개되어 있지 않아\n미리보기를 할 수 없습니다.\n"
+                "더블클릭하면 한글 프로그램에서 암호를 넣고 열 수 있습니다."))
+        else:
+            self.lock_row.pack()
+            self.lock_msg.configure(
+                foreground="#b0412b" if wrong else "#888",
+                text="암호가 맞지 않습니다. 다시 입력해 주세요." if wrong else
+                "암호를 입력하면 미리 볼 수 있습니다.\n(입력한 암호는 프로그램을 끌 때까지만 기억합니다)")
+            self.pw_var.set("")
+            self.after_idle(self.pw_entry.focus_set)
+        self._show(self.lock_frame)
+
+    def _unlock(self, pw=None):
+        """암호로 열어 보기. 성공하면 True"""
+        if not self._lock:
+            return False
+        path, ext, lock, use_shell = self._lock
+        typed = pw is None
+        if typed:
+            pw = self.pw_var.get()
+            if not pw:
+                return False
+        try:
+            if lock == "pdf":
+                pdfium.PdfDocument(path, password=pw).close()
+                self._pdf_pw = pw
+                self._show(self.pic_frame)
+                self._render_pdf(path)
+            elif lock == "office":
+                tmp = office_decrypt(path, pw)
+                self._unlocked.append(tmp)
+                self._dispatch(tmp, ext, use_shell)
+            else:
+                return False
+        except (ValueError, pdfium.PdfiumError if pdfium else ValueError):
+            if typed:
+                self._ask_password(wrong=True)
+            return False
+        except Exception as e:
+            self._render_doc(path, error=f"암호를 풀었지만 열 수 없습니다: {e}")
+            return True
+        SESSION_PASSWORDS[os.path.normcase(path)] = pw
+        return True
+
+    def _dispatch(self, path, ext, use_shell):
         if use_shell and self.shell and ext not in ARCHIVE_EXTS:
             self.shell_zoomable = ext in ZOOMABLE_SHELL_EXTS
             self._show(self.shell_frame)
@@ -2446,7 +2595,7 @@ class PreviewPanel(ttk.Frame):
         if not path:
             return
         yfrac = 0.0 if reset else self.canvas.yview()[0]
-        doc = pdfium.PdfDocument(path)
+        doc = pdfium.PdfDocument(path, password=self._pdf_pw)
         try:
             n = len(doc)
             limit = getattr(self, "page_limit", self.MAX_PDF_PAGES)
