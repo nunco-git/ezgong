@@ -26,9 +26,9 @@ ix._wait_idle = lambda: True
 ix._pass(); print("pass1 total", ix.total, "read", ix.read, ix.summary(), flush=True)
 ix._pass(); print("pass2 read", ix.read, flush=True)
 p = app.panes[0]
-p.cwd = d; p.folder_var.set(d); p.query_var.set("예산")
+p.query_var.set("예산")
 def go():
-    p.start("name")
+    p.cwd = d; p.folder_var.set(d); p.start("name")
     def chk():
         if p.busy(): return root.after(200, chk)
         root.after(500, shot)
