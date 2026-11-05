@@ -2042,12 +2042,9 @@
     if (!app) return;
     try {
       const today = vsKst(), slug = vsSlug(url);
-      let seen = { date: today, list: [] };
-      try { const s = JSON.parse(lsGet('sg_app_seen') || 'null'); if (s && s.date === today) seen = s; } catch (e) {}
-      const first = !seen.list.includes(slug);
-      if (first) { seen.list.push(slug); lsSet('sg_app_seen', JSON.stringify(seen)); }
+      // 같은 사람이 같은 앱을 하루에 여러 번 열어도 매번 집계
       await v.db.collection('appStats').doc(today + '_' + slug)
-        .set({ app: app.title, date: today, clicks: vsInc(1), visitors: vsInc(first ? 1 : 0) }, { merge: true });
+        .set({ app: app.title, date: today, clicks: vsInc(1), visitors: vsInc(1) }, { merge: true });
     } catch (e) { console.warn('앱 클릭 집계 실패:', e); }
   }
 
@@ -2135,7 +2132,7 @@
           <thead><tr><th>#</th><th>앱</th><th>클릭수</th><th>방문자</th><th style="width:34%">클릭 비율</th></tr></thead>
           <tbody>${list.map((r, i) => `<tr><td>${i + 1}</td><td>${vsEsc(r.name)}</td><td>${vsFmt(r.clicks)}</td><td>${vsFmt(r.visitors)}</td><td><div class="ad-bar"><i style="width:${(r.clicks / maxClick * 100).toFixed(1)}%"></i></div></td></tr>`).join('')}</tbody>
         </table>
-        <p class="ad-note">방문자 = 같은 사람이 하루에 여러 번 접속해도 매번 집계 · 방문수 = 30분 이상 활동이 없으면 새 방문 · 앱 클릭수 = 탭/카드로 앱을 연 횟수 · 앱 방문자 = 그날 그 앱을 처음 연 브라우저 수(기간 합계)</p>`;
+        <p class="ad-note">방문자 = 같은 사람이 하루에 여러 번 접속해도 매번 집계 · 방문수 = 30분 이상 활동이 없으면 새 방문 · 앱 클릭수 = 탭/카드로 앱을 연 횟수 · 앱 방문자 = 앱을 연 횟수(같은 사람이 여러 번 열어도 매번 집계)</p>`;
     } catch (e) {
       console.warn(e);
       body.innerHTML = e && e.code === 'permission-denied'
