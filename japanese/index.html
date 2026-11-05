@@ -577,12 +577,20 @@ tr:last-child td{border-bottom:0}
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const SPK='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 6h3l4-3v10l-4-3H2z" fill="currentColor"/><path d="M11 5.5a3.5 3.5 0 0 1 0 5M12.8 3.5a6 6 0 0 1 0 9"/></svg>';
-/* 소리: 기기 음성 → (없거나 1.8초 안에 시작 안 하면) 인터넷 음성 */
-const TTS={el:new Audio(),loaded:false,u:null};
+/* 소리: 기기의 일본어 음성 우선 → 없거나 실패하면 인터넷 음성 → 그래도 안 되면 안내 */
+const TTS={el:new Audio(),loaded:false,u:null,seq:0};
 function voicesNow(){try{const v=speechSynthesis.getVoices();if(v.length)TTS.loaded=true;return v}catch(e){return[]}}
 try{if('speechSynthesis' in window){voicesNow();speechSynthesis.addEventListener&&speechSynthesis.addEventListener('voiceschanged',voicesNow)}}catch(e){}
-function pickVoice(lang){const vs=voicesNow(),p=lang.slice(0,2).toLowerCase(),nm=p==='ja'?/japan|日本/i:/chinese|中文|普通话|mandarin/i;
-  return vs.find(v=>v.lang&&v.lang.replace('_','-').toLowerCase()===lang.toLowerCase())||vs.find(v=>v.lang&&v.lang.toLowerCase().startsWith(p))||vs.find(v=>nm.test(v.name))||null}
+function voicesReady(ms){return new Promise(res=>{let done=false,iv=0;const fin=()=>{if(done)return;done=true;clearInterval(iv);res(voicesNow())};
+  try{speechSynthesis.addEventListener('voiceschanged',fin,{once:true})}catch(e){}
+  iv=setInterval(()=>{if(voicesNow().length)fin()},100);setTimeout(fin,ms||1500)})}
+const langKey=l=>String(l||'').replace('_','-').toLowerCase();
+function pickVoice(lang,vs){vs=vs||voicesNow();const L=langKey(lang),p=L.slice(0,2);
+  const nm=p==='ja'?/japan|日本|nanami|keita|kyoko|otoya|haruka|ichiro|ayumi|sayaka|o-ren/i:/chinese|中文|普通话|mandarin|xiaoxiao|yunxi|ting-ting/i;
+  const cand=vs.filter(v=>v&&(langKey(v.lang).startsWith(p)||nm.test(v.name||'')));
+  if(!cand.length)return null;
+  const score=v=>(langKey(v.lang)===L?4:0)+(langKey(v.lang).startsWith(p)?3:0)+(/natural|premium|enhanced|neural/i.test(v.name||'')?2:0)+(v.localService?1:0);
+  return cand.slice().sort((a,b)=>score(b)-score(a))[0]}
 function sayToast(m,ms){let t=document.getElementById('sayToast');if(!t){t=document.createElement('div');t.id='sayToast';t.setAttribute('role','status');
   t.style.cssText='position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--sheet);padding:10px 16px;border-radius:10px;font-size:13px;line-height:1.5;z-index:60;max-width:min(92vw,520px);text-align:center';document.body.appendChild(t)}
   t.textContent=m;t.hidden=false;clearTimeout(t._h);t._h=setTimeout(()=>{t.hidden=true},ms||3000)}
@@ -590,18 +598,24 @@ function tryPlay(src,ms,ok,fail){const el=TTS.el;let good=false,dead=false;const
   el.onplaying=()=>{if(!good){good=true;ok&&ok()}};el.onerror=bad;
   try{el.src=src;const p=el.play();if(p&&p.catch)p.catch(bad)}catch(e){bad();return}
   setTimeout(()=>{if(!good){try{el.pause()}catch(e){}bad()}},ms)}
-function sayOnline(t,lang){const q=encodeURIComponent(t),zh=lang.startsWith('zh');
-  const urls=['https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl='+(zh?'zh-CN':'ja')+'&q='+q,'https://dict.youdao.com/dictvoice?le='+(zh?'zh':'jap')+'&audio='+q];
-  let i=0;const next=()=>{if(i>=urls.length){sayToast(zh?'중국어 음성을 재생할 수 없어요. 기기 설정에서 중국어 음성을 추가해 주세요.':'일본어 음성을 재생할 수 없어요. 윈도우는 설정 > 시간 및 언어 > 음성에서 일본어 음성을, 안드로이드는 설정 > 텍스트 음성 변환에서 일본어 음성 데이터를 추가해 주세요.',7000);return}
-    tryPlay(urls[i++],2500,null,next)};next()}
-function speak(t,lang){lang=lang||'ja-JP';try{TTS.el.pause()}catch(e){}
-  let started=false,moved=false;const fb=()=>{if(started||moved)return;moved=true;try{speechSynthesis.cancel()}catch(e){}sayOnline(t,lang)};
-  if(!('speechSynthesis' in window)){fb();return}
-  const v=pickVoice(lang);
-  if(!v&&TTS.loaded){fb();return}
-  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang=v?v.lang:lang;if(v)u.voice=v;u.rate=.85;
-    u.onstart=()=>{started=true};u.onerror=fb;TTS.u=u;
-    setTimeout(()=>{try{speechSynthesis.resume();speechSynthesis.speak(u)}catch(e){fb()}},60);setTimeout(fb,1800)}catch(e){fb()}}
+function sayOnline(t,lang,id){const q=encodeURIComponent(t),zh=lang.startsWith('zh');
+  const urls=['https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl='+(zh?'zh-CN':'ja')+'&q='+q,'https://translate.googleapis.com/translate_tts?ie=UTF-8&client=gtx&tl='+(zh?'zh-CN':'ja')+'&q='+q,'https://dict.youdao.com/dictvoice?le='+(zh?'zh':'jap')+'&audio='+q];
+  let i=0;const next=()=>{if(id!==TTS.seq)return;
+    if(i>=urls.length){const n=voicesNow().length;sayToast(zh?'중국어 음성을 재생할 수 없어요. 기기 설정에서 중국어 음성을 추가해 주세요.':'일본어 음성을 재생할 수 없어요'+(n?` (기기 음성 ${n}개 중 일본어 없음)`:'')+'. 윈도우: 설정 > 시간 및 언어 > 음성(언어 및 지역에서 일본어 추가) · 안드로이드: 설정 > 텍스트 음성 변환 > 일본어 음성 데이터 설치. 설치 후 브라우저를 다시 열어 주세요. 아이폰은 무음 모드를 해제해 주세요.',9000);return}
+    tryPlay(urls[i++],4000,null,next)};next()}
+function speak(t,lang){lang=lang||'ja-JP';const id=++TTS.seq;try{TTS.el.pause()}catch(e){}
+  if(!('speechSynthesis' in window)){sayOnline(t,lang,id);return}
+  const go=vs=>{if(id!==TTS.seq)return;
+    const v=pickVoice(lang,vs);
+    if(!v&&vs.length){sayOnline(t,lang,id);return}
+    let started=false,moved=false;
+    const fb=()=>{if(started||moved||id!==TTS.seq)return;moved=true;try{speechSynthesis.cancel()}catch(e){}sayOnline(t,lang,id)};
+    try{const u=new SpeechSynthesisUtterance(t);u.lang=v?v.lang:lang;if(v)u.voice=v;u.rate=.85;u.pitch=1;u.volume=1;
+      u.onstart=()=>{started=true};u.onerror=e=>{if(e&&(e.error==='interrupted'||e.error==='canceled'))return;fb()};TTS.u=u;
+      const run=()=>{if(id!==TTS.seq)return;try{speechSynthesis.resume();speechSynthesis.speak(u)}catch(e){fb()}setTimeout(fb,3500)};
+      if(speechSynthesis.speaking||speechSynthesis.pending){speechSynthesis.cancel();setTimeout(run,90)}else run()}catch(e){fb()}};
+  const vs=voicesNow();
+  if(vs.length||TTS.loaded)go(vs);else voicesReady(1500).then(go)}
 window.SAY=speak;
 const store={get(k,d){try{const v=localStorage.getItem('kanada.'+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem('kanada.'+k,JSON.stringify(v))}catch(e){}}};
 const toKata=s=>s.replace(/[ぁ-ゖ]/g,c=>String.fromCharCode(c.charCodeAt(0)+0x60));
