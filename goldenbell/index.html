@@ -133,6 +133,23 @@ h1{font-family:var(--f-display);font-weight:400;font-size:clamp(28px,6vw,40px);l
 .intro section p{font-size:15.5px;line-height:1.75;word-break:keep-all}
 .intro .go{display:flex;gap:8px;flex-wrap:wrap}
 .book .ib{font-size:11px;color:var(--brass)}
+
+.authbox{font-size:12px;margin-top:2px;text-align:right}.me{color:var(--muted)}
+.lnk{background:transparent;border:0;color:var(--o);text-decoration:underline;padding:2px 4px;font-size:13px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.frm{display:grid;gap:12px}.frm label{display:grid;gap:4px;font-size:13px;color:var(--muted)}
+.frm input,.frm select,.frm textarea{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:9px 12px;font:inherit;width:100%}
+.frm .two,.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media (max-width:560px){.two{grid-template-columns:1fr}}
+.frm details{border:1px solid var(--line);border-radius:10px;padding:8px 12px;display:grid;gap:10px}.frm summary{cursor:pointer;font-size:13px}
+.cmbox{border:1px dashed var(--line);border-radius:12px;padding:16px;display:grid;gap:10px;justify-items:start;background:var(--surface)}
+.rq{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 12px;margin-top:8px}
+.rq .kind,.cmrow{font-size:12px}.kind.okk{background:var(--ok-soft);color:var(--ok)}.note0{font-size:12px;color:var(--muted)}.sh{font-size:15px;margin-top:18px}
+.cmrow{color:var(--muted);margin:6px 0 0}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50;overflow:auto}
+.mbox{background:var(--bg);color:var(--ink);border-radius:14px;padding:18px;max-width:520px;width:100%;display:grid;gap:12px;max-height:92vh;overflow:auto}
+.qorig{background:var(--surface);border-radius:8px;padding:8px 10px;margin:0;font-size:14px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;z-index:99;font-size:14px;max-width:90vw}
+[hidden]{display:none!important}
 </style>
 </head>
 <body>
@@ -143,7 +160,7 @@ h1{font-family:var(--f-display);font-weight:400;font-size:clamp(28px,6vw,40px);l
       <svg class="bell" id="logoBell" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 5a3 3 0 0 1 3 3v1.6c6.3 1.4 10.5 7 10.5 13.6V31l3.5 5H7l3.5-5v-7.8C10.5 16.6 14.7 11 21 9.6V8a3 3 0 0 1 3-3z" fill="var(--brass)"/><circle cx="24" cy="41" r="4" fill="var(--brass)"/><path d="M15 23c0-4 2.4-7.2 6-8.4" stroke="var(--surface)" stroke-width="2.4" fill="none" stroke-linecap="round" opacity=".7"/></svg>
       <div><h1>독서 골든벨</h1><div class="sub">책을 고르면 골든벨 문제가 시작됩니다</div></div>
     </div>
-    <div class="stats" id="stats"></div>
+    <div class="stats"><div id="stats"></div><div id="auth" class="authbox"></div></div>
   </header>
   <main id="view"></main>
 </div>
@@ -12458,6 +12475,7 @@ function home(){
   view.innerHTML=`<div class="stage">
    <div class="levels" role="group" aria-label="단계">${LEVELS.map(([id,n])=>`<button class="lv" data-lv="${id}" aria-pressed="${id===S.lv}"><span class="n">${n}</span><span class="c">${BANK[id].length}권 · ${BANK[id].reduce((s,b)=>s+b.q.length,0)}문제</span></button>`).join("")}</div>
    <div class="bar" role="group" aria-label="장르">${genres.map(g=>`<button class="chip" data-g="${esc(g)}" aria-pressed="${g===S.genre}">${esc(g)}</button>`).join("")}</div>
+   <div class="bar">${COMMUNITY?`<button class="btn ghost" id="cmOpen">✍️ 문제 내기 · 🚩 오류 제보 <small>(구글 로그인)</small></button>`:""}</div>
    <div class="bar"><input id="search" class="search" type="search" placeholder="도서 제목·작가 검색" value="${esc(S.q)}" aria-label="도서 검색"></div>
    <div class="actions">
      <button class="btn ghost" id="list">📋 ${lvName} 권장도서 목록</button>
@@ -12477,7 +12495,9 @@ function home(){
   $("#optTimer").onchange=e=>{S.timer=e.target.checked;store.set("timer",S.timer)};
   $("#optElim").onchange=e=>{S.elim=e.target.checked;store.set("elim",S.elim)};
   $("#list").onclick=()=>recList();
-  $("#rand").onclick=()=>{const pool=filtered().flatMap(b=>b.q.map(q=>({...q,book:b.t})));
+  const co=$("#cmOpen");if(co)co.onclick=()=>contrib("new");
+  cur=null;drawAuth();
+  $("#rand").onclick=()=>{const pool=filtered().flatMap(b=>b.q.map(q=>({...q,book:b.t,lv:b.lv})));
     start(shuffle(pool).slice(0,20),{title:`${lvName}${S.genre==="전체"?"":" · "+S.genre} 랜덤 골든벨`,key:null})};
 }
 function recList(){
@@ -12511,7 +12531,7 @@ function openBook(b){const it=(INTRO[b.lv]||{})[b.t];if(!it)return playBook(b);
   <section><h3>작가 소개</h3><p>${esc(it.a)}</p></section><section><h3>줄거리</h3><p>${esc(it.s)}</p></section><section><h3>이슈와 중요사항</h3><p>${esc(it.i)}</p></section>
   <div class="go"><button class="btn primary" id="igo">골든벨 풀기 · ${n}</button></div></article></div>`;
   $("#iback").onclick=home;$("#igo").onclick=()=>playBook(b)}
-function playBook(b){const qs=b.q.map(q=>({...q,book:b.t}));
+function playBook(b){const qs=b.q.map(q=>({...q,book:b.t,lv:b.lv}));
   if(qs.length>BIG)start(shuffle(qs).slice(0,BIG),{title:`${b.t} · ${b.q.length}문제 중 ${BIG}문제`,key:null,book:b});
   else start(qs,{title:b.t,key:"best_"+b.lv+"_"+b.t,book:b})}
 let R=null,tick=null;
@@ -12554,7 +12574,8 @@ function showFeedback(){
   const r=R.res[R.i],q=r.q;const fb=$("#fb");
   const ansText=q.ty==="ox"?q.ans:q.ans;
   fb.innerHTML=`<div class="feedback ${r.ok?"good":"bad"}"><span>${r.ok?"정답!":r.given==null?"시간 초과":"오답"} <span class="ans">정답: ${esc(ansText)}</span></span>
-   ${q.ty==="sa"&&!r.ok&&r.given?`<span class="self"><button id="accept">정답 인정</button></span>`:""}</div>${q.ex?`<p class="ex"><b>해설</b> ${esc(q.ex)}</p>`:""}`;
+   ${q.ty==="sa"&&!r.ok&&r.given?`<span class="self"><button id="accept">정답 인정</button></span>`:""}</div>${q.ex?`<p class="ex"><b>해설</b> ${esc(q.ex)}</p>`:""}${COMMUNITY?`<p class="cmrow">${q.user?"출제: "+esc(q.by||"익명")+" · ":""}${q.fixed?"정정 반영됨 · ":""}<button class="lnk" id="rpt">🚩 오류 제보</button></p>`:""}`;
+  const rp=$("#rpt");if(rp)rp.onclick=()=>q.lv?reportModal({lv:q.lv,book:q.book,q}):toast("이 문제는 목록에서 제보해 주세요.");
   const ac=$("#accept");if(ac)ac.onclick=()=>{r.ok=true;showFeedback();drawNext()};
   drawNext();
 }
@@ -12580,6 +12601,157 @@ function result(){
   if(golden)chime();
   $("#again").onclick=()=>R.meta.book&&R.meta.book.q.length>BIG?playBook(R.meta.book):start(R.qs,R.meta);$("#back").onclick=home;
 }
+/* ===== 참여: 문제 내기 · 오류 제보 (구글 로그인, smartgong.kr 에서만 동작) ===== */
+const FB_CFG={apiKey:"AIzaSyAokDpc5E_KyWXTh5oHMcAClOG0fHDBPtA",authDomain:"visitorcount-7a285.firebaseapp.com",projectId:"visitorcount-7a285",storageBucket:"visitorcount-7a285.firebasestorage.app",messagingSenderId:"120562149638",appId:"1:120562149638:web:c8c4ef310ba72764095687"};
+const COMMUNITY=/(^|\.)smartgong\.kr$/.test(location.hostname)||location.hostname==="localhost";
+let FB=null,ME=null,cur=null;const CM={q:[],r:[],ok:false};
+const KINDS=["정답이 틀렸어요","문제·보기에 오타나 잘못이 있어요","해설이 틀렸어요","부적절한 내용이에요"];
+function toast(m){const t=document.createElement("div");t.className="toast";t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),3200)}
+function loadScript(src){return new Promise((ok,no)=>{const s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=no;document.head.appendChild(s)})}
+async function fbInit(){if(FB)return FB;if(!COMMUNITY)return null;
+  try{for(const f of ["app","auth","firestore"])await loadScript(`https://www.gstatic.com/firebasejs/10.12.2/firebase-${f}-compat.js`);
+    const app=firebase.apps.find(a=>a.name==="gb")||firebase.initializeApp(FB_CFG,"gb");
+    FB={auth:firebase.auth(app),db:firebase.firestore(app)};
+    FB.auth.onAuthStateChanged(u=>{ME=u;drawAuth();if(cur)cur()});return FB}catch(e){return null}}
+function drawAuth(){const el=$("#auth");if(!el||!COMMUNITY)return;
+  el.innerHTML=ME?`<span class="me">${esc(ME.displayName||ME.email||"")}</span> <button class="lnk" id="lo">로그아웃</button>`:`<button class="lnk" id="li">구글 로그인</button>`;
+  const a=$("#li");if(a)a.onclick=()=>login();const b=$("#lo");if(b)b.onclick=()=>FB.auth.signOut()}
+async function login(){const f=await fbInit();if(!f){toast("이 기능은 smartgong.kr/goldenbell 에서 이용할 수 있어요.");return null}
+  const p=new firebase.auth.GoogleAuthProvider();
+  try{await f.auth.signInWithPopup(p);return ME}catch(e){
+    if(e.code==="auth/popup-blocked"||e.code==="auth/operation-not-supported-in-this-environment"){f.auth.signInWithRedirect(p);return null}
+    if(e.code!=="auth/popup-closed-by-user"&&e.code!=="auth/cancelled-popup-request")toast("로그인하지 못했어요 ("+e.code+")");return null}}
+const confirmed=r=>1+(r.agree||[]).length>=2;
+function addUserQ(x){const arr=BANK[x.lv];if(!arr)return;let b=arr.find(b=>b.t===x.book);
+  if(!b){b={t:x.book,a:x.author||"",g:x.genre||"기타",lv:x.lv,q:[],user:true};arr.push(b)}
+  if(b.q.some(q=>q.id===x.id))return;
+  const q={ty:x.ty,text:x.text,ans:x.ans,ex:x.ex||"",id:x.id,by:x.by||"",uid:x.uid,user:true};
+  if(x.ty==="mc")q.opts=[x.ans,...(x.wrong||[])];else if(x.ty==="sa")q.alts=[x.ans,...(x.alts||[])];
+  b.q.push(q)}
+function recount(){total=0;totalB=0;for(const id in BANK){totalB+=BANK[id].length;BANK[id].forEach(b=>total+=b.q.length)}
+  $("#stats").innerHTML=`도서 <b>${totalB}</b>권 · 문제 <b>${total.toLocaleString()}</b>개`}
+function mergeCommunity(){
+  for(const x of CM.q)addUserQ(x);
+  for(const r of CM.r){if(!confirmed(r)||!r.fix||r.done)continue;
+    const b=(BANK[r.lv]||[]).find(b=>b.t===r.book);const q=b&&b.q.find(q=>q.text===r.orig);if(!q)continue;const f=r.fix;
+    if(f.text)q.text=f.text;if(f.ex)q.ex=f.ex;
+    if(f.ans&&f.ans!==q.ans){if(q.ty==="mc"){if(!q.opts.includes(f.ans)){const i=q.opts.indexOf(q.ans);if(i>=0)q.opts[i]=f.ans;q.ans=f.ans}}
+      else if(q.ty==="sa"){q.ans=f.ans;q.alts=[f.ans,...q.alts.slice(1)]}else if(q.ty==="ox"&&(f.ans==="O"||f.ans==="X"))q.ans=f.ans}
+    q.fixed=true;r.done=true}
+  recount()}
+async function loadCommunity(){const f=await fbInit();if(!f){CM.err="연결 실패";if(cur)cur();return}
+  try{const [qs,rs]=await Promise.all([f.db.collection("gb_questions").orderBy("createdAt").limit(3000).get(),f.db.collection("gb_reports").orderBy("createdAt").limit(1000).get()]);
+    CM.q=qs.docs.map(d=>({id:d.id,...d.data()}));CM.r=rs.docs.map(d=>({id:d.id,...d.data()}));CM.ok=true;mergeCommunity();
+    if($("#grid"))home();else if(cur)cur()}catch(e){CM.ok=false;CM.err=e.code||String(e)}}
+const nick=()=>store.get("nick",(ME&&ME.displayName)||"");
+function needLogin(then){return `<div class="cmbox"><p>구글 계정으로 로그인하면 문제를 내고 오류를 제보할 수 있어요. 이름과 이메일은 공개되지 않고, 아래에서 정한 표시 이름만 보여요.</p><button class="btn primary" id="cmli">구글로 로그인</button></div>`}
+function wireLogin(then){const b=$("#cmli");if(b)b.onclick=async()=>{await login();}}
+
+/* 문제 내기 · 오류 제보 · 현황 · 내 활동 */
+function contrib(tab){tab=tab||"new";cur=()=>contrib(tab);window.scrollTo(0,0);
+  const tabs=[["new","✍️ 문제 내기"],["rep","🚩 오류 제보"],["list","📋 제보 현황"],["me","👤 내 활동"]];
+  view.innerHTML=`<div class="stage"><div class="qhead"><div class="crumb"><button class="btn ghost" id="cmback">← 돌아가기</button> &nbsp;<b>문제 내기 · 오류 제보</b></div><div id="auth2" class="authbox"></div></div>
+   <div class="tabs" role="tablist">${tabs.map(([k,n])=>`<button class="chip" role="tab" data-t="${k}" aria-pressed="${k===tab}">${n}</button>`).join("")}</div>
+   <div id="cmbody"></div></div>`;
+  $("#cmback").onclick=()=>{cur=null;home()};
+  const a2=$("#auth2");a2.innerHTML=ME?`<span class="me">${esc(ME.displayName||"")}</span> <button class="lnk" id="lo2">로그아웃</button>`:"";const lo=$("#lo2");if(lo)lo.onclick=()=>FB.auth.signOut();
+  view.querySelectorAll(".tabs .chip").forEach(b=>b.onclick=()=>contrib(b.dataset.t));
+  const body=$("#cmbody");
+  if(!CM.ok&&!CM.err&&COMMUNITY){body.innerHTML=`<p class="note">불러오는 중…</p>`;return}
+  if(CM.err){body.innerHTML=`<p class="note">서버에 연결하지 못했어요 (${esc(CM.err)}). 잠시 뒤 다시 시도해 주세요.</p>`;return}
+  ({new:tabNew,rep:tabRep,list:tabList,me:tabMe})[tab](body)}
+function lvOpts(sel){return LEVELS.map(([id,n])=>`<option value="${id}" ${id===sel?"selected":""}>${n}</option>`).join("")}
+function tabNew(body){
+  if(!ME){body.innerHTML=needLogin();wireLogin();return}
+  const lv0=S.lv;
+  body.innerHTML=`<form class="frm" id="nf">
+   <label>단계<select id="nlv">${lvOpts(lv0)}</select></label>
+   <label>도서 제목 <small>(목록에서 고르거나 새 책을 직접 입력)</small><input id="nbook" list="nbl" required maxlength="60" autocomplete="off"><datalist id="nbl"></datalist></label>
+   <div class="two" id="nnew" hidden><label>저자<input id="nauth" maxlength="40"></label><label>장르<input id="ngen" list="ngl" maxlength="20" placeholder="예: 소설, 위인전"><datalist id="ngl"></datalist></label></div>
+   <label>문제 유형<select id="nty"><option value="ox">OX</option><option value="mc">4지선다</option><option value="sa">단답형</option></select></label>
+   <label>문제<textarea id="ntext" rows="3" maxlength="300" required placeholder="책 내용을 바탕으로 한 문제를 써 주세요"></textarea></label>
+   <div id="nans"></div>
+   <label>해설 <small>(선택)</small><textarea id="nex" rows="2" maxlength="300"></textarea></label>
+   <label>표시할 이름 <small>(비우면 '익명')</small><input id="nnick" maxlength="20" value="${esc(nick())}"></label>
+   <div class="bar"><button class="btn primary" type="submit" id="nsub">문제 등록</button><span class="note0">등록하면 바로 반영돼요. 잘못된 문제는 다른 이용자가 제보할 수 있어요.</span></div></form>`;
+  const fillBooks=()=>{const lv=$("#nlv").value;$("#nbl").innerHTML=BANK[lv].map(b=>`<option value="${esc(b.t)}">${esc(b.a)}</option>`).join("");
+    $("#ngl").innerHTML=[...new Set(BANK[lv].map(b=>b.g))].map(g=>`<option value="${esc(g)}">`).join("");checkBook()};
+  const findB=()=>BANK[$("#nlv").value].find(b=>b.t===$("#nbook").value.trim());
+  const checkBook=()=>{const b=findB();$("#nnew").hidden=!!b||!$("#nbook").value.trim()}
+  const ansUI=()=>{const t=$("#nty").value;
+    $("#nans").innerHTML=t==="ox"?`<label>정답<select id="a0"><option>O</option><option>X</option></select></label>`
+     :t==="mc"?`<label>정답<input id="a0" maxlength="60" required></label><div class="two"><label>오답 1<input class="w" maxlength="60" required></label><label>오답 2<input class="w" maxlength="60" required></label></div><label>오답 3<input class="w" maxlength="60" required></label>`
+     :`<label>정답<input id="a0" maxlength="40" required></label><label>인정할 다른 표기 <small>(선택, 쉼표로 구분)</small><input id="a1" maxlength="80"></label>`};
+  $("#nlv").onchange=fillBooks;$("#nbook").oninput=checkBook;$("#nty").onchange=ansUI;fillBooks();ansUI();
+  $("#nf").onsubmit=async e=>{e.preventDefault();const btn=$("#nsub");
+    const lv=$("#nlv").value,book=$("#nbook").value.trim(),ty=$("#nty").value,text=$("#ntext").value.trim(),ans=$("#a0").value.trim();
+    const eb=findB();const by=$("#nnick").value.trim()||"익명";store.set("nick",by==="익명"?"":by);
+    const x={lv,book,author:eb?eb.a:($("#nauth").value.trim()||""),genre:eb?eb.g:($("#ngen").value.trim()||"기타"),ty,text,ans,ex:$("#nex").value.trim(),by,uid:ME.uid};
+    if(ty==="mc"){x.wrong=[...view.querySelectorAll(".w")].map(i=>i.value.trim());const all=[ans,...x.wrong];if(new Set(all.map(norm)).size!==4){toast("정답과 오답 3개는 서로 달라야 해요.");return}}
+    if(ty==="sa"){x.alts=($("#a1").value||"").split(",").map(s=>s.trim()).filter(Boolean)}
+    if(eb&&eb.q.some(q=>norm(q.text)===norm(text))){toast("같은 문제가 이미 있어요.");return}
+    btn.disabled=true;
+    try{const ref=await FB.db.collection("gb_questions").add({...x,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+      const y={...x,id:ref.id};CM.q.push(y);addUserQ(y);recount();toast("문제가 등록됐어요. 고마워요!");
+      $("#ntext").value="";$("#nex").value="";view.querySelectorAll("#nans input").forEach(i=>i.value="");$("#nbook").dispatchEvent(new Event("input"))}
+    catch(err){toast("등록하지 못했어요 ("+(err.code||"오류")+")")}btn.disabled=false}}
+function tabRep(body){
+  if(!ME){body.innerHTML=needLogin();wireLogin();return}
+  body.innerHTML=`<div class="frm"><label>단계<select id="rlv">${lvOpts(S.lv)}</select></label>
+   <label>도서 제목<input id="rbook" list="rbl" autocomplete="off" placeholder="제목을 입력하거나 목록에서 고르세요"><datalist id="rbl"></datalist></label></div><div id="rqs"></div>`;
+  const fill=()=>{$("#rbl").innerHTML=BANK[$("#rlv").value].map(b=>`<option value="${esc(b.t)}">${esc(b.a)}</option>`).join("");draw()};
+  const draw=()=>{const lv=$("#rlv").value,b=BANK[lv].find(b=>b.t===$("#rbook").value.trim());
+    $("#rqs").innerHTML=!b?`<p class="note">제보할 책을 먼저 고르세요.</p>`:b.q.map((q,i)=>`<div class="rq"><div><span class="kind">${{ox:"OX",mc:"4지선다",sa:"단답형"}[q.ty]}</span> ${esc(q.text)}<div class="note0">정답: ${esc(q.ans)}</div></div><button class="lnk" data-i="${i}">🚩 제보</button></div>`).join("");
+    $("#rqs").querySelectorAll(".lnk").forEach(el=>el.onclick=()=>reportModal({lv,book:b.t,q:b.q[+el.dataset.i]}))};
+  $("#rlv").onchange=()=>{$("#rbook").value="";fill()};$("#rbook").oninput=draw;fill()}
+function reportModal(c){
+  const q=c.q;const m=document.createElement("div");m.className="modal";document.body.appendChild(m);
+  const close=()=>m.remove();
+  const draw=()=>{
+    if(!ME){m.innerHTML=`<div class="mbox"><h3>오류 제보</h3>${needLogin()}<div class="bar"><button class="btn ghost" id="mx">닫기</button></div></div>`;
+      $("#cmli").onclick=async()=>{await login();if(ME)draw()};$("#mx").onclick=close;return}
+    m.innerHTML=`<div class="mbox"><h3>오류 제보</h3><p class="qorig"><b>${esc(c.book)}</b><br>${esc(q.text)}<br><small>현재 정답: ${esc(q.ans)}</small></p>
+     <form class="frm" id="rf"><label>어떤 문제인가요?<select id="rk">${KINDS.map(k=>`<option>${esc(k)}</option>`).join("")}</select></label>
+      <label>설명<textarea id="rn" rows="3" maxlength="300" required placeholder="무엇이 왜 틀렸는지 알려 주세요"></textarea></label>
+      <details><summary>고친 내용 직접 제안하기 <small>(선택 · 2명이 동의하면 자동으로 반영돼요)</small></summary>
+       <label>고친 문제 문장<input id="rft" maxlength="300"></label>
+       <label>고친 정답${q.ty==="ox"?`<select id="rfa"><option value="">(그대로)</option><option>O</option><option>X</option></select>`:`<input id="rfa" maxlength="60">`}</label>
+       <label>고친 해설<input id="rfe" maxlength="300"></label></details>
+      <div class="bar"><button class="btn primary" type="submit" id="rs">제보하기</button><button class="btn ghost" type="button" id="mx">취소</button></div></form></div>`;
+    $("#mx").onclick=close;
+    $("#rf").onsubmit=async e=>{e.preventDefault();const fix={};const t=$("#rft").value.trim(),a=$("#rfa").value.trim(),x=$("#rfe").value.trim();
+      if(t)fix.text=t;if(a)fix.ans=a;if(x)fix.ex=x;$("#rs").disabled=true;
+      const doc={lv:c.lv,book:c.book,orig:q.text,kind:$("#rk").value,note:$("#rn").value.trim(),fix,by:nick()||"익명",uid:ME.uid,agree:[]};
+      try{const ref=await FB.db.collection("gb_reports").add({...doc,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+        CM.r.push({...doc,id:ref.id});toast("제보가 접수됐어요. 고마워요!");close()}
+      catch(err){toast("제보하지 못했어요 ("+(err.code||"오류")+")");$("#rs").disabled=false}}};
+  draw()}
+function tabList(body){
+  const rs=CM.r.slice().reverse();
+  if(!rs.length){body.innerHTML=`<p class="note">아직 제보가 없어요.</p>`;return}
+  body.innerHTML=`<p class="note">제보자 말고 다른 이용자 1명이 더 동의하면 확인된 것으로 보고, 수정안이 있으면 문제에 반영돼요.</p>`+rs.slice(0,100).map(r=>{
+    const n=1+(r.agree||[]).length,ok=confirmed(r),mine=ME&&(r.uid===ME.uid||(r.agree||[]).includes(ME.uid));
+    const st=ok?(r.fix&&Object.keys(r.fix).length?"정정 반영됨":"확인됨"):`동의 ${n}/2`;
+    return `<div class="rq"><div><span class="kind ${ok?"okk":""}">${st}</span> <b>${esc(r.book)}</b> · ${esc(r.kind)}<div class="note0">${esc(r.orig)}</div><div>${esc(r.note)}</div>${r.fix&&Object.keys(r.fix).length?`<div class="note0">제안: ${[r.fix.text&&"문제 “"+esc(r.fix.text)+"”",r.fix.ans&&"정답 “"+esc(r.fix.ans)+"”",r.fix.ex&&"해설 수정"].filter(Boolean).join(" · ")}</div>`:""}<div class="note0">제보자 ${esc(r.by||"익명")}</div></div>
+     ${ok||mine?"":`<button class="lnk" data-id="${r.id}">👍 동의</button>`}</div>`}).join("");
+  body.querySelectorAll("button[data-id]").forEach(el=>el.onclick=async()=>{
+    if(!ME){await login();return}
+    try{await FB.db.collection("gb_reports").doc(el.dataset.id).update({agree:firebase.firestore.FieldValue.arrayUnion(ME.uid)});
+      const r=CM.r.find(r=>r.id===el.dataset.id);r.agree=[...(r.agree||[]),ME.uid];mergeCommunity();toast("동의했어요.");contrib("list")}
+    catch(err){toast("처리하지 못했어요 ("+(err.code||"오류")+")")}})}
+function tabMe(body){
+  if(!ME){body.innerHTML=needLogin();wireLogin();return}
+  const mq=CM.q.filter(x=>x.uid===ME.uid),mr=CM.r.filter(x=>x.uid===ME.uid);
+  body.innerHTML=`<p class="note">내가 낸 문제 <b>${mq.length}</b>개 · 내가 한 제보 <b>${mr.length}</b>건</p>
+   <h3 class="sh">내가 낸 문제</h3>${mq.map(x=>`<div class="rq"><div><b>${esc(x.book)}</b> <span class="note0">${LEVELS.find(l=>l[0]===x.lv)[1]}</span><div>${esc(x.text)}</div><div class="note0">정답: ${esc(x.ans)}</div></div><button class="lnk" data-del="${x.id}">삭제</button></div>`).join("")||`<p class="note">아직 낸 문제가 없어요.</p>`}
+   <h3 class="sh">내가 한 제보</h3>${mr.map(r=>`<div class="rq"><div><b>${esc(r.book)}</b> · ${esc(r.kind)}<div class="note0">${esc(r.note)}</div></div><span class="kind ${confirmed(r)?"okk":""}">${confirmed(r)?"확인됨":"동의 "+(1+(r.agree||[]).length)+"/2"}</span></div>`).join("")||`<p class="note">아직 제보가 없어요.</p>`}`;
+  body.querySelectorAll("[data-del]").forEach(el=>el.onclick=async()=>{if(!confirm("이 문제를 삭제할까요?"))return;
+    try{await FB.db.collection("gb_questions").doc(el.dataset.del).delete();const id=el.dataset.del;CM.q=CM.q.filter(x=>x.id!==id);
+      for(const l in BANK)BANK[l].forEach(b=>{b.q=b.q.filter(q=>q.id!==id)});
+      for(const l in BANK)BANK[l]=BANK[l].filter(b=>b.q.length||!b.user);recount();toast("삭제했어요.");contrib("me")}
+    catch(err){toast("삭제하지 못했어요 ("+(err.code||"오류")+")")}})}
+if(COMMUNITY){fbInit().then(()=>{drawAuth()});loadCommunity()}
+
 home();
 </script>
 
