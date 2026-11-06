@@ -12495,7 +12495,7 @@ function home(){
   $("#optTimer").onchange=e=>{S.timer=e.target.checked;store.set("timer",S.timer)};
   $("#optElim").onchange=e=>{S.elim=e.target.checked;store.set("elim",S.elim)};
   $("#list").onclick=()=>recList();
-  const co=$("#cmOpen");if(co)co.onclick=()=>contrib("new");
+  const co=$("#cmOpen");if(co)co.onclick=()=>contrib("new",null);
   cur=null;drawAuth();
   $("#rand").onclick=()=>{const pool=filtered().flatMap(b=>b.q.map(q=>({...q,book:b.t,lv:b.lv})));
     start(shuffle(pool).slice(0,20),{title:`${lvName}${S.genre==="전체"?"":" · "+S.genre} 랜덤 골든벨`,key:null})};
@@ -12524,13 +12524,14 @@ function drawGrid(){
 }
 
 const BIG=20;
-function openBook(b){const it=(INTRO[b.lv]||{})[b.t];if(!it)return playBook(b);
+function openBook(b){const it=(INTRO[b.lv]||{})[b.t];if(!it&&!COMMUNITY)return playBook(b);
   const n=b.q.length>BIG?BIG+"문제 무작위 (전체 "+b.q.length+"문제)":b.q.length+"문제";window.scrollTo(0,0);
   view.innerHTML=`<div class="stage"><div class="qhead"><div class="crumb"><button class="btn ghost" id="iback">← 목록</button></div></div>
   <article class="intro"><div><h2>${esc(b.t)}</h2><div class="by">${esc(b.a)} · ${esc(b.g)}</div></div>
-  <section><h3>작가 소개</h3><p>${esc(it.a)}</p></section><section><h3>줄거리</h3><p>${esc(it.s)}</p></section><section><h3>이슈와 중요사항</h3><p>${esc(it.i)}</p></section>
-  <div class="go"><button class="btn primary" id="igo">골든벨 풀기 · ${n}</button></div></article></div>`;
-  $("#iback").onclick=home;$("#igo").onclick=()=>playBook(b)}
+  ${it?`<section><h3>작가 소개</h3><p>${esc(it.a)}</p></section><section><h3>줄거리</h3><p>${esc(it.s)}</p></section><section><h3>이슈와 중요사항</h3><p>${esc(it.i)}</p></section>`:`<p class="note">이 책의 소개문은 아직 없어요.</p>`}
+  <div class="go"><button class="btn primary" id="igo">골든벨 풀기 · ${n}</button>${COMMUNITY?` <button class="btn ghost" id="inew">✍️ 문제 내기</button> <button class="btn ghost" id="irep">🚩 오류 제보</button>`:""}</div></article></div>`;
+  $("#iback").onclick=home;$("#igo").onclick=()=>playBook(b);
+  const pre={lv:b.lv,book:b.t,back:()=>openBook(b)};const i1=$("#inew");if(i1)i1.onclick=()=>contrib("new",pre);const i2=$("#irep");if(i2)i2.onclick=()=>contrib("rep",pre)}
 function playBook(b){const qs=b.q.map(q=>({...q,book:b.t,lv:b.lv}));
   if(qs.length>BIG)start(shuffle(qs).slice(0,BIG),{title:`${b.t} · ${b.q.length}문제 중 ${BIG}문제`,key:null,book:b});
   else start(qs,{title:b.t,key:"best_"+b.lv+"_"+b.t,book:b})}
@@ -12648,12 +12649,13 @@ function needLogin(then){return `<div class="cmbox"><p>구글 계정으로 로�
 function wireLogin(then){const b=$("#cmli");if(b)b.onclick=async()=>{await login();}}
 
 /* 문제 내기 · 오류 제보 · 현황 · 내 활동 */
-function contrib(tab){tab=tab||"new";cur=()=>contrib(tab);window.scrollTo(0,0);
+let CP=null;
+function contrib(tab,pre){tab=tab||"new";if(pre!==undefined)CP=pre;cur=()=>contrib(tab);window.scrollTo(0,0);
   const tabs=[["new","✍️ 문제 내기"],["rep","🚩 오류 제보"],["list","📋 제보 현황"],["me","👤 내 활동"]];
   view.innerHTML=`<div class="stage"><div class="qhead"><div class="crumb"><button class="btn ghost" id="cmback">← 돌아가기</button> &nbsp;<b>문제 내기 · 오류 제보</b></div><div id="auth2" class="authbox"></div></div>
    <div class="tabs" role="tablist">${tabs.map(([k,n])=>`<button class="chip" role="tab" data-t="${k}" aria-pressed="${k===tab}">${n}</button>`).join("")}</div>
    <div id="cmbody"></div></div>`;
-  $("#cmback").onclick=()=>{cur=null;home()};
+  $("#cmback").onclick=()=>{cur=null;const bk=CP&&CP.back;CP=null;bk?bk():home()};
   const a2=$("#auth2");a2.innerHTML=ME?`<span class="me">${esc(ME.displayName||"")}</span> <button class="lnk" id="lo2">로그아웃</button>`:"";const lo=$("#lo2");if(lo)lo.onclick=()=>FB.auth.signOut();
   view.querySelectorAll(".tabs .chip").forEach(b=>b.onclick=()=>contrib(b.dataset.t));
   const body=$("#cmbody");
@@ -12663,7 +12665,7 @@ function contrib(tab){tab=tab||"new";cur=()=>contrib(tab);window.scrollTo(0,0);
 function lvOpts(sel){return LEVELS.map(([id,n])=>`<option value="${id}" ${id===sel?"selected":""}>${n}</option>`).join("")}
 function tabNew(body){
   if(!ME){body.innerHTML=needLogin();wireLogin();return}
-  const lv0=S.lv;
+  const lv0=CP?CP.lv:S.lv;
   body.innerHTML=`<form class="frm" id="nf">
    <label>단계<select id="nlv">${lvOpts(lv0)}</select></label>
    <label>도서 제목 <small>(목록에서 고르거나 새 책을 직접 입력)</small><input id="nbook" list="nbl" required maxlength="60" autocomplete="off"><datalist id="nbl"></datalist></label>
@@ -12682,6 +12684,7 @@ function tabNew(body){
     $("#nans").innerHTML=t==="ox"?`<label>정답<select id="a0"><option>O</option><option>X</option></select></label>`
      :t==="mc"?`<label>정답<input id="a0" maxlength="60" required></label><div class="two"><label>오답 1<input class="w" maxlength="60" required></label><label>오답 2<input class="w" maxlength="60" required></label></div><label>오답 3<input class="w" maxlength="60" required></label>`
      :`<label>정답<input id="a0" maxlength="40" required></label><label>인정할 다른 표기 <small>(선택, 쉼표로 구분)</small><input id="a1" maxlength="80"></label>`};
+  if(CP)$("#nbook").value=CP.book;
   $("#nlv").onchange=fillBooks;$("#nbook").oninput=checkBook;$("#nty").onchange=ansUI;fillBooks();ansUI();
   $("#nf").onsubmit=async e=>{e.preventDefault();const btn=$("#nsub");
     const lv=$("#nlv").value,book=$("#nbook").value.trim(),ty=$("#nty").value,text=$("#ntext").value.trim(),ans=$("#a0").value.trim();
@@ -12697,8 +12700,8 @@ function tabNew(body){
     catch(err){toast("등록하지 못했어요 ("+(err.code||"오류")+")")}btn.disabled=false}}
 function tabRep(body){
   if(!ME){body.innerHTML=needLogin();wireLogin();return}
-  body.innerHTML=`<div class="frm"><label>단계<select id="rlv">${lvOpts(S.lv)}</select></label>
-   <label>도서 제목<input id="rbook" list="rbl" autocomplete="off" placeholder="제목을 입력하거나 목록에서 고르세요"><datalist id="rbl"></datalist></label></div><div id="rqs"></div>`;
+  body.innerHTML=`<div class="frm"><label>단계<select id="rlv">${lvOpts(CP?CP.lv:S.lv)}</select></label>
+   <label>도서 제목<input id="rbook" list="rbl" autocomplete="off" value="${esc(CP?CP.book:"")}" placeholder="제목을 입력하거나 목록에서 고르세요"><datalist id="rbl"></datalist></label></div><div id="rqs"></div>`;
   const fill=()=>{$("#rbl").innerHTML=BANK[$("#rlv").value].map(b=>`<option value="${esc(b.t)}">${esc(b.a)}</option>`).join("");draw()};
   const draw=()=>{const lv=$("#rlv").value,b=BANK[lv].find(b=>b.t===$("#rbook").value.trim());
     $("#rqs").innerHTML=!b?`<p class="note">제보할 책을 먼저 고르세요.</p>`:b.q.map((q,i)=>`<div class="rq"><div><span class="kind">${{ox:"OX",mc:"4지선다",sa:"단답형"}[q.ty]}</span> ${esc(q.text)}<div class="note0">정답: ${esc(q.ans)}</div></div><button class="lnk" data-i="${i}">🚩 제보</button></div>`).join("");
