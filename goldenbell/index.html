@@ -12885,8 +12885,11 @@ function tabRep(body){
    <label>도서 제목<input id="rbook" list="rbl" autocomplete="off" value="${esc(CP?CP.book:"")}" placeholder="제목을 입력하거나 목록에서 고르세요"><datalist id="rbl"></datalist></label></div><div id="rqs"></div>`;
   const fill=()=>{$("#rbl").innerHTML=BANK[$("#rlv").value].map(b=>`<option value="${esc(b.t)}">${esc(b.a)}</option>`).join("");draw()};
   const draw=()=>{const lv=$("#rlv").value,b=BANK[lv].find(b=>b.t===$("#rbook").value.trim());
-    $("#rqs").innerHTML=!b?`<p class="note">제보할 책을 먼저 고르세요.</p>`:b.q.map((q,i)=>`<div class="rq"><div><span class="kind">${{ox:"OX",mc:"4지선다",sa:"단답형"}[q.ty]}</span> ${esc(q.text)}<div class="note0">정답: ${esc(q.ans)}</div></div><button class="lnk" data-i="${i}">🚩 제보</button></div>`).join("");
-    $("#rqs").querySelectorAll(".lnk").forEach(el=>el.onclick=()=>reportModal({lv,book:b.t,q:b.q[+el.dataset.i]}))};
+    const it=b&&(INTRO[lv]||{})[b.t];
+    const ib=!b?"":`<details class="rq" style="display:block" open><summary><b>📖 도서 소개</b> <button class="lnk" id="irp" type="button">🚩 소개 오류 제보</button></summary>${it?`<p><b>작가 소개</b><br>${esc(it.a)}</p><p><b>줄거리</b><br>${esc(it.s)}</p><p><b>이슈와 중요사항</b><br>${esc(it.i)}</p>`:`<p class="note0">이 책의 소개문은 아직 없어요.</p>`}</details>`;
+    $("#rqs").innerHTML=!b?`<p class="note">제보할 책을 먼저 고르세요.</p>`:ib+b.q.map((q,i)=>`<div class="rq"><div><span class="kind">${{ox:"OX",mc:"4지선다",sa:"단답형"}[q.ty]}</span> ${esc(q.text)}<div class="note0">정답: ${esc(q.ans)}</div></div><button class="lnk" data-i="${i}">🚩 제보</button></div>`).join("");
+    $("#rqs").querySelectorAll(".lnk[data-i]").forEach(el=>el.onclick=()=>reportModal({lv,book:b.t,q:b.q[+el.dataset.i]}));
+    const ir=$("#irp");if(ir)ir.onclick=e=>{e.preventDefault();e.stopPropagation();introModal(lv,b.t,it)}};
   $("#rlv").onchange=()=>{$("#rbook").value="";fill()};$("#rbook").oninput=draw;fill()}
 function reportModal(c){
   const q=c.q;const m=document.createElement("div");m.className="modal";document.body.appendChild(m);
@@ -12910,6 +12913,18 @@ function reportModal(c){
         CM.r.push({...doc,id:ref.id});toast("제보가 접수됐어요. 고마워요!");close()}
       catch(err){toast("제보하지 못했어요 ("+(err.code||"오류")+")");$("#rs").disabled=false}}};
   draw()}
+function introModal(lv,book,it){
+  const m=document.createElement("div");m.className="modal";document.body.appendChild(m);const close=()=>m.remove();
+  m.innerHTML=`<div class="mbox"><h3>소개 오류 제보</h3><p class="qorig"><b>${esc(book)}</b><br><small>작가 소개 · 줄거리 · 이슈와 중요사항 중 틀린 부분을 알려 주세요.</small></p>
+   <form class="frm" id="irf"><label>어느 부분인가요?<select id="ik"><option>작가 소개</option><option>줄거리</option><option>이슈와 중요사항</option></select></label>
+   <label>무엇이 틀렸나요?<textarea id="in" rows="4" maxlength="300" required placeholder="틀린 내용과 바른 내용을 알려 주세요 (예: 출간 연도, 수상 내역, 인물 이름)"></textarea></label>
+   <div class="bar"><button class="btn primary" type="submit" id="irs">제보하기</button><button class="btn ghost" type="button" id="imx">취소</button></div></form></div>`;
+  $("#imx").onclick=close;
+  $("#irf").onsubmit=async e=>{e.preventDefault();$("#irs").disabled=true;
+    const doc={lv,book,orig:"[도서 소개]",kind:"소개: "+$("#ik").value,note:$("#in").value.trim(),fix:{},by:nick()||"익명",uid:ME.uid,agree:[]};
+    try{const ref=await FB.db.collection("gb_reports").add({...doc,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+      CM.r.push({...doc,id:ref.id});toast("제보가 접수됐어요. 고마워요!");close()}
+    catch(err){toast("제보하지 못했어요 ("+(err.code||"오류")+")");$("#irs").disabled=false}}}
 function tabList(body){
   const rs=CM.r.slice().reverse();
   if(!rs.length){body.innerHTML=`<p class="note">아직 제보가 없어요.</p>`;return}
