@@ -59,6 +59,7 @@ h2{margin:0;font:400 22px/1.2 var(--font-display);letter-spacing:.01em}
 .btn{min-height:48px;padding:0 18px;border-radius:14px;border:1.5px solid var(--line);background:var(--surface);font-weight:500}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:700}
 .btn.small{min-height:40px;padding:0 14px;font-size:15px}
+.sort-sel{appearance:none;-webkit-appearance:none;text-align:center;text-align-last:center;color:var(--ink);font-family:inherit;cursor:pointer}
 .btn.quiet{border-color:transparent;background:transparent;color:var(--accent);font-weight:700}
 .btn:disabled{opacity:.55}
 
@@ -386,6 +387,13 @@ body.guest-view .no-view,body.guest-view .sec-actions,body.guest-view .row-more,
       <h2 id="qh"><span id="qhName">재생목록</span><span id="count" class="count">0곡</span></h2>
       <div class="sec-actions">
         <button id="btnFind" class="btn small primary" type="button" hidden>영상 찾기</button>
+        <select id="sortSel" class="btn small sort-sel" aria-label="목록 정렬" hidden>
+          <option value="">정렬</option>
+          <option value="title">제목순</option>
+          <option value="artist">가수순</option>
+          <option value="work">작품순</option>
+          <option value="undo" hidden>되돌리기</option>
+        </select>
         <button id="btnCopy" class="btn small" type="button" hidden>목록 복사</button>
         <button id="btnClear" class="btn small" type="button" hidden>비우기</button>
       </div>
@@ -845,8 +853,30 @@ function queryOf(s){ return [s.artist||s.work,s.title,state.suffix].filter(Boole
 function artistWork(s){ return [s.artist,s.work].filter(Boolean).join(' · '); }
 
 /* 상태를 바꾸는 동안에도 지금 곡을 id로 따라가기 */
+/* 정렬: 제목·가수·작품 가나다순(한 번 정렬하면 그 순서가 목록에 저장돼요). 비어 있는 항목은 맨 뒤로. */
+let sortUndo=null, keepUndo=false;
+function sortSongs(key){
+  if(readOnly()||state.songs.length<2) return;
+  const ref=state.songs, ids=ref.map(s=>s.id);
+  const col=(x,y)=>String(x).localeCompare(String(y),'ko',{numeric:true,sensitivity:'base'});
+  const f=key==='title'?s=>[titleOf(s),s.artist||'']:key==='artist'?s=>[s.artist||'',titleOf(s)]:s=>[s.work||'',titleOf(s)];
+  const prev=(sortUndo&&sortUndo.ref===ref)?sortUndo:null;
+  keepUndo=true;
+  try{ mutate(()=>{ ref.sort((x,y)=>{ const X=f(x),Y=f(y); if(!X[0]!==!Y[0]) return X[0]?-1:1; return col(X[0],Y[0])||col(X[1],Y[1]); }); }); }finally{ keepUndo=false; }
+  sortUndo=prev||{ref,ids};
+  toast({title:'제목순',artist:'가수순',work:'작품순'}[key]+'으로 정렬했어요. ‘정렬 → 되돌리기’로 원래 순서로 돌릴 수 있어요.',3200);
+  render();
+}
+function undoSort(){
+  if(!sortUndo||sortUndo.ref!==state.songs||readOnly()) return;
+  const pos=new Map(sortUndo.ids.map((id,i)=>[id,i])), end=sortUndo.ids.length;
+  keepUndo=true;
+  try{ mutate(()=>{ state.songs.sort((a,b)=>(pos.has(a.id)?pos.get(a.id):end)-(pos.has(b.id)?pos.get(b.id):end)); }); }finally{ keepUndo=false; }
+  sortUndo=null; toast('원래 순서로 되돌렸어요.',2200); render();
+}
 function mutate(fn){
   if(readOnly()) return;
+  if(!keepUndo) sortUndo=null; /* 손으로 순서를 바꾸면 정렬 되돌리기는 끈다 */
   const curId=curSong()?curSong().id:null;
   fn();
   state.cur=curId?state.songs.findIndex(s=>s.id===curId):-1;
@@ -1437,6 +1467,7 @@ function render(){
   $('#emptyMsg').hidden=n>0;
   const bf=$('#btnFind'); bf.hidden=todo===0; bf.textContent='영상 찾기 ('+todo+')'; bf.disabled=finding;
   $('#btnCopy').hidden=n===0; $('#btnClear').hidden=n===0;
+  { const sel=$('#sortSel'); sel.hidden=readOnly()||n<2; const u=sel.querySelector('option[value=undo]'); u.hidden=!(sortUndo&&sortUndo.ref===state.songs); sel.value=''; }
   $('#ytOpenBox').hidden=!state.songs.some(ytPlayable);
   $('#btnTop').disabled=$('#btnMid').disabled=$('#btnEnd').disabled=!state.songs.length;
   $('#keyHint').hidden=!!state.apiKey;
@@ -1842,6 +1873,7 @@ function bind(){
   $('#btnEnd').addEventListener('click',()=>jumpList('end'));
   $('#btnPin').addEventListener('click',()=>{ state.pin=!state.pin; saveLocal(); applyPin(); });
   applyPin();
+  $('#sortSel').addEventListener('change',e=>{ const v=e.target.value; e.target.value=''; if(v==='undo') undoSort(); else if(v) sortSongs(v); });
   $('#btnCopy').addEventListener('click',async()=>{
     toast(await copyText(exportText())?'목록을 복사했어요. 메모장 등에 붙여 두면 백업이 돼요.':'복사하지 못했어요.',3800);
   });
