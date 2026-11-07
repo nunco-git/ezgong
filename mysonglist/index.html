@@ -76,8 +76,7 @@ h2{margin:0;font:400 22px/1.2 var(--font-display);letter-spacing:.01em}
 .mode.this{white-space:nowrap}
 .mode.pin{min-height:28px;padding:0 10px;font-size:13px;white-space:nowrap}
 .stage.pinned{position:sticky;top:max(6px,env(safe-area-inset-top));z-index:30;box-shadow:0 6px 18px rgba(0,0,0,.35)}
-.modes .mode{padding:0 7px;font-size:12px}
-.modes{gap:4px}
+.modes .mode{padding:0 clamp(3px,1.1vw,10px);font-size:clamp(9px,2.9vw,13px);min-height:28px;border-width:1px;white-space:nowrap}
 .row.flash{animation:rowflash 1.1s ease-out}
 @keyframes rowflash{0%{box-shadow:0 0 0 3px var(--accent)}100%{box-shadow:0 0 0 3px transparent}}
 .disc{
@@ -101,7 +100,7 @@ h2{margin:0;font:400 22px/1.2 var(--font-display);letter-spacing:.01em}
 .t-btn.big{width:40px;height:40px;background:var(--stage-pink);color:#2b0a1a}
 .t-btn.big svg{width:22px;height:22px}
 .t-btn:active{transform:scale(.96)}
-.modes{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.modes{display:flex;gap:3px;justify-content:center;flex-wrap:nowrap}
 .mode{min-height:30px;padding:0 13px;font-size:14px;border-radius:999px;border:1.5px solid var(--stage-line);background:transparent;color:var(--stage-muted);font-weight:500}
 .mode:disabled{opacity:.45}
 .mode[aria-pressed="true"]{background:var(--stage-gold);border-color:var(--stage-gold);color:#2b1a00;font-weight:700}
@@ -282,13 +281,13 @@ body.guest-view .no-view,body.guest-view .sec-actions,body.guest-view .row-more,
     </div>
 
     <div class="modes">
-      <button id="btnShuffle" class="mode" type="button" aria-pressed="false">섞어서 듣기</button>
+      <button id="btnShuffle" class="mode" type="button" aria-pressed="false">섞어서</button>
       <button id="btnRepeat" class="mode" type="button" aria-pressed="true">반복: 전체</button>
       <button id="btnTimes" class="mode" type="button" aria-pressed="false" title="한 곡을 몇 번 듣고 다음 곡으로 넘어갈지">곡당 1회</button>
-      <button id="btnThis" class="mode this" type="button" aria-pressed="false" title="지금 나오는 곡만 몇 번 듣고 다음으로 넘어갈지 (이 곡에만 적용)">이번 곡 반복</button>
-      <button id="btnTop" class="mode" type="button" title="목록 맨 처음으로 이동">▲ 처음</button>
-      <button id="btnMid" class="mode" type="button" title="목록 가운데로 이동">● 중간</button>
-      <button id="btnEnd" class="mode" type="button" title="목록 맨 끝으로 이동">▼ 끝</button>
+      <button id="btnThis" class="mode this" type="button" aria-pressed="false" title="지금 나오는 곡만 몇 번 듣고 다음으로 넘어갈지 (이 곡에만 적용)">이노래 반복</button>
+      <button id="btnTop" class="mode" type="button" title="목록 맨 처음으로 이동">처음</button>
+      <button id="btnMid" class="mode" type="button" title="목록 가운데로 이동">중간</button>
+      <button id="btnEnd" class="mode" type="button" title="목록 맨 끝으로 이동">끝</button>
     </div>
   </section>
 
@@ -614,7 +613,7 @@ Object.defineProperty(state,'songs',{get(){ return activeList().songs; },set(v){
 Object.defineProperty(state,'cur',{get(){ return activeList().cur; },set(v){ activeList().cur=v; }});
 state.lists.push(makeList('내 노래')); state.activeId=state.lists[0].id;
 let player=null, playerReady=false, apiLoading=false, playing=false, loadedId=null, pending=null, plays=0, thisN=0;
-const TIMES=[1,2,3,5,10], THIS=[0,2,3,5,10];
+const TIMES=[1,2,3,5], THIS=[0,2,3,5];
 let liveTitle='', openRow=null, finding=false, seeking=false, played=new Set(), history=[], wl=null, toastTimer=null;
 
 function uid(){ return Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4); }
@@ -656,7 +655,7 @@ function applyData(d){
     state.activeId=activeList().id;
     state.shuffle=!!d.shuffle;
     state.repeat=['all','one','off'].indexOf(d.repeat)>=0?d.repeat:'all';
-    state.times=TIMES.indexOf(d.times)>=0?d.times:1;
+    state.times=TIMES.indexOf(d.times)>=0?d.times:(d.times>5?5:1);
     state.apiKey=typeof d.apiKey==='string'?d.apiKey:'';
     state.suffix=typeof d.suffix==='string'?d.suffix:'';
     state.keepAwake=d.keepAwake!==false;
@@ -1402,10 +1401,10 @@ function updateModes(){
   $('#btnRepeat').textContent=rl[state.repeat]; $('#btnRepeat').setAttribute('aria-pressed',String(state.repeat!=='off'));
   const t=state.times, one=state.repeat==='one', bt=$('#btnTimes'), cs=curSong();
   const on=!!cs&&loadedId===cs.id;
-  bt.textContent=one?'곡당 ∞':'곡당 '+t+'회'+(t>1&&on&&thisN<2?' · '+Math.min(plays+1,t)+'/'+t:'');
+  bt.textContent=one?'곡당 ∞':(t>1&&on&&thisN<2?'곡당 '+Math.min(plays+1,t)+'/'+t:'곡당 '+t+'회');
   bt.setAttribute('aria-pressed',String(t>1&&!one)); bt.disabled=one;
   const th=$('#btnThis'); if(!on) thisN=0;
-  th.textContent=one?'이번 곡 ∞':(thisN>1?'이번 곡만 '+thisN+'회 · '+Math.min(plays+1,thisN)+'/'+thisN:'이번 곡 반복');
+  th.textContent=one?'이노래 ∞':(thisN>1?'이노래 '+Math.min(plays+1,thisN)+'/'+thisN:'이노래 반복');
   th.setAttribute('aria-pressed',String(thisN>1&&!one)); th.disabled=one;
 }
 function applyPin(){
@@ -1794,7 +1793,7 @@ function bind(){
     if(!cs||loadedId!==cs.id){ toast('먼저 곡을 재생한 뒤 눌러 주세요.',2600); return; }
     thisN=THIS[(THIS.indexOf(thisN)+1)%THIS.length];
     updateModes();
-    toast(thisN>1?'이번 곡만 '+thisN+'번 듣고 다음 곡으로 넘어가요.':'이번 곡 반복을 껐어요.',2400);
+    toast(thisN>1?'이 노래만 '+thisN+'번 듣고 다음 곡으로 넘어가요.':'이 노래 반복을 껐어요.',2400);
   });
   $('#btnTimes').addEventListener('click',()=>{
     state.times=TIMES[(TIMES.indexOf(state.times)+1)%TIMES.length]; plays=0; save(); render();
