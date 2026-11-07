@@ -209,6 +209,14 @@ details ol,details ul{margin:8px 0 0;padding-left:1.3em;display:grid;gap:8px;fon
 body.guest .no-guest{display:none!important}
 body.guest-view .no-view,body.guest-view .sec-actions,body.guest-view .row-more,body.guest-view #btnSettings{display:none!important}
 
+/* 컴퓨터(넓은 화면): 왼쪽 재생창(고정) · 오른쪽 목록 */
+@media (min-width:900px){
+  .wrap{max-width:1200px;grid-template-columns:minmax(400px,480px) minmax(0,1fr);column-gap:28px;align-items:start}
+  .wrap>*{grid-column:2}
+  .wrap>.top,.wrap>.notice{grid-column:1/-1}
+  .wrap>.stage{grid-column:1;grid-row:span 3;position:sticky;top:max(14px,env(safe-area-inset-top));align-self:start}
+  #btnPin{display:none}
+}
 @media (prefers-reduced-motion:reduce){
   .disc.playing,.row.is-playing .eq i{animation:none}
 }
@@ -1380,7 +1388,7 @@ function removeSong(s){
 function jumpList(where){
   const rows=$('#list').children; if(!rows.length) return;
   const li=where==='end'?rows[rows.length-1]:where==='mid'?rows[Math.floor((rows.length-1)/2)]:rows[0];
-  const st=document.querySelector('.stage'), pinned=st.classList.contains('pinned');
+  const st=document.querySelector('.stage'), pinned=st.classList.contains('pinned')&&!window.matchMedia('(min-width:900px)').matches;
   const gap=12, r=li.getBoundingClientRect(), top0=pinned?st.getBoundingClientRect().height+gap+6:gap;
   let y;
   if(where==='end') y=r.bottom+window.scrollY-window.innerHeight+gap;
