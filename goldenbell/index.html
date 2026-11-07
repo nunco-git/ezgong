@@ -12722,22 +12722,22 @@ function tabList(body){
     try{await FB.db.collection("gb_reports").doc(el.dataset.id).update({agree:firebase.firestore.FieldValue.arrayUnion(ME.uid)});
       const r=CM.r.find(r=>r.id===el.dataset.id);r.agree=[...(r.agree||[]),ME.uid];mergeCommunity();toast("동의했어요.");contrib("list")}
     catch(err){toast("처리하지 못했어요 ("+(err.code||"오류")+")")}})}
-const GRADES=[[0,"새싹 독자"],[1,"책 친구"],[3,"책 탐험가"],[6,"책 수집가"],[10,"독서 박사"],[20,"독서 달인"],[35,"독서 고수"],[55,"독서 대가"],[80,"책의 현자"],[120,"골든벨 마스터"]];
+const GRADES=[[0,"새싹 독자"],[1,"책 친구"],[2,"책 탐험가"],[4,"책 수집가"],[7,"독서 박사"],[11,"독서 달인"],[16,"독서 고수"],[23,"독서 대가"],[32,"책의 현자"],[45,"골든벨 마스터"]];
 function gradeOf(n){let g=0;GRADES.forEach(([m],i)=>{if(n>=m)g=i});return g}
 function gradeTxt(n){const g=gradeOf(n);return `Lv.${g+1} ${GRADES[g][1]}`}
-function qCounts(){const c={};for(const x of CM.q){if(isGone(x.lv,x.book,x.text))continue;const e=c[x.uid]||(c[x.uid]={n:0,by:""});e.n++;if(x.by)e.by=x.by}return c}
+function qCounts(){const c={};for(const x of CM.q){if(isGone(x.lv,x.book,x.text))continue;const e=c[x.uid]||(c[x.uid]={n:0,q:0,bk:new Set(),by:""});e.q++;e.bk.add(x.lv+"|"+x.book);e.n=e.bk.size;if(x.by)e.by=x.by}return c}
 function tabRank(body){
   const c=qCounts(),arr=Object.entries(c).map(([uid,e])=>({uid,...e})).sort((a,b)=>b.n-a.n).slice(0,30);
   const me=ME&&c[ME.uid]?c[ME.uid].n:0;
-  body.innerHTML=`<p class="note">낸 문제 수에 따라 등급이 올라가요. 삭제된 문제는 세지 않아요.</p>
-   <div class="rq"><div><b>등급표</b><div class="note0">${GRADES.map(([m,n],i)=>`Lv.${i+1} ${n}(${m}개~)`).join(" · ")}</div></div></div>
-   ${ME?`<div class="rq"><div><b>내 등급</b> ${gradeTxt(me)} · 낸 문제 ${me}개${gradeOf(me)<9?`<div class="note0">다음 등급까지 ${GRADES[gradeOf(me)+1][0]-me}개</div>`:""}</div></div>`:""}
+  body.innerHTML=`<p class="note">문제를 낸 책의 수에 따라 등급이 올라가요. 같은 책에 문제를 여러 개 내도 1권으로 세고, 삭제된 문제는 세지 않아요.</p>
+   <div class="rq"><div><b>등급표</b><div class="note0">${GRADES.map(([m,n],i)=>`Lv.${i+1} ${n}(${m}권~)`).join(" · ")}</div></div></div>
+   ${ME?`<div class="rq"><div><b>내 등급</b> ${gradeTxt(me)} · 문제를 낸 책 ${me}권${gradeOf(me)<9?`<div class="note0">다음 등급까지 ${GRADES[gradeOf(me)+1][0]-me}권</div>`:""}</div></div>`:""}
    <h3 class="sh">랭킹 (상위 30명)</h3>
-   ${arr.map((e,i)=>`<div class="rq"><div><b>${i+1}위</b> ${esc(e.by||"익명")} <span class="kind">${gradeTxt(e.n)}</span><div class="note0">낸 문제 ${e.n}개</div></div></div>`).join("")||`<p class="note">아직 문제를 낸 사람이 없어요.</p>`}`}
+   ${arr.map((e,i)=>`<div class="rq"><div><b>${i+1}위</b> ${esc(e.by||"익명")} <span class="kind">${gradeTxt(e.n)}</span><div class="note0">문제를 낸 책 ${e.n}권 · 문제 ${e.q}개</div></div></div>`).join("")||`<p class="note">아직 문제를 낸 사람이 없어요.</p>`}`}
 function tabMe(body){
   if(!ME){body.innerHTML=needLogin();wireLogin();return}
   const mq=CM.q.filter(x=>x.uid===ME.uid),mr=CM.r.filter(x=>x.uid===ME.uid);
-  const my=mq.filter(x=>!isGone(x.lv,x.book,x.text)).length;
+  const my=(qCounts()[ME.uid]||{n:0}).n;
   body.innerHTML=`<p class="note">내 등급 <b>${gradeTxt(my)}</b> · 내가 낸 문제 <b>${mq.length}</b>개 · 내가 한 제보 <b>${mr.length}</b>건</p>
    <h3 class="sh">내가 낸 문제</h3>${mq.map(x=>`<div class="rq"><div><b>${esc(x.book)}</b> <span class="note0">${LEVELS.find(l=>l[0]===x.lv)[1]}</span><div>${esc(x.text)}</div><div class="note0">정답: ${esc(x.ans)}</div></div><button class="lnk" data-del="${x.id}">삭제</button></div>`).join("")||`<p class="note">아직 낸 문제가 없어요.</p>`}
    <h3 class="sh">내가 한 제보</h3>${mr.map(r=>`<div class="rq"><div><b>${esc(r.book)}</b> · ${esc(r.kind)}<div class="note0">${esc(r.note)}</div></div><span class="kind ${confirmed(r)?"okk":""}">${confirmed(r)?"확인됨":"동의 "+(1+(r.agree||[]).length)+"/"+need(r)}</span></div>`).join("")||`<p class="note">아직 제보가 없어요.</p>`}`;
