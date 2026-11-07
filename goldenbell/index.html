@@ -83,6 +83,10 @@ h1{font-family:var(--f-display);font-weight:400;font-size:clamp(28px,6vw,40px);l
 .lives{font-size:13px;font-variant-numeric:tabular-nums;color:var(--muted)}
 .board{background:var(--board);color:var(--board-ink);border-radius:16px;padding:22px clamp(16px,4vw,32px) 26px;display:flex;flex-direction:column;gap:16px;position:relative;overflow:hidden}
 .qno{font-family:var(--f-display);font-size:clamp(22px,5vw,30px);color:var(--brass);display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.dif{display:inline-block;font-size:11px;border-radius:6px;padding:1px 7px;margin-left:6px;font-weight:600;border:1px solid currentColor;vertical-align:middle}
+.dif.d1{color:#2e7d32}.dif.d2{color:#b26a00}.dif.d3{color:#c62828}
+.board .dif.d1{color:#9be39f}.board .dif.d2{color:#ffd37a}.board .dif.d3{color:#ff9d9d}
+.dist{font-size:12px;opacity:.7;margin-left:6px}
 .qno .kind{font-family:var(--f-body);font-size:12px;letter-spacing:.08em;border:1px solid currentColor;border-radius:6px;padding:1px 8px;color:var(--board-ink);opacity:.8}
 .qtext{font-size:clamp(19px,3.6vw,25px);font-weight:700;line-height:1.45;word-break:keep-all;overflow-wrap:anywhere}
 .timer{height:6px;background:rgba(255,255,255,.15);border-radius:3px;overflow:hidden}
@@ -15522,6 +15526,33 @@ for(const [id,name] of LEVELS){
   }
   BANK[id]=books;
 }
+/* 난이도(상·중·하): 문제 유형과 내용으로 자동 산정 */
+const DIFF_CLS={"하":"d1","중":"d2","상":"d3"};
+function bg(s){const t=String(s).replace(/\s/g,"");const o=new Set();for(let i=0;i<t.length-1;i++)o.add(t.slice(i,i+2));return o}
+function diffScore(q){
+  let sc=(q.ty==="ox"?0:q.ty==="mc"?1:2);const t=q.text||"";
+  if(q.ty==="ox"&&t.length>26)sc+=.5;
+  if(/[0-9]|몇|언제|연도|몇\s?년|[0-9]+년/.test(t))sc+=1;
+  if(/(저자|작가|지은이|글쓴이|그린 사람|그림은|주인공|배경)[^?]{0,12}\?$/.test(t)&&t.length<28)sc-=1;
+  if(t.length>55)sc+=1;else if(t.length>38)sc+=.5;
+  if(/아닌 것|틀린 것|해당하지|없는 것/.test(t))sc+=.5;
+  if(q.ty==="mc"){
+    const o=q.opts||[];if(o.length===4){
+      if(o.every(x=>/^[0-9,.]+\s?(년|개|명|세|살|번|가지|편|권|장)?$/.test(String(x).trim())))sc+=.5;
+      const g=o.map(bg);let sum=0,n=0;for(let i=0;i<4;i++)for(let j=i+1;j<4;j++){const a=g[i],b=g[j];if(!a.size||!b.size)continue;let c=0;a.forEach(x=>{if(b.has(x))c++});sum+=c/Math.min(a.size,b.size);n++}
+      if(n&&sum/n>.3)sc+=.5;
+      if(String(q.ans).length>14)sc+=.5}}
+  if(q.ty==="sa"&&String(q.ans).length>6)sc+=.5;
+  return sc+t.length/400+String(q.ans).length/120}
+const LV_T={};
+function diffOf(q,lv){const sc=diffScore(q),t=LV_T[lv||q.lv]||[1,2];return sc<=t[0]?"하":sc>t[1]?"상":"중"}
+const LV_B={};
+function bookMean(b){let s=0;b.q.forEach(q=>s+={"하":1,"중":2,"상":3}[q.d||diffOf(q,b.lv)]);return s/b.q.length}
+function bookDiff(b){const t=LV_B[b.lv]||[1.8,2.1],m=bookMean(b);return m<=t[0]?"하":m>t[1]?"상":"중"}
+function dbadge(d){return `<span class="dif ${DIFF_CLS[d]}" title="난이도 ${d}">난이도 ${d}</span>`}
+for(const id in BANK){const a=[];BANK[id].forEach(b=>b.q.forEach(q=>a.push(diffScore(q))));a.sort((x,y)=>x-y);LV_T[id]=[a[Math.floor(a.length*.35)],a[Math.floor(a.length*.8)]]}
+for(const id in BANK)for(const b of BANK[id])for(const q of b.q)q.d=diffOf(q,id);
+for(const id in BANK){const m=BANK[id].map(bookMean).sort((x,y)=>x-y);LV_B[id]=[m[Math.floor(m.length*.3)],m[Math.floor(m.length*.7)]]}
 const INTRO={};{let lv=null;for(const l of document.getElementById("d-intro").textContent.split("\n")){const x=l.trim();if(!x)continue;if(x[0]==="@"){lv=x.slice(1);INTRO[lv]=INTRO[lv]||{};continue}const p=x.split("|");if(lv&&p.length>=4)INTRO[lv][p[0]]={a:p[1],s:p[2],i:p[3]}}}
 const RECS={};{let lv=null;for(const l of document.getElementById("d-recs").textContent.split("\n")){const s=l.trim();if(!s)continue;if(s[0]==="@"){lv=s.slice(1);RECS[lv]=[];continue}const [t,a,src]=s.split("|");RECS[lv].push({t,a,src})}}
 const store={get(k,d){try{const v=localStorage.getItem("gb_"+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem("gb_"+k,JSON.stringify(v))}catch(e){}}};
@@ -15551,7 +15582,7 @@ function home(){
      </div>
    </div>
    <div class="grid" id="grid"></div>
-   <p class="note">권당 약 10문제(OX·4지선다·단답형), 대작은 50문제 안팎으로 풀 때마다 20문제씩 무작위 출제. 단답형은 띄어쓰기를 무시하고 채점하며, 표기가 달라 틀린 것으로 나오면 '정답 인정'을 누르세요.</p>
+   <p class="note">권당 약 10문제(OX·4지선다·단답형), 대작은 50문제 안팎으로 풀 때마다 20문제씩 무작위 출제. 단답형은 띄어쓰기를 무시하고 채점하며, 표기가 달라 틀린 것으로 나오면 '정답 인정'을 누르세요. 난이도(상·중·하)는 문제 유형과 내용으로 자동 계산한 같은 단계 안의 상대 값이에요.</p>
   </div>`;
   drawGrid();
   view.querySelectorAll(".lv").forEach(b=>b.onclick=()=>{S.lv=b.dataset.lv;S.genre="전체";store.set("lv",S.lv);home()});
@@ -15584,7 +15615,7 @@ function drawGrid(){
   if(!list.length){g.innerHTML=`<p class="empty">찾는 책이 없습니다. 검색어나 장르를 바꿔 보세요.</p>`;return}
   g.innerHTML=list.map((b,i)=>{const best=store.get("best_"+b.lv+"_"+b.t,null);
     return `<button class="book" data-i="${BANK[S.lv].indexOf(b)}"><span class="t">${esc(b.t)}</span><span class="a">${esc(b.a)}</span>${(INTRO[b.lv]||{})[b.t]?`<span class="ib">📖 소개 있음</span>`:""}
-    <span class="meta"><span class="tag">${esc(b.g)}</span><span>${b.q.length>BIG?`<span class="best">대작 · ${b.q.length}문제</span>`:best!=null?`<span class="best ${best===b.q.length?"full":""}">최고 ${best}/${b.q.length}</span>`:`${b.q.length}문제`}</span></span></button>`}).join("");
+    <span class="meta"><span class="tag">${esc(b.g)}</span>${dbadge(bookDiff(b))}<span>${b.q.length>BIG?`<span class="best">대작 · ${b.q.length}문제</span>`:best!=null?`<span class="best ${best===b.q.length?"full":""}">최고 ${best}/${b.q.length}</span>`:`${b.q.length}문제`}</span></span></button>`}).join("");
   g.querySelectorAll(".book").forEach(el=>el.onclick=()=>openBook(BANK[S.lv][+el.dataset.i]));
 }
 
@@ -15592,7 +15623,7 @@ const BIG=20;
 function openBook(b){const it=(INTRO[b.lv]||{})[b.t];if(!it&&!COMMUNITY)return playBook(b);
   const n=b.q.length>BIG?BIG+"문제 무작위 (전체 "+b.q.length+"문제)":b.q.length+"문제";window.scrollTo(0,0);
   view.innerHTML=`<div class="stage"><div class="qhead"><div class="crumb"><button class="btn ghost" id="iback">← 목록</button></div></div>
-  <article class="intro"><div><h2>${esc(b.t)}</h2><div class="by">${esc(b.a)} · ${esc(b.g)}</div></div>
+  <article class="intro"><div><h2>${esc(b.t)}</h2><div class="by">${esc(b.a)} · ${esc(b.g)}</div>${dbadge(bookDiff(b))} <span class="dist">${["하","중","상"].map(d=>d+" "+b.q.filter(q=>(q.d||diffOf(q,b.lv))===d).length).join(" · ")}</span></div>
   ${it?`<section><h3>작가 소개</h3><p>${esc(it.a)}</p></section><section><h3>줄거리</h3><p>${esc(it.s)}</p></section><section><h3>이슈와 중요사항</h3><p>${esc(it.i)}</p></section>`:`<p class="note">이 책의 소개문은 아직 없어요.</p>`}
   <div class="go"><button class="btn primary" id="igo">골든벨 풀기 · ${n}</button>${COMMUNITY?` <button class="btn ghost" id="inew">✍️ 문제 내기</button> <button class="btn ghost" id="irep">🚩 오류 제보</button>`:""}</div></article></div>`;
   $("#iback").onclick=home;$("#igo").onclick=()=>playBook(b);
@@ -15614,7 +15645,7 @@ function showQ(){
     <div class="qhead"><div class="crumb"><button class="btn ghost" id="quit">← 목록</button> &nbsp;<b>${esc(R.meta.title)}</b></div>
     <div class="dots">${R.qs.map((_,k)=>`<i class="${k<R.res.length?(R.res[k].ok?"g":"b"):k===R.i?"c":""}"></i>`).join("")}</div></div>
     <section class="board" aria-live="polite">
-      <div class="qno">제 ${R.i+1} 문제 <span class="kind">${kind}</span>${R.meta.key?"":`<span class="kind">${esc(q.book)}</span>`}</div>
+      <div class="qno">제 ${R.i+1} 문제 <span class="kind">${kind}</span>${dbadge(q.d||diffOf(q,q.lv))}${R.meta.key?"":`<span class="kind">${esc(q.book)}</span>`}</div>
       ${S.timer?`<div class="timer"><i id="tbar"></i></div>`:""}
       <div class="qtext">${esc(q.text)}</div>
       ${body}
