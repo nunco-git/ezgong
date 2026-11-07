@@ -12722,7 +12722,7 @@ function tabList(body){
     try{await FB.db.collection("gb_reports").doc(el.dataset.id).update({agree:firebase.firestore.FieldValue.arrayUnion(ME.uid)});
       const r=CM.r.find(r=>r.id===el.dataset.id);r.agree=[...(r.agree||[]),ME.uid];mergeCommunity();toast("동의했어요.");contrib("list")}
     catch(err){toast("처리하지 못했어요 ("+(err.code||"오류")+")")}})}
-const GRADES=[[0,"새싹 독자"],[1,"책 친구"],[2,"책 탐험가"],[4,"책 수집가"],[7,"독서 박사"],[11,"독서 달인"],[16,"독서 고수"],[23,"독서 대가"],[32,"책의 현자"],[45,"골든벨 마스터"]];
+const GRADES=[[0,"새싹 독자"],[1,"책 친구"],[3,"책 탐험가"],[5,"책 수집가"],[7,"독서 박사"],[10,"독서 달인"],[20,"독서 고수"],[30,"독서 대가"],[40,"책의 현자"],[50,"골든벨 마스터"]];
 function gradeOf(n){let g=0;GRADES.forEach(([m],i)=>{if(n>=m)g=i});return g}
 function gradeTxt(n){const g=gradeOf(n);return `Lv.${g+1} ${GRADES[g][1]}`}
 function qCounts(){const c={};for(const x of CM.q){if(isGone(x.lv,x.book,x.text))continue;const e=c[x.uid]||(c[x.uid]={n:0,q:0,bk:new Set(),by:""});e.q++;e.bk.add(x.lv+"|"+x.book);e.n=e.bk.size;if(x.by)e.by=x.by}return c}
