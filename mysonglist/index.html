@@ -1080,15 +1080,19 @@ function ensurePlayer(){
   document.head.append(t);
 }
 function createPlayer(){
-  const vars={playsinline:1,controls:0,rel:0,modestbranding:1,disablekb:1,fs:0,iv_load_policy:3};
+  const vars={playsinline:1,controls:0,rel:0,modestbranding:1,disablekb:1,fs:0,iv_load_policy:3,cc_load_policy:0};
   if(/^https?:$/.test(location.protocol)) vars.origin=location.origin;
   player=new YT.Player('ytHost',{
     width:'100%',height:'100%',playerVars:vars,
     events:{onReady:onReady,onStateChange:onStateChange,onError:onError}
   });
 }
+/* 자막 끄기: 영상 위에 YouTube 자막(자동 생성 포함)이 뜨지 않게 한다 */
+function hideCaptions(){
+  try{ if(player&&player.unloadModule){ player.unloadModule('captions'); player.unloadModule('cc'); } }catch(e){}
+}
 function onReady(){
-  playerReady=true;
+  playerReady=true; hideCaptions();
   if(pending){ const f=pending; pending=null; f(); }
 }
 function withPlayer(fn){
@@ -1125,7 +1129,7 @@ function togglePlay(){
 }
 function onStateChange(e){
   const st=e.data;
-  if(st===1){ playing=true; onPlaying(); holdAwake(); }
+  if(st===1){ playing=true; hideCaptions(); onPlaying(); holdAwake(); }
   else if(st===2){ playing=false; releaseAwake(); }
   else if(st===0){ playing=false; onEnded(); }
   syncPlayState();
