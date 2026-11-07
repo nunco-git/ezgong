@@ -1087,11 +1087,11 @@
 
     [tabList, mobileDropdown].forEach((box) => {
       const a = document.createElement('a');
-      a.className = 'tab-btn other-link';
-      a.href = OTHER_APPS_URL; a.target = '_blank'; a.rel = 'noopener';
+      a.className = 'tab-btn other-link' + (currentUrl === OTHER_APPS_URL ? ' active' : '');
+      a.href = OTHER_APPS_URL;
+      a.addEventListener('click', (e) => { e.preventDefault(); closeMobileMenu(); openOtherApps(); });
       a.title = '엄지타자, 상식 학력 진단, 중국어 학습 등 기타 앱 모음';
       a.textContent = '기타 앱 ↗';
-      a.onclick = () => closeMobileMenu();
       box.appendChild(a);
     });
 
@@ -1300,6 +1300,15 @@
       }
     }
     renderTabs();
+  }
+
+  // 기타 앱 목록도 다른 앱처럼 아래 화면(iframe) 안에서 연다. 이미 열려 있으면 목록 첫 화면으로 되돌린다.
+  function openOtherApps() {
+    if (currentUrl === OTHER_APPS_URL && appFrames[OTHER_APPS_URL]) {
+      appFrames[OTHER_APPS_URL].src = OTHER_APPS_URL;
+    } else {
+      switchApp(OTHER_APPS_URL);
+    }
   }
 
   function openCurrentInNewTab() {
