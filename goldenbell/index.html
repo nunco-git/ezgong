@@ -12636,6 +12636,7 @@ function tabNew(body){
     if(ty==="mc"){x.wrong=[...view.querySelectorAll(".w")].map(i=>i.value.trim());const all=[ans,...x.wrong];if(new Set(all.map(norm)).size!==4){toast("정답과 오답 3개는 서로 달라야 해요.");return}}
     if(ty==="sa"){x.alts=($("#a1").value||"").split(",").map(s=>s.trim()).filter(Boolean)}
     if(eb&&eb.q.some(q=>norm(q.text)===norm(text))){toast("같은 문제가 이미 있어요.");return}
+    if(dupInBook(lv,book,ty,text,ans)){toast("이 책에 비슷한 문제가 이미 있어요. 다른 내용으로 내 주세요.");return}
     btn.disabled=true;
     try{const ref=await FB.db.collection("gb_questions").add({...x,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
       const y={...x,id:ref.id};CM.q.push(y);addUserQ(y);recount();toast("문제가 등록됐어요. 고마워요!");
@@ -12725,20 +12726,37 @@ function tabList(body){
 const GRADES=[[0,"새싹 독자"],[1,"책 친구"],[3,"책 탐험가"],[5,"책 수집가"],[7,"독서 박사"],[10,"독서 달인"],[20,"독서 고수"],[30,"독서 대가"],[40,"책의 현자"],[50,"골든벨 마스터"]];
 function gradeOf(n){let g=0;GRADES.forEach(([m],i)=>{if(n>=m)g=i});return g}
 function gradeTxt(n){const g=gradeOf(n);return `Lv.${g+1} ${GRADES[g][1]}`}
-function qCounts(){const c={};for(const x of CM.q){if(isGone(x.lv,x.book,x.text))continue;const e=c[x.uid]||(c[x.uid]={n:0,q:0,bk:new Set(),by:""});e.q++;e.bk.add(x.lv+"|"+x.book);e.n=e.bk.size;if(x.by)e.by=x.by}return c}
+const _n2=t=>String(t||"").replace(/[^0-9A-Za-z가-힣]/g,"");
+const _g2=t=>{t=_n2(t);const r=new Set();for(let i=0;i<t.length-1;i++)r.add(t.slice(i,i+2));return r};
+const _jc=(a,b)=>{if(!a.size||!b.size)return 0;let n=0;a.forEach(x=>{if(b.has(x))n++});return n/(a.size+b.size-n)};
+function qSig(ty,text,ans){const a=ty==="ox"?"":ans||"";return{ty,st:_g2(text),ft:_g2(text+" "+a),an:_n2(a)}}
+function sameQ(A,B){const s1=_jc(A.st,B.st);if(s1>=0.6)return true;
+  if(A.ty==="ox"||B.ty==="ox")return _jc(A.ft,B.ft)>=0.45;
+  return _jc(A.ft,B.ft)>=0.45||(A.an&&A.an===B.an&&s1>=0.4)}
+function dupInBook(lv,book,ty,text,ans){const b=(BANK[lv]||[]).find(b=>b.t===book);if(!b)return false;const A=qSig(ty,text,ans);
+  return b.q.some(q=>sameQ(A,qSig(q.ty,q.text,q.ans)))}
+function qCounts(){const c={},acc={};
+  for(const x of CM.q){if(isGone(x.lv,x.book,x.text))continue;const k=x.lv+"|"+x.book;
+    if(!acc[k]){const b=(BANK[x.lv]||[]).find(b=>b.t===x.book);acc[k]=(b?b.q.filter(q=>!q.user):[]).map(q=>qSig(q.ty,q.text,q.ans))}
+    const sg=qSig(x.ty,x.text,x.ans);const e=c[x.uid]||(c[x.uid]={n:0,q:0,bk:{},by:""});
+    if(x.by)e.by=x.by;
+    if(acc[k].some(o=>sameQ(sg,o)))continue;
+    acc[k].push(sg);e.q++;e.bk[k]=(e.bk[k]||0)+1}
+  for(const u in c){const e=c[u];e.n=Object.values(e.bk).filter(v=>v>=2).length;e.one=Object.values(e.bk).filter(v=>v===1).length}
+  return c}
 function tabRank(body){
   const c=qCounts(),arr=Object.entries(c).map(([uid,e])=>({uid,...e})).sort((a,b)=>b.n-a.n).slice(0,30);
   const me=ME&&c[ME.uid]?c[ME.uid].n:0;
-  body.innerHTML=`<p class="note">문제를 낸 책의 수에 따라 등급이 올라가요. 같은 책에 문제를 여러 개 내도 1권으로 세고, 삭제된 문제는 세지 않아요.</p>
+  body.innerHTML=`<p class="note">문제를 낸 책의 수에 따라 등급이 올라가요. 같은 책에 기존 문제와 겹치지 않는 문제를 2개 이상 내야 1권으로 세요. 삭제된 문제와 겹치는 문제는 세지 않아요.</p>
    <div class="rq"><div><b>등급표</b><div class="note0">${GRADES.map(([m,n],i)=>`Lv.${i+1} ${n}(${m}권~)`).join(" · ")}</div></div></div>
-   ${ME?`<div class="rq"><div><b>내 등급</b> ${gradeTxt(me)} · 문제를 낸 책 ${me}권${gradeOf(me)<9?`<div class="note0">다음 등급까지 ${GRADES[gradeOf(me)+1][0]-me}권</div>`:""}</div></div>`:""}
+   ${ME?`<div class="rq"><div><b>내 등급</b> ${gradeTxt(me)} · 인정된 책 ${me}권${gradeOf(me)<9?`<div class="note0">다음 등급까지 ${GRADES[gradeOf(me)+1][0]-me}권</div>`:""}</div></div>`:""}
    <h3 class="sh">랭킹 (상위 30명)</h3>
-   ${arr.map((e,i)=>`<div class="rq"><div><b>${i+1}위</b> ${esc(e.by||"익명")} <span class="kind">${gradeTxt(e.n)}</span><div class="note0">문제를 낸 책 ${e.n}권 · 문제 ${e.q}개</div></div></div>`).join("")||`<p class="note">아직 문제를 낸 사람이 없어요.</p>`}`}
+   ${arr.map((e,i)=>`<div class="rq"><div><b>${i+1}위</b> ${esc(e.by||"익명")} <span class="kind">${gradeTxt(e.n)}</span><div class="note0">인정된 책 ${e.n}권 · 인정된 문제 ${e.q}개</div></div></div>`).join("")||`<p class="note">아직 문제를 낸 사람이 없어요.</p>`}`}
 function tabMe(body){
   if(!ME){body.innerHTML=needLogin();wireLogin();return}
   const mq=CM.q.filter(x=>x.uid===ME.uid),mr=CM.r.filter(x=>x.uid===ME.uid);
   const my=(qCounts()[ME.uid]||{n:0}).n;
-  body.innerHTML=`<p class="note">내 등급 <b>${gradeTxt(my)}</b> · 내가 낸 문제 <b>${mq.length}</b>개 · 내가 한 제보 <b>${mr.length}</b>건</p>
+  body.innerHTML=`<p class="note">내 등급 <b>${gradeTxt(my)}</b> · 문제를 1개만 낸 책 <b>${(qCounts()[ME.uid]||{one:0}).one}</b>권(2개 이상 필요) · 내가 낸 문제 <b>${mq.length}</b>개 · 내가 한 제보 <b>${mr.length}</b>건</p>
    <h3 class="sh">내가 낸 문제</h3>${mq.map(x=>`<div class="rq"><div><b>${esc(x.book)}</b> <span class="note0">${LEVELS.find(l=>l[0]===x.lv)[1]}</span><div>${esc(x.text)}</div><div class="note0">정답: ${esc(x.ans)}</div></div><button class="lnk" data-del="${x.id}">삭제</button></div>`).join("")||`<p class="note">아직 낸 문제가 없어요.</p>`}
    <h3 class="sh">내가 한 제보</h3>${mr.map(r=>`<div class="rq"><div><b>${esc(r.book)}</b> · ${esc(r.kind)}<div class="note0">${esc(r.note)}</div></div><span class="kind ${confirmed(r)?"okk":""}">${confirmed(r)?"확인됨":"동의 "+(1+(r.agree||[]).length)+"/"+need(r)}</span></div>`).join("")||`<p class="note">아직 제보가 없어요.</p>`}`;
   body.querySelectorAll("[data-del]").forEach(el=>el.onclick=async()=>{if(!confirm("이 문제를 삭제할까요?"))return;
