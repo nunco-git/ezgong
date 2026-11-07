@@ -67,7 +67,7 @@ h2{margin:0;font:400 22px/1.2 var(--font-display);letter-spacing:.01em}
 .notice button{margin-top:6px}
 
 /* 무대 */
-.stage{display:grid;gap:5px;background:var(--stage);color:var(--on-stage);border-radius:20px;padding:8px 10px 8px}
+.stage{min-width:0;max-width:100%;box-sizing:border-box;display:grid;gap:5px;background:var(--stage);color:var(--on-stage);border-radius:20px;padding:8px 10px 8px}
 .screen{position:relative;aspect-ratio:16/9;background:#000;border-radius:14px;overflow:hidden;max-width:100%}
 .screen iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 .screen-msg{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:20px;background:#0c0711;color:var(--stage-muted);font-size:17px}
@@ -76,7 +76,9 @@ h2{margin:0;font:400 22px/1.2 var(--font-display);letter-spacing:.01em}
 .mode.this{white-space:nowrap}
 .mode.pin{min-height:28px;padding:0 10px;font-size:13px;white-space:nowrap}
 .stage.pinned{position:sticky;top:max(6px,env(safe-area-inset-top));z-index:30;box-shadow:0 6px 18px rgba(0,0,0,.35)}
-.modes .mode{padding:0 clamp(3px,1.1vw,10px);font-size:clamp(9px,2.9vw,13px);min-height:28px;border-width:1px;white-space:nowrap}
+.wrap>*{min-width:0}
+.modes{min-width:0;max-width:100%}
+.modes .mode{flex:0 1 auto;min-width:0;overflow:hidden;padding:0 clamp(3px,1.1vw,10px);font-size:clamp(9px,2.9vw,13px);min-height:28px;border-width:1px;white-space:nowrap}
 .row.flash{animation:rowflash 1.1s ease-out}
 @keyframes rowflash{0%{box-shadow:0 0 0 3px var(--accent)}100%{box-shadow:0 0 0 3px transparent}}
 .disc{
@@ -1406,6 +1408,15 @@ function updateModes(){
   const th=$('#btnThis'); if(!on) thisN=0;
   th.textContent=one?'이노래 ∞':(thisN>1?'이노래 '+Math.min(plays+1,thisN)+'/'+thisN:'이노래 반복');
   th.setAttribute('aria-pressed',String(thisN>1&&!one)); th.disabled=one;
+  fitModes();
+}
+/* 버튼 줄이 폰 글꼴 때문에 길어지면 글자 크기를 줄여 화면 안에 맞춘다 */
+function fitModes(){
+  const m=document.querySelector('.modes'); if(!m||!m.clientWidth) return;
+  const bs=[...m.children]; bs.forEach(b=>{ b.style.fontSize=''; });
+  let f=parseFloat(getComputedStyle(bs[0]).fontSize)||12;
+  const clipped=()=>bs.some(b=>b.scrollWidth>b.clientWidth+0.5);
+  while(clipped()&&f>7.5){ f-=0.5; bs.forEach(b=>{ b.style.fontSize=f+'px'; }); }
 }
 function applyPin(){
   const on=!!state.pin;
@@ -1820,6 +1831,8 @@ function bind(){
   });
   $('#btnFind').addEventListener('click',findAll);
   $('#btnYtOpen').addEventListener('click',openInYouTube);
+  window.addEventListener('resize',fitModes);
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(fitModes);
   $('#btnTop').addEventListener('click',()=>jumpList('top'));
   $('#btnMid').addEventListener('click',()=>jumpList('mid'));
   $('#btnEnd').addEventListener('click',()=>jumpList('end'));
