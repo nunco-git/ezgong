@@ -57,7 +57,7 @@ const MORE_APPS = [
     desc:'초등·중학·고등·대학 교양·일반부 5단계 문제은행으로 내 상식이 어느 수준인지 진단합니다.' },
   { title:'중국어 학습', url:'/chinese/', tag:'중국어', color:'#c4301c',
     desc:'간체자와 HSK 1·2급, 3급, 4급, 5급 단어를 같은 글자·반대말·예문으로 꼬리에 꼬리를 물고 익힙니다.' },
-  { title:'한자 익히기 8급~3급', url:'/hanja/', tag:'한자', color:'#8a3b1e',
+  { title:'한자 익히기 8급~3급', url:'/hanja/', tag:'한자', pg:{key:'hanja-known',total:1817,label:'외운 한자'}, color:'#8a3b1e',
     desc:'한자능력검정시험 8급~3급 1,817자를 훈음·만든 원리(육서)·소리 조각 가족 묶음·중국어 간체자와 함께 익힙니다.' },
   { title:'가나다 일본어', url:'/japanese/', tag:'일본어', color:'#5E4589',
     desc:'히라가나·가타카나, 일본 한자 읽기, 한중일 공통 어휘, JLPT N5~N2 단어 꼬리잡기를 한국 한자음에서 출발해 익힙니다.' },
@@ -71,11 +71,12 @@ const MORE_APPS = [
     desc:'좋아하는 가요·트로트를 유튜브에서 찾아 연속으로 들려줍니다.' },
 ];
 
+function pgHtml(a){if(!a.pg)return '';let n=0;try{n=Math.min(JSON.parse(localStorage.getItem(a.pg.key)||'[]').length,a.pg.total)}catch(e){}const p=Math.round(n/a.pg.total*100);return `<div style="margin-top:6px;font-size:12px;color:#64748b"><div style="display:flex;justify-content:space-between"><span>${a.pg.label}</span><span><b>${n}</b> / ${a.pg.total} (${p}%)</span></div><div style="height:6px;border-radius:3px;background:#e2e8f0;overflow:hidden;margin-top:3px"><i style="display:block;height:100%;width:${p}%;background:#8a3b1e"></i></div></div>`}
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 document.getElementById('list').innerHTML = MORE_APPS.map(a=>`
   <a class="app" href="${esc(a.url)}">
     <span class="ic" style="background:${esc(a.color||'#334155')}">${a.icon?`<img src="${esc(a.icon)}" alt="">`:esc(a.title.charAt(0))}</span>
-    <div class="tx"><h2>${esc(a.title)}${a.tag?`<small>${esc(a.tag)}</small>`:''}</h2><p>${esc(a.desc||'')}</p></div>
+    <div class="tx"><h2>${esc(a.title)}${a.tag?`<small>${esc(a.tag)}</small>`:''}</h2><p>${esc(a.desc||'')}</p>${pgHtml(a)}</div>
     <span class="go">열기 →</span>
   </a>`).join('');
 if(window.parent!==window){const h=document.querySelector('a.home');if(h)h.style.display='none'}
