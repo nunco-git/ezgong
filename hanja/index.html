@@ -138,14 +138,14 @@ function vLv(){const l=ST.lv,L=D.filter(o=>o.l===l);
  <div class="grid">${L.map(tile).join('')}</div>`;
  $('#view').onclick=e=>{const c=e.target.closest('.chip');if(c){ST.lv=+c.dataset.l;sv();vLv();return}const t=e.target.closest('.tile');if(t)openCard(t.dataset.h,L.map(o=>o.h))}}
 // 상세
-let CTX=[];
+let CTX=[],HIST=[];
 function fm(o){ // 형성 공식
  if(o.t!=='형성'||!o.f)return '';const sm=o.sm;
  return `<div class="fm">${o.sm?`<span class="hj">${o.sm}<small>${esc(hunOf(o.sm)||'뜻')}</small></span><i>뜻 +</i>`:''}<span class="hj">${o.f}<small>${esc(hunOf(o.f)||'소리')}</small></span><i>소리 =</i><span class="hj" style="color:var(--seal)">${o.h}</span></div>`}
-function openCard(h,ctx){const o=M[h];if(ctx)CTX=ctx;const ix=CTX.indexOf(h);
+function openCard(h,ctx,keep){if(!keep)HIST=[];const o=M[h];if(ctx)CTX=ctx;const ix=CTX.indexOf(h);
  const fam=o.f&&!BAD.has(o.f)?D.filter(x=>x.f===o.f||x.h===o.f).map(x=>x.h):[];
  const rd=o.r.length>1?o.r.map(r=>`${r[0]} <b>${r[1]}</b>`).join(' / '):'';
- $('#sheet').innerHTML=`<button class="x" id="cx" aria-label="닫기">×</button>
+ $('#sheet').innerHTML=`<button class="x" id="cx" aria-label="닫기">×</button>${HIST.length?`<button class="btn s" id="bkc" style="margin-bottom:8px;min-height:40px">← <span class="hj" lang="ko">${HIST[HIST.length-1]}</span> 로 돌아가기</button>`:''}
  <div class="big"><div class="c hj" lang="ko">${o.h}</div><div class="hu">${esc(o.r.map(r=>r[0]+' '+r[1]).join(' · '))}<small>${LV[o.l]} · ${o.b}부 · 총 ${o.s}획</small></div></div>
  <div class="tags"><span class="tag t">${o.t}</span>${o.b!==o.h?`<span class="tag">부수 ${o.b} ${esc(hunOf(o.b))}</span>`:''}</div>
  <div class="sec"><h3>이렇게 만들어진 글자</h3>${fm(o)}<div style="margin-top:6px">${esc(o.o||'')}</div>${o.e&&!o.o?`<div class="note">참고(영문 자료): ${esc(o.e)}</div>`:''}${o.e&&o.o&&o.o.endsWith('글자')&&false?'':''}</div>
@@ -157,11 +157,11 @@ function openCard(h,ctx){const o=M[h];if(ctx)CTX=ctx;const ix=CTX.indexOf(h);
  <div class="row" style="margin-top:12px"><button class="btn ${K.has(h)?'s':'ok'}" id="kn" style="flex:1">${K.has(h)?'✓ 외웠어요 (취소)':'외웠어요'}</button></div>
  <div class="nav2"><button class="btn s" id="pv" ${ix<=0?'disabled':''}>← 이전</button><button class="btn s" id="nx" ${ix<0||ix>=CTX.length-1?'disabled':''}>다음 →</button></div>`;
  $('#md').classList.add('on');
- $('#cx').onclick=closeCard;$('#kn').onclick=()=>{toggle(h);openCard(h);refresh()};
+ $('#cx').onclick=closeCard;const bk=$('#bkc');if(bk)bk.onclick=()=>{const p=HIST.pop();openCard(p,null,true)};$('#kn').onclick=()=>{toggle(h);openCard(h,null,true);refresh()};
  $('#pv').onclick=()=>openCard(CTX[ix-1]);$('#nx').onclick=()=>openCard(CTX[ix+1]);
- $('#sheet').querySelectorAll('.fam button').forEach(b=>b.onclick=()=>openCard(b.dataset.h));
+ $('#sheet').querySelectorAll('.fam button').forEach(b=>b.onclick=()=>{HIST.push(h);openCard(b.dataset.h,null,true)});
  $('#sheet').scrollTop=0}
-function closeCard(){$('#md').classList.remove('on');refresh()}
+function closeCard(){HIST=[];$('#md').classList.remove('on');refresh()}
 $('#md').onclick=e=>{if(e.target.id==='md')closeCard()};
 addEventListener('keydown',e=>{if(e.key==='Escape')closeCard()});
 function refresh(){if(ST.tab==='lv')vLv();else if(ST.tab==='grp')vGrp();upTop()}
