@@ -663,15 +663,15 @@ function sayOnline(t,lang,id){const q=encodeURIComponent(t),zh=lang.startsWith('
     tryPlay(urls[i++],4000,null,next)};next()}
 /* 한 글자만 읽으면 음성 엔진이 어색하게 읽으므로 예시 단어를 붙여 읽음 (가타카나도 같은 소리) */
 const KSAY={あ:'あめ',い:'いぬ',う:'うみ',え:'えき',お:'おと',か:'かさ',き:'きつね',く:'くつ',け:'けむり',こ:'こえ',さ:'さくら',し:'しお',す:'すし',せ:'せんせい',そ:'そら',た:'たまご',ち:'ちず',つ:'つき',て:'てがみ',と:'とり',な:'なつ',に:'にく',ぬ:'ぬの',ね:'ねこ',の:'のり',は:'はな',ひ:'ひと',ふ:'ふね',へ:'へや',ほ:'ほし',ま:'まど',み:'みず',む:'むし',め:'めがね',も:'もり',や:'やま',ゆ:'ゆき',よ:'よる',ら:'らくだ',り:'りんご',る:'るす',れ:'れんが',ろ:'ろうそく',わ:'わに',を:'ほんを',ん:'ほん',が:'がっこう',ぎ:'ぎんこう',ぐ:'ぐあい',げ:'げんき',ご:'ごはん',ざ:'ざっし',じ:'じかん',ず:'ずぼん',ぜ:'ぜんぶ',ぞ:'ぞう',だ:'だいがく',ぢ:'はなぢ',づ:'つづく',で:'でんわ',ど:'どうぶつ',ば:'ばら',び:'びょういん',ぶ:'ぶた',べ:'べんり',ぼ:'ぼうし',ぱ:'ぱん',ぴ:'ぴあの',ぷ:'ぷりん',ぺ:'ぺん',ぽ:'ぽすと'};
-function kanaSpeech(t){window.__kb=false;if(!t||t.length!==1)return t;const h=t.replace(/[ァ-ヶ]/,c=>String.fromCharCode(c.charCodeAt(0)-0x60));if(!KSAY[h])return t;const ko=document.getElementById('kanaOnly');if(!ko||ko.checked){window.__kb=true;const m={を:'お',ぢ:'じ',づ:'ず',ん:'んっ'};return (m[h]||h)+(h==='ん'?'':'っ')}return KSAY[h]}
-function speak(t,lang){lang=lang||'ja-JP';const t0=t;if(lang.startsWith('ja'))t=kanaSpeech(t);const kn=t!==t0;const id=++TTS.seq;try{TTS.el.pause()}catch(e){}
+function kanaSpeech(t,force){window.__kb=false;if(!t||t.length!==1)return t;const h=t.replace(/[ァ-ヶ]/,c=>String.fromCharCode(c.charCodeAt(0)-0x60));if(!force&&!KSAY[h])return t;const ko=document.getElementById('kanaOnly');if(force||!ko||ko.checked){window.__kb=true;const m={を:'お',ぢ:'じ',づ:'ず',ん:'んっ'};return (m[h]||h)+(h==='ん'?'':'っ')}return KSAY[h]}
+function speak(t,lang){lang=lang||'ja-JP';const t0=t;const one=lang.startsWith('ja')&&/^[ぁ-ゖァ-ヶ]。$/.test(t);if(one)t=t[0];if(lang.startsWith('ja'))t=kanaSpeech(t,one);const kn=t!==t0;const id=++TTS.seq;try{TTS.el.pause()}catch(e){}
   if(!('speechSynthesis' in window)){sayOnline(t,lang,id);return}
   const go=vs=>{if(id!==TTS.seq)return;
     const v=pickVoice(lang,vs);
     if(!v&&vs.length){sayOnline(t,lang,id);return}
     let started=false,moved=false;
     const fb=()=>{if(started||moved||id!==TTS.seq)return;moved=true;try{speechSynthesis.cancel()}catch(e){}sayOnline(t,lang,id)};
-    try{const u=new SpeechSynthesisUtterance(t);u.lang=v?v.lang:lang;if(v)u.voice=v;u.rate=kn?(window.__kb?.8:.7):.85;u.pitch=1;u.volume=1;
+    try{const u=new SpeechSynthesisUtterance(t);u.lang=v?v.lang:lang;if(v)u.voice=v;u.rate=.85;u.pitch=1;u.volume=1;
       u.onstart=()=>{started=true};u.onerror=e=>{if(e&&(e.error==='interrupted'||e.error==='canceled'))return;fb()};TTS.u=u;
       const run=()=>{if(id!==TTS.seq)return;try{speechSynthesis.resume();speechSynthesis.speak(u)}catch(e){fb()}setTimeout(fb,3500)};
       if(speechSynthesis.speaking||speechSynthesis.pending){speechSynthesis.cancel();setTimeout(run,90)}else run()}catch(e){fb()}};
