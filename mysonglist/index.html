@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ko">
-<head><script src="/sg-auth.js" data-gate></script>
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1b0f21">
@@ -696,7 +696,7 @@ function saveLocal(){
 
 
 /* ---------- 구글 계정 동기화 (Firebase) ---------- */
-/* 스마트공 공용 로그인(/sg-auth.js, 프로젝트 visitorcount-7a285)을 그대로 쓴다. */
+const FB_CFG={apiKey:"AIzaSyDQtXjo_ZmsJ_sW0km_YmA3plB2H23tHLQ",authDomain:"mysonglist-e19ac.firebaseapp.com",projectId:"mysonglist-e19ac",storageBucket:"mysonglist-e19ac.firebasestorage.app",messagingSenderId:"55893248750",appId:"1:55893248750:web:5b28d20bb57bbe447981ff"};
 const FB_BASE='https://www.gstatic.com/firebasejs/10.12.2/firebase-';
 const SYNC_ON='gayo-cloud-on', SYNC_T='gayo-sync-t', SYNC_DIRTY='gayo-sync-dirty';
 let fbReady=null, cuser=null, cdb=null, pushTimer=null, pulling=false, syncMsg='';
@@ -712,9 +712,11 @@ function loadScript(src){
 function loadFirebase(){
   if(fbReady) return fbReady;
   fbReady=(async function(){
-    await SG.ready;
-    cdb=SG.db;
-    SG.auth.onAuthStateChanged(onCloudUser);
+    await loadScript(FB_BASE+'app-compat.js');
+    await Promise.all([loadScript(FB_BASE+'auth-compat.js'),loadScript(FB_BASE+'firestore-compat.js')]);
+    firebase.initializeApp(FB_CFG);
+    cdb=firebase.firestore();
+    firebase.auth().onAuthStateChanged(onCloudUser);
   })().catch(function(e){ fbReady=null; throw e; });
   return fbReady;
 }
@@ -783,7 +785,7 @@ async function pullCloud(manual){
     const dirty=lsGet(SYNC_DIRTY)==='1', lt=+lsGet(SYNC_T)||0;
     if(!snap.exists){ await pushCloud(); return; }
     const c=snap.data(), ct=+c.t||0;
-    if(ct===lt){ if(dirty) await pushCloud(); else{ syncMsg=fmtClock(ct)+' 최신'; renderCloud(); } return; }
+    if(ct===lt){ if(dirty) await pushCloud(); else{ syncMsg='방금 확인 · 계정 저장본 '+fmtClock(ct)+' (이 폰과 같음)'; renderCloud(); } return; }
     if(!manual&&(dirty||playing)) return;
     let useCloud=true;
     if(hasLocalData()&&(lt===0||dirty)){
@@ -803,17 +805,18 @@ function onCloudUser(u){
 async function cloudButton(){
   if(cuser){
     if(!confirm('로그아웃할까요? 이 폰에 저장된 목록은 그대로 남아요.')) return;
-    try{ await SG.signOut(); }catch(e){}
+    try{ await firebase.auth().signOut(); }catch(e){}
     lsSet(SYNC_ON,null); lsSet(SYNC_T,null); lsSet(SYNC_DIRTY,null); syncMsg=''; renderCloud(); return;
   }
   if(!webOk()){ toast('웹 주소로 열었을 때만 로그인할 수 있어요.',4500); return; }
   try{
     await loadFirebase();
-    await SG.signIn();
+    const prov=new firebase.auth.GoogleAuthProvider();
+    await firebase.auth().signInWithPopup(prov);
   }catch(e){
     const c=(e&&e.code)||'';
     if(c==='auth/popup-closed-by-user'||c==='auth/cancelled-popup-request') return;
-    
+    if(c==='auth/popup-blocked'){ try{ await firebase.auth().signInWithRedirect(new firebase.auth.GoogleAuthProvider()); return; }catch(e2){ e=e2; } }
     toast(e&&e.message==='load'?'로그인 도구를 불러오지 못했어요. 인터넷 연결을 확인해 주세요.':cloudErr(e),7000);
   }
 }
@@ -1920,7 +1923,7 @@ setupMediaSession();
 if(location.protocol==='file:') $('#fileWarn').hidden=false;
 render();
 checkIncomingHash();
-if(webOk()) loadFirebase().catch(function(){});
+if(webOk()&&lsGet(SYNC_ON)==='1') loadFirebase().catch(function(){});
 setTimeout(refreshStale,1500);
 ensurePlayer();
 setInterval(tick,500);
