@@ -8,7 +8,7 @@
 <link rel="icon" href="/smartgong_logo_icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Gowun+Dodum&family=IBM+Plex+Mono:wght@400;500&family=Noto+Serif+SC:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Noto+Sans+KR:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;700;900&display=swap">
 <style>
 /* Layout: 기초(가나·한자·한중일 비교)와 꼬리잡기(탐험·퀴즈·끝말잇기·단어장) 두 묶음의 탭. 모든 단어 카드에 한국·중국 비교 줄이 붙는다. */
 :root{
@@ -16,10 +16,10 @@
   --fuji:#5E4589; --fuji-soft:#E6DFF1; --take:#2F7462; --take-soft:#DCEDE6;
   --bad:#B03A2E; --bad-soft:#F6E1DD; --gold:#94690F; --gold-soft:#F4EAD3;
   --n5:#2F7462; --n4:#2E5A96; --n3:#8E4A2C; --n2:#A02F57; --scrim:rgba(28,22,40,.42); --shadow:rgba(28,22,40,.22);
-  --f-jp:"Shippori Mincho","Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif;
-  --f-body:"Gowun Dodum","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --f-jp:"Noto Sans JP","Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic","Meiryo",sans-serif;
+  --f-body:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
   --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
-  --f-zh:"Noto Serif SC","Songti SC","SimSun",serif; --f-kana:var(--f-jp);
+  --f-zh:"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif; --f-kana:var(--f-jp);
   --ai:var(--fuji); --ai-soft:var(--fuji-soft); --good:var(--take); --good-soft:var(--take-soft); --warn:var(--gold); --warn-soft:var(--gold-soft);
   --grid:#E1BCC6; --n4-soft:#DEE7F4;
 }
@@ -376,6 +376,11 @@ tr:last-child td{border-bottom:0}
 .more{display:flex;justify-content:center;margin-top:14px}
 .qkr{font-size:15px;color:var(--muted);text-align:center}
 .qkr b{color:var(--ink);font-size:20px}
+/* 중국어 앱과 같은 굵은 고딕 스타일 */
+.node .w,.hero .word,.qword,.pword .w,.cwword,.tkj,.wi .w,.kchip .w,.ex .c,.t .tw,.exm .j,.opt.jpo,.opt.jpopt,.qreason b,.preason b,.plinks b,.tg h3 .k,.weaklist span,.sec h2,.part .eq,.zh{font-weight:700}
+.ch .k,.detail .big .k,.qglyph,.need,.khead .gk,.pairglyph,.origin .pair .h,.explain .card .big,.exm1{font-weight:900}
+.ch .k2,.detail .big .k2{font-weight:700}
+.hero .read,.qread,.node .r,.wi .r,.tkr,.jr,.pword .r{font-weight:500}
 </style>
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}.sgbar{display:flex;gap:14px;padding-top:14px;font-size:13px}.sgbar a{color:var(--muted);text-decoration:none}.sgbar a:hover{color:var(--fuji)}</style>
 </head>
