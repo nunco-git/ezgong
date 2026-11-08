@@ -4,16 +4,12 @@
       "source": "/(.*)",
       "headers": [
         {
-          "key": "X-Frame-Options",
-          "value": "SAMEORIGIN"
-        },
-        {
           "key": "X-Content-Type-Options",
           "value": "nosniff"
         },
         {
           "key": "Content-Security-Policy",
-          "value": "frame-ancestors 'self'"
+          "value": "frame-ancestors 'self' https://smartgong.kr https://www.smartgong.kr https://smartgong.co.kr https://www.smartgong.co.kr https://ezgong.vercel.app"
         }
       ]
     }
