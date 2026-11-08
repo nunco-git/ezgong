@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ko">
-<head><script src="/sg-auth.js" data-gate></script><script>if(window.top!==window)document.write('<style>.sg-back,.sgbar,a.home{display:none!important}</style>')</script>
+<head><script src="/sg-auth.js" data-gate data-sync="zh:hsk-kkori-v1,hsk3-kkori-v1,hsk4-kkori-v1,hsk5-kkori-v1,hz-kkori-v1,talk-v1"></script><script>if(window.top!==window)document.write('<style>.sg-back,.sgbar,a.home{display:none!important}</style>')</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>중국어 학습 - 스마트공</title>
@@ -34,6 +34,7 @@ main{padding-block:20px 40px}
 .tx h2{font-size:17px;margin:0 0 2px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .tx h2 small{font-size:11px;font-weight:700;padding:1px 8px;border-radius:999px;background:var(--bg);color:var(--muted);border:1px solid var(--line)}
 .tx p{margin:0;color:var(--muted);font-size:14px}
+.pgb{margin-top:8px}.pgb .t{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}.pgb .t b{color:var(--ink)}.pgb .bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin-top:3px}.pgb .bar i{display:block;height:100%;background:var(--accent)}.sum{margin:0 0 14px;padding:14px 16px;background:var(--card);border:1px solid var(--line);border-radius:12px}.sum h2{margin:0 0 2px;font-size:15px}
 .go{flex:none;align-self:center;color:var(--accent);font-weight:700;font-size:14px}
 footer{color:var(--muted);font-size:12px;padding-block:0 30px}
 @media (prefers-reduced-motion:reduce){.app{transition:none}.app:hover{transform:none}}
@@ -45,27 +46,32 @@ footer{color:var(--muted);font-size:12px;padding-block:0 30px}
   <h1>중국어 학습</h1>
   <p>간체자와 HSK 급수별 단어를 꼬리에 꼬리를 물고 익히고, 여행 회화 표현도 배워요. 앱마다 따로 열립니다.</p>
 </div></header>
-<main class="wrap"><div class="list" id="list"></div></main>
+<main class="wrap"><div class="sum" id="sum" hidden></div><div class="list" id="list"></div></main>
 <footer class="wrap">오류나 개선 제안은 smartgongmaster@gmail.com 으로 보내 주세요.</footer>
 <script>
 // 새 앱을 만들면 아래 목록에 한 줄만 추가하면 됩니다. (위에서부터 순서대로 표시)
 //   title: 이름, url: 주소, desc: 한 줄 설명, tag: 분류, color: 아이콘 색, icon: 아이콘 이미지(없으면 이름 첫 글자)
-const MORE_APPS = [
-  { title:'간체자 꼬리잡기', url:'/chinese/hanzi.html', tag:'간체자', color:'#0d4f8b', desc:'간판·거리·신문에 자주 나오는 간체자를 비슷한 모양·발음으로 묶어 익힙니다.' },
-  { title:'HSK 1·2급 꼬리잡기', url:'/chinese/hsk12.html', tag:'HSK 1·2급', color:'#c4301c', desc:'1·2급 단어 301개를 같은 글자·반대말·주제·예문으로 이어 배웁니다.' },
-  { title:'HSK 3급 꼬리잡기', url:'/chinese/hsk3.html', tag:'HSK 3급', color:'#c4301c', desc:'3급 단어를 같은 글자·반대말·주제·예문으로 이어 배웁니다.' },
-  { title:'HSK 4급 꼬리잡기', url:'/chinese/hsk4.html', tag:'HSK 4급', color:'#c4301c', desc:'4급 단어를 같은 글자·반대말·주제·예문으로 이어 배웁니다.' },
-  { title:'HSK 5급 꼬리잡기', url:'/chinese/hsk5.html', tag:'HSK 5급', color:'#c4301c', desc:'5급 단어를 같은 글자·반대말·주제·예문으로 이어 배웁니다.' },
-  { title:'여행 중국어 회화', url:'/chinese/talk.html', tag:'회화', color:'#1b7a43', desc:'공항·쇼핑·식당·대중교통·관광지에서 바로 쓰는 표현 153개를 발음·병음·퀴즈로 익힙니다.' },
+const MORE_APPS = [ /* key: 진도 저장 키, total: 전체 개수 */
+  { title:'간체자 꼬리잡기', url:'/chinese/hanzi.html', key:'hz-kkori-v1', total:169, tag:'간체자', color:'#0d4f8b', desc:'간판·거리·신문에 자주 나오는 간체자를 비슷한 모양·발음으로 묶어 익힙니다.' },
+  { title:'HSK 1·2급 꼬리잡기', url:'/chinese/hsk12.html', key:'hsk-kkori-v1', total:301, tag:'HSK 1·2급', color:'#c4301c', desc:'1·2급 단어 301개를 같은 글자·반대말·주제·예문으로 이어 배웁니다.' },
+  { title:'HSK 3급 꼬리잡기', url:'/chinese/hsk3.html', key:'hsk3-kkori-v1', total:300, tag:'HSK 3급', color:'#c4301c', desc:'3급 단어를 같은 글자·반대말·주제·예문으로 이어 배웁니다.' },
+  { title:'HSK 4급 꼬리잡기', url:'/chinese/hsk4.html', key:'hsk4-kkori-v1', total:600, tag:'HSK 4급', color:'#c4301c', desc:'4급 단어를 같은 글자·반대말·주제·예문으로 이어 배웁니다.' },
+  { title:'HSK 5급 꼬리잡기', url:'/chinese/hsk5.html', key:'hsk5-kkori-v1', total:1300, tag:'HSK 5급', color:'#c4301c', desc:'5급 단어를 같은 글자·반대말·주제·예문으로 이어 배웁니다.' },
+  { title:'여행 중국어 회화', url:'/chinese/talk.html', key:'talk-v1', total:153, fav:true, tag:'회화', color:'#1b7a43', desc:'공항·쇼핑·식당·대중교통·관광지에서 바로 쓰는 표현 153개를 발음·병음·퀴즈로 익힙니다.' },
 ];
 
+function doneOf(a){try{const j=JSON.parse(localStorage.getItem(a.key)||'{}');const n=a.fav?(j.fav||[]).length:(j.learned||[]).length;return Math.min(n,a.total)}catch(e){return 0}}
+function pgHtml(a){if(!a.key)return '';const n=doneOf(a),p=Math.round(n/a.total*100);
+  return `<div class="pgb"><div class="t"><span>${a.fav?'저장한 표현':'익힌 단어'}</span><span><b>${n}</b> / ${a.total} (${p}%)</span></div><div class="bar"><i style="width:${p}%"></i></div></div>`}
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 document.getElementById('list').innerHTML = MORE_APPS.map(a=>`
   <a class="app" href="${esc(a.url)}">
     <span class="ic" style="background:${esc(a.color||'#334155')}">${a.icon?`<img src="${esc(a.icon)}" alt="">`:esc(a.title.charAt(0))}</span>
-    <div class="tx"><h2>${esc(a.title)}${a.tag?`<small>${esc(a.tag)}</small>`:''}</h2><p>${esc(a.desc||'')}</p></div>
+    <div class="tx"><h2>${esc(a.title)}${a.tag?`<small>${esc(a.tag)}</small>`:''}</h2><p>${esc(a.desc||'')}</p>${pgHtml(a)}</div>
     <span class="go">열기 →</span>
   </a>`).join('');
+(function(){const W=MORE_APPS.filter(a=>a.key&&!a.fav);const n=W.reduce((x,a)=>x+doneOf(a),0),t=W.reduce((x,a)=>x+a.total,0),p=Math.round(n/t*100);
+  const el=document.getElementById('sum');el.hidden=false;el.innerHTML=`<h2>내 학습 진도</h2><div class="pgb"><div class="t"><span>간체자·HSK 단어 전체</span><span><b>${n}</b> / ${t} (${p}%)</span></div><div class="bar"><i style="width:${p}%"></i></div></div>`})();
 </script>
 </body>
 </html>

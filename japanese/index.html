@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ko">
-<head><script src="/sg-auth.js" data-gate></script><script>if(window.top!==window)document.write('<style>.sg-back,.sgbar,a.home{display:none!important}</style>')</script>
+<head><script src="/sg-auth.js" data-gate data-sync="jp:kanada.,kkori."></script><script>if(window.top!==window)document.write('<style>.sg-back,.sgbar,a.home{display:none!important}</style>')</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>가나다 일본어 - 스마트공</title>
@@ -392,6 +392,7 @@ tr:last-child td{border-bottom:0}
   <div class="seal" aria-hidden="true"><span>か</span><span>な</span><span>漢</span><span>字</span></div>
   <div><div class="series">한국어로 배우는 일본어</div><h1>가나다 일본어</h1><p>한국 한자음에서 출발해 가나, 한자, JLPT N5~N2 단어를 꼬리에 꼬리를 물며 익히기</p></div>
 </header>
+<div id="topProg" aria-label="학습 진도" style="margin:10px 0 0"></div>
 <nav>
   <div class="navgroups">
     <div class="navg"><span class="gl">기초</span><div class="tabs" role="tablist">
@@ -2491,7 +2492,12 @@ const BYF={};W.forEach(x=>(BYF[x.r[0]]=BYF[x.r[0]]||[]).push(x.id));
 let range=store.get('range',5);
 let known=new Set(store.get('known',[]));
 const inRange=x=>x.lv>=range;
-const saveKnown=()=>store.set('known',[...known]);
+const saveKnown=()=>{store.set('known',[...known]);renderTopProg()};
+function renderTopProg(){const el=document.getElementById('topProg');if(!el)return;
+  const tot=W.length,k=W.filter(x=>known.has(x.id)).length,p=Math.round(k/tot*100);
+  const lv=[5,4,3,2].map(l=>{const a=W.filter(x=>x.lv===l),c=a.filter(x=>known.has(x.id)).length;return `<span style="white-space:nowrap">${lvTag(l)} <b>${c}</b>/${a.length}</span>`}).join(' · ');
+  el.innerHTML=`<div class="pg"><div class="top"><span>내 학습 진도 · 외운 단어</span><span><b>${k}</b> / ${tot} (${p}%)</span></div><div class="bar"><i style="width:${p}%;background:var(--n5)"></i></div><div style="margin-top:6px;font-size:12px;color:var(--muted)">${lv}</div></div>`}
+setTimeout(renderTopProg,0);
 const lvTag=lv=>`<span class="lv lv${lv}">N${lv}</span>`;
 
 function linksOf(id){

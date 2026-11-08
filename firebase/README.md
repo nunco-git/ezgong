@@ -15,6 +15,11 @@ Firebase 콘솔 > Firestore > 규칙 에서, 기존 규칙(gb_* 등)은 그대�
     match /songapp/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
+
+    // 학습 진도·작업 내용(중국어·일본어·엄지타자·사비 보물찾기): 본인 것만 읽고 쓰기
+    match /sg_users/{uid}/progress/{app} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
 ```
 
 Firebase 콘솔 > Authentication > 설정 > 승인된 도메인에 smartgong.kr, www.smartgong.kr 이 있어야 한다.
