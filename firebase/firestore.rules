@@ -1,0 +1,145 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function stepOk(f) {
+      return (request.resource.data[f] - (resource == null ? 0 : resource.data[f])) in [0, 1];
+    }
+    match /visitorStats/{id} {
+      allow read: if true;
+      allow create, update: if request.resource.data.keys().hasOnly(['date','visitors','visits'])
+        && stepOk('visitors') && stepOk('visits');
+    }
+    match /appStats/{id} {
+      allow read: if true;
+      allow create, update: if request.resource.data.keys().hasOnly(['app','date','clicks','visitors'])
+        && (request.resource.data.clicks - (resource == null ? 0 : resource.data.clicks)) == 1
+        && stepOk('visitors');
+    }
+
+    // ── 독서 골든벨: 사용자 출제 문제 ──
+    match /gb_questions/{id} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.text is string && request.resource.data.text.size() <= 300
+        && request.resource.data.book is string && request.resource.data.book.size() <= 60
+        && request.resource.data.ty in ['ox','mc','sa'];
+      allow update: if false;
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+    }
+
+    // ── 독서 골든벨: 오류 제보 (다른 이용자는 '동의'만 추가 가능) ──
+    match /gb_reports/{id} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.agree.size() == 0
+        && request.resource.data.note is string && request.resource.data.note.size() <= 300;
+      allow update: if request.auth != null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['agree'])
+        && resource.data.uid != request.auth.uid
+        && !(request.auth.uid in resource.data.agree)
+        && request.auth.uid in request.resource.data.agree
+        && request.resource.data.agree.size() == resource.data.agree.size() + 1;
+      allow delete: if false;
+    }
+    // ── 독서 골든벨: 관리자 목록 (본인 문서만 읽기, 콘솔에서만 작성) ──
+    match /gb_admins/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+    function isAdmin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/gb_admins/$(request.auth.uid));
+    }
+
+    // ── 독서 골든벨: 삭제된 문제에 대한 이의 신청 ──
+    match /gb_appeals/{id} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.note is string && request.resource.data.note.size() <= 300
+        && request.resource.data.rid is string;
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    // ── 독서 골든벨: 관리자 복원 (문서 ID = 제보 ID) ──
+    match /gb_restores/{id} {
+      allow read: if true;
+      allow create, delete: if isAdmin();
+      allow update: if false;
+    }
+    // ── 독서 골든벨: 난이도 조정 요청 (1인 1표, 문서 ID = 내uid_종류+키) ──
+    match /gb_diff_votes/{id} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid
+        && id.matches(request.auth.uid + '_.*')
+        && request.resource.data.keys().hasOnly(['uid','kind','k','to','createdAt'])
+        && request.resource.data.kind in ['q','b']
+        && request.resource.data.to in ['상','중','하']
+        && request.resource.data.k is string && request.resource.data.k.size() <= 40;
+      allow update: if request.auth != null
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['to','createdAt'])
+        && request.resource.data.to in ['상','중','하'];
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+    }
+
+    // ── 상식 학력 진단: 사용자 출제 문제 (4지선다) ──
+    match /qz_questions/{id} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.lv in [1,2,3,4,5]
+        && request.resource.data.subj is string && request.resource.data.subj.size() <= 20
+        && request.resource.data.q is string && request.resource.data.q.size() >= 5
+        && request.resource.data.q.size() <= 300
+        && request.resource.data.ans is string && request.resource.data.ans.size() <= 60
+        && request.resource.data.wrong is list && request.resource.data.wrong.size() == 3
+        && request.resource.data.exp is string && request.resource.data.exp.size() <= 300
+        && request.resource.data.by is string && request.resource.data.by.size() <= 60;
+      allow update: if false;
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+    }
+
+    // ── 상식 학력 진단: 오류 제보 (다른 이용자는 '동의'만 추가 가능) ──
+    match /qz_reports/{id} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.agree.size() == 0
+        && request.resource.data.lv in [1,2,3,4,5]
+        && request.resource.data.orig is string && request.resource.data.orig.size() <= 300
+        && request.resource.data.kind in ['정답이 틀렸어요','문제·보기에 오타나 잘못이 있어요','해설이 틀렸어요','부적절한 내용이에요']
+        && request.resource.data.note is string && request.resource.data.note.size() <= 300
+        && request.resource.data.fix is map;
+      allow update: if request.auth != null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['agree'])
+        && resource.data.uid != request.auth.uid
+        && !(request.auth.uid in resource.data.agree)
+        && request.auth.uid in request.resource.data.agree
+        && request.resource.data.agree.size() == resource.data.agree.size() + 1;
+      allow delete: if false;
+    }
+
+    // ── 애창곡 리스트: 내 목록 저장 (본인 문서만) ──
+    match /songapp/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['data','t'])
+        && request.resource.data.data is string && request.resource.data.data.size() <= 900000;
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // ── 스마트공 공용: 학습 진도·작업 내용 저장 (중국어·일본어·엄지타자·사비 보물찾기, 본인 문서만) ──
+    match /sg_users/{uid}/progress/{app} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['d','t'])
+        && request.resource.data.d is string && request.resource.data.d.size() <= 900000;
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}
