@@ -153,7 +153,7 @@ function vFam(){const T=[['pre','접두사'],['suf','접미사'],['root','어근
  $('#view').innerHTML=`<div class="sub">${T.map(t=>`<button data-a="${t[0]}" class="${ST.at===t[0]?'on':''}">${t[1]} ${AFX[t[0]].length}</button>`).join('')}</div>
  <div class="sort"><button data-m="type" class="${ST.am==='type'?'on':''}">비슷한 유형끼리</button><button data-m="abc" class="${ST.am==='abc'?'on':''}">알파벳 순</button></div>
  <p class="note">${ST.at==='pre'?'단어 <b>앞</b>에 붙어 뜻을 바꾸는 꼬리(접두사)예요.':ST.at==='suf'?'단어 <b>뒤</b>에 붙어 품사·뜻을 바꾸는 꼬리(접미사)예요.':'단어의 <b>뿌리</b>가 되는 뜻(어근)이에요.'} 같은 꼬리·뿌리를 가진 단어끼리 한 카드에 모았어요. 단어를 누르면 팝업, 발음기호를 누르면 발음이 들려요.</p>
- <input class="sq" id="aq" placeholder="찾기 (예: act, 반대, 사람)" value="${esc(ST.aq)}"><div id="al"></div>`;
+ <input class="sq" id="aq" placeholder="찾기 (예: act, 반대, 사람)" value="${esc(ST.aq)}"><div class="chips" id="ag"></div><div id="al"></div>`;
  const key=x=>x[0].toLowerCase().replace(/[^a-z]/g,'');const cls=ST.at==='pre'?'p':ST.at==='suf'?'s':'r';
  const draw=()=>{const q=ST.aq.trim().toLowerCase();const base=AFX[ST.at];
   let L=base.map((x,i)=>[x,i]).filter(([x])=>!q||x[0].toLowerCase().includes(q)||x[1].includes(q)||x[3].includes(q)||entryWords(x).some(r=>r.w.toLowerCase().includes(q)||r.ko.includes(q)));
@@ -161,13 +161,19 @@ function vFam(){const T=[['pre','접두사'],['suf','접미사'],['root','어근
    return `<div class="ax"><span class="f ${cls}">${esc(x[0])}</span><span class="m">${esc(x[1])}</span>${x[3]?`<div class="tp">💡 ${esc(x[3])}</div>`:''}
    <div class="wls">${ws.map(r=>`<div class="wl${r.o&&K.has(r.w)?' k':''}"><span class="cw" data-pop="${esc(r.w)}" data-ko="${esc(r.ko)}" data-ipa="${esc(r.ipa)}">${esc(r.w)}</span>${r.ipa?`<span class="ip2" data-say="${esc(r.w)}">${esc(r.ipa)} 🔈</span>`:'<span class="ip2"></span>'}<span class="wk">${esc(r.ko)}</span>${r.o?lvTag(r.o):''}</div>`).join('')}</div>
    ${vc.length?`<div class="row" style="margin-top:8px"><button class="btn s" data-act="all" data-i="${i}" style="min-height:38px;font-size:.8rem">모두 외웠어요 (${kn}/${vc.length})</button><button class="btn s" data-act="quiz" data-i="${i}" style="min-height:38px;font-size:.8rem">퀴즈</button><button class="btn s" data-act="trail" data-i="${i}" style="min-height:38px;font-size:.8rem">꼬리잡기 →</button></div>`:''}</div>`};
+  const keyOf=r=>ST.am==='abc'?key(r[0])[0].toUpperCase():r[0][4];
+  const cats=[];base.forEach(x=>{const k=ST.am==='abc'?key(x)[0].toUpperCase():x[4];if(!cats.includes(k))cats.push(k)});if(ST.am==='abc')cats.sort();
+  const sk=ST.at+ST.am;ST.ag=ST.ag||{};if(!(sk in ST.ag)||(ST.ag[sk]!=='*'&&!cats.includes(ST.ag[sk])))ST.ag[sk]=cats[0];const sel=ST.ag[sk];
+  const cnt=k=>base.filter(x=>(ST.am==='abc'?key(x)[0].toUpperCase():x[4])===k).length;
+  $('#ag').innerHTML=`<button class="chip${sel==='*'?' on':''}" data-g="*">전체 ${base.length}</button>`+cats.map(k=>`<button class="chip${sel===k?' on':''}" data-g="${esc(k)}">${esc(k)} <small>${cnt(k)}</small></button>`).join('');
+  if(!q&&sel!=='*')L=L.filter(r=>keyOf(r)===sel);
   let h='';
   if(ST.am==='abc'){L=L.slice().sort((a,b)=>key(a[0])<key(b[0])?-1:key(a[0])>key(b[0])?1:0);let cur='';L.forEach(r=>{const c=key(r[0])[0].toUpperCase();if(c!==cur){cur=c;h+=`<div class="ah">${c}</div>`}h+=card(r)})}
   else{const gs=[];L.forEach(r=>{if(!gs.includes(r[0][4]))gs.push(r[0][4])});h=gs.map(g=>`<div class="ah">${esc(g)}</div>`+L.filter(r=>r[0][4]===g).map(card).join('')).join('')}
   $('#al').innerHTML=h||'<p class="note">찾는 항목이 없어요.</p>'};
  draw();
  $('#aq').oninput=e=>{ST.aq=e.target.value;draw()};
- $('#view').onclick=e=>{const b=e.target.closest('[data-a]');if(b){ST.at=b.dataset.a;vFam();return}const m=e.target.closest('[data-m]');if(m){ST.am=m.dataset.m;vFam();return}
+ $('#view').onclick=e=>{const g=e.target.closest('[data-g]');if(g){ST.ag[ST.at+ST.am]=g.dataset.g;draw();$('#ag').scrollIntoView({block:'nearest'});return}const b=e.target.closest('[data-a]');if(b){ST.at=b.dataset.a;vFam();return}const m=e.target.closest('[data-m]');if(m){ST.am=m.dataset.m;vFam();return}
   const c=e.target.closest('[data-act]');if(c){const x=AFX[ST.at][+c.dataset.i],vc=entryVoc(x);
    if(c.dataset.act==='all'){const all=vc.every(w=>K.has(w));vc.forEach(w=>toggle(w,!all));draw();upTop()}
    else if(c.dataset.act==='quiz'){ST.tab='quiz';QS={pool:vc.slice(),mode:'w2k'};sv();startQ()}
