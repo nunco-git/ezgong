@@ -70,7 +70,7 @@ h2{font-size:1.05rem;margin:18px 0 8px}
 .sec h3{margin:0 0 4px;font-size:.82rem;color:var(--mu)}
 .sec .zhrow{font-size:1.5rem}.sec .zhrow span{font-size:1rem;color:var(--blue);font-family:var(--tx)}
 .fam{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
-.fam button{border:1px solid var(--line);background:var(--sheet);border-radius:10px;padding:4px 8px;text-align:center;min-width:52px}
+.fam button{border:1px solid var(--line);background:var(--sheet);border-radius:10px;padding:4px 8px;text-align:center;min-width:64px}
 .fam button b{display:block;font-size:1.4rem;font-weight:600}.fam button small{font-size:.7rem;color:var(--mu)}
 .fam button.me{border-color:var(--seal);background:var(--seal-s)}
 .fm{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:1.5rem}
@@ -150,7 +150,7 @@ function openCard(h,ctx,keep){if(!keep)HIST=[];const o=M[h];if(ctx)CTX=ctx;const
  <div class="tags"><span class="tag t">${o.t}</span>${o.b!==o.h?`<span class="tag">부수 ${o.b} ${esc(hunOf(o.b))}</span>`:''}</div>
  <div class="sec"><h3>이렇게 만들어진 글자</h3>${fm(o)}<div style="margin-top:6px">${esc(o.o||'')}</div>${o.e&&!o.o?`<div class="note">참고(영문 자료): ${esc(o.e)}</div>`:''}${o.e&&o.o&&o.o.endsWith('글자')&&false?'':''}</div>
  ${o.p?`<div class="sec"><h3>중국어에서는</h3><div class="zhrow">${o.z?`<span style="color:var(--blue)">간체자</span> <b class="zh" lang="zh-Hans">${o.z}</b> `:'<span>간체자 없이 같은 모양 </span>'}<span>${esc(o.p)}</span></div></div>`:''}
- ${fam.length>1?`<div class="sec"><h3>같은 소리 조각 ${o.f} (${esc(hunOf(o.f))}) 가족</h3><div class="fam">${fam.map(c=>`<button class="${c===h?'me':''}" data-h="${c}"><b class="hj" lang="ko">${c}</b><small>${esc(M[c].r[0][1])}</small></button>`).join('')}</div></div>`:''}
+ ${fam.length>1?`<div class="sec"><h3>같은 소리 조각 ${o.f} (${esc(hunOf(o.f))}) 가족</h3><div class="fam">${fam.map(c=>`<button class="${c===h?'me':''}" data-h="${c}"><b class="hj" lang="ko">${c}</b><small>${esc(hu(M[c]))}</small></button>`).join('')}</div></div>`:''}
  ${(()=>{const lk=[...new Set(lkG.filter(g=>g.mem.includes(h)).flatMap(g=>g.mem))].filter(c=>c!==h);return lk.length?`<div class="sec"><h3>헷갈리기 쉬운 비슷한 글자</h3><div class="fam">${lk.map(c=>`<button data-h="${c}"><b class="hj" lang="ko">${c}</b><small>${esc(hu(M[c]))}</small></button>`).join('')}</div></div>`:''})()}
  ${(()=>{const g=radG.find(g=>g.key===o.b);if(!g||o.b===h)return '';const m=g.mem.filter(c=>c!==h).slice(0,10);return m.length?`<div class="sec"><h3>같은 부수 ${o.b} (${esc(hunOf(o.b))}) 글자 ${g.mem.length}자 중</h3><div class="fam">${m.map(c=>`<button data-h="${c}"><b class="hj" lang="ko">${c}</b><small>${esc(hu(M[c]))}</small></button>`).join('')}</div></div>`:''})()}
  ${o.w&&o.w.length?`<div class="sec words"><h3>이 글자가 들어간 낱말</h3>${o.w.map(w=>`<span><b lang="ko">${w[0]}</b> ${w[1]}</span>`).join('')}</div>`:''}
