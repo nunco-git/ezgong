@@ -121,7 +121,16 @@ function ld(){try{K=new Set(JSON.parse(localStorage.getItem(KK)||'[]'));WR=new S
 function sv(){try{localStorage.setItem(KK,JSON.stringify([...K]));localStorage.setItem(KW,JSON.stringify([...WR]));localStorage.setItem(KS,JSON.stringify({tab:ST.tab}))}catch(e){}}
 function toggle(w,v){if(v===undefined)v=!K.has(w);v?K.add(w):K.delete(w);if(v)WR.delete(w);sv();upTop()}
 function upTop(){$('#tt').textContent='외운 단어 '+K.size+' / '+W.length+' ('+Math.round(K.size/W.length*100)+'%)';$('#tb').style.width=K.size/W.length*100+'%'}
-function say(t){try{const u=new SpeechSynthesisUtterance(t);u.lang='en-US';u.rate=.9;const v=speechSynthesis.getVoices().find(v=>/en[-_]US/i.test(v.lang));if(v)u.voice=v;speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
+let _vs=[];function _lv(){try{_vs=speechSynthesis.getVoices()||[]}catch(e){}}_lv();try{speechSynthesis.onvoiceschanged=_lv}catch(e){}
+let _sayT=0;function _toast(m){let e=document.getElementById('saytoast');if(!e){e=document.createElement('div');e.id='saytoast';e.style.cssText='position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 14px;border-radius:10px;font-size:.9rem;z-index:99999;max-width:86vw;text-align:center';document.body.appendChild(e)}e.textContent=m;e.style.display='block';clearTimeout(_sayT);_sayT=setTimeout(()=>e.style.display='none',3800)}
+function say(t){if(!('speechSynthesis' in window)||typeof SpeechSynthesisUtterance==='undefined'){_toast('이 브라우저는 음성 읽기를 지원하지 않아요. 크롬이나 사파리로 열어 주세요.');return}
+ const go=(useVoice)=>{try{const u=new SpeechSynthesisUtterance(t);u.lang='en-US';u.rate=.9;u.volume=1;
+  if(useVoice){_lv();const v=_vs.find(v=>/^en[-_]US$/i.test(v.lang)&&v.localService)||_vs.find(v=>/^en[-_]US$/i.test(v.lang))||_vs.find(v=>/^en/i.test(v.lang));if(v)u.voice=v}
+  let started=false;u.onstart=()=>{started=true};
+  u.onerror=e=>{if(e&&(e.error==='interrupted'||e.error==='canceled'))return;if(useVoice)go(false);else _toast('소리가 나지 않아요. 휴대폰 무음/볼륨과 설정의 음성 출력(TTS) 엔진을 확인해 주세요.')};
+  speechSynthesis.resume();speechSynthesis.speak(u);
+  setTimeout(()=>{if(!started&&!speechSynthesis.speaking&&useVoice){try{speechSynthesis.cancel()}catch(e){}go(false)}},1200)}catch(e){}};
+ try{if(speechSynthesis.speaking||speechSynthesis.pending){speechSynthesis.cancel();setTimeout(()=>go(true),80)}else go(true)}catch(e){}}
 const lvTag=o=>`<span class="lv l${o.g}">${LG[o.g]}</span>`;
 W.forEach(o=>{o.g=o.lv===0?0:o.lv<=2?1:o.lv<=4?2:o.lv===5?3:4});
 // parts
