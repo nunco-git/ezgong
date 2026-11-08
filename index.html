@@ -1263,6 +1263,9 @@
     const f = document.createElement('iframe');
     f.className = 'appFrame';
     f.title = '웹앱 화면';
+    // 사비 보물찾기(위치 게임)는 기타 앱 목록(/more/) 화면 안에서 열리므로, 기타 앱 화면과 사비 화면에만 GPS·화면 켜짐 유지 권한을 허용한다.
+    // (권한은 이 화면의 출처에만 적용되어, 목록에서 다른 사이트로 이동한 앱에는 전달되지 않는다.)
+    if (/\/(sabi|more)\//.test(url)) f.allow = 'geolocation; screen-wake-lock';
     f.addEventListener('load', () => {
       loadedFrames.add(url);
       if (currentUrl === url) {

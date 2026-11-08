@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#2F7466"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="사비 보물찾기"><style>body{margin:0;font-size:14px}</style></head><body>
+<title>사비 보물찾기</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@600;800&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* Layout: 한 손 조작용 모바일 앱. 상단 진행바, 가운데 화면, 하단 탭 4개. 팔레트는 청자(연한 푸른 회녹색)와 청동 금빛, 도장 붉은색. */
+:root{
+  --bg:#E8EFED; --surface:#F7FAF9; --ink:#142228; --muted:#566B70; --line:#C6D5D1;
+  --accent:#8F6410; --accent-ink:#FFFFFF; --celadon:#2F7466; --seal:#B03A48; --map:#DCE8E4;
+  --r0:#566B70; --r1:#2A6BB0; --r2:#A87708;
+  --f-display:'Hahmlet','Noto Serif KR',serif; --f-body:'Noto Sans KR',system-ui,-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0D171A; --surface:#15242A; --ink:#E5EEEB; --muted:#92A8AB; --line:#28393F;
+  --accent:#E2B24F; --accent-ink:#1B1304; --celadon:#7FC4B3; --seal:#E8727F; --map:#112126;
+  --r0:#92A8AB; --r1:#6FAEEA; --r2:#E2B24F; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0D171A; --surface:#15242A; --ink:#E5EEEB; --muted:#92A8AB; --line:#28393F;
+  --accent:#E2B24F; --accent-ink:#1B1304; --celadon:#7FC4B3; --seal:#E8727F; --map:#112126;
+  --r0:#92A8AB; --r1:#6FAEEA; --r2:#E2B24F; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+html{-webkit-text-size-adjust:100%}
+body{-webkit-tap-highlight-color:transparent;overscroll-behavior-y:none;touch-action:manipulation;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+input{-webkit-user-select:text;user-select:text}
+body{margin:0;color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 92px}
+.app{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;line-height:1.25}
+h1{font-size:22px;font-weight:800}
+h2{font-size:18px;font-weight:800}
+h3{font-size:15px;font-weight:600}
+p{margin:0}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.muted{color:var(--muted)}
+.num{font-variant-numeric:tabular-nums}
+.top{display:flex;flex-direction:column;gap:10px;padding-top:4px}
+.top-row{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:3px 12px;font-size:13px;font-weight:500}
+.bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--celadon);transition:width .4s}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.mapwrap{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--map)}
+.mapwrap svg{display:block;width:100%;height:auto;touch-action:manipulation}
+.seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:transparent;padding:12px 8px;min-height:46px;font-weight:500}
+.seg button[aria-pressed="true"]{background:var(--celadon);color:#fff}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .seg button[aria-pressed="true"]{color:#08201A}}
+:root[data-theme="dark"] .seg button[aria-pressed="true"]{color:#08201A}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:11px 14px;min-height:46px;font-weight:500}
+button.chip{padding:6px 12px;min-height:36px;color:inherit}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.danger{border-color:var(--seal);color:var(--seal)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row>.grow{flex:1;min-width:0}
+input[type=text],input[type=number]{width:100%;font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 10px;min-width:0}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);min-width:0}
+.list{display:flex;flex-direction:column}
+.spot{display:flex;gap:10px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}
+.spot:first-child{border-top:0}
+.spot .meta{flex:1;min-width:0}
+.spot .meta b{display:block;font-weight:700}
+.badge{font-size:12px;border-radius:999px;padding:1px 9px;border:1px solid var(--line);white-space:nowrap}
+.badge.ok{background:var(--celadon);border-color:var(--celadon);color:#fff}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .badge.ok{color:#08201A}}
+:root[data-theme="dark"] .badge.ok{color:#08201A}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.g3 .card{padding:8px 4px}.g3 .dexc{width:68px;height:68px}.g3 h3{font-size:13px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;min-width:0}
+button.card{width:100%}
+.seal{width:84px;height:84px;color:var(--line)}
+.seal.got{color:var(--seal)}
+.seal .dash{stroke-dasharray:4 4}
+.dexc{width:88px;height:88px}
+.sil svg *{fill:var(--line)!important;stroke:none!important}
+.r0{color:var(--r0)}.r1{color:var(--r1)}.r2{color:var(--r2)}
+.rar{font-size:12px;font-weight:700}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);
+  padding:6px max(10px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px));z-index:5}
+nav.tabs .in{max-width:520px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+nav.tabs button{border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0;min-height:54px;font-size:12px;color:var(--muted);border-radius:8px}
+nav.tabs button[aria-current="page"]{color:var(--accent);font-weight:700}
+nav.tabs svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.sheet{position:fixed;inset:0;z-index:20;background:rgba(8,16,18,.62);display:flex;align-items:flex-end;justify-content:center;
+  padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+.sheet[hidden]{display:none}
+.sheet-body{width:100%;max-width:520px;max-height:92%;max-height:96dvh;min-height:62%;overflow:auto;background:var(--surface);border-radius:14px 14px 0 0;
+  padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center}
+.stage{position:relative;width:min(66vw,270px);height:min(66vw,270px);display:grid;place-items:center}
+.stage .ring{position:absolute;left:50%;top:50%;width:63%;height:63%;border-radius:50%;border:3px solid var(--celadon);transform:translate(-50%,-50%)}
+.stage .ring.mv{border-color:var(--accent);border-style:dashed}
+.stage svg{position:relative;width:56%;height:56%}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(92px + env(safe-area-inset-bottom,0px));max-width:min(92vw,460px);background:var(--ink);color:var(--bg);
+  padding:10px 16px;border-radius:10px;z-index:30;font-size:14px;text-align:center}
+.toast[hidden]{display:none}
+.note{font-size:13px;color:var(--muted)}
+.new{color:var(--seal);font-weight:800}
+.ballzone{width:100%;height:96px;display:grid;place-items:center}
+.ball{width:64px;height:64px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff6c8,var(--accent) 55%,#6b4a08);border:2px solid var(--ink);touch-action:none;cursor:grab;box-shadow:0 3px 8px rgba(0,0,0,.3)}
+.gold{background:var(--accent);color:var(--accent-ink);border-radius:10px;padding:12px 14px;font-weight:700;text-align:center}
+@media (max-height:620px){.stage{width:min(48vw,200px);height:min(48vw,200px)}}
+@media (prefers-reduced-motion: reduce){.bar>i{transition:none}}
+</style>
+
+<div class="app">
+  <header class="top" id="top"></header>
+
+  <main>
+    <section id="v-map" class="app" style="gap:14px">
+      <div class="mapwrap" id="mapBox"></div>
+      <div class="panel" id="locBox"></div>
+      <div class="panel" id="spawnBox"></div>
+      <div class="panel" id="nearBox"></div>
+      <div class="panel"><h2>지점 목록</h2><div class="list" id="spotList"></div></div>
+    </section>
+
+    <section id="v-stamp" class="app" hidden></section>
+    <section id="v-dex" class="app" hidden></section>
+    <section id="v-admin" class="app" hidden></section>
+  </main>
+</div>
+
+<nav class="tabs" aria-label="화면 전환"><div class="in">
+  <button data-tab="map" aria-current="page"><svg viewBox="0 0 24 24"><path d="M12 21s-6-5.6-6-10a6 6 0 1112 0c0 4.4-6 10-6 10z"/><circle cx="12" cy="11" r="2"/></svg>탐험</button>
+  <button data-tab="stamp"><svg viewBox="0 0 24 24"><path d="M9 3h6v6l3 3v3H6v-3l3-3z"/><path d="M5 20h14"/></svg>스탬프북</button>
+  <button data-tab="dex"><svg viewBox="0 0 24 24"><path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2z"/><path d="M8 7h7"/></svg>도감</button>
+  <button data-tab="admin"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>관리</button>
+</div></nav>
+
+<div class="sheet" id="sheet" hidden><div class="sheet-body" id="sheetBody"></div></div>
+<div class="toast" id="toast" hidden role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+var RAR=['일반','희귀','전설'], BASE=[0.9,0.7,0.5], WT=[60,30,10];
+var CH=[
+ {id:'yeonkkot',name:'연꽃이',r:0,hue:335,feat:'lotus',at:'몸체',desc:'향로의 몸체는 활짝 핀 연꽃 모양이에요. 연잎마다 신선과 물고기, 물새 같은 생물이 새겨져 있어요.'},
+ {id:'saseum',name:'사슴이',r:0,hue:32,feat:'deer',desc:'영생과 재생을 상징해요. 뿔이 빠졌다가 다시 자라기 때문이에요. 신선의 벗이자 탈것으로도 여겨져요.'},
+ {id:'wonsungi',name:'원숭이',r:0,hue:25,sat:40,feat:'monkey',desc:'장수를 상징하는 동물이에요. 옛 그림에서는 십장생이나 자손 번창과 이어져요.'},
+ {id:'yeonmot',name:'연못이',r:0,hue:200,feat:'fish',at:'몸체',desc:'연잎 사이에 새겨진 물고기 같은 물속 친구예요. 향로에는 수중 생물이 26마리 있다고 해요.'},
+ {id:'wonang',name:'원앙이',r:0,hue:25,sat:70,feat:'duck',at:'꼭대기',desc:'꼭대기의 봉황을 바라보는 새 다섯 마리 중 한 마리예요. 원앙으로 설명되는 새예요.'},
+ {id:'buk',name:'북잡이',r:1,hue:12,feat:'drum',at:'뚜껑',desc:'뚜껑에 새겨진 다섯 악사 중 북을 치는 악사예요.'},
+ {id:'wanham',name:'완함이',r:1,hue:265,feat:'wanham',at:'뚜껑',desc:'다섯 악사 중 완함을 연주하는 악사예요. 완함은 둥근 몸통에 긴 자루가 달린 현악기예요.'},
+ {id:'gomungo',name:'거문고지기',r:1,hue:150,feat:'gomungo',at:'뚜껑',desc:'다섯 악사 중 거문고를 타는 악사예요. 거문고는 긴 몸통 위에 줄을 얹은 현악기예요.'},
+ {id:'baeso',name:'배소이',r:1,hue:190,feat:'baeso',at:'뚜껑',desc:'다섯 악사 중 배소를 부는 악사예요. 배소는 길이가 다른 대롱을 엮은 관악기예요.'},
+ {id:'pili',name:'종적이',r:1,hue:45,feat:'flute',at:'뚜껑',desc:'다섯 악사 중 종적을 부는 악사예요. 종적은 세로로 부는 피리예요.'},
+ {id:'sinseon',name:'신선',r:1,hue:170,sat:25,feat:'sage',at:'뚜껑과 몸체',desc:'봉우리 사이와 연잎 사이에 새겨진 신선이에요. 도인의 품성을 지녔고 사슴과 호랑이를 탈것으로 삼는다고 해요.'},
+ {id:'gimu',name:'기마무사',r:1,hue:215,sat:20,feat:'warrior',desc:'갑옷과 투구로 무장하고 말을 타고 힘차게 도약하는 무인이에요. 백제 미술품에서 처음 나타난 형식이라고 해요.'},
+ {id:'horang',name:'호랑이',r:1,hue:30,sat:85,feat:'tiger',at:'뚜껑 아래쪽 부조',desc:'신선의 탈것으로 여겨지는 호랑이예요. 사슴, 새와 함께 새겨져 있다고 해요.'},
+ {id:'kokkiri',name:'코끼리',r:1,hue:210,sat:12,feat:'elephant',desc:'남쪽 지방에 사는 동물로 알려진 코끼리예요. 향로에 새겨진 동물 가운데 하나예요.'},
+ {id:'gongjak',name:'공작',r:1,hue:195,sat:60,feat:'peacock',desc:'상상의 동물로 여겨지는 공작이에요. 영원불멸의 하늘 세계를 나타내요.'},
+ {id:'bonghwang',name:'봉황',r:2,hue:12,feat:'phoenix',at:'꼭대기',desc:'향로 맨 위에서 날개를 활짝 펴고 턱 밑에 작은 구슬을 괸 새예요. 하늘 세계를 대표하고 백제 왕권의 번영을 상징한다고 해석돼요.'},
+ {id:'yong',name:'금동용',r:2,hue:48,feat:'dragon',at:'받침',desc:'물을 헤치고 솟구쳐 입으로 향로 몸체를 받치는 용이에요. 수중 동물을 대표해요.'},
+ {id:'cheonma',name:'천마',r:2,hue:210,sat:45,feat:'pegasus',desc:'하늘을 나는 신성한 말이에요. 하늘 세계를 나타내요.'}
+];
+var DEF_SPOTS=[
+ {id:'jeongnim',name:'정림사지 오층석탑',seal:'정림',lat:36.2796,lng:126.9128,r:100,code:'SABI-1',blurb:'사비 시기 백제의 석탑이 남아 있는 절터.',pool:['sinseon','wanham','wonang','bonghwang']},
+ {id:'buso',name:'부소산성',seal:'부소',lat:36.2917,lng:126.9178,r:120,code:'SABI-2',blurb:'사비 도성의 뒤쪽을 감싼 산성.',pool:['saseum','wonsungi','gimu','horang']},
+ {id:'nakhwa',name:'낙화암',seal:'낙화',lat:36.2935,lng:126.9125,r:100,code:'SABI-3',blurb:'백마강을 내려다보는 부소산 자락의 절벽.',pool:['yong','pili','wonang','cheonma']},
+ {id:'gungnam',name:'궁남지',seal:'궁남',lat:36.2706,lng:126.9094,r:120,code:'SABI-4',blurb:'연꽃으로 유명한 백제의 연못.',pool:['yeonkkot','yeonmot','yong','kokkiri']},
+ {id:'museum',name:'국립부여박물관',seal:'박물',lat:36.2855,lng:126.9205,r:100,code:'SABI-5',blurb:'백제금동대향로를 만날 수 있는 박물관.',pool:['bonghwang','yong','cheonma','buk','gomungo','wanham','baeso','pili']},
+ {id:'wangneung',name:'부여 왕릉원',seal:'왕릉',lat:36.2750,lng:126.9425,r:120,code:'SABI-6',blurb:'능산리에 자리한 백제 왕실의 무덤 터.',pool:['yeonmot','sinseon','gimu','gongjak','kokkiri']}
+];
+var KEY='sabi-treasure-v1';
+function clone(o){return JSON.parse(JSON.stringify(o))}
+function load(){try{return JSON.parse(localStorage.getItem(KEY))||null}catch(e){return null}}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify({ver:2,spots:S.spots,stamps:S.stamps,caught:S.caught,balls:S.balls,lastBall:S.lastBall,sound:S.sound,mode:S.mode}))}catch(e){}}
+var saved=load();
+var S={spots:(saved&&saved.spots&&saved.spots.length)?saved.spots:clone(DEF_SPOTS),stamps:(saved&&saved.stamps)||{},caught:(saved&&saved.caught)||{},
+  pos:null,mode:'sim',tab:'map',lastExplore:0,sound:(saved&&saved.sound!==undefined)?saved.sound:true,spawns:[],balls:(saved&&saved.balls!=null)?saved.balls:5,ballT:Date.now(),lastBall:(saved&&saved.lastBall)||{},lastSpawn:0,gpsWatch:null,gpsMsg:'',confirmReset:false};
+
+(function(){
+  var known={};CH.forEach(function(c){known[c.id]=1});
+  if(!saved||saved.ver!==2){S.spots.forEach(function(s){var d=DEF_SPOTS.filter(function(x){return x.id===s.id})[0];if(d)s.pool=d.pool.slice()})}
+  Object.keys(S.caught).forEach(function(k){if(!known[k])delete S.caught[k]});
+  S.spots.forEach(function(s){
+    if(!s.pool||!s.pool.length||s.pool.some(function(i){return !known[i]})){
+      var d=DEF_SPOTS.filter(function(x){return x.id===s.id})[0];
+      s.pool=d?d.pool.slice():CH.slice().sort(function(){return Math.random()-.5}).slice(0,3).map(function(c){return c.id});
+    }
+  });
+})();
+(function(){var a=0,b=0;S.spots.forEach(function(s){a+=s.lat;b+=s.lng});var n=S.spots.length||1;S.pos={lat:a/n+0.002,lng:b/n+0.002}})();
+
+function $(s){return document.querySelector(s)}
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function dist(a,b){var R=6371000,t=Math.PI/180,dLa=(b.lat-a.lat)*t,dLo=(b.lng-a.lng)*t;var h=Math.pow(Math.sin(dLa/2),2)+Math.cos(a.lat*t)*Math.cos(b.lat*t)*Math.pow(Math.sin(dLo/2),2);return 2*R*Math.asin(Math.sqrt(h))}
+function fmt(m){return m<1000?Math.round(m)+'m':(m/1000).toFixed(1)+'km'}
+function chById(id){return CH.filter(function(c){return c.id===id})[0]}
+function spotById(id){return S.spots.filter(function(s){return s.id===id})[0]}
+var toastT;
+function toast(msg){var t=$('#toast');t.textContent=msg;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(function(){t.hidden=true},2600)}
+
+var AC;
+function buzz(p){try{if(S.sound&&navigator.vibrate)navigator.vibrate(p)}catch(e){}}
+function beep(f,d,t){if(!S.sound)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();var o=AC.createOscillator(),g=AC.createGain();o.type=t||'sine';o.frequency.value=f;g.gain.value=0.06;o.connect(g);g.connect(AC.destination);o.start();g.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+d);o.stop(AC.currentTime+d)}catch(e){}}
+function jingle(){beep(523,0.12);setTimeout(function(){beep(659,0.12)},110);setTimeout(function(){beep(784,0.22)},220)}
+document.addEventListener('pointerdown',function(){try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume()}catch(e){}},{once:true});
+function mapH(){var r=Math.min(1.3,Math.max(0.8,(window.innerHeight*0.5)/Math.max(300,Math.min(window.innerWidth,520))));return Math.round(340*r)}
+/* 캐릭터 그림: 직접 그린 원본 SVG */
+function creature(c,sil){
+  var h=c.hue,sat=c.sat==null?55:c.sat,body='hsl('+h+' '+sat+'% 64%)',dark='hsl('+h+' '+Math.min(sat,45)+'% 28%)',light='hsl('+h+' '+Math.min(sat+15,70)+'% 84%)',wood='hsl(28 50% 46%)',woodL='hsl(38 55% 76%)';
+  var st=' stroke="'+dark+'" stroke-width="1.6" stroke-linejoin="round"';
+  var hair='<circle cx="50" cy="27" r="9" fill="#2B2F3A"'+st+'/><rect x="42" y="33" width="16" height="4" rx="2" fill="hsl(8 65% 52%)"/>';
+  var back='',over='';
+  switch(c.feat){
+    case 'lotus':back='<g fill="hsl(335 75% 80%)"'+st+'><ellipse cx="50" cy="24" rx="7" ry="14"/><ellipse cx="38" cy="29" rx="6" ry="12" transform="rotate(-30 38 29)"/><ellipse cx="62" cy="29" rx="6" ry="12" transform="rotate(30 62 29)"/></g>';break;
+    case 'deer':back='<g fill="none" stroke="hsl(32 55% 38%)" stroke-width="3" stroke-linecap="round"><path d="M38 36L31 14M34 26L24 22M62 36L69 14M66 26L76 22"/></g><g fill="'+body+'"'+st+'><ellipse cx="24" cy="44" rx="7" ry="4.5" transform="rotate(-25 24 44)"/><ellipse cx="76" cy="44" rx="7" ry="4.5" transform="rotate(25 76 44)"/></g>';over='<g fill="hsl(40 80% 90%)"><circle cx="36" cy="79" r="2.4"/><circle cx="50" cy="85" r="2.4"/><circle cx="64" cy="79" r="2.4"/></g><ellipse cx="50" cy="62" rx="5" ry="3.4" fill="hsl(20 40% 24%)"/>';break;
+    case 'monkey':back='<path d="M76 74q20 0 18-22" fill="none" stroke="'+body+'" stroke-width="7" stroke-linecap="round"/><g fill="'+body+'"'+st+'><circle cx="22" cy="54" r="9"/><circle cx="78" cy="54" r="9"/></g><g fill="hsl(25 60% 82%)"><circle cx="22" cy="54" r="4.5"/><circle cx="78" cy="54" r="4.5"/></g>';over='<ellipse cx="50" cy="64" rx="17" ry="12" fill="hsl(28 60% 84%)" stroke="'+dark+'" stroke-width="1.2"/>';break;
+    case 'fish':back='<path d="M76 58L97 42L97 74Z" fill="'+body+'"'+st+'/><path d="M40 33Q50 18 62 33Z" fill="'+light+'"'+st+'/>';over='<g fill="none" stroke="'+dark+'" stroke-width="1.2" opacity=".5"><path d="M30 76q5 5 10 0M42 80q5 5 10 0M54 76q5 5 10 0"/></g><circle cx="20" cy="40" r="4" fill="none" stroke="'+dark+'" stroke-width="1.4"/><circle cx="12" cy="30" r="2.5" fill="none" stroke="'+dark+'" stroke-width="1.4"/>';break;
+    case 'sage':back=hair;over='<path d="M36 68Q50 98 64 68Q50 76 36 68Z" fill="#F3F1EC"'+st+'/><path d="M35 49Q41 45 47 49M53 49Q59 45 65 49" fill="none" stroke="#F3F1EC" stroke-width="3" stroke-linecap="round"/>';break;
+    case 'warrior':over='<path d="M23 50Q50 12 77 50Z" fill="hsl(215 18% 58%)"'+st+'/><path d="M50 20Q46 6 57 5Q54 13 57 21Z" fill="hsl(8 75% 52%)"'+st+'/><path d="M86 40Q101 59 86 78M86 40L86 78" fill="none" stroke="'+dark+'" stroke-width="2.4" stroke-linecap="round"/>';break;
+    case 'drum':back=hair;over='<ellipse cx="50" cy="85" rx="19" ry="9" fill="'+wood+'"'+st+'/><ellipse cx="50" cy="79" rx="19" ry="7" fill="'+woodL+'"'+st+'/><path d="M26 64L42 76M74 64L58 76" stroke="'+dark+'" stroke-width="3" stroke-linecap="round"/>';break;
+    case 'wanham':back=hair;over='<path d="M48 76L86 46" stroke="'+dark+'" stroke-width="4.5" stroke-linecap="round"/><circle cx="40" cy="84" r="12" fill="'+wood+'"'+st+'/><circle cx="40" cy="84" r="3.4" fill="'+dark+'"/>';break;
+    case 'gomungo':back=hair;over='<rect x="12" y="78" width="76" height="11" rx="3" fill="'+wood+'"'+st+'/><path d="M15 82H85M15 85.5H85" stroke="'+woodL+'" stroke-width="1"/><g fill="'+woodL+'"><circle cx="30" cy="83.5" r="1.6"/><circle cx="50" cy="83.5" r="1.6"/><circle cx="70" cy="83.5" r="1.6"/></g>';break;
+    case 'baeso':back=hair;(function(){var s='<g fill="'+woodL+'"'+st+'>';for(var i=0;i<6;i++){var hh=26-i*3.2;s+='<rect x="'+(32+i*7.2).toFixed(1)+'" y="'+(92-hh).toFixed(1)+'" width="6" height="'+hh.toFixed(1)+'" rx="1.5"/>'}over=s+'</g>'})();break;
+    case 'flute':back=hair;over='<g transform="rotate(8 72 68)"><rect x="68" y="40" width="8" height="52" rx="4" fill="'+wood+'"'+st+'/><g fill="'+dark+'"><circle cx="72" cy="54" r="1.3"/><circle cx="72" cy="63" r="1.3"/><circle cx="72" cy="72" r="1.3"/><circle cx="72" cy="81" r="1.3"/></g></g>';break;
+    case 'duck':back='<path d="M44 36Q46 14 60 20Q52 22 56 36Z" fill="hsl(170 55% 42%)"'+st+'/>';over='<ellipse cx="50" cy="65" rx="9" ry="5" fill="hsl(25 90% 60%)"'+st+'/><path d="M22 58Q16 72 30 80Q26 68 30 60Z" fill="hsl(25 85% 52%)"'+st+'/><path d="M78 58Q84 72 70 80Q74 68 70 60Z" fill="hsl(25 85% 52%)"'+st+'/>';break;
+    case 'tiger':back='<g fill="'+body+'"'+st+'><circle cx="27" cy="36" r="9"/><circle cx="73" cy="36" r="9"/></g><g fill="hsl(10 70% 80%)"><circle cx="27" cy="36" r="4"/><circle cx="73" cy="36" r="4"/></g>';over='<path d="M46 34V44M50 32V44M54 34V44M26 54l9 3M26 64l9-2M74 54l-9 3M74 64l-9-2" fill="none" stroke="'+dark+'" stroke-width="2.8" stroke-linecap="round"/><ellipse cx="50" cy="67" rx="12" ry="8" fill="hsl(40 80% 94%)"/>';break;
+    case 'elephant':back='<g fill="'+light+'"'+st+'><ellipse cx="17" cy="54" rx="13" ry="17"/><ellipse cx="83" cy="54" rx="13" ry="17"/></g>';over='<path d="M50 68Q50 88 38 92" fill="none" stroke="'+dark+'" stroke-width="11" stroke-linecap="round"/><path d="M50 68Q50 88 38 92" fill="none" stroke="'+body+'" stroke-width="8" stroke-linecap="round"/>';break;
+    case 'peacock':(function(){var s='<g stroke="'+dark+'" stroke-width="1.4">';for(var i=-3;i<=3;i++){s+='<g transform="rotate('+(i*24)+' 50 58)"><ellipse cx="50" cy="19" rx="8" ry="16" fill="hsl(165 55% 46%)"/><ellipse cx="50" cy="15" rx="3.5" ry="5" fill="hsl(45 90% 62%)"/></g>'}back=s+'</g>'})();over='<path d="M50 33V23M44 35L41 26M56 35L59 26" stroke="'+dark+'" stroke-width="2" stroke-linecap="round"/><circle cx="50" cy="22" r="2.6" fill="hsl(45 90% 62%)"/><circle cx="41" cy="25" r="2.2" fill="hsl(45 90% 62%)"/><circle cx="59" cy="25" r="2.2" fill="hsl(45 90% 62%)"/>';break;
+    case 'pegasus':back='<path d="M60 30Q80 8 90 30Q80 32 82 46Z" fill="hsl(45 85% 60%)"'+st+'/><g fill="'+body+'"'+st+'><path d="M35 36L38 12L48 33Z"/><path d="M65 36L62 12L52 33Z"/></g>';over='<g fill="#fff"'+st+'><ellipse cx="17" cy="62" rx="9" ry="19" transform="rotate(22 17 62)"/><ellipse cx="83" cy="62" rx="9" ry="19" transform="rotate(-22 83 62)"/></g><path d="M14 54L20 74M18 52L25 72M86 54L80 74M82 52L75 72" stroke="'+dark+'" stroke-width="1" fill="none" opacity=".5"/><ellipse cx="50" cy="67" rx="12" ry="8" fill="hsl(210 50% 94%)"/><circle cx="45" cy="67" r="1.3" fill="'+dark+'"/><circle cx="55" cy="67" r="1.3" fill="'+dark+'"/>';break;
+    case 'dragon':back='<g fill="hsl(45 70% 70%)"'+st+'><path d="M38 36L31 14L47 32Z"/><path d="M62 36L69 14L53 32Z"/></g><path d="M76 78q18 2 15-14" fill="none" stroke="'+body+'" stroke-width="9" stroke-linecap="round"/>';over='<path d="M30 62q-11-2-15 7M70 62q11-2 15 7" fill="none" stroke="'+dark+'" stroke-width="2" stroke-linecap="round"/>';break;
+    case 'phoenix':back='<g fill="hsl(8 80% 60%)"'+st+'><ellipse cx="50" cy="22" rx="5" ry="15"/><ellipse cx="38" cy="26" rx="5" ry="13" transform="rotate(-28 38 26)"/><ellipse cx="62" cy="26" rx="5" ry="13" transform="rotate(28 62 26)"/></g>';over='<g fill="hsl(42 90% 62%)"'+st+'><ellipse cx="20" cy="62" rx="8" ry="16" transform="rotate(20 20 62)"/><ellipse cx="80" cy="62" rx="8" ry="16" transform="rotate(-20 80 62)"/></g><circle cx="50" cy="80" r="5.5" fill="hsl(48 95% 62%)"'+st+'/><circle cx="48.5" cy="78.5" r="1.6" fill="#fff"/>';break;
+  }
+  var face='<circle cx="41" cy="56" r="4.2" fill="#12201F"/><circle cx="59" cy="56" r="4.2" fill="#12201F"/><circle cx="42.4" cy="54.5" r="1.4" fill="#fff"/><circle cx="60.4" cy="54.5" r="1.4" fill="#fff"/><ellipse cx="34" cy="64" rx="4.5" ry="3" fill="hsl(350 80% 75%)" opacity=".55"/><ellipse cx="66" cy="64" rx="4.5" ry="3" fill="hsl(350 80% 75%)" opacity=".55"/><path d="M45 66Q50 71 55 66" fill="none" stroke="#12201F" stroke-width="2" stroke-linecap="round"/>';
+  var svg='<svg viewBox="0 0 100 100" role="img" aria-label="'+esc(sil?'아직 만나지 못한 캐릭터':c.name)+'">'+back+'<ellipse cx="50" cy="58" rx="29" ry="26" fill="'+body+'"'+st+'/>'+over+face+'</svg>';
+  return sil?'<span class="sil" style="display:contents">'+svg+'</span>':svg;
+}
+function seal(s,got){
+  return '<svg viewBox="0 0 100 100" class="seal'+(got?' got':'')+'" role="img" aria-label="'+esc(s.name)+(got?' 스탬프 획득':' 스탬프 미획득')+'"><g transform="rotate(-8 50 50)"><circle cx="50" cy="50" r="44" fill="none" stroke="currentColor" stroke-width="3"'+(got?'':' class="dash"')+'/><circle cx="50" cy="50" r="37" fill="none" stroke="currentColor" stroke-width="1"/><text x="50" y="31" text-anchor="middle" font-size="8" fill="currentColor" font-family="Noto Sans KR,sans-serif" letter-spacing="1">사비 스탬프</text><text x="50" y="62" text-anchor="middle" font-size="27" font-weight="800" fill="currentColor" font-family="Hahmlet,serif">'+esc(s.seal)+'</text><path d="M30 72h40" stroke="currentColor" stroke-width="1.5"/></g></svg>';
+}
+
+/* 지도 투영 */
+function proj(){
+  var sp=S.spots,W=340,H=mapH(),la=0,lo=0,n=sp.length||1;
+  sp.forEach(function(s){la+=s.lat;lo+=s.lng});
+  var lat0=sp.length?la/n:36.28,lng0=sp.length?lo/n:126.92,kx=111320*Math.cos(lat0*Math.PI/180),ky=110574;
+  var xs=sp.map(function(s){return (s.lng-lng0)*kx}),ys=sp.map(function(s){return (s.lat-lat0)*ky});
+  if(!sp.length){xs=[0];ys=[0]}
+  var minx=Math.min.apply(null,xs)-500,maxx=Math.max.apply(null,xs)+500,miny=Math.min.apply(null,ys)-500,maxy=Math.max.apply(null,ys)+500;
+  var sc=Math.min(W/(maxx-minx),H/(maxy-miny)),ox=(W-(maxx-minx)*sc)/2,oy=(H-(maxy-miny)*sc)/2;
+  return {W:W,H:H,sc:sc,
+    to:function(lat,lng){return [ox+((lng-lng0)*kx-minx)*sc,oy+(maxy-(lat-lat0)*ky)*sc]},
+    from:function(x,y){return {lng:lng0+((x-ox)/sc+minx)/kx,lat:lat0+(maxy-(y-oy)/sc)/ky}}};
+}
+function nearest(){var best=null;S.spots.forEach(function(s){var d=dist(S.pos,s);if(!best||d<best.d)best={s:s,d:d}});return best}
+
+function renderTop(){
+  var got=Object.keys(S.stamps).filter(function(k){return spotById(k)}).length,tot=S.spots.length,dex=CH.filter(function(c){return S.caught[c.id]}).length;
+  $('#top').innerHTML='<div class="top-row"><div><div class="muted" style="font-size:13px">부여 사비 도성 코스</div><h1>사비 보물찾기</h1></div><div class="chips"><span class="chip num">스탬프 '+got+'/'+tot+'</span><span class="chip num">도감 '+dex+'/'+CH.length+'</span><span class="chip num">구슬 '+S.balls+'</span><button class="chip" data-act="sound" aria-pressed="'+!!S.sound+'">'+(S.sound?'소리 켜짐':'소리 꺼짐')+'</button></div></div><div class="bar" aria-hidden="true"><i style="width:'+(tot?Math.round(got/tot*100):0)+'%"></i></div>';
+}
+function renderMap(){
+  var P=proj(),h='<svg id="mapSvg" viewBox="0 0 '+P.W+' '+P.H+'" role="img" aria-label="지점 위치와 내 위치를 나타낸 약식 지도">';
+  h+='<rect width="'+P.W+'" height="'+P.H+'" fill="var(--map)"/>';
+  for(var gx=0;gx<=P.W;gx+=34)h+='<line x1="'+gx+'" y1="0" x2="'+gx+'" y2="'+P.H+'" stroke="var(--line)" stroke-width=".6"/>';
+  for(var gy=0;gy<=P.H;gy+=30)h+='<line x1="0" y1="'+gy+'" x2="'+P.W+'" y2="'+gy+'" stroke="var(--line)" stroke-width=".6"/>';
+  S.spots.forEach(function(s){
+    var p=P.to(s.lat,s.lng),rr=Math.max(P.sc*s.r,10),got=!!S.stamps[s.id];
+    h+='<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="'+rr.toFixed(1)+'" fill="'+(got?'var(--seal)':'var(--accent)')+'" fill-opacity=".16" stroke="'+(got?'var(--seal)':'var(--accent)')+'" stroke-width="1" stroke-dasharray="3 2"/>';
+    h+='<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="4.5" fill="'+(got?'var(--seal)':'var(--accent)')+'"/>';
+    h+='<text x="'+p[0].toFixed(1)+'" y="'+(p[1]-rr-3).toFixed(1)+'" text-anchor="middle" font-size="11" font-weight="700" fill="var(--ink)" stroke="var(--map)" stroke-width="3" paint-order="stroke" font-family="Noto Sans KR,sans-serif">'+esc(s.seal)+'</text>';
+  });
+  S.spawns.forEach(function(w){
+    var c=chById(w.cid);if(!c)return;var p=P.to(w.lat,w.lng);if(p[0]<16||p[0]>P.W-16||p[1]<16||p[1]>P.H-16)return;
+    var near=dist(S.pos,w)<=80;
+    h+='<g data-sid="'+w.id+'" style="cursor:pointer"><circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="24" fill="transparent"/><circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="17" fill="var(--surface)" stroke="'+(near?'var(--seal)':'var(--r'+c.r+')')+'" stroke-width="'+(near?2.5:1.5)+'"/>'+creature(c).replace('<svg ','<svg x="'+(p[0]-14).toFixed(1)+'" y="'+(p[1]-14).toFixed(1)+'" width="28" height="28" ')+'</g>';
+  });
+  var q=P.to(S.pos.lat,S.pos.lng),qx=Math.max(8,Math.min(P.W-8,q[0])),qy=Math.max(8,Math.min(P.H-8,q[1]));
+  h+='<circle cx="'+qx.toFixed(1)+'" cy="'+qy.toFixed(1)+'" r="11" fill="var(--celadon)" fill-opacity=".25"/><circle cx="'+qx.toFixed(1)+'" cy="'+qy.toFixed(1)+'" r="5.5" fill="var(--celadon)" stroke="var(--surface)" stroke-width="2"/>';
+  var km=1000*P.sc;
+  h+='<g font-family="Noto Sans KR,sans-serif" font-size="10" fill="var(--muted)"><line x1="10" y1="'+(P.H-12)+'" x2="'+(10+km).toFixed(1)+'" y2="'+(P.H-12)+'" stroke="var(--muted)" stroke-width="2"/><text x="10" y="'+(P.H-17)+'">1km</text></g></svg>';
+  $('#mapBox').innerHTML=h;
+  $('#mapSvg').addEventListener('click',function(e){
+    var sp=e.target.closest&&e.target.closest('[data-sid]');if(sp){meetSpawn(sp.getAttribute('data-sid'));return}
+    if(S.mode!=='sim')return;
+    var r=this.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*P.W,y=(e.clientY-r.top)/r.height*P.H,ll=P.from(x,y);
+    S.pos={lat:ll.lat,lng:ll.lng};renderAll();
+  });
+}
+function renderLoc(){
+  var sim=S.mode==='sim';
+  $('#locBox').innerHTML='<div class="seg" role="group" aria-label="위치 방식"><button data-act="mode-sim" aria-pressed="'+sim+'">시뮬레이션</button><button data-act="mode-gps" aria-pressed="'+(!sim)+'">내 GPS</button></div>'+
+    '<p class="note">'+(sim?'지도를 누르면 그 자리로 내 위치가 옮겨져요. 지점이나 캐릭터의 \'이동\' 버튼으로 바로 갈 수도 있어요.':(S.gpsMsg||'GPS 위치를 기다리는 중이에요.'))+'</p>';
+}
+function renderNear(){
+  var n=nearest();
+  if(!n){$('#nearBox').innerHTML='<p class="muted">등록된 지점이 없어요. 관리 탭에서 지점을 추가해 주세요.</p>';return}
+  var s=n.s,inR=n.d<=s.r,got=!!S.stamps[s.id],cd=Math.max(0,Math.ceil((S.lastExplore+15000-Date.now())/1000));
+  $('#nearBox').innerHTML='<div class="row"><div class="grow"><div class="muted" style="font-size:13px">가장 가까운 지점</div><h2>'+esc(s.name)+'</h2></div><span class="badge '+(got?'ok':'')+'">'+(got?'스탬프 획득':(inR?'도착 범위 안':'이동 필요'))+'</span></div>'+
+    '<p class="num">내 위치에서 <b>'+fmt(n.d)+'</b> · 인정 반경 '+s.r+'m</p><p class="note">'+esc(s.blurb)+'</p>'+
+    '<div class="row"><button class="btn pri grow" data-act="checkin" data-id="'+esc(s.id)+'"'+(inR?'':' disabled')+'>'+(got?'다시 체크인 (구슬 받기)':'체크인하고 스탬프 받기')+'</button></div>'+
+    '<div class="row"><div class="grow"><label class="f" for="codeIn">현장 코드 (QR 대신 입력)<input id="codeIn" type="text" autocomplete="off" placeholder="예: SABI-1"></label></div><button class="btn" data-act="code" style="align-self:flex-end">확인</button></div>';
+}
+function renderSpots(){
+  $('#spotList').innerHTML=S.spots.map(function(s){
+    var d=dist(S.pos,s),got=!!S.stamps[s.id];
+    return '<div class="spot"><div class="meta"><b>'+esc(s.name)+'</b><span class="muted num" style="font-size:13px">'+fmt(d)+'</span></div>'+(got?'<span class="badge ok">완료</span>':'')+(S.mode==='sim'?'<button class="btn" data-act="goto" data-id="'+esc(s.id)+'">이동</button>':'')+'</div>';
+  }).join('')||'<p class="muted">지점이 없어요.</p>';
+}
+function renderStamp(){
+  var got=Object.keys(S.stamps).filter(function(k){return spotById(k)}).length,tot=S.spots.length;
+  var h='<div class="panel"><h2>스탬프북</h2><p class="num">'+got+' / '+tot+' 지점 완료</p></div>';
+  if(tot&&got===tot)h+='<div class="gold">사비 탐험가 완주! 모든 스탬프를 모았어요.</div>';
+  h+='<div class="grid">'+S.spots.map(function(s){
+    var t=S.stamps[s.id];
+    return '<div class="card">'+seal(s,!!t)+'<h3>'+esc(s.name)+'</h3><span class="note num">'+(t?new Date(t).toLocaleDateString('ko-KR'):'아직 못 받았어요')+'</span></div>';
+  }).join('')+'</div>';
+  $('#v-stamp').innerHTML=h;
+}
+function renderDex(){
+  var n=CH.filter(function(c){return S.caught[c.id]}).length;
+  $('#v-dex').innerHTML='<div class="panel"><h2>캐릭터 도감</h2><p class="num">'+n+' / '+CH.length+' 종 수집</p></div><div class="grid g3">'+CH.map(function(c){
+    var k=S.caught[c.id]||0;
+    return '<button class="card" data-act="dexinfo" data-id="'+c.id+'"><div class="dexc">'+creature(c,!k)+'</div><h3>'+(k?esc(c.name):'???')+'</h3><span class="rar r'+c.r+'">'+RAR[c.r]+'</span></button>';
+  }).join('')+'</div>';
+}
+function renderAdmin(){
+  var h='<div class="panel"><h2>지점 관리</h2><p class="note">샘플 좌표는 대략적인 값이라 실제 위치와 차이가 날 수 있어요. 현장에서 \'현재 위치로\' 버튼을 눌러 보정해 주세요. 이 화면의 설정은 이 기기 브라우저에만 저장돼요.</p></div>';
+  h+=S.spots.map(function(s,i){
+    return '<div class="panel" data-i="'+i+'"><label class="f" for="n'+i+'">지점 이름<input id="n'+i+'" type="text" data-f="name" value="'+esc(s.name)+'"></label>'+
+      '<div class="row"><label class="f grow" for="a'+i+'">위도<input id="a'+i+'" type="number" step="0.0001" data-f="lat" value="'+s.lat+'"></label><label class="f grow" for="o'+i+'">경도<input id="o'+i+'" type="number" step="0.0001" data-f="lng" value="'+s.lng+'"></label></div>'+
+      '<div class="row"><label class="f grow" for="r'+i+'">인정 반경(m)<input id="r'+i+'" type="number" data-f="r" value="'+s.r+'"></label><label class="f grow" for="c'+i+'">현장 코드<input id="c'+i+'" type="text" data-f="code" value="'+esc(s.code)+'"></label></div>'+
+      '<label class="f" for="b'+i+'">한 줄 소개<input id="b'+i+'" type="text" data-f="blurb" value="'+esc(s.blurb)+'"></label>'+
+      '<div class="row"><button class="btn grow" data-act="here" data-i="'+i+'">현재 위치로 지정</button><button class="btn danger" data-act="del" data-i="'+i+'">삭제</button></div></div>';
+  }).join('');
+  h+='<div class="panel"><button class="btn pri" data-act="add">현재 위치에 새 지점 추가</button><button class="btn" data-act="defaults">기본 6개 지점으로 되돌리기</button><button class="btn danger" data-act="reset">'+(S.confirmReset?'한 번 더 누르면 기록이 지워져요':'스탬프·도감 기록 초기화')+'</button></div>';
+  $('#v-admin').innerHTML=h;
+}
+function renderAll(){renderTop();renderMap();renderLoc();renderSpawns();renderNear();renderSpots();if(S.tab==='stamp')renderStamp();if(S.tab==='dex')renderDex()}
+function showTab(t){
+  S.tab=t;
+  ['map','stamp','dex','admin'].forEach(function(k){$('#v-'+k).hidden=(k!==t)});
+  document.querySelectorAll('nav.tabs button').forEach(function(b){if(b.dataset.tab===t)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
+  if(t==='stamp')renderStamp();if(t==='dex')renderDex();if(t==='admin')renderAdmin();
+  window.scrollTo(0,0);
+}
+
+/* 조우와 포획 */
+function pickChar(pool,anyChance){
+  var ids=(Math.random()<anyChance||!pool.length)?CH.map(function(c){return c.id}):pool.filter(function(i){return chById(i)});
+  if(!ids.length)ids=CH.map(function(c){return c.id});
+  var tot=0;ids.forEach(function(i){tot+=WT[chById(i).r]});
+  var x=Math.random()*tot;
+  for(var k=0;k<ids.length;k++){x-=WT[chById(ids[k]).r];if(x<=0)return chById(ids[k])}
+  return chById(ids[0]);
+}
+var raf=0,enc=null;
+function openSheet(html){$('#sheetBody').innerHTML=html;$('#sheet').hidden=false}
+function closeSheet(){cancelAnimationFrame(raf);enc=null;$('#sheet').hidden=true;renderAll()}
+function removeSpawn(id){if(!id)return;S.spawns=S.spawns.filter(function(w){return w.id!==id})}
+function encInfo(){return '구슬 '+S.balls+'개 · 기회 '+enc.left+'번'}
+function encounter(c,from,spawnId){
+  enc={c:c,left:3,sid:spawnId||null,s:1,busy:false};
+  openSheet('<div class="muted" style="font-size:13px">'+esc(from)+'</div><div class="stage"><div class="ring"></div><div class="ring mv" id="mv"></div>'+creature(c)+'</div><h2>야생의 '+esc(c.name)+' 등장!</h2><span class="rar r'+c.r+'">'+RAR[c.r]+'</span><p class="note" id="encMsg"></p><div class="ballzone" id="ballzone"><div class="ball" id="ball" role="img" aria-label="구슬"></div></div><div class="row" style="width:100%"><button class="btn pri grow" data-act="throw">눌러서 던지기</button><button class="btn grow" data-act="close">그냥 두기</button></div>');
+  $('#encMsg').textContent='구슬을 위로 밀어 던지세요. 점선 원이 초록 원과 겹칠 때 던지면 가장 좋아요. '+encInfo();
+  var mv=$('#mv');
+  (function loop(){var s=0.55+0.95*(0.5+0.5*Math.sin(performance.now()/380));if(enc)enc.s=s;mv.style.transform='translate(-50%,-50%) scale('+s.toFixed(3)+')';raf=requestAnimationFrame(loop)})();
+  bindBall();
+}
+function resetBall(){var b=$('#ball');if(b){b.style.transition='transform .2s';b.style.transform=''}}
+function bindBall(){
+  var b=$('#ball');if(!b)return;var sx=0,sy=0,drag=false;
+  b.addEventListener('pointerdown',function(e){if(!enc||enc.busy)return;drag=true;sx=e.clientX;sy=e.clientY;try{b.setPointerCapture(e.pointerId)}catch(x){}b.style.transition='none'});
+  b.addEventListener('pointermove',function(e){if(!drag)return;b.style.transform='translate('+(e.clientX-sx)+'px,'+(e.clientY-sy)+'px)'});
+  b.addEventListener('pointerup',function(e){if(!drag)return;drag=false;var dx=e.clientX-sx,dy=e.clientY-sy;if(dy<-50)throwBall(dx,dy);else resetBall()});
+  b.addEventListener('pointercancel',function(){drag=false;resetBall()});
+}
+function throwBall(dx,dy){
+  if(!enc||enc.busy)return;
+  if(S.balls<=0){toast('구슬이 없어요. 지점에서 체크인하면 받을 수 있어요.');resetBall();return}
+  enc.busy=true;
+  var s=enc.s,c=enc.c,off=Math.abs(dx)>70,b=$('#ball'),z=$('#ballzone'),st=document.querySelector('.stage');
+  if(b&&z&&st){
+    var zr=z.getBoundingClientRect(),sr=st.getBoundingClientRect();
+    var tx=(sr.left+sr.width/2-(zr.left+zr.width/2))+(off?(dx>0?100:-100):0),ty=sr.top+sr.height/2-(zr.top+zr.height/2);
+    b.style.transition='transform .35s ease-in';b.style.transform='translate('+tx+'px,'+ty+'px) scale(.55)';
+  }
+  S.balls--;persist();renderTop();buzz(25);beep(320,0.1);
+  setTimeout(function(){if(!enc||enc.c!==c)return;resolveThrow(s,off)},380);
+}
+function resolveThrow(s,off){
+  var c=enc.c,d=Math.abs(s-1),q,bonus;
+  if(off){q='빗나갔어요';bonus=-9}
+  else if(d<0.05){q='훌륭해요!';bonus=0.4}
+  else if(d<0.1){q='좋아요!';bonus=0.3}
+  else if(d<0.22){q='보통';bonus=0.1}
+  else{q='타이밍이 아쉬워요';bonus=-0.25}
+  var p=off?0:Math.min(1,Math.max(0.12,BASE[c.r]+bonus));
+  if(Math.random()<p){
+    cancelAnimationFrame(raf);
+    var first=!S.caught[c.id];S.caught[c.id]=(S.caught[c.id]||0)+1;removeSpawn(enc.sid);persist();buzz([60,40,120]);jingle();
+    openSheet('<div class="stage" style="width:min(52vw,220px);height:min(52vw,220px)">'+creature(c)+'</div><h2>'+esc(c.name)+' 획득!</h2><span class="muted">던지기 판정: '+q+'</span>'+(first?'<span class="new">새로운 캐릭터가 도감에 등록됐어요</span>':'<span class="muted num">이미 만난 친구예요 · 누적 '+S.caught[c.id]+'마리</span>')+'<p class="note">'+esc(c.desc)+'</p>'+(c.at?'<p class="note">향로 속 위치: '+esc(c.at)+'</p>':'')+'<button class="btn pri" data-act="close" style="width:100%">확인</button>');
+    enc=null;
+  }else{
+    enc.left--;enc.busy=false;
+    if(enc.left<=0){
+      cancelAnimationFrame(raf);removeSpawn(enc.sid);buzz(200);beep(180,0.3,'sawtooth');
+      openSheet('<div class="stage" style="width:min(52vw,220px);height:min(52vw,220px);opacity:.5">'+creature(c)+'</div><h2>'+esc(c.name)+'이(가) 도망갔어요</h2><p class="note">다음 기회에 다시 만나요.</p><button class="btn pri" data-act="close" style="width:100%">확인</button>');
+      enc=null;
+    }else{
+      var b=$('#ball');if(b){b.style.transition='none';b.style.transform=''}beep(220,0.18,'triangle');
+      $('#encMsg').textContent=q+' · 빠져나갔어요. '+encInfo()+(S.balls<=0?' 구슬이 없어요. 지점에서 체크인해 보충하세요.':'');
+    }
+  }
+}
+function checkin(id){
+  var s=spotById(id);if(!s)return;
+  var first=!S.stamps[id],now=Date.now(),gain=0;
+  if(first){S.stamps[id]=now;gain=5;S.lastBall[id]=now}
+  else if(!S.lastBall[id]||now-S.lastBall[id]>1800000){gain=2;S.lastBall[id]=now}
+  S.balls+=gain;persist();if(first){buzz([80,50,80]);jingle()}
+  toast(first?'스탬프 획득: '+s.name+' · 구슬 +'+gain:(gain?'구슬 +'+gain+'개를 받았어요':'이미 체크인했어요. 구슬은 30분 뒤에 다시 받을 수 있어요.'));
+  renderAll();
+  if(first)setTimeout(function(){encounter(pickChar(s.pool,0.1),s.name+' 도착 보너스')},700);
+}
+function spawnOne(){
+  var n=nearest();if(!n||n.d>400)return;
+  var c=pickChar(n.s.pool,0.15),ang=Math.random()*6.2832,d=30+Math.random()*130,kx=111320*Math.cos(S.pos.lat*Math.PI/180);
+  S.spawns.push({id:'w'+Date.now().toString(36)+Math.floor(Math.random()*999),cid:c.id,lat:S.pos.lat+Math.sin(ang)*d/110574,lng:S.pos.lng+Math.cos(ang)*d/kx,exp:Date.now()+(c.r===2?120000:180000)});
+  S.lastSpawn=Date.now();buzz(60);beep(660,0.14);
+}
+function meetSpawn(id){
+  var w=S.spawns.filter(function(x){return x.id===id})[0];if(!w){toast('이미 사라졌어요');return}
+  var c=chById(w.cid),d=dist(S.pos,w);
+  if(d>80){toast(c.name+'까지 '+fmt(d)+' · 80m 안으로 가까이 가야 해요');return}
+  encounter(c,'야생 캐릭터',w.id);
+}
+function updateTimers(){document.querySelectorAll('[data-exp]').forEach(function(el){var r=Math.max(0,Math.round((+el.dataset.exp-Date.now())/1000));el.textContent=Math.floor(r/60)+':'+('0'+(r%60)).slice(-2)})}
+function renderSpawns(){
+  var n=nearest();
+  var rows=S.spawns.map(function(w){
+    var c=chById(w.cid);if(!c)return '';
+    var d=dist(S.pos,w),near=d<=80;
+    return '<div class="spot"><div class="dexc" style="width:44px;height:44px">'+creature(c)+'</div><div class="meta"><b>'+esc(c.name)+' <span class="rar r'+c.r+'">'+RAR[c.r]+'</span></b><span class="muted num" style="font-size:13px">'+fmt(d)+' · 남은 시간 <span data-exp="'+w.exp+'"></span></span></div>'+(S.mode==='sim'&&!near?'<button class="btn" data-act="gospawn" data-id="'+w.id+'">이동</button>':'')+'<button class="btn pri" data-act="meet" data-id="'+w.id+'"'+(near?'':' disabled')+'>만나기</button></div>';
+  }).join('');
+  $('#spawnBox').innerHTML='<h2>주변 캐릭터</h2><div class="list">'+(rows||'<p class="note">'+((n&&n.d<=400)?'잠시 기다리면 캐릭터가 나타나요.':'지점에서 400m 안으로 가면 캐릭터가 나타나요.')+'</p>')+'</div>';
+  updateTimers();
+}
+function tick(){
+  var now=Date.now(),before=S.spawns.length;
+  S.spawns=S.spawns.filter(function(w){return w.exp>now});
+  var changed=S.spawns.length!==before,n=nearest();
+  if(n&&n.d<=400){
+    var gap=S.spawns.length<2?3000:12000;
+    if(S.spawns.length<4&&now-S.lastSpawn>gap){spawnOne();changed=true}
+  }
+  if(S.balls>=3)S.ballT=now;
+  else if(now-S.ballT>300000){S.balls++;S.ballT=now;persist();renderTop()}
+  if(changed){renderMap();renderSpawns()}else updateTimers();
+}
+var wl=null,rzT=0;
+function keepAwake(){try{if(navigator.wakeLock&&S.mode==='gps'&&!wl){navigator.wakeLock.request('screen').then(function(l){wl=l;l.addEventListener('release',function(){wl=null})}).catch(function(){})}}catch(e){}}
+function startGps(){
+  if(!navigator.geolocation){S.mode='sim';S.gpsMsg='';toast('이 기기에서는 GPS를 쓸 수 없어요');renderAll();return}
+  S.mode='gps';S.gpsMsg='GPS 위치를 기다리는 중이에요.';persist();keepAwake();renderAll();
+  try{
+    S.gpsWatch=navigator.geolocation.watchPosition(function(p){S.pos={lat:p.coords.latitude,lng:p.coords.longitude};S.gpsMsg='GPS 연결됨 · 정확도 약 '+Math.round(p.coords.accuracy)+'m';renderAll()},
+      function(){S.mode='sim';S.gpsMsg='';persist();toast('위치 권한이 없거나 이 화면에서 막혀 있어요. 시뮬레이션 모드로 돌아갑니다.');renderAll()},{enableHighAccuracy:true,maximumAge:3000,timeout:15000});
+  }catch(e){S.mode='sim';renderAll()}
+}
+function stopGps(){if(wl){try{wl.release()}catch(e){}wl=null}if(S.gpsWatch!=null&&navigator.geolocation){try{navigator.geolocation.clearWatch(S.gpsWatch)}catch(e){}}S.gpsWatch=null}
+
+document.addEventListener('click',function(e){
+  var tb=e.target.closest('[data-tab]');if(tb){showTab(tb.dataset.tab);return}
+  var b=e.target.closest('[data-act]');if(!b)return;
+  var a=b.dataset.act,id=b.dataset.id,i=b.dataset.i;
+  if(a!=='reset'&&S.confirmReset){S.confirmReset=false;if(S.tab==='admin')renderAdmin()}
+  if(a==='mode-sim'){stopGps();S.mode='sim';S.gpsMsg='';persist();renderAll()}
+  else if(a==='mode-gps'){startGps()}
+  else if(a==='sound'){S.sound=!S.sound;persist();renderTop();beep(660,0.1)}
+  else if(a==='goto'){var s=spotById(id);S.pos={lat:s.lat+0.0002,lng:s.lng+0.0002};renderAll();toast(s.name+' 앞으로 이동했어요')}
+  else if(a==='checkin'){checkin(id)}
+  else if(a==='meet'){meetSpawn(id)}
+  else if(a==='gospawn'){var w=S.spawns.filter(function(x){return x.id===id})[0];if(w){S.pos={lat:w.lat+0.0002,lng:w.lng+0.0002};renderAll();toast('캐릭터 가까이로 이동했어요')}}
+  else if(a==='code'){
+    var v=($('#codeIn').value||'').trim().toLowerCase();
+    var f=S.spots.filter(function(s){return String(s.code).trim().toLowerCase()===v})[0];
+    if(!v)toast('현장 코드를 입력해 주세요');else if(f)checkin(f.id);else toast('일치하는 코드가 없어요');
+  }
+  else if(a==='throw'){throwBall(0,-80)}
+  else if(a==='close'){closeSheet()}
+  else if(a==='dexinfo'){
+    var c=chById(id),k=S.caught[id]||0;
+    var where=S.spots.filter(function(s){return s.pool.indexOf(id)>-1}).map(function(s){return esc(s.name)}).join(', ')||'아직 알려지지 않았어요';
+    openSheet('<div class="stage" style="width:min(52vw,220px);height:min(52vw,220px)">'+creature(c,!k)+'</div><h2>'+(k?esc(c.name):'???')+'</h2><span class="rar r'+c.r+'">'+RAR[c.r]+'</span><p class="note">'+(k?esc(c.desc):'아직 만나지 못했어요.')+'</p>'+(k&&c.at?'<p class="note">향로 속 위치: '+esc(c.at)+'</p>':'')+'<p class="num">'+(k?'지금까지 '+k+'마리 포획<br>':'')+'<span class="muted">출현 지점: '+where+'</span></p><button class="btn pri" data-act="close" style="width:100%">닫기</button>');
+  }
+  else if(a==='here'){var sp=S.spots[+i];sp.lat=+S.pos.lat.toFixed(5);sp.lng=+S.pos.lng.toFixed(5);persist();renderAdmin();toast('현재 위치로 지정했어요')}
+  else if(a==='del'){S.spots.splice(+i,1);persist();renderAdmin();renderAll()}
+  else if(a==='add'){
+    var nid='spot'+Date.now().toString(36);
+    var pool=CH.slice().sort(function(){return Math.random()-.5}).slice(0,3).map(function(c){return c.id});
+    S.spots.push({id:nid,name:'새 지점',seal:'새곳',lat:+S.pos.lat.toFixed(5),lng:+S.pos.lng.toFixed(5),r:100,code:'CODE-'+(S.spots.length+1),blurb:'지점 소개를 적어 주세요.',pool:pool});
+    persist();renderAdmin();renderAll();toast('지점을 추가했어요')}
+  else if(a==='defaults'){S.spots=clone(DEF_SPOTS);persist();renderAdmin();renderAll();toast('기본 지점으로 되돌렸어요')}
+  else if(a==='reset'){
+    if(!S.confirmReset){S.confirmReset=true;renderAdmin()}
+    else{S.confirmReset=false;S.stamps={};S.caught={};persist();renderAdmin();renderAll();toast('기록을 초기화했어요')}
+  }
+});
+document.addEventListener('change',function(e){
+  var el=e.target;if(!el.dataset||!el.dataset.f)return;
+  var p=el.closest('[data-i]');if(!p)return;
+  var s=S.spots[+p.dataset.i],f=el.dataset.f;
+  if(f==='lat'||f==='lng'||f==='r'){var v=parseFloat(el.value);if(isNaN(v))return;s[f]=(f==='r')?Math.max(10,v):v}
+  else{s[f]=el.value;if(f==='name')s.seal=String(el.value).replace(/\s/g,'').slice(0,2)||s.seal}
+  persist();renderAll();
+});
+setInterval(tick,1000);
+window.addEventListener('resize',function(){clearTimeout(rzT);rzT=setTimeout(renderMap,200)});
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')keepAwake()});
+renderAll();
+if(saved&&saved.mode==='gps')startGps();
+})();
+</script>
+
+</body></html>
