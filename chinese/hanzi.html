@@ -849,15 +849,15 @@ function rules(){
   const open=S.prin||'';
   const cnt=k=>[...SM.values()].filter(v=>v.keys.includes(k)).length;
   const intro=`<h2 style="margin:6px 0 2px;font-size:1.15rem">번체를 간체로 바꾸는 7가지 원리</h2>
-  <p class="gn">간체자는 아무렇게나 줄인 글자가 아니에요. 1950~60년대 중국이 「한자간화방안」으로 정한 몇 가지 규칙에 따라 만들었어요. 원리를 알면 처음 보는 간체자도 번체와 이어서 읽을 수 있어요. 이 앱에 있는 번체 글자 ${SM.size}자가 어느 원리에 해당하는지도 함께 보여 드려요.</p>`;
+  <p class="gn">간체자는 아무렇게나 줄인 글자가 아니에요. 1950~60년대 중국이 「한자간화방안」으로 정한 몇 가지 규칙에 따라 만들었어요. 원리를 알면 처음 보는 간체자도 번체와 이어서 읽을 수 있어요. 원리 이름을 누르면 아래에 글자별 설명이 펼쳐져요.</p>`;
   const list=PR.map((p,i)=>{
     const chars=D.filter(d=>SM.has(d.ch)&&SM.get(d.ch).keys.includes(p.k));
-    return `<section class="grp rule${open===p.k?' open':''}" id="pr-${p.k}"><div class="gt"><span class="rn">${i+1}</span>${p.t}<span class="tag">${chars.length}자</span></div>
+    return `<section class="grp rule${open===p.k?' open':''}" id="pr-${p.k}"><div class="gt"><span class="rn">${i+1}</span>${p.t}<span class="tag">${(XG[p.k]||[]).reduce((n,g)=>n+g.items.length,0)}자</span></div>
     <p class="gn">${p.s}</p>
     <div class="rex" lang="zh">${p.ex}</div>
     <p class="gn rtip">${p.tip}</p>
     ${(XG[p.k]||[]).map(g=>`<details class="xg"${open===p.k?' open':''}><summary>${g.t}<span class="tag">${g.items.length}자</span></summary>${g.d?`<p class="gn">${g.d}</p>`:''}<div class="xl">${g.items.map(x=>`<div class="xi"><div class="xc"><span class="xs" lang="zh-CN">${x[0]}</span><span class="xa">←</span><span class="xt" lang="zh-TW">${x[1]}</span></div><div class="xb"><b>${x[2]}</b> · ${x[3]}<br>${x[4]}</div></div>`).join('')}</div></details>`).join('')}
-    <div class="grid">${chars.map(d=>{const s=SM.get(d.ch);return `<button class="tile" data-go="${d.ch}"><span class="tc" lang="zh-CN">${d.ch}</span><span class="tp" lang="zh-TW" style="color:var(--muted)">${s.tr}</span><span class="tm">${d.mean}</span></button>`}).join('')}</div></section>`}).join('');
+    </section>`}).join('');
   return intro+list+`<p class="hint">모든 글자가 한 가지 원리로만 설명되지는 않아요. 두 가지 이상이 섞인 글자(예: 铁 = 부수 간화 + 소리 부분 바꾸기)도 많아요. 간화자총표에 있는 2,200여 자 중 일부를 골라 보여 드린 거예요.</p>`}
 const TABS=[['study','이어 배우기'],['groups','묶음 모아보기'],['rules','간체 원리'],['list','전체 글자'],['quiz','퀴즈']];
 function render(){
