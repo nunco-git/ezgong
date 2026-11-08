@@ -86,7 +86,8 @@ h1{font-family:var(--f-display);font-weight:400;font-size:clamp(28px,6vw,40px);l
 .dif{display:inline-block;font-size:11px;border-radius:6px;padding:1px 7px;margin-left:6px;font-weight:600;border:1px solid currentColor;vertical-align:middle}
 .dif.d1{color:#2e7d32}.dif.d2{color:#b26a00}.dif.d3{color:#c62828}
 .board .dif.d1{color:#9be39f}.board .dif.d2{color:#ffd37a}.board .dif.d3{color:#ff9d9d}
-.dist{font-size:12px;opacity:.7;margin-left:6px}
+.dist{font-size:12px;opacity:.7;margin-left:6px}.bdiff{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px;align-items:center}.bdiff .dif{margin-left:0}
+.dvrow{display:flex;gap:8px;margin:10px 0}.dvo{flex:1;border:1px solid var(--line,#ccc);border-radius:10px;padding:10px 6px;text-align:center;background:transparent;color:inherit;cursor:pointer;font:inherit}.dvo[aria-pressed="true"]{outline:2px solid currentColor;font-weight:700}.dvo small{display:block;opacity:.7;margin-top:2px}
 .qno .kind{font-family:var(--f-body);font-size:12px;letter-spacing:.08em;border:1px solid currentColor;border-radius:6px;padding:1px 8px;color:var(--board-ink);opacity:.8}
 .qtext{font-size:clamp(19px,3.6vw,25px);font-weight:700;line-height:1.45;word-break:keep-all;overflow-wrap:anywhere}
 .timer{height:6px;background:rgba(255,255,255,.15);border-radius:3px;overflow:hidden}
@@ -15546,13 +15547,16 @@ function diffScore(q){
   return sc+t.length/400+String(q.ans).length/120}
 const LV_T={};
 function diffOf(q,lv){const sc=diffScore(q),t=LV_T[lv||q.lv]||[1,2];return sc<=t[0]?"하":sc>t[1]?"상":"중"}
-const LV_B={};
-function bookMean(b){let s=0;b.q.forEach(q=>s+={"하":1,"중":2,"상":3}[q.d||diffOf(q,b.lv)]);return s/b.q.length}
-function bookDiff(b){const t=LV_B[b.lv]||[1.8,2.1],m=bookMean(b);return m<=t[0]?"하":m>t[1]?"상":"중"}
-function dbadge(d){return `<span class="dif ${DIFF_CLS[d]}" title="난이도 ${d}">난이도 ${d}</span>`}
+const B_LOW=new Set(["우리 그림책","외국 그림책","전래동화","세계 명작동화","이솝 우화","생활·인성 그림책","위인 이야기","한국 창작동화","외국 창작동화","판타지","논픽션·인물","경제·생활","청소년소설","에세이","자기계발·심리"]);
+const B_HIGH=new Set(["인문·철학","사회·정치·경제","동양 고전","고전 시가","과학"]);
+function bookDef(b){const g=b.g;if(B_LOW.has(g))return"하";if(B_HIGH.has(g))return"상";if(g==="한국 고전"&&b.lv==="h")return"상";return"중"}
+function bookDiff(b){return b.dAdj||bookDef(b)}
+function dbadge(d){return `<span class="dif ${DIFF_CLS[d]}" title="문제 난이도 ${d}">난이도 ${d}</span>`}
+function bbadge(d){return `<span class="dif ${DIFF_CLS[d]}" title="책의 이해도 난이도 ${d}">이해도 ${d}</span>`}
+const bKey=b=>hk("b|"+b.lv+"|"+b.t);const qKey=q=>q.k||(q.id?"u"+q.id:null);
 for(const id in BANK){const a=[];BANK[id].forEach(b=>b.q.forEach(q=>a.push(diffScore(q))));a.sort((x,y)=>x-y);LV_T[id]=[a[Math.floor(a.length*.35)],a[Math.floor(a.length*.8)]]}
-for(const id in BANK)for(const b of BANK[id])for(const q of b.q)q.d=diffOf(q,id);
-for(const id in BANK){const m=BANK[id].map(bookMean).sort((x,y)=>x-y);LV_B[id]=[m[Math.floor(m.length*.3)],m[Math.floor(m.length*.7)]]}
+function hk(s){let a=0x811c9dc5,b=0x1234567;for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);a=Math.imul(a^c,16777619);b=Math.imul(b+c,0x85ebca6b)^(b>>>13)}return(a>>>0).toString(16).padStart(8,"0")+(b>>>0).toString(16).padStart(8,"0")}
+for(const id in BANK)for(const b of BANK[id])for(const q of b.q){q.d=q.d0=diffOf(q,id);q.k=hk(id+"|"+b.t+"|"+q.text)}
 const INTRO={};{let lv=null;for(const l of document.getElementById("d-intro").textContent.split("\n")){const x=l.trim();if(!x)continue;if(x[0]==="@"){lv=x.slice(1);INTRO[lv]=INTRO[lv]||{};continue}const p=x.split("|");if(lv&&p.length>=4)INTRO[lv][p[0]]={a:p[1],s:p[2],i:p[3]}}}
 const RECS={};{let lv=null;for(const l of document.getElementById("d-recs").textContent.split("\n")){const s=l.trim();if(!s)continue;if(s[0]==="@"){lv=s.slice(1);RECS[lv]=[];continue}const [t,a,src]=s.split("|");RECS[lv].push({t,a,src})}}
 const store={get(k,d){try{const v=localStorage.getItem("gb_"+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem("gb_"+k,JSON.stringify(v))}catch(e){}}};
@@ -15582,7 +15586,7 @@ function home(){
      </div>
    </div>
    <div class="grid" id="grid"></div>
-   <p class="note">권당 약 10문제(OX·4지선다·단답형), 대작은 50문제 안팎으로 풀 때마다 20문제씩 무작위 출제. 단답형은 띄어쓰기를 무시하고 채점하며, 표기가 달라 틀린 것으로 나오면 '정답 인정'을 누르세요. 난이도(상·중·하)는 문제 유형과 내용으로 자동 계산한 같은 단계 안의 상대 값이에요.</p>
+   <p class="note">권당 약 10문제(OX·4지선다·단답형), 대작은 50문제 안팎으로 풀 때마다 20문제씩 무작위 출제. 단답형은 띄어쓰기를 무시하고 채점하며, 표기가 달라 틀린 것으로 나오면 '정답 인정'을 누르세요. 문제 난이도(상·중·하)는 문제 유형과 내용으로 자동 계산한 같은 단계 안의 상대 값이고, 책 난이도는 문제가 아니라 책 내용의 이해도를 뜻해요. 둘 다 같은 의견이 5명 이상이면 이용자 요청으로 조정돼요(구글 로그인).</p>
   </div>`;
   drawGrid();
   view.querySelectorAll(".lv").forEach(b=>b.onclick=()=>{S.lv=b.dataset.lv;S.genre="전체";store.set("lv",S.lv);home()});
@@ -15615,7 +15619,7 @@ function drawGrid(){
   if(!list.length){g.innerHTML=`<p class="empty">찾는 책이 없습니다. 검색어나 장르를 바꿔 보세요.</p>`;return}
   g.innerHTML=list.map((b,i)=>{const best=store.get("best_"+b.lv+"_"+b.t,null);
     return `<button class="book" data-i="${BANK[S.lv].indexOf(b)}"><span class="t">${esc(b.t)}</span><span class="a">${esc(b.a)}</span>${(INTRO[b.lv]||{})[b.t]?`<span class="ib">📖 소개 있음</span>`:""}
-    <span class="meta"><span class="tag">${esc(b.g)}</span>${dbadge(bookDiff(b))}<span>${b.q.length>BIG?`<span class="best">대작 · ${b.q.length}문제</span>`:best!=null?`<span class="best ${best===b.q.length?"full":""}">최고 ${best}/${b.q.length}</span>`:`${b.q.length}문제`}</span></span></button>`}).join("");
+    <span class="meta"><span class="tag">${esc(b.g)}</span>${bbadge(bookDiff(b))}<span>${b.q.length>BIG?`<span class="best">대작 · ${b.q.length}문제</span>`:best!=null?`<span class="best ${best===b.q.length?"full":""}">최고 ${best}/${b.q.length}</span>`:`${b.q.length}문제`}</span></span></button>`}).join("");
   g.querySelectorAll(".book").forEach(el=>el.onclick=()=>openBook(BANK[S.lv][+el.dataset.i]));
 }
 
@@ -15623,10 +15627,10 @@ const BIG=20;
 function openBook(b){const it=(INTRO[b.lv]||{})[b.t];if(!it&&!COMMUNITY)return playBook(b);
   const n=b.q.length>BIG?BIG+"문제 무작위 (전체 "+b.q.length+"문제)":b.q.length+"문제";window.scrollTo(0,0);
   view.innerHTML=`<div class="stage"><div class="qhead"><div class="crumb"><button class="btn ghost" id="iback">← 목록</button></div></div>
-  <article class="intro"><div><h2>${esc(b.t)}</h2><div class="by">${esc(b.a)} · ${esc(b.g)}</div>${dbadge(bookDiff(b))} <span class="dist">${["하","중","상"].map(d=>d+" "+b.q.filter(q=>(q.d||diffOf(q,b.lv))===d).length).join(" · ")}</span></div>
+  <article class="intro"><div><h2>${esc(b.t)}</h2><div class="by">${esc(b.a)} · ${esc(b.g)}</div></div><div class="bdiff">${bbadge(bookDiff(b))}<span class="dist">책의 이해도 난이도예요(문제 난이도가 아니에요). 문제는 하 ${b.q.filter(q=>(q.d||diffOf(q,b.lv))==="하").length} · 중 ${b.q.filter(q=>(q.d||diffOf(q,b.lv))==="중").length} · 상 ${b.q.filter(q=>(q.d||diffOf(q,b.lv))==="상").length}</span>${COMMUNITY?` <button class="lnk" id="dfb">이해도 난이도 조정 요청</button>`:""}</div>
   ${it?`<section><h3>작가 소개</h3><p>${esc(it.a)}</p></section><section><h3>줄거리</h3><p>${esc(it.s)}</p></section><section><h3>이슈와 중요사항</h3><p>${esc(it.i)}</p></section>`:`<p class="note">이 책의 소개문은 아직 없어요.</p>`}
   <div class="go"><button class="btn primary" id="igo">골든벨 풀기 · ${n}</button>${COMMUNITY?` <button class="btn ghost" id="inew">✍️ 문제 내기</button> <button class="btn ghost" id="irep">🚩 오류 제보</button>`:""}</div></article></div>`;
-  $("#iback").onclick=home;$("#igo").onclick=()=>playBook(b);
+  $("#iback").onclick=home;$("#igo").onclick=()=>playBook(b);const dfb=$("#dfb");if(dfb)dfb.onclick=()=>diffModal({kind:"b",k:bKey(b),title:b.t,cur:bookDiff(b),back:()=>openBook(b)});
   const pre={lv:b.lv,book:b.t,back:()=>openBook(b)};const i1=$("#inew");if(i1)i1.onclick=()=>contrib("new",pre);const i2=$("#irep");if(i2)i2.onclick=()=>contrib("rep",pre)}
 function playBook(b){const qs=b.q.map(q=>({...q,book:b.t,lv:b.lv}));
   if(qs.length>BIG)start(shuffle(qs).slice(0,BIG),{title:`${b.t} · ${b.q.length}문제 중 ${BIG}문제`,key:null,book:b});
@@ -15671,7 +15675,8 @@ function showFeedback(){
   const r=R.res[R.i],q=r.q;const fb=$("#fb");
   const ansText=q.ty==="ox"?q.ans:q.ans;
   fb.innerHTML=`<div class="feedback ${r.ok?"good":"bad"}"><span>${r.ok?"정답!":r.given==null?"시간 초과":"오답"} <span class="ans">정답: ${esc(ansText)}</span></span>
-   ${q.ty==="sa"&&!r.ok&&r.given?`<span class="self"><button id="accept">정답 인정</button></span>`:""}</div>${q.ex?`<p class="ex"><b>해설</b> ${esc(q.ex)}</p>`:""}${COMMUNITY?`<p class="cmrow">${q.user?"출제: "+esc(q.by||"익명")+" · ":""}${q.fixed?"정정 반영됨 · ":""}<button class="lnk" id="rpt">🚩 오류 제보</button></p>`:""}`;
+   ${q.ty==="sa"&&!r.ok&&r.given?`<span class="self"><button id="accept">정답 인정</button></span>`:""}</div>${q.ex?`<p class="ex"><b>해설</b> ${esc(q.ex)}</p>`:""}${COMMUNITY?`<p class="cmrow">${q.user?"출제: "+esc(q.by||"익명")+" · ":""}${q.fixed?"정정 반영됨 · ":""}<button class="lnk" id="rpt">🚩 오류 제보</button> <button class="lnk" id="dfq">📊 난이도 조정 요청</button></p>`:""}`;
+  const dq=$("#dfq");if(dq)dq.onclick=()=>{const k=qKey(q);k?diffModal({kind:"q",k,title:q.text,cur:q.d||diffOf(q,q.lv)}):toast("이 문제는 조정 요청을 받을 수 없어요.")};
   const rp=$("#rpt");if(rp)rp.onclick=()=>q.lv?reportModal({lv:q.lv,book:q.book,q}):toast("이 문제는 목록에서 제보해 주세요.");
   const ac=$("#accept");if(ac)ac.onclick=()=>{r.ok=true;showFeedback();drawNext()};
   drawNext();
@@ -15743,10 +15748,37 @@ function mergeCommunity(){
       else if(q.ty==="sa"){q.ans=f.ans;q.alts=[f.ans,...q.alts.slice(1)]}else if(q.ty==="ox"&&(f.ans==="O"||f.ans==="X"))q.ans=f.ans}
     q.fixed=true;r.done=true}
   recount()}
+/* ===== 난이도 조정 요청: 같은 의견 5명 이상이면 반영 ===== */
+const DV_N=5;CM.dvr=[];
+function dvCount(k){const o={하:0,중:0,상:0};for(const v of CM.dvr)if(v.k===k&&o[v.to]!=null)o[v.to]++;return o}
+function dvAdj(o){const m=Math.max(o.하,o.중,o.상);if(m<DV_N)return null;const t=["하","중","상"].filter(d=>o[d]===m);return t.length===1?t[0]:null}
+function applyDiff(){const by={};for(const v of CM.dvr){const o=by[v.k]=by[v.k]||{하:0,중:0,상:0};if(o[v.to]!=null)o[v.to]++}
+  for(const id in BANK)for(const b of BANK[id]){b.dAdj=dvAdj(by[bKey(b)]||{하:0,중:0,상:0});
+    for(const q of b.q){q.d0=q.d0||diffOf(q,id);const k=qKey(q);q.d=(k&&dvAdj(by[k]||{하:0,중:0,상:0}))||q.d0}}}
+async function loadDiff(f){try{const sn=await f.db.collection("gb_diff_votes").limit(20000).get();CM.dvr=sn.docs.map(d=>d.data());CM.dvok=true}catch(e){CM.dvr=[];CM.dvok=false}applyDiff()}
+function diffModal(c){const m=document.createElement("div");m.className="modal";document.body.appendChild(m);const close=()=>m.remove();
+  const draw=()=>{
+    const isB=c.kind==="b";const head=isB?"책의 이해도 난이도 조정 요청":"문제 난이도 조정 요청";
+    const note=isB?"책 난이도는 문제가 아니라 <b>책 내용을 이해하기 어려운 정도</b>예요. 그 단계(학년)의 독자 기준으로 골라 주세요.":"이 문제가 같은 단계의 독자에게 얼마나 어려운지 골라 주세요.";
+    if(!ME){m.innerHTML=`<div class="mbox"><h3>${head}</h3><p class="qorig">${esc(c.title)}</p>${needLogin()}<div class="bar"><button class="btn ghost" id="mx">닫기</button></div></div>`;
+      $("#cmli").onclick=async()=>{await login();if(ME)draw()};$("#mx").onclick=close;return}
+    const cnt=dvCount(c.k);const mine=(CM.dvr.find(v=>v.k===c.k&&v.uid===ME.uid)||{}).to;let pick=mine||null;
+    m.innerHTML=`<div class="mbox"><h3>${head}</h3><p class="qorig">${esc(c.title)}<br><small>현재 난이도: <b>${esc(c.cur)}</b>${mine?` · 내 요청: <b>${mine}</b>`:""}</small></p><p class="note0">${note}</p>
+     <div class="dvrow">${["하","중","상"].map(d=>`<button type="button" class="dvo" data-d="${d}" aria-pressed="false">${d}<small>${cnt[d]}/${DV_N}명</small></button>`).join("")}</div>
+     <p class="note0">같은 의견이 ${DV_N}명 이상 모이면 그 난이도로 조정돼요. 한 사람이 한 번만 요청할 수 있고, 나중에 바꿀 수 있어요.${CM.dvok===false?" (지금은 서버 설정이 끝나지 않아 요청을 받을 수 없어요.)":""}</p>
+     <div class="bar"><button class="btn primary" id="dvs" disabled>요청하기</button><button class="btn ghost" id="mx">닫기</button></div></div>`;
+    const sync=()=>{m.querySelectorAll(".dvo").forEach(b=>b.setAttribute("aria-pressed",b.dataset.d===pick?"true":"false"));$("#dvs").disabled=!pick||pick===mine||CM.dvok===false};
+    m.querySelectorAll(".dvo").forEach(b=>b.onclick=()=>{pick=b.dataset.d;sync()});sync();$("#mx").onclick=close;
+    $("#dvs").onclick=async()=>{$("#dvs").disabled=true;
+      try{await FB.db.collection("gb_diff_votes").doc(ME.uid+"_"+c.kind+c.k).set({uid:ME.uid,kind:c.kind,k:c.k,to:pick,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+        const ex=CM.dvr.find(v=>v.k===c.k&&v.uid===ME.uid);if(ex)ex.to=pick;else CM.dvr.push({uid:ME.uid,kind:c.kind,k:c.k,to:pick});
+        applyDiff();const o=dvCount(c.k);toast(o[pick]>=DV_N?"요청이 모여 난이도가 조정됐어요.":"요청이 접수됐어요 ("+o[pick]+"/"+DV_N+"명)");close();if(c.back)c.back()}
+      catch(err){toast("요청하지 못했어요 ("+(err.code||"오류")+")");$("#dvs").disabled=false}}};
+  draw()}
 async function loadCommunity(){const f=await fbInit();if(!f){CM.err="연결 실패";if(cur)cur();return}
   try{const [qs,rs,ss,aps]=await Promise.all([f.db.collection("gb_questions").orderBy("createdAt").limit(3000).get(),f.db.collection("gb_reports").orderBy("createdAt").limit(1000).get(),f.db.collection("gb_restores").limit(1000).get(),f.db.collection("gb_appeals").orderBy("createdAt").limit(1000).get()]);
     CM.s=ss.docs.map(d=>({id:d.id,...d.data()}));CM.ap=aps.docs.map(d=>({id:d.id,...d.data()}));
-    CM.q=qs.docs.map(d=>({id:d.id,...d.data()}));CM.r=rs.docs.map(d=>({id:d.id,...d.data()}));CM.ok=true;mergeCommunity();
+    CM.q=qs.docs.map(d=>({id:d.id,...d.data()}));CM.r=rs.docs.map(d=>({id:d.id,...d.data()}));CM.ok=true;mergeCommunity();await loadDiff(f);
     if($("#grid"))home();else if(cur)cur()}catch(e){CM.ok=false;CM.err=e.code||String(e)}}
 const nick=()=>store.get("nick",(ME&&ME.displayName)||"");
 function needLogin(then){return `<div class="cmbox"><p>구글 계정으로 로그인하면 문제를 내고 오류를 제보할 수 있어요. 이름과 이메일은 공개되지 않고, 아래에서 정한 표시 이름만 보여요.</p><button class="btn primary" id="cmli">구글로 로그인</button></div>`}
