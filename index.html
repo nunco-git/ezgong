@@ -731,6 +731,40 @@
     cursor: pointer;
   }
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/*mobile-fontfix*/
+@media (max-width:640px){
+#topBar .brand .brand-tagline{font-size:14px !important}
+#topBar .brand .brand-app{font-size:14px !important}
+.tab-btn.other-label{font-size:14px !important}
+.tab-btn{font-size:14px !important}
+#mobileMenuDropdown .tab-btn{font-size:16px !important}
+/* ── 바로가기 편집 (스마트공 로고에 마우스를 올리면 표시) ── */
+  #tabEditor{font-size:15px !important}
+.ted-head button, .ted-foot button{font-size:14px !important}
+.ted-help{font-size:14px !important}
+.ted-mv button{font-size:14px !important}
+#tedMsg{font-size:14px !important}
+#adminPanel{font-size:16px !important}
+#adUser{font-size:14px !important}
+.ad-head button{font-size:14px !important}
+#adRange button{font-size:14px !important}
+.ad-card span{font-size:14px !important}
+.ad-table th{font-size:14px !important}
+.ad-note{font-size:14px !important}
+#moreBar span{font-size:14px !important}
+#frameHint{font-size:14px !important}
+.home-badges .badge-line{font-size:16px !important}
+.home-header-logo .badge-line-2{font-size:16px !important}
+.home-card .home-card-num{font-size:14px !important}
+.home-card-usecase .uc-label{font-size:15px !important}
+#a2hsBox .a2hs-note{font-size:14px !important}
+.af-msg{font-size:15px !important}
+.af-suggest button{font-size:14px !important}
+.af-correction-link{font-size:14px !important}
+#appFinderInput{font-size:15px !important}
+#appFinderForm button[type="submit"]{font-size:15px !important}
+}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -2229,5 +2263,17 @@
     <button type="button" id="a2hsClose">확인</button>
   </div>
 </div>
+<script>/*mobile-fontfix-js*/
+(function(){try{if(!window.matchMedia||!matchMedia('(max-width:640px)').matches)return;var MIN=14;
+function fix(root){var list=[];if(root.nodeType!==1)return;list.push(root);var q=root.querySelectorAll('*');for(var i=0;i<q.length;i++)list.push(q[i]);
+for(var j=0;j<list.length;j++){var e=list[j];if(e.__mf||/^(SCRIPT|STYLE|SVG|CANVAS|PATH|G|LINE|RECT|CIRCLE|TEXT|TSPAN)$/i.test(e.tagName))continue;var has=false;for(var n=e.firstChild;n;n=n.nextSibling){if(n.nodeType===3&&n.nodeValue.trim()){has=true;break}}
+if(!has)continue;e.__mf=1;var f=parseFloat(getComputedStyle(e).fontSize);if(f>0&&f<MIN)e.style.setProperty('font-size',MIN+'px','important')}}
+function run(){fix(document.body)}
+var t=null;function later(){clearTimeout(t);t=setTimeout(run,300)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run);else run();
+window.addEventListener('load',run);
+new MutationObserver(later).observe(document.documentElement,{childList:true,subtree:true,characterData:true});
+}catch(e){}})();
+</script>
 </body>
 </html>
