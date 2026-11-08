@@ -76,6 +76,13 @@ document.getElementById('list').innerHTML = MORE_APPS.map(a=>`
     <div class="tx"><h2>${esc(a.title)}${a.tag?`<small>${esc(a.tag)}</small>`:''}</h2><p>${esc(a.desc||'')}</p></div>
     <span class="go">열기 →</span>
   </a>`).join('');
+if(window.parent!==window){const h=document.querySelector('a.home');if(h)h.style.display='none'}
+document.getElementById('list').addEventListener('click',e=>{
+  const a=e.target.closest('a.app');
+  if(!a||window.parent===window||e.metaKey||e.ctrlKey||e.shiftKey)return;
+  e.preventDefault();
+  window.parent.postMessage({type:'smartgong-more-open',url:a.getAttribute('href'),title:a.querySelector('h2').firstChild.textContent},'*');
+});
 </script>
 </body>
 </html>
