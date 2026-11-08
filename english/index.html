@@ -196,15 +196,15 @@ function openMini(w,ko,ipa){const o=M[w];const pr=pairOf(w);
  $('#sheet').innerHTML=`<div class="mini"><button class="x" id="cx" aria-label="닫기">×</button><div class="big en">${esc(w)}</div>
  <div class="ipaline">${ipaBtn(ipa||(o&&o.ipa),w)}<button class="say" data-say="${esc(w)}" aria-label="발음 듣기">🔊</button></div>
  ${ko?`<div style="font-size:1.1rem;font-weight:700">${esc(ko)}</div>`:''}${pr?pairBlock(w):''}
- ${o?`<div class="row" style="margin-top:12px"><button class="btn" id="mc" style="flex:1">단어 카드 열기 (예문·꼬리)</button></div>`:'<p class="note">이 앱의 단어장에는 없는 단어예요. 발음과 뜻만 보여 드려요.</p>'}</div>`;
+ <p class="note">이 앱의 단어장에는 없는 단어예요. 발음과 뜻만 보여 드려요.</p></div>`;
  $('#md').classList.add('on');$('#cx').onclick=closeCard;const m=$('#mc');if(m)m.onclick=()=>{HIST=[];openCard(w,[w])};$('#sheet').scrollTop=0}
 function openPair(i){const r=PR.pair[i];const o=M[r[0]];
  $('#sheet').innerHTML=`<div class="mini"><button class="x" id="cx" aria-label="닫기">×</button><div class="big en">${esc(r[0])}</div><p class="note">같은 철자, 다른 발음. IPA를 누르면 들려요.</p>
  <div class="pbx"><b>명사 · 앞 강세</b><div class="ipaline">${ipaBtn(r[1],'the '+r[0])}</div><b>${esc(r[3])}</b><div class="ex"><div class="e">${esc(r[5])} <button class="say" data-say="${esc(r[5])}">🔊</button></div></div></div>
  <div class="pbx"><b>동사 · 뒤 강세</b><div class="ipaline">${ipaBtn(r[2],'to '+r[0])}</div><b>${esc(r[4])}</b><div class="ex"><div class="e">${esc(r[6])} <button class="say" data-say="${esc(r[6])}">🔊</button></div></div></div>
- ${o?`<div class="row"><button class="btn" id="mc" style="flex:1">단어 카드 열기</button></div>`:''}</div>`;
+ </div>`;
  $('#md').classList.add('on');$('#cx').onclick=closeCard;const m=$('#mc');if(m)m.onclick=()=>{HIST=[];openCard(r[0],[r[0]])};$('#sheet').scrollTop=0}
-document.addEventListener('click',e=>{const p=e.target.closest('[data-pop]');if(p){openMini(p.dataset.pop,p.dataset.ko||'',p.dataset.ipa||'');return}const q=e.target.closest('[data-pair]');if(q)openPair(+q.dataset.pair)});
+document.addEventListener('click',e=>{const p=e.target.closest('[data-pop]');if(p){const w=p.dataset.pop;if(M[w]){HIST=[];openCard(w,[w])}else openMini(w,p.dataset.ko||'',p.dataset.ipa||'');return}const q=e.target.closest('[data-pair]');if(q){const i=+q.dataset.pair,w=PR.pair[i][0];if(M[w]){HIST=[];openCard(w,[w])}else openPair(i)}});
 function closeCard(){HIST=[];$('#md').classList.remove('on');refresh()}
 $('#md').onclick=e=>{if(e.target.id==='md')closeCard()};addEventListener('keydown',e=>{if(e.key==='Escape')closeCard()});
 function refresh(){if(ST.tab==='fam')vFam();else if(ST.tab==='words')vWords();upTop()}
