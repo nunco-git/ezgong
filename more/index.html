@@ -25,6 +25,11 @@ header h1{font-size:24px;margin:6px 0 4px;text-wrap:balance}
 header p{margin:0;color:#cbd5e1;font-size:14px}
 main{padding-block:20px 40px}
 .list{display:grid;gap:12px}
+.grp{margin:0 0 30px}
+.grp:last-child{margin-bottom:0}
+.gh{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin:0 0 4px;font-size:18px;text-wrap:balance}
+.gh small{font-size:12px;font-weight:700;color:var(--muted)}
+.gd{margin:0 0 12px;color:var(--muted);font-size:13px}
 .app{display:flex;gap:14px;align-items:flex-start;padding:16px;background:var(--card);border:1px solid var(--line);border-radius:12px;color:inherit;text-decoration:none;transition:border-color .15s,transform .15s}
 .app:hover{border-color:var(--accent);transform:translateY(-1px)}
 .app:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
@@ -45,42 +50,62 @@ footer{color:var(--muted);font-size:12px;padding-block:0 30px}
   <h1>기타 앱</h1>
   <p>업무 도구 말고도 틈틈이 쓰기 좋은 생활·학습 앱을 모았습니다.</p>
 </div></header>
-<main class="wrap"><div class="list" id="list"></div></main>
+<main class="wrap" id="list"></main>
 <footer class="wrap">오류나 개선 제안은 smartgongmaster@gmail.com 으로 보내 주세요.</footer>
 <script>
 // 새 앱을 만들면 아래 목록에 한 줄만 추가하면 됩니다. (위에서부터 순서대로 표시)
-//   title: 이름, url: 주소, desc: 한 줄 설명, tag: 분류, color: 아이콘 색, icon: 아이콘 이미지(없으면 이름 첫 글자)
+//   group: 분류(아래 MORE_GROUPS의 id), title: 이름, url: 주소, desc: 한 줄 설명, tag: 꼬리표, color: 아이콘 색, icon: 아이콘 이미지(없으면 이름 첫 글자)
+//   같은 분류 안에서는 위에서부터 순서대로 표시됩니다. 분류 자체의 순서는 MORE_GROUPS 순서입니다.
+const MORE_GROUPS = [
+  { id:'lang',   title:'한자·외국어 학습',   desc:'한자와 중국어·일본어·영어를 꼬리에 꼬리를 물고 익히는 학습 시스템' },
+  { id:'quiz',   title:'골든벨·상식 테스트', desc:'책과 상식으로 실력을 겨루고 진단하는 문제은행' },
+  { id:'buyeo',  title:'부여군 관련 앱',     desc:'부여 사비 도성을 소재로 한 앱' },
+  { id:'etc',    title:'기타 앱',            desc:'타자 연습, 행사 도구, 음악 등' },
+];
 const MORE_APPS = [
-  { title:'엄지타자', url:'/typing/', tag:'타자 연습', color:'#2360C8', icon:'/typing/icon-192.png',
-    desc:'천지인 양손 엄지 타자 연습. 낱말·문장 연습과 분야별 용어 대결까지.' },
-  { title:'상식 학력 진단', url:'/quiz/', tag:'상식 테스트', color:'#2f6b4f',
-    desc:'초등·중학·고등·대학 교양·일반부 5단계 문제은행으로 내 상식이 어느 수준인지 진단합니다.' },
-  { title:'중국어 학습', url:'/chinese/', tag:'중국어', color:'#c4301c',
-    desc:'간체자와 HSK 1·2급, 3급, 4급, 5급 단어를 같은 글자·반대말·예문으로 꼬리에 꼬리를 물고 익힙니다.' },
-  { title:'한자 익히기 8급~3급', url:'/hanja/', tag:'한자', pg:{key:'hanja-known',total:1817,label:'외운 한자'}, color:'#8a3b1e',
+  // ── 한자·외국어 학습 ──
+  { group:'lang', title:'한자 익히기 8급~3급', url:'/hanja/', tag:'한자', pg:{key:'hanja-known',total:1817,label:'외운 한자'}, color:'#8a3b1e',
     desc:'한자능력검정시험 8급~3급 1,817자를 훈음·만든 원리(육서)·소리 조각 가족 묶음·중국어 간체자와 함께 익힙니다.' },
-  { title:'영어 꼬리잡기', url:'/english/', tag:'영어', pg:{key:'eng-known',total:2635,label:'외운 단어'}, color:'#d9482b',
-    desc:'수능·토익·토플 단어를 어근·접두사·접미사로 묶어 꼬리에 꼬리를 물고 익힙니다. K-pop·스포츠·영화 예문과 발음·강세 규칙까지.' },
-  { title:'가나다 일본어', url:'/japanese/', tag:'일본어', color:'#5E4589',
+  { group:'lang', title:'중국어 학습', url:'/chinese/', tag:'중국어', color:'#c4301c',
+    desc:'간체자와 HSK 1·2급, 3급, 4급, 5급 단어를 같은 글자·반대말·예문으로 꼬리에 꼬리를 물고 익힙니다.' },
+  { group:'lang', title:'가나다 일본어', url:'/japanese/', tag:'일본어', color:'#5E4589',
     desc:'히라가나·가타카나, 일본 한자 읽기, 한중일 공통 어휘, JLPT N5~N2 단어 꼬리잡기를 한국 한자음에서 출발해 익힙니다.' },
-  { title:'독서 골든벨', url:'/goldenbell/', tag:'독서 퀴즈', color:'#B9821A',
+  { group:'lang', title:'영어 꼬리잡기', url:'/english/', tag:'영어', pg:{key:'eng-known',total:2635,label:'외운 단어'}, color:'#d9482b',
+    desc:'수능·토익·토플 단어를 어근·접두사·접미사로 묶어 꼬리에 꼬리를 물고 익힙니다. K-pop·스포츠·영화 예문과 발음·강세 규칙까지.' },
+  // ── 골든벨·상식 테스트 ──
+  { group:'quiz', title:'독서 골든벨', url:'/goldenbell/', tag:'독서 퀴즈', color:'#B9821A',
     desc:'유치원부터 일반까지 1,200여 권의 책을 도서 소개와 1만여 개의 OX·객관식·단답형 문제로 즐기는 독서 골든벨입니다.' },
-  { title:'사비 보물찾기', url:'/sabi/', tag:'위치 게임', color:'#2F7466',
+  { group:'quiz', title:'상식 학력 진단', url:'/quiz/', tag:'상식 테스트', color:'#2f6b4f',
+    desc:'초등·중학·고등·대학 교양·일반부 5단계 문제은행으로 내 상식이 어느 수준인지 진단합니다.' },
+  // ── 부여군 관련 앱 ──
+  { group:'buyeo', title:'사비 보물찾기', url:'/sabi/', tag:'위치 게임', color:'#2F7466',
     desc:'부여 사비 도성 6곳을 돌며 스탬프를 모으고, 백제금동대향로의 봉황·용·악사·동물 캐릭터 18종을 구슬로 잡는 위치 기반 보물찾기입니다. 스마트폰에서 GPS를 켜고 즐기세요.' },
-  { title:'스마트 경품추첨', url:'https://nunco-git.github.io/giftlotto/', tag:'행사 도구', color:'#d4380d',
+  // ── 기타 앱 ──
+  { group:'etc', title:'엄지타자', url:'/typing/', tag:'타자 연습', color:'#2360C8', icon:'/typing/icon-192.png',
+    desc:'천지인 양손 엄지 타자 연습. 낱말·문장 연습과 분야별 용어 대결까지.' },
+  { group:'etc', title:'스마트 경품추첨', url:'https://nunco-git.github.io/giftlotto/', tag:'행사 도구', color:'#d4380d',
     desc:'QR 체크인으로 경품번호를 발급하고, 사다리타기 화면으로 여러 명을 한꺼번에 추첨합니다. 관리자는 Google 로그인이 필요합니다.' },
-  { title:'애창곡 리스트', url:'/mysonglist/', tag:'음악', color:'#b0306a',
+  { group:'etc', title:'애창곡 리스트', url:'/mysonglist/', tag:'음악', color:'#b0306a',
     desc:'좋아하는 가요·트로트를 유튜브에서 찾아 연속으로 들려줍니다.' },
 ];
 
 function pgHtml(a){if(!a.pg)return '';let n=0;try{n=Math.min(JSON.parse(localStorage.getItem(a.pg.key)||'[]').length,a.pg.total)}catch(e){}const p=Math.round(n/a.pg.total*100);return `<div style="margin-top:6px;font-size:12px;color:#64748b"><div style="display:flex;justify-content:space-between"><span>${a.pg.label}</span><span><b>${n}</b> / ${a.pg.total} (${p}%)</span></div><div style="height:6px;border-radius:3px;background:#e2e8f0;overflow:hidden;margin-top:3px"><i style="display:block;height:100%;width:${p}%;background:#8a3b1e"></i></div></div>`}
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-document.getElementById('list').innerHTML = MORE_APPS.map(a=>`
+const appHtml=a=>`
   <a class="app" href="${esc(a.url)}">
     <span class="ic" style="background:${esc(a.color||'#334155')}">${a.icon?`<img src="${esc(a.icon)}" alt="">`:esc(a.title.charAt(0))}</span>
     <div class="tx"><h2>${esc(a.title)}${a.tag?`<small>${esc(a.tag)}</small>`:''}</h2><p>${esc(a.desc||'')}</p>${pgHtml(a)}</div>
     <span class="go">열기 →</span>
-  </a>`).join('');
+  </a>`;
+document.getElementById('list').innerHTML = MORE_GROUPS.map(g=>{
+  const items=MORE_APPS.filter(a=>(a.group||'etc')===g.id);
+  if(!items.length)return '';
+  return `<section class="grp" aria-labelledby="g-${esc(g.id)}">
+    <h2 class="gh" id="g-${esc(g.id)}">${esc(g.title)}<small>${items.length}개</small></h2>
+    <p class="gd">${esc(g.desc||'')}</p>
+    <div class="list">${items.map(appHtml).join('')}</div>
+  </section>`;
+}).join('');
 if(window.parent!==window){const h=document.querySelector('a.home');if(h)h.style.display='none'}
 document.getElementById('list').addEventListener('click',e=>{
   const a=e.target.closest('a.app');
