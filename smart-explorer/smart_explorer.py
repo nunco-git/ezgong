@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.16"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.17"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -4259,7 +4259,7 @@ class SearchPane(tk.Frame):
         self.back_btn.state(["!disabled" if self.back_stack else "disabled"])
 
     def _dir_btn_text(self):
-        self.dir_btn.configure(text="📁 보이기" if self.hide_dirs else "📁 숨기기")
+        self.dir_btn.configure(text="📁 폴더 보이기" if self.hide_dirs else "📁 폴더 숨기기")
 
     def toggle_dirs(self):
         """누르면 목록에서 폴더 숨기기 ↔ 다시 누르면 보이기"""
