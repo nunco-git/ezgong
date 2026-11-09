@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko"><head><script src="/sg-auth.js" data-gate data-sync="sabi:sabi-treasure-v1"></script><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#2F7466"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="사비 보물찾기"><style>body{margin:0;font-size:14px}</style></head><body>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#2F7466"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="사비 보물찾기"><style>body{margin:0;font-size:14px}</style></head><body>
 <title>사비 보물찾기</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -25,7 +25,7 @@
 html,body{background:var(--bg)}
 html{-webkit-text-size-adjust:100%}
 body{-webkit-tap-highlight-color:transparent;overscroll-behavior-y:none;touch-action:manipulation;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
-input{-webkit-user-select:text;user-select:text}
+input,textarea{-webkit-user-select:text;user-select:text}
 body{margin:0;color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 92px}
 .app{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
@@ -56,6 +56,10 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 button.chip{padding:6px 12px;min-height:36px;color:inherit}
 .btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
 .btn:disabled{opacity:.45;cursor:not-allowed}
+.lnk{border:0;background:none;color:var(--accent);font:inherit;font-size:13px;text-decoration:underline;padding:10px 0 10px 4px;min-height:40px}
+.pad{display:grid;grid-template-columns:repeat(3,64px);gap:6px;justify-content:center}
+.pad .btn{padding:0;min-height:52px}
+textarea{width:100%;min-height:84px;font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 10px;min-width:0}
 .btn.danger{border-color:var(--seal);color:var(--seal)}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .row>.grow{flex:1;min-width:0}
@@ -173,7 +177,7 @@ function load(){try{return JSON.parse(localStorage.getItem(KEY))||null}catch(e){
 function persist(){try{localStorage.setItem(KEY,JSON.stringify({ver:2,spots:S.spots,stamps:S.stamps,caught:S.caught,balls:S.balls,lastBall:S.lastBall,sound:S.sound,mode:S.mode}))}catch(e){}}
 var saved=load();
 var S={spots:(saved&&saved.spots&&saved.spots.length)?saved.spots:clone(DEF_SPOTS),stamps:(saved&&saved.stamps)||{},caught:(saved&&saved.caught)||{},
-  pos:null,mode:'sim',tab:'map',lastExplore:0,sound:(saved&&saved.sound!==undefined)?saved.sound:true,spawns:[],balls:(saved&&saved.balls!=null)?saved.balls:5,ballT:Date.now(),lastBall:(saved&&saved.lastBall)||{},lastSpawn:0,gpsWatch:null,gpsMsg:'',confirmReset:false};
+  pos:null,mode:'sim',tab:'map',lastExplore:0,sound:(saved&&saved.sound!==undefined)?saved.sound:true,spawns:[],balls:(saved&&saved.balls!=null)?saved.balls:5,ballT:Date.now(),lastBall:(saved&&saved.lastBall)||{},lastSpawn:0,gpsWatch:null,gpsMsg:'',confirmReset:false,confirmImport:false};
 
 (function(){
   var known={};CH.forEach(function(c){known[c.id]=1});
@@ -299,9 +303,9 @@ function renderNear(){
     '<div class="row"><div class="grow"><label class="f" for="codeIn">현장 코드 (QR 대신 입력)<input id="codeIn" type="text" autocomplete="off" placeholder="예: SABI-1"></label></div><button class="btn" data-act="code" style="align-self:flex-end">확인</button></div>';
 }
 function renderSpots(){
-  $('#spotList').innerHTML=S.spots.map(function(s){
+  $('#spotList').innerHTML=S.spots.map(function(s,i){
     var d=dist(S.pos,s),got=!!S.stamps[s.id];
-    return '<div class="spot"><div class="meta"><b>'+esc(s.name)+'</b><span class="muted num" style="font-size:13px">'+fmt(d)+'</span></div>'+(got?'<span class="badge ok">완료</span>':'')+(S.mode==='sim'?'<button class="btn" data-act="goto" data-id="'+esc(s.id)+'">이동</button>':'')+'</div>';
+    return '<div class="spot"><div class="meta"><b>'+esc(s.name)+'</b><span class="muted num" style="font-size:13px">'+fmt(d)+'</span> <button class="lnk" data-act="pickspot" data-i="'+i+'">위치 수정</button></div>'+(got?'<span class="badge ok">완료</span>':'')+(S.mode==='sim'?'<button class="btn" data-act="goto" data-id="'+esc(s.id)+'">이동</button>':'')+'</div>';
   }).join('')||'<p class="muted">지점이 없어요.</p>';
 }
 function renderStamp(){
@@ -322,15 +326,18 @@ function renderDex(){
   }).join('')+'</div>';
 }
 function renderAdmin(){
-  var h='<div class="panel"><h2>지점 관리</h2><p class="note">샘플 좌표는 대략적인 값이라 실제 위치와 차이가 날 수 있어요. 현장에서 \'현재 위치로\' 버튼을 눌러 보정해 주세요. 이 화면의 설정은 이 기기 브라우저에만 저장돼요.</p></div>';
+  var h='<div class="panel"><h2>지점 관리</h2><p class="note">샘플 좌표는 대략적인 값이라 실제 위치와 차이가 날 수 있어요. 지점마다 [지도에서 위치 조정]으로 옮기거나, 지도 앱에서 복사한 좌표를 붙여넣거나, 현장에서 [현재 위치로 지정]을 눌러 보정하세요. 설정은 이 기기 브라우저에만 저장돼요.</p></div>';
   h+=S.spots.map(function(s,i){
-    return '<div class="panel" data-i="'+i+'"><label class="f" for="n'+i+'">지점 이름<input id="n'+i+'" type="text" data-f="name" value="'+esc(s.name)+'"></label>'+
-      '<div class="row"><label class="f grow" for="a'+i+'">위도<input id="a'+i+'" type="number" step="0.0001" data-f="lat" value="'+s.lat+'"></label><label class="f grow" for="o'+i+'">경도<input id="o'+i+'" type="number" step="0.0001" data-f="lng" value="'+s.lng+'"></label></div>'+
-      '<div class="row"><label class="f grow" for="r'+i+'">인정 반경(m)<input id="r'+i+'" type="number" data-f="r" value="'+s.r+'"></label><label class="f grow" for="c'+i+'">현장 코드<input id="c'+i+'" type="text" data-f="code" value="'+esc(s.code)+'"></label></div>'+
+    return '<div class="panel" data-i="'+i+'" id="sp'+i+'"><label class="f" for="n'+i+'">지점 이름<input id="n'+i+'" type="text" data-f="name" value="'+esc(s.name)+'"></label>'+
+      '<div class="row"><label class="f grow" for="a'+i+'">위도<input id="a'+i+'" type="number" step="0.0001" inputmode="decimal" data-f="lat" value="'+s.lat+'"></label><label class="f grow" for="o'+i+'">경도<input id="o'+i+'" type="number" step="0.0001" inputmode="decimal" data-f="lng" value="'+s.lng+'"></label></div>'+
+      '<div class="row"><label class="f grow" for="q'+i+'">좌표 붙여넣기 (위도, 경도)<input id="q'+i+'" type="text" inputmode="text" autocomplete="off" placeholder="36.2796, 126.9128"></label><button class="btn" data-act="applyxy" data-i="'+i+'" style="align-self:flex-end">적용</button></div>'+
+      '<button class="btn pri" data-act="pick" data-i="'+i+'">지도에서 위치 조정</button>'+
+      '<div class="row"><label class="f grow" for="r'+i+'">인정 반경(m)<input id="r'+i+'" type="number" inputmode="numeric" data-f="r" value="'+s.r+'"></label><label class="f grow" for="c'+i+'">현장 코드<input id="c'+i+'" type="text" data-f="code" value="'+esc(s.code)+'"></label></div>'+
       '<label class="f" for="b'+i+'">한 줄 소개<input id="b'+i+'" type="text" data-f="blurb" value="'+esc(s.blurb)+'"></label>'+
       '<div class="row"><button class="btn grow" data-act="here" data-i="'+i+'">현재 위치로 지정</button><button class="btn danger" data-act="del" data-i="'+i+'">삭제</button></div></div>';
   }).join('');
   h+='<div class="panel"><button class="btn pri" data-act="add">현재 위치에 새 지점 추가</button><button class="btn" data-act="defaults">기본 6개 지점으로 되돌리기</button><button class="btn danger" data-act="reset">'+(S.confirmReset?'한 번 더 누르면 기록이 지워져요':'스탬프·도감 기록 초기화')+'</button></div>';
+  h+='<div class="panel"><h3>지점 설정 옮기기</h3><p class="note">[설정 복사]로 지점 이름·좌표·반경을 글로 복사해, 다른 휴대폰의 아래 칸에 붙여넣고 [불러오기]를 누르면 같은 지점이 적용돼요.</p><button class="btn" data-act="cfgcopy">설정 복사</button><label class="f" for="cfgIn">불러올 설정 붙여넣기<textarea id="cfgIn" autocomplete="off" spellcheck="false"></textarea></label><button class="btn" data-act="cfgload">불러오기</button></div>';
   $('#v-admin').innerHTML=h;
 }
 function renderAll(){renderTop();renderMap();renderLoc();renderSpawns();renderNear();renderSpots();if(S.tab==='stamp')renderStamp();if(S.tab==='dex')renderDex()}
@@ -353,7 +360,7 @@ function pickChar(pool,anyChance){
 }
 var raf=0,enc=null;
 function openSheet(html){$('#sheetBody').innerHTML=html;$('#sheet').hidden=false}
-function closeSheet(){cancelAnimationFrame(raf);enc=null;$('#sheet').hidden=true;renderAll()}
+function closeSheet(){cancelAnimationFrame(raf);enc=null;PK=null;$('#sheet').hidden=true;renderAll()}
 function removeSpawn(id){if(!id)return;S.spawns=S.spawns.filter(function(w){return w.id!==id})}
 function encInfo(){return '구슬 '+S.balls+'개 · 기회 '+enc.left+'번'}
 function encounter(c,from,spawnId){
@@ -455,6 +462,52 @@ function tick(){
   else if(now-S.ballT>300000){S.balls++;S.ballT=now;persist();renderTop()}
   if(changed){renderMap();renderSpawns()}else updateTimers();
 }
+var PK=null;
+function parseXY(t){
+  var m=String(t).replace(/[^\d.\-,;\s]/g,' ').match(/(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)/);
+  if(!m)return null;
+  var a=parseFloat(m[1]),b=parseFloat(m[2]),x;
+  if(a>90&&b<=90){x=a;a=b;b=x}
+  if(a<33||a>39||b<124||b>132)return null;
+  return {lat:a,lng:b};
+}
+function pickOpen(i){
+  var s=S.spots[i];if(!s)return;
+  PK={i:i,c0:{lat:s.lat,lng:s.lng},d:{lat:s.lat,lng:s.lng},half:500,step:10};
+  pickRender();$('#sheet').hidden=false;
+}
+function pickRender(){
+  var s=S.spots[PK.i],mpp=2*PK.half/300,kx=111320*Math.cos(PK.c0.lat*Math.PI/180),ky=110574;
+  function xy(la,ln){return [150+((ln-PK.c0.lng)*kx)/mpp,150-((la-PK.c0.lat)*ky)/mpp]}
+  function inside(p){return p[0]>=6&&p[0]<=294&&p[1]>=6&&p[1]<=294}
+  var g=PK.half>=2000?500:(PK.half>=500?100:50),n=Math.floor(PK.half/g),k,p;
+  var v='<svg id="pickSvg" viewBox="0 0 300 300" style="width:100%;max-width:380px;height:auto;touch-action:manipulation;background:var(--map);border:1px solid var(--line);border-radius:10px" role="img" aria-label="위치를 조정하는 약식 지도">';
+  for(k=-n;k<=n;k++){p=(150+k*g/mpp).toFixed(1);v+='<line x1="'+p+'" y1="0" x2="'+p+'" y2="300" stroke="var(--line)" stroke-width=".7"/><line x1="0" y1="'+p+'" x2="300" y2="'+p+'" stroke="var(--line)" stroke-width=".7"/>'}
+  S.spots.forEach(function(o,j){
+    if(j===PK.i)return;var q=xy(o.lat,o.lng);if(!inside(q))return;
+    v+='<circle cx="'+q[0].toFixed(1)+'" cy="'+q[1].toFixed(1)+'" r="4" fill="var(--muted)"/><text x="'+q[0].toFixed(1)+'" y="'+(q[1]-7).toFixed(1)+'" text-anchor="middle" font-size="11" font-weight="700" fill="var(--ink)" stroke="var(--map)" stroke-width="3" paint-order="stroke" font-family="Noto Sans KR,sans-serif">'+esc(o.seal)+'</text>';
+  });
+  var u=xy(S.pos.lat,S.pos.lng);
+  if(inside(u))v+='<circle cx="'+u[0].toFixed(1)+'" cy="'+u[1].toFixed(1)+'" r="9" fill="var(--celadon)" fill-opacity=".25"/><circle cx="'+u[0].toFixed(1)+'" cy="'+u[1].toFixed(1)+'" r="4.5" fill="var(--celadon)" stroke="var(--surface)" stroke-width="2"/>';
+  v+='<circle cx="150" cy="150" r="6" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="2 2"/>';
+  var d=xy(PK.d.lat,PK.d.lng),out=!inside(d),dx=Math.max(8,Math.min(292,d[0])),dy=Math.max(8,Math.min(292,d[1]));
+  if(!out)v+='<circle cx="'+d[0].toFixed(1)+'" cy="'+d[1].toFixed(1)+'" r="'+Math.max(6,s.r/mpp).toFixed(1)+'" fill="var(--accent)" fill-opacity=".16" stroke="var(--accent)" stroke-width="1" stroke-dasharray="3 2"/>';
+  v+='<circle cx="'+dx.toFixed(1)+'" cy="'+dy.toFixed(1)+'" r="6" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>';
+  v+='<line x1="12" y1="288" x2="'+(12+g/mpp).toFixed(1)+'" y2="288" stroke="var(--muted)" stroke-width="2"/><text x="12" y="281" font-size="10" fill="var(--muted)" font-family="Noto Sans KR,sans-serif">'+(g>=1000?(g/1000)+'km':g+'m')+'</text></svg>';
+  function seg(act,opts,cur){return '<div class="seg" style="width:100%;grid-template-columns:repeat(3,1fr)" role="group">'+opts.map(function(o){return '<button data-act="'+act+'" data-v="'+o[0]+'" aria-pressed="'+(cur===o[0])+'">'+o[1]+'</button>'}).join('')+'</div>'}
+  $('#sheetBody').innerHTML='<h2>'+esc(s.name)+' 위치 조정</h2><p class="note">지도를 누르면 그 자리로 옮겨져요. 아래 화살표로 조금씩 움직일 수도 있어요. 주황 점이 새 위치, 점선 원은 원래 위치, 초록 점은 내 위치예요.</p>'+v+
+    '<p class="num" style="font-size:13px">위도 '+PK.d.lat.toFixed(5)+' · 경도 '+PK.d.lng.toFixed(5)+'<br>원래 위치에서 '+fmt(dist(PK.c0,PK.d))+(out?' (지도 밖)':'')+'</p>'+
+    '<div class="note" style="width:100%;text-align:left">지도 범위</div>'+seg('pkzoom',[[150,'가까이'],[500,'보통'],[2000,'넓게']],PK.half)+
+    '<div class="note" style="width:100%;text-align:left">화살표 한 번에 움직일 거리</div>'+seg('pkstep',[[10,'10m'],[50,'50m'],[200,'200m']],PK.step)+
+    '<div class="pad"><span></span><button class="btn" data-act="nudge" data-dir="n" aria-label="북쪽으로">▲</button><span></span><button class="btn" data-act="nudge" data-dir="w" aria-label="서쪽으로">◀</button><button class="btn" data-act="pkhere" style="font-size:12px" aria-label="내 위치로 옮기기">내 위치</button><button class="btn" data-act="nudge" data-dir="e" aria-label="동쪽으로">▶</button><span></span><button class="btn" data-act="nudge" data-dir="s" aria-label="남쪽으로">▼</button><span></span></div>'+
+    '<div class="row" style="width:100%"><button class="btn pri grow" data-act="pksave">이 위치로 저장</button><button class="btn grow" data-act="close">취소</button></div>';
+}
+function pickTap(e){
+  var svg=document.getElementById('pickSvg'),r=svg.getBoundingClientRect();if(!r.width)return;
+  var mpp=2*PK.half/300,x=(e.clientX-r.left)/r.width*300,y=(e.clientY-r.top)/r.height*300;
+  var kx=111320*Math.cos(PK.c0.lat*Math.PI/180),ky=110574;
+  PK.d={lat:PK.c0.lat+(150-y)*mpp/ky,lng:PK.c0.lng+(x-150)*mpp/kx};pickRender();
+}
 var wl=null,rzT=0;
 function keepAwake(){try{if(navigator.wakeLock&&S.mode==='gps'&&!wl){navigator.wakeLock.request('screen').then(function(l){wl=l;l.addEventListener('release',function(){wl=null})}).catch(function(){})}}catch(e){}}
 function startGps(){
@@ -469,9 +522,10 @@ function stopGps(){if(wl){try{wl.release()}catch(e){}wl=null}if(S.gpsWatch!=null
 
 document.addEventListener('click',function(e){
   var tb=e.target.closest('[data-tab]');if(tb){showTab(tb.dataset.tab);return}
+  if(PK&&e.target.closest('#pickSvg')){pickTap(e);return}
   var b=e.target.closest('[data-act]');if(!b)return;
   var a=b.dataset.act,id=b.dataset.id,i=b.dataset.i;
-  if(a!=='reset'&&S.confirmReset){S.confirmReset=false;if(S.tab==='admin')renderAdmin()}
+  if(a!=='reset'&&a!=='cfgload'&&(S.confirmReset||S.confirmImport)){S.confirmReset=false;S.confirmImport=false;if(S.tab==='admin')renderAdmin()}
   if(a==='mode-sim'){stopGps();S.mode='sim';S.gpsMsg='';persist();renderAll()}
   else if(a==='mode-gps'){startGps()}
   else if(a==='sound'){S.sound=!S.sound;persist();renderTop();beep(660,0.1)}
@@ -491,7 +545,42 @@ document.addEventListener('click',function(e){
     var where=S.spots.filter(function(s){return s.pool.indexOf(id)>-1}).map(function(s){return esc(s.name)}).join(', ')||'아직 알려지지 않았어요';
     openSheet('<div class="stage" style="width:min(52vw,220px);height:min(52vw,220px)">'+creature(c,!k)+'</div><h2>'+(k?esc(c.name):'???')+'</h2><span class="rar r'+c.r+'">'+RAR[c.r]+'</span><p class="note">'+(k?esc(c.desc):'아직 만나지 못했어요.')+'</p>'+(k&&c.at?'<p class="note">향로 속 위치: '+esc(c.at)+'</p>':'')+'<p class="num">'+(k?'지금까지 '+k+'마리 포획<br>':'')+'<span class="muted">출현 지점: '+where+'</span></p><button class="btn pri" data-act="close" style="width:100%">닫기</button>');
   }
-  else if(a==='here'){var sp=S.spots[+i];sp.lat=+S.pos.lat.toFixed(5);sp.lng=+S.pos.lng.toFixed(5);persist();renderAdmin();toast('현재 위치로 지정했어요')}
+  else if(a==='pick'||a==='pickspot'){pickOpen(+i)}
+  else if(a==='pkzoom'&&PK){PK.half=+b.dataset.v;pickRender()}
+  else if(a==='pkstep'&&PK){PK.step=+b.dataset.v;pickRender()}
+  else if(a==='nudge'&&PK){
+    var kx2=111320*Math.cos(PK.d.lat*Math.PI/180),dr=b.dataset.dir;
+    if(dr==='n')PK.d.lat+=PK.step/110574;else if(dr==='s')PK.d.lat-=PK.step/110574;else if(dr==='e')PK.d.lng+=PK.step/kx2;else if(dr==='w')PK.d.lng-=PK.step/kx2;
+    pickRender()}
+  else if(a==='pkhere'&&PK){PK.d={lat:S.pos.lat,lng:S.pos.lng};pickRender();toast(S.mode==='gps'?'내 GPS 위치로 옮겼어요':'시뮬레이션 위치로 옮겼어요. 현장에서는 GPS 모드로 바꾸세요')}
+  else if(a==='pksave'&&PK){
+    var ps=S.spots[PK.i];ps.lat=+PK.d.lat.toFixed(5);ps.lng=+PK.d.lng.toFixed(5);persist();
+    var nm=ps.name;PK=null;$('#sheet').hidden=true;renderAll();if(S.tab==='admin')renderAdmin();toast(nm+' 위치를 저장했어요')}
+  else if(a==='applyxy'){
+    var inp=$('#q'+i),pr=parseXY(inp?inp.value:'');
+    if(!pr){toast('좌표를 읽지 못했어요. 한국 안의 값으로 예: 36.2796, 126.9128');return}
+    var sp2=S.spots[+i];sp2.lat=+pr.lat.toFixed(5);sp2.lng=+pr.lng.toFixed(5);persist();renderAdmin();renderAll();toast('좌표를 적용했어요')}
+  else if(a==='cfgcopy'){
+    var txt=JSON.stringify({sabi:1,spots:S.spots}),ta=$('#cfgIn'),okc=false;
+    if(ta)ta.value=txt;
+    try{navigator.clipboard.writeText(txt).then(function(){toast('설정을 복사했어요')},function(){if(ta)ta.select();toast('복사가 막혀 있어요. 아래 칸의 글을 직접 복사해 주세요')});okc=true}catch(x){}
+    if(!okc){if(ta)ta.select();toast('아래 칸의 글을 직접 복사해 주세요')}}
+  else if(a==='cfgload'){
+    var raw=(($('#cfgIn')||{}).value||'').trim(),data;
+    try{data=JSON.parse(raw)}catch(x){toast('불러올 설정 글을 먼저 붙여넣어 주세요');return}
+    var arr=Array.isArray(data)?data:(data&&data.spots);
+    if(!Array.isArray(arr)||!arr.length){toast('지점 설정 형식이 아니에요');return}
+    var known={},outs=[],q;CH.forEach(function(c){known[c.id]=1});
+    for(q=0;q<arr.length;q++){
+      var o=arr[q]||{},la=parseFloat(o.lat),ln=parseFloat(o.lng);
+      if(!o.name||isNaN(la)||isNaN(ln)){toast((q+1)+'번째 지점에 이름이나 좌표가 없어요');return}
+      var pl=(o.pool||[]).filter(function(x){return known[x]});
+      if(!pl.length)pl=CH.slice().sort(function(){return Math.random()-.5}).slice(0,3).map(function(c){return c.id});
+      outs.push({id:String(o.id||('spot'+Date.now().toString(36)+q)),name:String(o.name),seal:String(o.seal||o.name).replace(/\s/g,'').slice(0,2),lat:la,lng:ln,r:Math.max(10,parseFloat(o.r)||100),code:String(o.code||('CODE-'+(q+1))),blurb:String(o.blurb||''),pool:pl});
+    }
+    if(!S.confirmImport){S.confirmImport=true;b.textContent='한 번 더 누르면 지점 '+outs.length+'곳으로 교체돼요';return}
+    S.confirmImport=false;S.spots=outs;persist();renderAdmin();renderAll();toast('지점 설정을 불러왔어요')}
+  else if(a==='here'){var sp=S.spots[+i];if(S.mode==='sim')toast('지금은 시뮬레이션 위치예요. 현장에서는 GPS 모드로 바꾼 뒤 눌러 주세요');sp.lat=+S.pos.lat.toFixed(5);sp.lng=+S.pos.lng.toFixed(5);persist();renderAdmin();toast('현재 위치로 지정했어요')}
   else if(a==='del'){S.spots.splice(+i,1);persist();renderAdmin();renderAll()}
   else if(a==='add'){
     var nid='spot'+Date.now().toString(36);
@@ -508,7 +597,7 @@ document.addEventListener('change',function(e){
   var el=e.target;if(!el.dataset||!el.dataset.f)return;
   var p=el.closest('[data-i]');if(!p)return;
   var s=S.spots[+p.dataset.i],f=el.dataset.f;
-  if(f==='lat'||f==='lng'||f==='r'){var v=parseFloat(el.value);if(isNaN(v))return;s[f]=(f==='r')?Math.max(10,v):v}
+  if(f==='lat'||f==='lng'||f==='r'){var v=parseFloat(el.value);if(isNaN(v))return;s[f]=(f==='r')?Math.max(10,v):v;if((f==='lat'&&(v<33||v>39))||(f==='lng'&&(v<124||v>132)))toast('한국 범위를 벗어난 좌표예요. 위도와 경도가 바뀌지 않았는지 확인해 주세요')}
   else{s[f]=el.value;if(f==='name')s.seal=String(el.value).replace(/\s/g,'').slice(0,2)||s.seal}
   persist();renderAll();
 });
