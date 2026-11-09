@@ -17,7 +17,7 @@
 :root[data-theme="dark"]{--bg:#0b1120;--card:#111827;--ink:#e2e8f0;--muted:#94a3b8;--line:#1e293b;--head:#020617;--accent:#60a5fa;color-scheme:dark}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6}
-.wrap{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1400px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 header{background:var(--head);color:var(--head-ink);padding-block:18px 22px}
 header a.home{color:#94a3b8;text-decoration:none;font-size:13px}
 header a.home:hover{color:#fff}
@@ -25,11 +25,23 @@ header h1{font-size:24px;margin:6px 0 4px;text-wrap:balance}
 header p{margin:0;color:#cbd5e1;font-size:14px}
 main{padding-block:20px 40px}
 .list{display:grid;gap:12px}
-.grp{margin:0 0 30px}
-.grp:last-child{margin-bottom:0}
+/* 분류 4칸: 넓은 화면은 가로 4칸, 중간은 2칸, 좁은 화면(휴대폰)은 1칸 */
+#list{display:grid;grid-template-columns:1fr;gap:20px;align-items:start}
+.grp{min-width:0;border-top:4px solid var(--gc,#334155);padding-top:12px}
 .gh{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin:0 0 4px;font-size:18px;text-wrap:balance}
 .gh small{font-size:12px;font-weight:700;color:var(--muted)}
 .gd{margin:0 0 12px;color:var(--muted);font-size:13px}
+@media (min-width:640px){
+  #list{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .app{flex-direction:column;align-items:stretch;gap:10px;padding:14px}
+  .app .ic{width:42px;height:42px;font-size:19px}
+  .app .go{display:none}
+  .tx h2{font-size:16px}
+  .tx p{font-size:13px}
+}
+@media (min-width:1000px){
+  #list{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+}
 .app{display:flex;gap:14px;align-items:flex-start;padding:16px;background:var(--card);border:1px solid var(--line);border-radius:12px;color:inherit;text-decoration:none;transition:border-color .15s,transform .15s}
 .app:hover{border-color:var(--accent);transform:translateY(-1px)}
 .app:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
@@ -57,10 +69,10 @@ footer{color:var(--muted);font-size:12px;padding-block:0 30px}
 //   group: 분류(아래 MORE_GROUPS의 id), title: 이름, url: 주소, desc: 한 줄 설명, tag: 꼬리표, color: 아이콘 색, icon: 아이콘 이미지(없으면 이름 첫 글자)
 //   같은 분류 안에서는 위에서부터 순서대로 표시됩니다. 분류 자체의 순서는 MORE_GROUPS 순서입니다.
 const MORE_GROUPS = [
-  { id:'lang',   title:'한자·외국어 학습',   desc:'한자와 중국어·일본어·영어를 꼬리에 꼬리를 물고 익히는 학습 시스템' },
-  { id:'quiz',   title:'골든벨·상식 테스트', desc:'책과 상식으로 실력을 겨루고 진단하는 문제은행' },
-  { id:'buyeo',  title:'부여군 관련 앱',     desc:'부여 사비 도성을 소재로 한 앱' },
-  { id:'etc',    title:'기타 앱',            desc:'타자 연습, 행사 도구, 음악 등' },
+  { id:'lang',   color:'#8a3b1e', title:'한자·외국어 학습',   desc:'한자와 중국어·일본어·영어를 꼬리에 꼬리를 물고 익히는 학습 시스템' },
+  { id:'quiz',   color:'#B9821A', title:'골든벨·상식 테스트', desc:'책과 상식으로 실력을 겨루고 진단하는 문제은행' },
+  { id:'buyeo',  color:'#2F7466', title:'부여군 관련 앱',     desc:'부여 사비 도성을 소재로 한 앱' },
+  { id:'etc',    color:'#2360C8', title:'기타 앱',            desc:'행사 도구, 음악, 타자 연습 등' },
 ];
 const MORE_APPS = [
   // ── 한자·외국어 학습 ──
@@ -81,12 +93,12 @@ const MORE_APPS = [
   { group:'buyeo', title:'사비 보물찾기', url:'/sabi/', tag:'위치 게임', color:'#2F7466',
     desc:'부여 사비 도성 6곳을 돌며 스탬프를 모으고, 백제금동대향로의 봉황·용·악사·동물 캐릭터 18종을 구슬로 잡는 위치 기반 보물찾기입니다. 스마트폰에서 GPS를 켜고 즐기세요.' },
   // ── 기타 앱 ──
-  { group:'etc', title:'엄지타자', url:'/typing/', tag:'타자 연습', color:'#2360C8', icon:'/typing/icon-192.png',
-    desc:'천지인 양손 엄지 타자 연습. 낱말·문장 연습과 분야별 용어 대결까지.' },
   { group:'etc', title:'스마트 경품추첨', url:'https://nunco-git.github.io/giftlotto/', tag:'행사 도구', color:'#d4380d',
     desc:'QR 체크인으로 경품번호를 발급하고, 사다리타기 화면으로 여러 명을 한꺼번에 추첨합니다. 관리자는 Google 로그인이 필요합니다.' },
   { group:'etc', title:'애창곡 리스트', url:'/mysonglist/', tag:'음악', color:'#b0306a',
     desc:'좋아하는 가요·트로트를 유튜브에서 찾아 연속으로 들려줍니다.' },
+  { group:'etc', title:'엄지타자', url:'/typing/', tag:'타자 연습', color:'#2360C8', icon:'/typing/icon-192.png',
+    desc:'천지인 양손 엄지 타자 연습. 낱말·문장 연습과 분야별 용어 대결까지.' },
 ];
 
 function pgHtml(a){if(!a.pg)return '';let n=0;try{n=Math.min(JSON.parse(localStorage.getItem(a.pg.key)||'[]').length,a.pg.total)}catch(e){}const p=Math.round(n/a.pg.total*100);return `<div style="margin-top:6px;font-size:12px;color:#64748b"><div style="display:flex;justify-content:space-between"><span>${a.pg.label}</span><span><b>${n}</b> / ${a.pg.total} (${p}%)</span></div><div style="height:6px;border-radius:3px;background:#e2e8f0;overflow:hidden;margin-top:3px"><i style="display:block;height:100%;width:${p}%;background:#8a3b1e"></i></div></div>`}
@@ -100,7 +112,7 @@ const appHtml=a=>`
 document.getElementById('list').innerHTML = MORE_GROUPS.map(g=>{
   const items=MORE_APPS.filter(a=>(a.group||'etc')===g.id);
   if(!items.length)return '';
-  return `<section class="grp" aria-labelledby="g-${esc(g.id)}">
+  return `<section class="grp" style="--gc:${esc(g.color||'#334155')}" aria-labelledby="g-${esc(g.id)}">
     <h2 class="gh" id="g-${esc(g.id)}">${esc(g.title)}<small>${items.length}개</small></h2>
     <p class="gd">${esc(g.desc||'')}</p>
     <div class="list">${items.map(appHtml).join('')}</div>
