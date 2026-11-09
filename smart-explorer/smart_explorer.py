@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.17"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.18"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -5593,6 +5593,8 @@ DEFAULT_ALARM = {
     "tts_repeat": 2,             # 음성 반복 횟수
     "song_on": False,            # 노래 파일 재생
     "song": "",                  # 노래 파일 경로
+    "open_insarang": False,      # 알람이 울릴 때 인사랑도 함께 열기
+    "open_record": False,        # 인사랑이 열리면 오늘 '초과근무기록' 창까지 자동으로 열기 (시험 기능)
     "extra_holidays": "",        # 추가 휴일 (예: 2026-12-31, 2027-01-01)
 }
 # 관공서 공휴일 (대체·임시공휴일 포함). 토·일요일은 따로 넣지 않아도 휴일로 봄
@@ -6052,10 +6054,14 @@ def launch_insarang():
         return False
 
 
-def open_insarang(parent=None):
-    """🏢 인사랑 열기: 행정포털(SSO) 로그인 상태를 보고 Edge로 인사랑을 엽니다."""
+def open_insarang(parent=None, with_record=False, root=None, quiet=False):
+    """🏢 인사랑 열기: 행정포털(SSO) 로그인 상태를 보고 Edge로 인사랑을 엽니다.
+    with_record=True 이면 인사랑이 뜬 뒤 오늘 '초과근무기록' 창도 열어 봅니다.
+    quiet=True(알람 때 자동으로 열 때)는 물어보거나 오류창을 띄우지 않고, 안 될 것 같으면 그냥 건너뜁니다."""
     procs = running_process_names()
     if procs is not None and not any(p in procs for p in SSO_PROCS):
+        if quiet:
+            return False
         if not messagebox.askyesno(
                 "인사랑",
                 "행정포털(SSO) 로그인이 확인되지 않았습니다.\n"
@@ -6063,9 +6069,182 @@ def open_insarang(parent=None):
                 "그래도 인사랑을 여시겠습니까?", parent=parent):
             return False
     if not launch_insarang():
-        messagebox.showerror("인사랑", "인사랑을 열지 못했습니다.\nEdge 설치와 URL 연결을 확인해 주세요.", parent=parent)
+        if not quiet:
+            messagebox.showerror("인사랑", "인사랑을 열지 못했습니다.\nEdge 설치와 URL 연결을 확인해 주세요.", parent=parent)
         return False
+    if with_record:
+        InsarangRecordOpener.start(root or parent)
     return True
+
+
+class InsarangRecordOpener:
+    """인사랑 본창(Edge)을 찾아 오늘 날짜의 '○○○○년 ○월 ○일 초과근무기록' 항목을 눌러 줍니다.
+    화면 읽기 기능(Windows 접근성/UI Automation)을 쓰며, 못 찾으면 아무것도 누르지 않고 조용히 끝냅니다.
+    (눌러 주는 것은 '초과근무기록 열기' 하나뿐이고, 입력·저장·결재 같은 동작은 하지 않습니다.)"""
+    running = False
+    WAIT_SEC = 90
+
+    @classmethod
+    def start(cls, root=None, on_result=None):
+        if cls.running or sys.platform != "win32":
+            return
+        cls.running = True
+        threading.Thread(target=cls._run, args=(root, on_result), daemon=True).start()
+
+    @staticmethod
+    def _today_pattern():
+        t = time.localtime()
+        return re.compile(r"^\s*%d\s*년\s*0?%d\s*월\s*0?%d\s*일\s+초과근무기록\s*$" % (t.tm_year, t.tm_mon, t.tm_mday))
+
+    @staticmethod
+    def _windows():
+        """(Edge 창 핸들) 목록: 제목에 '인사랑'이 들어 있는 것"""
+        import ctypes
+        from ctypes import wintypes
+        user32 = ctypes.windll.user32
+        found = []
+        cb_t = ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, wintypes.LPARAM)
+
+        def cb(hwnd, _):
+            try:
+                if user32.IsWindowVisible(hwnd):
+                    cls = ctypes.create_unicode_buffer(128)
+                    user32.GetClassNameW(hwnd, cls, 128)
+                    if cls.value == "Chrome_WidgetWin_1":
+                        n = user32.GetWindowTextLengthW(hwnd)
+                        buf = ctypes.create_unicode_buffer(n + 1)
+                        user32.GetWindowTextW(hwnd, buf, n + 1)
+                        if "인사랑" in buf.value:
+                            found.append(hwnd)
+            except Exception:
+                pass
+            return True
+        user32.EnumWindows(cb_t(cb), 0)
+        return found
+
+    @staticmethod
+    def _ie_children(hwnd):
+        """Edge 창 안의 'Internet Explorer_Server'(IE 모드 화면) 핸들"""
+        import ctypes
+        from ctypes import wintypes
+        user32 = ctypes.windll.user32
+        found = []
+        cb_t = ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, wintypes.LPARAM)
+
+        def cb(h, _):
+            try:
+                cls = ctypes.create_unicode_buffer(64)
+                user32.GetClassNameW(h, cls, 64)
+                if cls.value == "Internet Explorer_Server":
+                    found.append(h)
+            except Exception:
+                pass
+            return True
+        user32.EnumChildWindows(hwnd, cb_t(cb), 0)
+        return found
+
+    @classmethod
+    def _try_press(cls, ui, U, handle, pat):
+        """handle 아래에서 pat 이름의 요소를 찾아 누른다. 반환: 'ok' / 'multi' / None"""
+        root = ui.ElementFromHandle(handle)
+        hits = []
+        for ctype in (U.UIA_HyperlinkControlTypeId, U.UIA_TextControlTypeId,
+                      U.UIA_ButtonControlTypeId, U.UIA_ListItemControlTypeId):
+            cond = ui.CreatePropertyCondition(U.UIA_ControlTypePropertyId, ctype)
+            arr = root.FindAll(U.TreeScope_Descendants, cond)
+            for i in range(min(arr.Length, 4000)):
+                el = arr.GetElement(i)
+                try:
+                    if pat.match(el.CurrentName or ""):
+                        hits.append(el)
+                except Exception:
+                    pass
+        if not hits:
+            return None
+        if len(hits) > 1:
+            # 같은 글자가 링크 안의 글자 조각으로 한 번 더 잡히는 경우가 있어, 눌러지는 것이 하나뿐이면 그것을 쓴다
+            pass
+        walker = ui.ControlViewWalker
+        for el in hits:
+            cur = el
+            for _ in range(4):                               # 글자 조각이면 위의 링크로 올라가며 시도
+                if cur is None:
+                    break
+                try:
+                    pt = cur.GetCurrentPattern(U.UIA_InvokePatternId)
+                    if pt:
+                        pt.QueryInterface(U.IUIAutomationInvokePattern).Invoke()
+                        return "ok"
+                except Exception:
+                    pass
+                try:
+                    pt = cur.GetCurrentPattern(U.UIA_LegacyIAccessiblePatternId)
+                    if pt:
+                        pt.QueryInterface(U.IUIAutomationLegacyIAccessiblePattern).DoDefaultAction()
+                        return "ok"
+                except Exception:
+                    pass
+                try:
+                    cur = walker.GetParentElement(cur)
+                except Exception:
+                    cur = None
+        return "multi" if len(hits) > 1 else None
+
+    @classmethod
+    def _run(cls, root, on_result):
+        result = "시간 안에 인사랑 화면에서 '초과근무기록'을 찾지 못했습니다. 본창에서 직접 열어 주세요."
+        comtypes = None
+        try:
+            import comtypes
+            import comtypes.client
+            comtypes.CoInitialize()
+            comtypes.client.GetModule("UIAutomationCore.dll")
+            from comtypes.gen import UIAutomationClient as U
+            ui = comtypes.CoCreateInstance(U.CUIAutomation._reg_clsid_, interface=U.IUIAutomation,
+                                           clsctx=comtypes.CLSCTX_INPROC_SERVER)
+            pat = cls._today_pattern()
+            deadline = time.time() + cls.WAIT_SEC
+            time.sleep(4)                                    # Edge가 뜰 시간
+            while time.time() < deadline:
+                done = False
+                for hwnd in cls._windows():
+                    for h in [hwnd] + cls._ie_children(hwnd):
+                        try:
+                            r = cls._try_press(ui, U, h, pat)
+                        except Exception:
+                            r = None
+                        if r == "ok":
+                            result, done = "ok", True
+                            break
+                        if r == "multi":
+                            result = "초과근무기록 항목이 여러 개라 열지 않았습니다. 본창에서 직접 열어 주세요."
+                    if done:
+                        break
+                if done:
+                    break
+                time.sleep(2.5)
+        except Exception:
+            result = "화면 읽기(접근성)를 시작하지 못했습니다. 본창에서 직접 열어 주세요."
+        finally:
+            cls.running = False
+            try:
+                if comtypes is not None:
+                    comtypes.CoUninitialize()
+            except Exception:
+                pass
+        if on_result:
+            try:
+                on_result(result)
+            except Exception:
+                pass
+
+
+def alarm_extras(app, cfg, on_error=None, quiet_insarang=True):
+    """알람이 울릴 때(또는 시험할 때) 소리 말고 하는 일: 음성·노래, 인사랑 자동 열기"""
+    AlarmAudio.play(app, cfg.get("message", ""), cfg, on_error)
+    if cfg.get("open_insarang") or cfg.get("open_record"):
+        app.root.after(1200, lambda: open_insarang(
+            None, with_record=bool(cfg.get("open_record")), root=app.root, quiet=quiet_insarang))
 
 
 class AlarmAudio:
@@ -6303,7 +6482,7 @@ class AlarmPopup:
         ttk.Button(bf, text="알람 끄기", style="BigPlain.TButton",
                    command=lambda: (app.set_alarm_enabled(False), self.close())).pack(side="right", padx=8)
         ttk.Button(bf, text="🏢 인사랑 열기", style="BigPlain.TButton",
-                   command=lambda: self.close() if open_insarang(w) else None).pack(side="right", padx=(0, 8))
+                   command=lambda: self.close() if open_insarang(w, with_record=bool(app.alarm.get("open_record")), root=app.root) else None).pack(side="right", padx=(0, 8))
         w.bind("<Escape>", lambda e: self.close())
         w.bind("<Return>", lambda e: self.close())
         w.update_idletasks()
@@ -6398,12 +6577,14 @@ class AlarmDialog:
         ttk.Button(b, text="지금 시험해 보기", command=self.test).grid(row=4, column=3, sticky="e", pady=(4, 0))
 
         # 🔊 음성·노래로 알리기 (row 5)
-        vf = ttk.LabelFrame(b, text=" 🔊 음성·노래로 알리기 ", padding=(8, 4))
+        vf = ttk.LabelFrame(b, text=" 🔊 알림 방법 (음성·노래·인사랑) ", padding=(8, 4))
         vf.grid(row=5, column=0, columnspan=4, sticky="ew", pady=(8, 0))
         self.tts = tk.BooleanVar(value=a.get("tts", True))
         self.tts_rep = tk.StringVar(value=str(a.get("tts_repeat", 2)))
         self.song_on = tk.BooleanVar(value=a.get("song_on", False))
         self.song = tk.StringVar(value=a.get("song", ""))
+        self.open_ins = tk.BooleanVar(value=a.get("open_insarang", False))
+        self.open_rec = tk.BooleanVar(value=a.get("open_record", False))
         r1 = ttk.Frame(vf)
         r1.pack(fill="x")
         ttk.Checkbutton(r1, text="알림 글을 음성으로 읽어주기", variable=self.tts).pack(side="left")
@@ -6415,6 +6596,12 @@ class AlarmDialog:
         ttk.Checkbutton(r2, text="노래 파일 재생", variable=self.song_on).pack(side="left")
         ttk.Entry(r2, textvariable=self.song, width=30).pack(side="left", padx=(6, 4), fill="x", expand=True)
         ttk.Button(r2, text="찾기…", command=self.pick_song).pack(side="left")
+        r3 = ttk.Frame(vf)
+        r3.pack(fill="x", pady=(6, 0))
+        ttk.Checkbutton(r3, text="🏢 알람이 울리면 인사랑도 함께 열기 (행정포털 로그인이 되어 있을 때)",
+                        variable=self.open_ins).pack(anchor="w")
+        ttk.Checkbutton(r3, text="   └ 인사랑이 열리면 오늘 '초과근무기록' 창까지 자동으로 열기 (시험 기능)",
+                        variable=self.open_rec).pack(anchor="w")
         ttk.Label(vf, text="※ 팝업의 [확인]·[알람 끄기]를 누르면 음성과 노래가 멈춥니다. 노래는 끌 때까지 반복됩니다.\n"
                            "   mp3·wav·wma·m4a 파일을 쓸 수 있고, [지금 시험해 보기]로 미리 들어 볼 수 있습니다.",
                   foreground="#888").pack(fill="x", pady=(4, 0))
@@ -6477,6 +6664,7 @@ class AlarmDialog:
                 "message": self.msg.get().strip(), "sound": self.sound.get(),
                 "tts": self.tts.get(), "tts_repeat": num(self.tts_rep, 1, 9, 2),
                 "song_on": self.song_on.get(), "song": self.song.get().strip(),
+                "open_insarang": self.open_ins.get(), "open_record": self.open_rec.get(),
                 "extra_holidays": self.extra.get().strip()}
 
     def pick_song(self):
@@ -6492,8 +6680,8 @@ class AlarmDialog:
         if a["sound"]:
             play_alarm_sound()
         AlarmPopup(self.app, a["message"])
-        AlarmAudio.play(self.app, a["message"], a,
-                        lambda m: messagebox.showwarning(APP_NAME, m, parent=self.win))
+        alarm_extras(self.app, a, lambda m: messagebox.showwarning(APP_NAME, m, parent=self.win),
+                     quiet_insarang=False)
 
     def shortcut(self):
         try:
@@ -7196,7 +7384,7 @@ class App:
         series.bind("<Button-1>", lambda e: __import__("webbrowser").open("https://smartgong.kr"))
         ttk.Button(bar, text="ⓘ 사용 안내", command=self.show_guide).pack(side="right", padx=(10, 10))
         ttk.Button(bar, text="⚙ 환경설정", command=lambda: SettingsDialog(self)).pack(side="right", padx=(0, 4))
-        ttk.Button(bar, text="🏢 인사랑", command=lambda: open_insarang(self.root)).pack(side="right", padx=(0, 4))
+        ttk.Button(bar, text="🏢 인사랑", command=lambda: open_insarang(self.root, with_record=bool(self.alarm.get("open_record")), root=self.root)).pack(side="right", padx=(0, 4))
         self.update_var = tk.StringVar(value="")
         self.update_slot = ttk.Frame(bar)                 # 새 버전이 있을 때만 [업데이트 필요] 버튼이 나타남
         self.update_slot.pack(side="right", padx=(0, 10))
@@ -7546,7 +7734,7 @@ class App:
         if self.alarm.get("sound", True):
             play_alarm_sound()
         AlarmPopup(self, self.alarm.get("message", ""))
-        AlarmAudio.play(self, self.alarm.get("message", ""), self.alarm)
+        alarm_extras(self, self.alarm)
 
     def ocr_missing(self, force=False):
         """한국어 OCR이 없는 PC: 색인할 때 설치 안내 창 (하루 한 번, '다시 보지 않기' 가능)"""
