@@ -69,18 +69,18 @@ footer{color:var(--muted);font-size:12px;padding-block:0 30px}
 //   group: 분류(아래 MORE_GROUPS의 id), title: 이름, url: 주소, desc: 한 줄 설명, tag: 꼬리표, color: 아이콘 색, icon: 아이콘 이미지(없으면 이름 첫 글자)
 //   같은 분류 안에서는 위에서부터 순서대로 표시됩니다. 분류 자체의 순서는 MORE_GROUPS 순서입니다.
 const MORE_GROUPS = [
-  { id:'lang',   color:'#8a3b1e', title:'한자·외국어 학습',   desc:'한자와 중국어·일본어·영어를 꼬리에 꼬리를 물고 익히는 학습 시스템' },
+  { id:'lang',   color:'#8a3b1e', title:'한자·외국어 학습',   desc:'꼬리잡기 시리즈 — 한자와 중국어·일본어·영어를 꼬리에 꼬리를 물고 익힙니다' },
   { id:'quiz',   color:'#B9821A', title:'골든벨·상식 테스트', desc:'책과 상식으로 실력을 겨루고 진단하는 문제은행' },
   { id:'buyeo',  color:'#2F7466', title:'부여군 관련 앱',     desc:'부여 사비 도성을 소재로 한 앱' },
   { id:'etc',    color:'#2360C8', title:'기타 앱',            desc:'행사 도구, 음악, 타자 연습 등' },
 ];
 const MORE_APPS = [
   // ── 한자·외국어 학습 ──
-  { group:'lang', title:'한자 익히기 8급~3급', url:'/hanja/', tag:'한자', pg:{key:'hanja-known',total:1817,label:'외운 한자'}, color:'#8a3b1e',
+  { group:'lang', title:'한자 꼬리잡기', url:'/hanja/', tag:'한자 8급~3급', pg:{key:'hanja-known',total:1817,label:'외운 한자'}, color:'#8a3b1e',
     desc:'한자능력검정시험 8급~3급 1,817자를 훈음·만든 원리(육서)·소리 조각 가족 묶음·중국어 간체자와 함께 익힙니다.' },
-  { group:'lang', title:'중국어 학습', url:'/chinese/', tag:'중국어', color:'#c4301c',
+  { group:'lang', title:'중국어 꼬리잡기', url:'/chinese/', tag:'중국어', color:'#c4301c',
     desc:'간체자와 HSK 1·2급, 3급, 4급, 5급 단어를 같은 글자·반대말·예문으로 꼬리에 꼬리를 물고 익힙니다.' },
-  { group:'lang', title:'가나다 일본어', url:'/japanese/', tag:'일본어', color:'#5E4589',
+  { group:'lang', title:'일본어 꼬리잡기', url:'/japanese/', tag:'일본어', color:'#5E4589',
     desc:'히라가나·가타카나, 일본 한자 읽기, 한중일 공통 어휘, JLPT N5~N2 단어 꼬리잡기를 한국 한자음에서 출발해 익힙니다.' },
   { group:'lang', title:'영어 꼬리잡기', url:'/english/', tag:'영어', pg:{key:'eng-known',total:2635,label:'외운 단어'}, color:'#d9482b',
     desc:'수능·토익·토플 단어를 어근·접두사·접미사로 묶어 꼬리에 꼬리를 물고 익힙니다. K-pop·스포츠·영화 예문과 발음·강세 규칙까지.' },

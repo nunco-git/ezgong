@@ -1,7 +1,7 @@
 {
- "name": "중국어 학습",
+ "name": "중국어 꼬리잡기",
  "short_name": "중국어",
- "description": "중국어 학습 - 스마트공",
+ "description": "중국어 꼬리잡기 - 스마트공",
  "start_url": "./index.html?pwa=1",
  "scope": "./",
  "display": "standalone",

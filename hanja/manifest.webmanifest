@@ -1,7 +1,7 @@
 {
- "name": "한자 익히기",
+ "name": "한자 꼬리잡기",
  "short_name": "한자",
- "description": "한자 익히기 - 스마트공",
+ "description": "한자 꼬리잡기 - 스마트공",
  "start_url": "./index.html?pwa=1",
  "scope": "./",
  "display": "standalone",
