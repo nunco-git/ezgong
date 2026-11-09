@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.18"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.19"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -5594,7 +5594,7 @@ DEFAULT_ALARM = {
     "song_on": False,            # 노래 파일 재생
     "song": "",                  # 노래 파일 경로
     "open_insarang": False,      # 알람이 울릴 때 인사랑도 함께 열기
-    "open_record": False,        # 인사랑이 열리면 오늘 '초과근무기록' 창까지 자동으로 열기 (시험 기능)
+    "open_record": False,        # 인사랑이 열리면 '초과근무기록' 버튼을 눌러 팝업까지 자동으로 띄우기 (시험 기능)
     "extra_holidays": "",        # 추가 휴일 (예: 2026-12-31, 2027-01-01)
 }
 # 관공서 공휴일 (대체·임시공휴일 포함). 토·일요일은 따로 넣지 않아도 휴일로 봄
@@ -6056,7 +6056,7 @@ def launch_insarang():
 
 def open_insarang(parent=None, with_record=False, root=None, quiet=False):
     """🏢 인사랑 열기: 행정포털(SSO) 로그인 상태를 보고 Edge로 인사랑을 엽니다.
-    with_record=True 이면 인사랑이 뜬 뒤 오늘 '초과근무기록' 창도 열어 봅니다.
+    with_record=True 이면 인사랑이 뜬 뒤 '초과근무기록' 버튼을 눌러 팝업까지 띄워 봅니다.
     quiet=True(알람 때 자동으로 열 때)는 물어보거나 오류창을 띄우지 않고, 안 될 것 같으면 그냥 건너뜁니다."""
     procs = running_process_names()
     if procs is not None and not any(p in procs for p in SSO_PROCS):
@@ -6073,16 +6073,28 @@ def open_insarang(parent=None, with_record=False, root=None, quiet=False):
             messagebox.showerror("인사랑", "인사랑을 열지 못했습니다.\nEdge 설치와 URL 연결을 확인해 주세요.", parent=parent)
         return False
     if with_record:
-        InsarangRecordOpener.start(root or parent)
+        host = root or parent
+
+        def _report(msg):                                      # 안 됐으면 이유를 알려 줌 (성공이면 조용히)
+            if msg != "ok" and host is not None:
+                try:
+                    host.after(0, lambda: messagebox.showinfo("인사랑", msg))
+                except Exception:
+                    pass
+        InsarangRecordOpener.start(host, _report)
     return True
 
 
 class InsarangRecordOpener:
-    """인사랑 본창(Edge)을 찾아 오늘 날짜의 '○○○○년 ○월 ○일 초과근무기록' 항목을 눌러 줍니다.
-    화면 읽기 기능(Windows 접근성/UI Automation)을 쓰며, 못 찾으면 아무것도 누르지 않고 조용히 끝냅니다.
-    (눌러 주는 것은 '초과근무기록 열기' 하나뿐이고, 입력·저장·결재 같은 동작은 하지 않습니다.)"""
+    """인사랑 본창(Edge)에서 '초과근무기록' 버튼을 눌러 기록 팝업을 띄워 줍니다.
+    화면 읽기 기능(Windows 접근성/UI Automation)을 쓰며, 버튼을 못 찾거나 여러 개면 아무것도 누르지 않고 끝납니다.
+    (누르는 것은 '초과근무기록' 버튼 하나뿐이고, 입력·저장·결재 같은 동작은 하지 않습니다.)"""
     running = False
     WAIT_SEC = 90
+    BUTTON_NAME = re.compile(r"^\s*초과근무\s*기록\s*$")                       # 본창의 '초과근무기록' 버튼
+    # 버튼처럼 눌리는 요소를 먼저 보고, 없으면 글자 조각(Text)을 찾아 위쪽 부모를 누른다
+    PRESS_TYPES = ("UIA_ButtonControlTypeId", "UIA_HyperlinkControlTypeId", "UIA_MenuItemControlTypeId",
+                   "UIA_TabItemControlTypeId", "UIA_ListItemControlTypeId")
 
     @classmethod
     def start(cls, root=None, on_result=None):
@@ -6092,13 +6104,14 @@ class InsarangRecordOpener:
         threading.Thread(target=cls._run, args=(root, on_result), daemon=True).start()
 
     @staticmethod
-    def _today_pattern():
+    def _title_pattern():
+        """기록 팝업 제목: '2026년 11월 10일 초과근무기록'"""
         t = time.localtime()
-        return re.compile(r"^\s*%d\s*년\s*0?%d\s*월\s*0?%d\s*일\s+초과근무기록\s*$" % (t.tm_year, t.tm_mon, t.tm_mday))
+        return re.compile(r"%d\s*년\s*0?%d\s*월\s*0?%d\s*일\s*초과근무기록" % (t.tm_year, t.tm_mon, t.tm_mday))
 
     @staticmethod
-    def _windows():
-        """(Edge 창 핸들) 목록: 제목에 '인사랑'이 들어 있는 것"""
+    def _windows(title_has=None):
+        """보이는 Edge(Chrome_WidgetWin_1) 창의 (핸들, 제목). title_has: 제목에 들어갈 글자(정규식 또는 문자열)"""
         import ctypes
         from ctypes import wintypes
         user32 = ctypes.windll.user32
@@ -6114,8 +6127,10 @@ class InsarangRecordOpener:
                         n = user32.GetWindowTextLengthW(hwnd)
                         buf = ctypes.create_unicode_buffer(n + 1)
                         user32.GetWindowTextW(hwnd, buf, n + 1)
-                        if "인사랑" in buf.value:
-                            found.append(hwnd)
+                        t = buf.value
+                        ok = (title_has.search(t) if hasattr(title_has, "search") else (title_has in t))
+                        if ok:
+                            found.append((hwnd, t))
             except Exception:
                 pass
             return True
@@ -6144,55 +6159,73 @@ class InsarangRecordOpener:
         return found
 
     @classmethod
-    def _try_press(cls, ui, U, handle, pat):
-        """handle 아래에서 pat 이름의 요소를 찾아 누른다. 반환: 'ok' / 'multi' / None"""
+    def _popup_open(cls):
+        """이미 오늘 기록 팝업이 떠 있는지 (창 제목으로 확인)"""
+        try:
+            return bool(cls._windows(cls._title_pattern()))
+        except Exception:
+            return False
+
+    @classmethod
+    def _find_names(cls, ui, U, handle, types):
+        """handle 아래에서 이름이 '초과근무기록'인 요소 목록 (types: 컨트롤 종류 이름들)"""
         root = ui.ElementFromHandle(handle)
         hits = []
-        for ctype in (U.UIA_HyperlinkControlTypeId, U.UIA_TextControlTypeId,
-                      U.UIA_ButtonControlTypeId, U.UIA_ListItemControlTypeId):
-            cond = ui.CreatePropertyCondition(U.UIA_ControlTypePropertyId, ctype)
+        for tname in types:
+            cond = ui.CreatePropertyCondition(U.UIA_ControlTypePropertyId, getattr(U, tname))
             arr = root.FindAll(U.TreeScope_Descendants, cond)
             for i in range(min(arr.Length, 4000)):
                 el = arr.GetElement(i)
                 try:
-                    if pat.match(el.CurrentName or ""):
+                    if cls.BUTTON_NAME.match(el.CurrentName or ""):
                         hits.append(el)
                 except Exception:
                     pass
+        return hits
+
+    @classmethod
+    def _press(cls, ui, U, el):
+        """el(또는 위쪽 부모 몇 단계)에서 '누르기'가 되는 것을 눌러 본다. 눌렸으면 True"""
+        walker = ui.ControlViewWalker
+        cur = el
+        for _ in range(4):
+            if cur is None:
+                break
+            try:
+                pt = cur.GetCurrentPattern(U.UIA_InvokePatternId)
+                if pt:
+                    pt.QueryInterface(U.IUIAutomationInvokePattern).Invoke()
+                    return True
+            except Exception:
+                pass
+            try:
+                pt = cur.GetCurrentPattern(U.UIA_LegacyIAccessiblePatternId)
+                if pt:
+                    pt.QueryInterface(U.IUIAutomationLegacyIAccessiblePattern).DoDefaultAction()
+                    return True
+            except Exception:
+                pass
+            try:
+                cur = walker.GetParentElement(cur)
+            except Exception:
+                cur = None
+        return False
+
+    @classmethod
+    def _try_open(cls, ui, U, handle):
+        """반환: 'ok'(눌렀음) / 'multi'(후보가 여러 개) / None(못 찾음)"""
+        hits = cls._find_names(ui, U, handle, cls.PRESS_TYPES)
+        if not hits:                                           # 버튼 종류로는 없고 글자 조각만 노출되는 경우
+            hits = cls._find_names(ui, U, handle, ("UIA_TextControlTypeId",))
         if not hits:
             return None
         if len(hits) > 1:
-            # 같은 글자가 링크 안의 글자 조각으로 한 번 더 잡히는 경우가 있어, 눌러지는 것이 하나뿐이면 그것을 쓴다
-            pass
-        walker = ui.ControlViewWalker
-        for el in hits:
-            cur = el
-            for _ in range(4):                               # 글자 조각이면 위의 링크로 올라가며 시도
-                if cur is None:
-                    break
-                try:
-                    pt = cur.GetCurrentPattern(U.UIA_InvokePatternId)
-                    if pt:
-                        pt.QueryInterface(U.IUIAutomationInvokePattern).Invoke()
-                        return "ok"
-                except Exception:
-                    pass
-                try:
-                    pt = cur.GetCurrentPattern(U.UIA_LegacyIAccessiblePatternId)
-                    if pt:
-                        pt.QueryInterface(U.IUIAutomationLegacyIAccessiblePattern).DoDefaultAction()
-                        return "ok"
-                except Exception:
-                    pass
-                try:
-                    cur = walker.GetParentElement(cur)
-                except Exception:
-                    cur = None
-        return "multi" if len(hits) > 1 else None
+            return "multi"                                     # 어느 것인지 알 수 없으면 누르지 않음
+        return "ok" if cls._press(ui, U, hits[0]) else None
 
     @classmethod
     def _run(cls, root, on_result):
-        result = "시간 안에 인사랑 화면에서 '초과근무기록'을 찾지 못했습니다. 본창에서 직접 열어 주세요."
+        result = "시간 안에 인사랑 화면에서 '초과근무기록' 버튼을 찾지 못했습니다. 본창에서 직접 눌러 주세요."
         comtypes = None
         try:
             import comtypes
@@ -6202,29 +6235,38 @@ class InsarangRecordOpener:
             from comtypes.gen import UIAutomationClient as U
             ui = comtypes.CoCreateInstance(U.CUIAutomation._reg_clsid_, interface=U.IUIAutomation,
                                            clsctx=comtypes.CLSCTX_INPROC_SERVER)
-            pat = cls._today_pattern()
             deadline = time.time() + cls.WAIT_SEC
-            time.sleep(4)                                    # Edge가 뜰 시간
+            time.sleep(4)                                      # Edge가 뜰 시간
             while time.time() < deadline:
+                if cls._popup_open():                          # 이미 떠 있으면 또 누르지 않음
+                    result = "ok"
+                    break
                 done = False
-                for hwnd in cls._windows():
+                for hwnd, _title in cls._windows("인사랑"):
                     for h in [hwnd] + cls._ie_children(hwnd):
                         try:
-                            r = cls._try_press(ui, U, h, pat)
+                            r = cls._try_open(ui, U, h)
                         except Exception:
                             r = None
                         if r == "ok":
-                            result, done = "ok", True
+                            done = True
                             break
                         if r == "multi":
-                            result = "초과근무기록 항목이 여러 개라 열지 않았습니다. 본창에서 직접 열어 주세요."
+                            result = "'초과근무기록' 버튼이 여러 개라 누르지 않았습니다. 본창에서 직접 눌러 주세요."
                     if done:
                         break
                 if done:
+                    t_end = time.time() + 10                   # 팝업이 떴는지 확인 (다시 누르지는 않음)
+                    result = "'초과근무기록' 버튼은 눌렀지만 기록 팝업이 뜬 것은 확인하지 못했습니다. 화면을 확인해 주세요."
+                    while time.time() < t_end:
+                        if cls._popup_open():
+                            result = "ok"
+                            break
+                        time.sleep(1)
                     break
                 time.sleep(2.5)
         except Exception:
-            result = "화면 읽기(접근성)를 시작하지 못했습니다. 본창에서 직접 열어 주세요."
+            result = "화면 읽기(접근성)를 시작하지 못했습니다. 본창에서 직접 눌러 주세요."
         finally:
             cls.running = False
             try:
@@ -6600,7 +6642,7 @@ class AlarmDialog:
         r3.pack(fill="x", pady=(6, 0))
         ttk.Checkbutton(r3, text="🏢 알람이 울리면 인사랑도 함께 열기 (행정포털 로그인이 되어 있을 때)",
                         variable=self.open_ins).pack(anchor="w")
-        ttk.Checkbutton(r3, text="   └ 인사랑이 열리면 오늘 '초과근무기록' 창까지 자동으로 열기 (시험 기능)",
+        ttk.Checkbutton(r3, text="   └ 인사랑이 열리면 '초과근무기록' 버튼을 눌러 팝업까지 자동으로 띄우기 (시험 기능)",
                         variable=self.open_rec).pack(anchor="w")
         ttk.Label(vf, text="※ 팝업의 [확인]·[알람 끄기]를 누르면 음성과 노래가 멈춥니다. 노래는 끌 때까지 반복됩니다.\n"
                            "   mp3·wav·wma·m4a 파일을 쓸 수 있고, [지금 시험해 보기]로 미리 들어 볼 수 있습니다.",
