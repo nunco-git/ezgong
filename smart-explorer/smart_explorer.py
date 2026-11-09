@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.15"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.16"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -5589,6 +5589,10 @@ DEFAULT_ALARM = {
     "every": 60, "unit": "분",   # 단순 반복 간격
     "message": "초과근무 체크시간입니다",
     "sound": True,
+    "tts": True,                 # 알림 글을 음성으로 읽어주기 (기본 켜짐)
+    "tts_repeat": 2,             # 음성 반복 횟수
+    "song_on": False,            # 노래 파일 재생
+    "song": "",                  # 노래 파일 경로
     "extra_holidays": "",        # 추가 휴일 (예: 2026-12-31, 2027-01-01)
 }
 # 관공서 공휴일 (대체·임시공휴일 포함). 토·일요일은 따로 넣지 않아도 휴일로 봄
@@ -5985,6 +5989,267 @@ class TrayIcon:
                 pass
 
 
+INSARANG_URL = "https://chungnam.insarang.go.kr/nexin/index.html"
+SSO_PROCS = ("passni.exe", "magicpass.exe")        # 행정포털(SSO) 로그인 프로그램
+
+
+def running_process_names():
+    """실행 중인 프로세스 이름(소문자) 집합. 알 수 없으면 None."""
+    if sys.platform != "win32":
+        return None
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        class PE(ctypes.Structure):
+            _fields_ = [("dwSize", wintypes.DWORD), ("cntUsage", wintypes.DWORD),
+                        ("th32ProcessID", wintypes.DWORD), ("th32DefaultHeapID", ctypes.c_size_t),
+                        ("th32ModuleID", wintypes.DWORD), ("cntThreads", wintypes.DWORD),
+                        ("th32ParentProcessID", wintypes.DWORD), ("pcPriClassBase", ctypes.c_long),
+                        ("dwFlags", wintypes.DWORD), ("szExeFile", ctypes.c_wchar * 260)]
+        k32 = ctypes.windll.kernel32
+        k32.CreateToolhelp32Snapshot.restype = wintypes.HANDLE
+        k32.CreateToolhelp32Snapshot.argtypes = [wintypes.DWORD, wintypes.DWORD]
+        k32.Process32FirstW.argtypes = [wintypes.HANDLE, ctypes.POINTER(PE)]
+        k32.Process32NextW.argtypes = [wintypes.HANDLE, ctypes.POINTER(PE)]
+        k32.CloseHandle.argtypes = [wintypes.HANDLE]
+        snap = k32.CreateToolhelp32Snapshot(0x2, 0)       # TH32CS_SNAPPROCESS
+        if not snap or snap == wintypes.HANDLE(-1).value:
+            return None
+        names = set()
+        try:
+            pe = PE()
+            pe.dwSize = ctypes.sizeof(PE)
+            ok = k32.Process32FirstW(snap, ctypes.byref(pe))
+            while ok:
+                names.add(pe.szExeFile.lower())
+                ok = k32.Process32NextW(snap, ctypes.byref(pe))
+        finally:
+            k32.CloseHandle(snap)
+        return names
+    except Exception:
+        return None
+
+
+def launch_insarang():
+    """Edge로 인사랑을 엽니다(초과근무 알리미와 같은 microsoft-edge: 방식)."""
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            ctypes.windll.shell32.ShellExecuteW.argtypes = [
+                ctypes.c_void_p, ctypes.c_wchar_p, ctypes.c_wchar_p,
+                ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_int]
+            ctypes.windll.shell32.ShellExecuteW.restype = ctypes.c_void_p
+            r = ctypes.windll.shell32.ShellExecuteW(None, "open", "microsoft-edge:" + INSARANG_URL, None, None, 1)
+            if (r or 0) > 32:
+                return True
+        except Exception:
+            pass
+    try:
+        import webbrowser
+        return bool(webbrowser.open(INSARANG_URL))
+    except Exception:
+        return False
+
+
+def open_insarang(parent=None):
+    """🏢 인사랑 열기: 행정포털(SSO) 로그인 상태를 보고 Edge로 인사랑을 엽니다."""
+    procs = running_process_names()
+    if procs is not None and not any(p in procs for p in SSO_PROCS):
+        if not messagebox.askyesno(
+                "인사랑",
+                "행정포털(SSO) 로그인이 확인되지 않았습니다.\n"
+                "먼저 행정포털에 로그인한 뒤 인사랑을 여는 것이 좋습니다.\n\n"
+                "그래도 인사랑을 여시겠습니까?", parent=parent):
+            return False
+    if not launch_insarang():
+        messagebox.showerror("인사랑", "인사랑을 열지 못했습니다.\nEdge 설치와 URL 연결을 확인해 주세요.", parent=parent)
+        return False
+    return True
+
+
+class AlarmAudio:
+    """알람이 울릴 때 ① 알림 글을 음성으로 읽고 ② 노래 파일을 (팝업을 닫을 때까지) 반복 재생"""
+    ALIAS = "seralarm"
+    current = None
+
+    def __init__(self, root, text, tts, repeat, song, on_error=None):
+        self.root = root
+        self.text = (text or "").strip() or "알람입니다"
+        self.left = max(1, min(9, int(repeat))) if tts else 0
+        self.song = song or ""
+        self.on_error = on_error
+        self.voice = None
+        self.ps = None
+        self.mci = False
+        self.wav = False
+        self.song_tried = False
+        self.alive = True
+        self.job = None
+
+    @classmethod
+    def play(cls, app, message, cfg, on_error=None):
+        """cfg: tts·tts_repeat·song_on·song 가 든 사전 (알람 설정)"""
+        cls.halt()
+        tts = bool(cfg.get("tts"))
+        song = (cfg.get("song") or "").strip() if cfg.get("song_on") else ""
+        if not tts and not song:
+            return
+        try:
+            rep = int(cfg.get("tts_repeat", 2))
+        except (TypeError, ValueError):
+            rep = 2
+        cls.current = cls(app.root, message, tts, rep, song, on_error)
+        cls.current._tick()
+
+    @classmethod
+    def halt(cls):
+        a, cls.current = cls.current, None
+        if a is not None:
+            a.stop()
+
+    def _err(self, msg):
+        if self.on_error:
+            try:
+                self.on_error(msg)
+            except Exception:
+                pass
+
+    # --- 음성 ---
+    def _speak(self):
+        try:                                           # ① Windows 음성(SAPI)
+            if self.voice is None:
+                import comtypes.client
+                try:
+                    self.voice = comtypes.client.CreateObject("SAPI.SpVoice", dynamic=True)
+                except TypeError:
+                    self.voice = comtypes.client.CreateObject("SAPI.SpVoice")
+            self.voice.Speak(self.text, 1)             # 1 = 비동기(읽는 동안 화면이 멈추지 않게)
+            return True
+        except Exception:
+            self.voice = None
+        try:                                           # ② 대체: PowerShell 음성 합성
+            env = dict(os.environ, SE_TTS_TEXT=self.text)
+            self.ps = subprocess.Popen(
+                ["powershell", "-NoProfile", "-NonInteractive", "-Command",
+                 "Add-Type -AssemblyName System.Speech;"
+                 "(New-Object System.Speech.Synthesis.SpeechSynthesizer).Speak($env:SE_TTS_TEXT)"],
+                env=env, creationflags=0x08000000)
+            return True
+        except Exception:
+            self.ps = None
+        self._err("음성 읽기를 시작하지 못했습니다. (Windows 음성 기능을 확인해 주세요)")
+        return False
+
+    def _speaking(self):
+        if self.voice is not None:
+            try:
+                return not bool(self.voice.WaitUntilDone(0))
+            except Exception:
+                return False
+        if self.ps is not None:
+            return self.ps.poll() is None
+        return False
+
+    # --- 노래 (윈도우 MCI: mp3·wav·wma·m4a) ---
+    def _mci(self, cmd):
+        import ctypes
+        buf = ctypes.create_unicode_buffer(256)
+        err = ctypes.windll.winmm.mciSendStringW(cmd, buf, 255, 0)
+        return err, buf.value
+
+    def _song_start(self):
+        self.song_tried = True
+        path = self.song
+        if not os.path.isfile(path):
+            self._err("노래 파일을 찾을 수 없습니다:\n" + path)
+            return
+        names = [path]
+        try:
+            import ctypes
+            b = ctypes.create_unicode_buffer(1024)
+            if ctypes.windll.kernel32.GetShortPathNameW(path, b, 1024):
+                names.append(b.value)
+        except Exception:
+            pass
+        try:
+            self._mci("close " + self.ALIAS)
+            for q in names:
+                for typ in ("", " type mpegvideo"):
+                    if self._mci('open "%s"%s alias %s' % (q, typ, self.ALIAS))[0] == 0:
+                        if self._mci("play " + self.ALIAS)[0] == 0:
+                            self.mci = True
+                            return
+                        self._mci("close " + self.ALIAS)
+        except Exception:
+            pass
+        if path.lower().endswith(".wav"):
+            try:
+                import winsound
+                winsound.PlaySound(path, winsound.SND_FILENAME | winsound.SND_ASYNC | winsound.SND_LOOP)
+                self.wav = True
+                return
+            except Exception:
+                pass
+        self._err("노래 파일을 재생하지 못했습니다. (mp3·wav·wma·m4a 파일인지 확인해 주세요)\n" + path)
+
+    def _song_loop(self):
+        if self.mci:
+            err, mode = self._mci("status %s mode" % self.ALIAS)
+            if err == 0 and mode == "stopped":         # 끝나면 처음부터 다시
+                self._mci("seek %s to start" % self.ALIAS)
+                self._mci("play " + self.ALIAS)
+
+    def _tick(self):
+        if not self.alive:
+            return
+        try:
+            if self._speaking():
+                pass
+            elif self.left > 0:
+                self.left -= 1
+                if not self._speak():
+                    self.left = 0
+            elif self.song:
+                if not self.song_tried:
+                    self._song_start()
+                else:
+                    self._song_loop()
+        except Exception:
+            pass
+        try:
+            self.job = self.root.after(700, self._tick)
+        except Exception:
+            self.alive = False
+
+    def stop(self):
+        self.alive = False
+        try:
+            if self.job:
+                self.root.after_cancel(self.job)
+        except Exception:
+            pass
+        try:
+            if self.voice is not None:
+                self.voice.Speak("", 3)                # 읽던 것 중단
+        except Exception:
+            pass
+        try:
+            if self.ps is not None and self.ps.poll() is None:
+                self.ps.terminate()
+        except Exception:
+            pass
+        try:
+            if self.mci:
+                self._mci("stop " + self.ALIAS)
+                self._mci("close " + self.ALIAS)
+            if self.wav:
+                import winsound
+                winsound.PlaySound(None, winsound.SND_PURGE)
+        except Exception:
+            pass
+
+
 def play_alarm_sound():
     if sys.platform == "win32":
         try:
@@ -6037,6 +6302,8 @@ class AlarmPopup:
         ttk.Button(bf, text="확인", style="Big.TButton", command=self.close).pack(side="right")
         ttk.Button(bf, text="알람 끄기", style="BigPlain.TButton",
                    command=lambda: (app.set_alarm_enabled(False), self.close())).pack(side="right", padx=8)
+        ttk.Button(bf, text="🏢 인사랑 열기", style="BigPlain.TButton",
+                   command=lambda: self.close() if open_insarang(w) else None).pack(side="right", padx=(0, 8))
         w.bind("<Escape>", lambda e: self.close())
         w.bind("<Return>", lambda e: self.close())
         w.update_idletasks()
@@ -6051,6 +6318,7 @@ class AlarmPopup:
         w.after(200, lambda: (w.lift(), w.focus_force()))
 
     def close(self):
+        AlarmAudio.halt()                              # 읽던 음성·노래도 함께 멈춤
         try:
             self.win.grab_release()
         except tk.TclError:
@@ -6129,27 +6397,49 @@ class AlarmDialog:
         ttk.Checkbutton(b, text="소리 내기", variable=self.sound).grid(row=4, column=1, columnspan=2, sticky="w", pady=(4, 0))
         ttk.Button(b, text="지금 시험해 보기", command=self.test).grid(row=4, column=3, sticky="e", pady=(4, 0))
 
-        ttk.Separator(b).grid(row=5, column=0, columnspan=4, sticky="ew", pady=10)
-        ttk.Label(b, text="🚀 실행", font=bold).grid(row=6, column=0, columnspan=4, sticky="w")
+        # 🔊 음성·노래로 알리기 (row 5)
+        vf = ttk.LabelFrame(b, text=" 🔊 음성·노래로 알리기 ", padding=(8, 4))
+        vf.grid(row=5, column=0, columnspan=4, sticky="ew", pady=(8, 0))
+        self.tts = tk.BooleanVar(value=a.get("tts", True))
+        self.tts_rep = tk.StringVar(value=str(a.get("tts_repeat", 2)))
+        self.song_on = tk.BooleanVar(value=a.get("song_on", False))
+        self.song = tk.StringVar(value=a.get("song", ""))
+        r1 = ttk.Frame(vf)
+        r1.pack(fill="x")
+        ttk.Checkbutton(r1, text="알림 글을 음성으로 읽어주기", variable=self.tts).pack(side="left")
+        ttk.Label(r1, text="   반복").pack(side="left")
+        ttk.Spinbox(r1, from_=1, to=9, width=3, textvariable=self.tts_rep).pack(side="left", padx=3)
+        ttk.Label(r1, text="회").pack(side="left")
+        r2 = ttk.Frame(vf)
+        r2.pack(fill="x", pady=(4, 0))
+        ttk.Checkbutton(r2, text="노래 파일 재생", variable=self.song_on).pack(side="left")
+        ttk.Entry(r2, textvariable=self.song, width=30).pack(side="left", padx=(6, 4), fill="x", expand=True)
+        ttk.Button(r2, text="찾기…", command=self.pick_song).pack(side="left")
+        ttk.Label(vf, text="※ 팝업의 [확인]·[알람 끄기]를 누르면 음성과 노래가 멈춥니다. 노래는 끌 때까지 반복됩니다.\n"
+                           "   mp3·wav·wma·m4a 파일을 쓸 수 있고, [지금 시험해 보기]로 미리 들어 볼 수 있습니다.",
+                  foreground="#888").pack(fill="x", pady=(4, 0))
+
+        ttk.Separator(b).grid(row=6, column=0, columnspan=4, sticky="ew", pady=10)
+        ttk.Label(b, text="🚀 실행", font=bold).grid(row=7, column=0, columnspan=4, sticky="w")
         self.auto = tk.BooleanVar(value=autostart_enabled())
         ttk.Checkbutton(b, text="윈도우를 켜면 자동으로 실행 (트레이에 숨긴 채로 시작)", variable=self.auto).grid(
-            row=7, column=0, columnspan=4, sticky="w", pady=(4, 0))
+            row=8, column=0, columnspan=4, sticky="w", pady=(4, 0))
         self.tray = tk.BooleanVar(value=app.s.get("close_to_tray", True))
         txt = "닫기(X)를 누르면 끝내지 않고 트레이(시계 옆 아이콘)에 숨기기"
         cb = ttk.Checkbutton(b, text=txt, variable=self.tray)
-        cb.grid(row=8, column=0, columnspan=4, sticky="w", pady=(2, 0))
+        cb.grid(row=9, column=0, columnspan=4, sticky="w", pady=(2, 0))
         if not app.tray.ok:
             cb.state(["disabled"])
             ttk.Label(b, text="※ 트레이 기능을 쓰려면 pystray 패키지가 필요합니다", foreground="#b0412b").grid(
-                row=9, column=0, columnspan=4, sticky="w")
+                row=10, column=0, columnspan=4, sticky="w")
 
-        ttk.Separator(b).grid(row=10, column=0, columnspan=4, sticky="ew", pady=10)
+        ttk.Separator(b).grid(row=11, column=0, columnspan=4, sticky="ew", pady=10)
         ttk.Label(b, text="⌨ 바로 실행 단축키 (어디서든 누르면 스마트탐색기가 앞으로 나옴)", font=bold).grid(
-            row=11, column=0, columnspan=4, sticky="w")
+            row=12, column=0, columnspan=4, sticky="w")
         self.hk_en = tk.BooleanVar(value=hk.get("enabled", True))
-        ttk.Checkbutton(b, text="사용", variable=self.hk_en).grid(row=12, column=0, sticky="w", pady=(4, 0))
+        ttk.Checkbutton(b, text="사용", variable=self.hk_en).grid(row=13, column=0, sticky="w", pady=(4, 0))
         mf = ttk.Frame(b)
-        mf.grid(row=12, column=1, columnspan=3, sticky="w", pady=(4, 0))
+        mf.grid(row=13, column=1, columnspan=3, sticky="w", pady=(4, 0))
         self.mods = {}
         for k, n in (("ctrl", "Ctrl"), ("alt", "Alt"), ("shift", "Shift"), ("win", "Win")):
             self.mods[k] = tk.BooleanVar(value=hk.get(k, False))
@@ -6158,10 +6448,10 @@ class AlarmDialog:
         self.key = tk.StringVar(value=hk.get("key", "E"))
         ttk.Combobox(mf, textvariable=self.key, values=HOTKEY_KEYS, state="readonly", width=6).pack(side="left")
         ttk.Button(b, text="바탕화면에 바로가기 만들기", command=self.shortcut).grid(
-            row=13, column=0, columnspan=4, sticky="w", pady=(10, 0))
+            row=14, column=0, columnspan=4, sticky="w", pady=(10, 0))
 
         self.status = ttk.Label(b, text="", foreground="#b0412b", wraplength=420)
-        self.status.grid(row=14, column=0, columnspan=4, sticky="w", pady=(8, 0))
+        self.status.grid(row=15, column=0, columnspan=4, sticky="w", pady=(8, 0))
         bf = ttk.Frame(w, padding=(14, 0, 14, 12))
         bf.pack(fill="x")
         ttk.Button(bf, text="취소", command=w.destroy).pack(side="right")
@@ -6185,13 +6475,25 @@ class AlarmDialog:
                 "hd_every": num(self.hd_every, 5, 720, 60),
                 "every": num(self.every, 1, 999, 60), "unit": self.unit.get() or "분",
                 "message": self.msg.get().strip(), "sound": self.sound.get(),
+                "tts": self.tts.get(), "tts_repeat": num(self.tts_rep, 1, 9, 2),
+                "song_on": self.song_on.get(), "song": self.song.get().strip(),
                 "extra_holidays": self.extra.get().strip()}
+
+    def pick_song(self):
+        p = filedialog.askopenfilename(
+            parent=self.win, title="알람으로 쓸 노래 파일",
+            filetypes=[("음악 파일", "*.mp3 *.wav *.wma *.m4a *.aac"), ("모든 파일", "*.*")])
+        if p:
+            self.song.set(os.path.normpath(p))
+            self.song_on.set(True)
 
     def test(self):
         a = self._alarm()
         if a["sound"]:
             play_alarm_sound()
         AlarmPopup(self.app, a["message"])
+        AlarmAudio.play(self.app, a["message"], a,
+                        lambda m: messagebox.showwarning(APP_NAME, m, parent=self.win))
 
     def shortcut(self):
         try:
@@ -6224,7 +6526,7 @@ class AlarmDialog:
 
 
 # ───────────── 쉬는 동안 색인 (문서 내용을 미리 읽어 두기) ─────────────
-DEFAULT_INDEX = {"enabled": True, "folders": [], "idle_min": 3, "every_hours": 2, "ocr": True}
+DEFAULT_INDEX = {"enabled": True, "folders": [], "idle_min": 3, "every_hours": 2, "ocr": True, "on_start": True}
 INDEX_SKIP_EXTS = set(IMAGE_EXTS)              # 글자 인식을 끄면 그림은 색인에서 뺌
 
 
@@ -6322,11 +6624,14 @@ class IdleIndexer:
 
     def _loop(self):
         self.force_mode = False
-        self.force.wait(20)                        # 프로그램을 켜고 조금 뒤부터 ('지금 색인'이면 바로)
+        self.force.wait(4)                         # 화면이 뜬 뒤 잠깐만 기다렸다가 시작 ('지금 색인'이면 바로)
+        # 프로그램을 켜면 바로 한 번 색인 (윈도우 시작 때 트레이로 자동 실행된 경우는 PC를 쉴 때까지 기다림)
+        startup = bool(self.cfg.get("enabled", True) and self.cfg.get("on_start", True)) and "--tray" not in sys.argv
         while not self.stop_flag.is_set():
             due = time.time() - self.last_finish >= max(0.25, self.cfg.get("every_hours", 2)) * 3600
-            if self.force.is_set() or (self.cfg.get("enabled", True) and due and not self._busy()):
-                self.force_mode = self.force.is_set()
+            if self.force.is_set() or startup or (self.cfg.get("enabled", True) and due and not self._busy()):
+                self.force_mode = self.force.is_set() or startup
+                startup = False
                 self.force.clear()
                 try:
                     self._pass()
@@ -6533,7 +6838,7 @@ class IndexDialog:
         bold = (FONT[0], fsz(10), "bold")
         ttk.Label(b, text="🗂 쉬는 동안 색인", font=bold).grid(row=0, column=0, columnspan=3, sticky="w")
         ttk.Label(b, text="PC를 쓰지 않는 동안 아래 폴더의 문서 내용을 미리 읽어 두면, 검색할 때 바로 찾습니다.\n"
-                          "키보드·마우스를 만지면 곧바로 멈추고, 다시 쉬면 이어서 합니다.",
+                          "프로그램을 켜면 바로 한 번 시작하고, 이후에는 키보드·마우스를 만지면 곧바로 멈췄다가 다시 쉬면 이어서 합니다.",
                   foreground="#666").grid(row=1, column=0, columnspan=3, sticky="w", pady=(2, 8))
         self.en = tk.BooleanVar(value=c.get("enabled", True))
         ttk.Checkbutton(b, text="쉬는 동안 자동으로 색인", variable=self.en).grid(row=2, column=0, columnspan=3, sticky="w")
@@ -6549,10 +6854,15 @@ class IndexDialog:
         self.ocr = tk.BooleanVar(value=c.get("ocr", True))
         of = ttk.Frame(b)
         of.grid(row=4, column=0, columnspan=3, sticky="w", pady=(4, 0))
-        ttk.Checkbutton(of, text="스캔 PDF·그림 글자도 미리 인식해서 색인 (본문을 다 읽은 뒤 천천히)", variable=self.ocr).pack(side="left")
+        of1 = ttk.Frame(of)
+        of1.pack(anchor="w")
+        ttk.Checkbutton(of1, text="스캔 PDF·그림 글자도 미리 인식해서 색인 (본문을 다 읽은 뒤 천천히)", variable=self.ocr).pack(side="left")
         ocr_engine()
         if _ocr["no_korean"]:
-            ttk.Button(of, text="⚠ 한국어 OCR 설치…", command=lambda: app.ocr_missing(force=True)).pack(side="left", padx=(6, 0))
+            ttk.Button(of1, text="⚠ 한국어 OCR 설치…", command=lambda: app.ocr_missing(force=True)).pack(side="left", padx=(6, 0))
+        self.on_start = tk.BooleanVar(value=c.get("on_start", True))
+        ttk.Checkbutton(of, text="프로그램을 켜면 바로 색인 시작 (이후에는 PC를 쉬는 동안 자동으로 이어서)",
+                        variable=self.on_start).pack(anchor="w", pady=(2, 0))
 
         ttk.Label(b, text="색인할 폴더", font=bold).grid(row=5, column=0, columnspan=3, sticky="w", pady=(10, 2))
         lf = ttk.Frame(b)
@@ -6612,7 +6922,8 @@ class IndexDialog:
             except ValueError:
                 return d
         cfg = {"enabled": self.en.get(), "folders": list(self.lb.get(0, "end")),
-               "idle_min": num(self.idle, 1, 60, 3), "every_hours": num(self.every, 1, 48, 2), "ocr": self.ocr.get()}
+               "idle_min": num(self.idle, 1, 60, 3), "every_hours": num(self.every, 1, 48, 2), "ocr": self.ocr.get(),
+               "on_start": self.on_start.get()}
         self.app.indexer.cfg = dict(DEFAULT_INDEX, **cfg)
         self.app.s["index"] = cfg
         self.app.schedule_save()
@@ -6657,7 +6968,7 @@ GUIDE = [
      "목록과 미리보기 사이 경계를 끌어 크기를 조절하면 오른쪽·아래 각각 따로 기억합니다."),
     ("🗂 쉬는 동안 색인",
      "PC를 몇 분 동안 쓰지 않으면 바탕화면·문서·다운로드와 📌 고정한 폴더의 문서 내용을 미리 읽어 둡니다. "
-     "그러면 처음 검색할 때도 바로 찾습니다. 키보드·마우스를 만지면 곧바로 멈춥니다. "
+     "그러면 처음 검색할 때도 바로 찾습니다. 프로그램을 켜면 바로 한 번 시작하고(검색 중에는 잠시 멈춤), 그 뒤로는 PC를 쉬는 동안 자동으로 이어 가며 키보드·마우스를 만지면 곧바로 멈춥니다. "
      "[⚙ 환경설정] → [🗂 색인 설정]에서 폴더와 시간을 바꾸거나 '지금 색인 시작'을 누를 수 있습니다."),
     ("ℹ 사용 집계 안내",
      "프로그램 개선을 위해 하루 한 번, 이 PC에 설치된 프로그램을 구분하는 무작위 번호와 버전만 smartgong.kr 쪽으로 보냅니다. "
@@ -6875,17 +7186,17 @@ class App:
         sm.pack(side="left", padx=(4, 0))
         sm.bind("<<ComboboxSelected>>", lambda e: self.set_split_mode(
             next(k for k, v in self.SPLIT_MODES.items() if v == self.split_var.get())))
-        ttk.Button(bar, text="캐시 비우기", command=self.clear_cache).pack(side="right")
         self._logo = smartgong_logo(bar)
         if self._logo is not None:                     # 스마트공 로고 (누르면 smartgong.kr)
             series = ttk.Label(bar, image=self._logo, cursor="hand2")
         else:
             series = ttk.Label(bar, text="smartgong.kr", foreground="#2a6fdb", cursor="hand2",
                                font=(FONT[0], fsz(9), "underline"))
-        series.pack(side="right", padx=(0, 10))
+        series.pack(side="right", padx=(0, 0))         # 맨 오른쪽
         series.bind("<Button-1>", lambda e: __import__("webbrowser").open("https://smartgong.kr"))
-        ttk.Button(bar, text="ⓘ 사용 안내", command=self.show_guide).pack(side="right", padx=(0, 10))
+        ttk.Button(bar, text="ⓘ 사용 안내", command=self.show_guide).pack(side="right", padx=(10, 10))
         ttk.Button(bar, text="⚙ 환경설정", command=lambda: SettingsDialog(self)).pack(side="right", padx=(0, 4))
+        ttk.Button(bar, text="🏢 인사랑", command=lambda: open_insarang(self.root)).pack(side="right", padx=(0, 4))
         self.update_var = tk.StringVar(value="")
         self.update_slot = ttk.Frame(bar)                 # 새 버전이 있을 때만 [업데이트 필요] 버튼이 나타남
         self.update_slot.pack(side="right", padx=(0, 10))
@@ -7235,6 +7546,7 @@ class App:
         if self.alarm.get("sound", True):
             play_alarm_sound()
         AlarmPopup(self, self.alarm.get("message", ""))
+        AlarmAudio.play(self, self.alarm.get("message", ""), self.alarm)
 
     def ocr_missing(self, force=False):
         """한국어 OCR이 없는 PC: 색인할 때 설치 안내 창 (하루 한 번, '다시 보지 않기' 가능)"""
