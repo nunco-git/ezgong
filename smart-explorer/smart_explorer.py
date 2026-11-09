@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.19"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.20"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -5594,7 +5594,7 @@ DEFAULT_ALARM = {
     "song_on": False,            # 노래 파일 재생
     "song": "",                  # 노래 파일 경로
     "open_insarang": False,      # 알람이 울릴 때 인사랑도 함께 열기
-    "open_record": False,        # 인사랑이 열리면 '초과근무기록' 버튼을 눌러 팝업까지 자동으로 띄우기 (시험 기능)
+    "open_record": True,         # 인사랑이 열리면 '초과근무기록' 버튼을 눌러 팝업까지 자동으로 띄우기 (시험 기능)
     "extra_holidays": "",        # 추가 휴일 (예: 2026-12-31, 2027-01-01)
 }
 # 관공서 공휴일 (대체·임시공휴일 포함). 토·일요일은 따로 넣지 않아도 휴일로 봄
@@ -6086,15 +6086,17 @@ def open_insarang(parent=None, with_record=False, root=None, quiet=False):
 
 
 class InsarangRecordOpener:
-    """인사랑 본창(Edge)에서 '초과근무기록' 버튼을 눌러 기록 팝업을 띄워 줍니다.
-    화면 읽기 기능(Windows 접근성/UI Automation)을 쓰며, 버튼을 못 찾거나 여러 개면 아무것도 누르지 않고 끝납니다.
-    (누르는 것은 '초과근무기록' 버튼 하나뿐이고, 입력·저장·결재 같은 동작은 하지 않습니다.)"""
+    """인사랑 본창(Edge)에서 '초과근무기록' 버튼을 눌러 '초과근무기록관리 팝업'을 띄워 줍니다.
+    화면 읽기 기능(Windows 접근성/UI Automation)으로 버튼을 찾고, 프로그램이 '누르기' 신호를 보냅니다.
+    (마우스를 움직여 좌표를 클릭하지는 않습니다. 못 찾거나 후보가 여러 개면 아무것도 누르지 않고,
+     입력·저장·퇴근확인 같은 동작은 하지 않습니다.)"""
     running = False
     WAIT_SEC = 90
-    BUTTON_NAME = re.compile(r"^\s*초과근무\s*기록\s*$")                       # 본창의 '초과근무기록' 버튼
-    # 버튼처럼 눌리는 요소를 먼저 보고, 없으면 글자 조각(Text)을 찾아 위쪽 부모를 누른다
-    PRESS_TYPES = ("UIA_ButtonControlTypeId", "UIA_HyperlinkControlTypeId", "UIA_MenuItemControlTypeId",
-                   "UIA_TabItemControlTypeId", "UIA_ListItemControlTypeId")
+    BTN_NAME = "초과근무기록"            # 본창의 버튼 (퇴근확인 버튼 바로 아래)
+    ANCHOR_NAME = "퇴근확인"             # 위치를 가늠하는 기준 버튼 (누르지 않음)
+    POPUP_NAME = "초과근무기록관리 팝업"   # 눌렀을 때 뜨는 팝업의 제목
+    NAME_RE = re.compile(r"^\s*초과근무\s*기록\s*$")
+    DEBUG_FILE = os.path.join(APP_DIR, "insarang_debug.txt")
 
     @classmethod
     def start(cls, root=None, on_result=None):
@@ -6104,14 +6106,8 @@ class InsarangRecordOpener:
         threading.Thread(target=cls._run, args=(root, on_result), daemon=True).start()
 
     @staticmethod
-    def _title_pattern():
-        """기록 팝업 제목: '2026년 11월 10일 초과근무기록'"""
-        t = time.localtime()
-        return re.compile(r"%d\s*년\s*0?%d\s*월\s*0?%d\s*일\s*초과근무기록" % (t.tm_year, t.tm_mon, t.tm_mday))
-
-    @staticmethod
     def _windows(title_has=None):
-        """보이는 Edge(Chrome_WidgetWin_1) 창의 (핸들, 제목). title_has: 제목에 들어갈 글자(정규식 또는 문자열)"""
+        """보이는 Edge(Chrome_WidgetWin_1) 창의 (핸들, 제목). title_has=None 이면 전부"""
         import ctypes
         from ctypes import wintypes
         user32 = ctypes.windll.user32
@@ -6127,10 +6123,8 @@ class InsarangRecordOpener:
                         n = user32.GetWindowTextLengthW(hwnd)
                         buf = ctypes.create_unicode_buffer(n + 1)
                         user32.GetWindowTextW(hwnd, buf, n + 1)
-                        t = buf.value
-                        ok = (title_has.search(t) if hasattr(title_has, "search") else (title_has in t))
-                        if ok:
-                            found.append((hwnd, t))
+                        if title_has is None or title_has in buf.value:
+                            found.append((hwnd, buf.value))
             except Exception:
                 pass
             return True
@@ -6158,30 +6152,51 @@ class InsarangRecordOpener:
         user32.EnumChildWindows(hwnd, cb_t(cb), 0)
         return found
 
-    @classmethod
-    def _popup_open(cls):
-        """이미 오늘 기록 팝업이 떠 있는지 (창 제목으로 확인)"""
-        try:
-            return bool(cls._windows(cls._title_pattern()))
-        except Exception:
-            return False
+    @staticmethod
+    def _by_name(ui, U, root, name):
+        """root 아래에서 이름이 정확히 name 인 요소들"""
+        cond = ui.CreatePropertyCondition(U.UIA_NamePropertyId, name)
+        arr = root.FindAll(U.TreeScope_Descendants, cond)
+        return [arr.GetElement(i) for i in range(min(arr.Length, 200))]
 
     @classmethod
-    def _find_names(cls, ui, U, handle, types):
-        """handle 아래에서 이름이 '초과근무기록'인 요소 목록 (types: 컨트롤 종류 이름들)"""
-        root = ui.ElementFromHandle(handle)
+    def _scan(cls, ui, U, root, rx, limit=20000):
+        """이름이 정규식 rx 에 맞는 요소들 (모든 요소를 훑음: 느리므로 마지막 수단)"""
+        arr = root.FindAll(U.TreeScope_Descendants, ui.CreateTrueCondition())
         hits = []
-        for tname in types:
-            cond = ui.CreatePropertyCondition(U.UIA_ControlTypePropertyId, getattr(U, tname))
-            arr = root.FindAll(U.TreeScope_Descendants, cond)
-            for i in range(min(arr.Length, 4000)):
+        for i in range(min(arr.Length, limit)):
+            try:
                 el = arr.GetElement(i)
-                try:
-                    if cls.BUTTON_NAME.match(el.CurrentName or ""):
-                        hits.append(el)
-                except Exception:
-                    pass
+                if rx.match(el.CurrentName or ""):
+                    hits.append(el)
+            except Exception:
+                pass
         return hits
+
+    @staticmethod
+    def _rect(el):
+        r = el.CurrentBoundingRectangle
+        return r.left, r.top, r.right, r.bottom
+
+    @classmethod
+    def _choose(cls, ui, U, root, hits):
+        """후보 중 하나를 고른다. 하나뿐이면 그것, 여러 개면 '퇴근확인' 버튼 바로 아래에 있는 것."""
+        if len(hits) == 1:
+            return hits[0]
+        try:
+            anchors = cls._by_name(ui, U, root, cls.ANCHOR_NAME)
+            best, best_d = None, None
+            for a in anchors:
+                al, at, ar, ab = cls._rect(a)
+                for h in hits:
+                    hl, ht, hr, hb = cls._rect(h)
+                    overlap = min(ar, hr) - max(al, hl)
+                    d = ht - ab
+                    if overlap > 0 and -5 <= d < 400 and (best_d is None or d < best_d):
+                        best, best_d = h, d
+            return best
+        except Exception:
+            return None
 
     @classmethod
     def _press(cls, ui, U, el):
@@ -6212,21 +6227,59 @@ class InsarangRecordOpener:
         return False
 
     @classmethod
-    def _try_open(cls, ui, U, handle):
-        """반환: 'ok'(눌렀음) / 'multi'(후보가 여러 개) / None(못 찾음)"""
-        hits = cls._find_names(ui, U, handle, cls.PRESS_TYPES)
-        if not hits:                                           # 버튼 종류로는 없고 글자 조각만 노출되는 경우
-            hits = cls._find_names(ui, U, handle, ("UIA_TextControlTypeId",))
-        if not hits:
+    def _popup_open(cls, ui, U, handles):
+        for h in handles:
+            try:
+                if cls._by_name(ui, U, ui.ElementFromHandle(h), cls.POPUP_NAME):
+                    return True
+            except Exception:
+                pass
+        return False
+
+    @classmethod
+    def _dump(cls, ui, U, note):
+        """안 될 때 원인을 찾을 수 있게 화면 요소 정보를 파일로 남긴다 (개인정보는 담지 않고, 이름에 초과·퇴근·기록이 든 요소만)"""
+        try:
+            os.makedirs(APP_DIR, exist_ok=True)
+            lines = ["[%s] %s v%s" % (time.strftime("%Y-%m-%d %H:%M:%S"), APP_NAME, APP_VERSION), note, "", "-- Edge 창 --"]
+            wins = cls._windows()
+            for hwnd, t in wins:
+                lines.append("hwnd=%s  제목=%s" % (hwnd, t))
+            kw = re.compile(r"초과|퇴근|기록|근무")
+            for hwnd, t in wins:
+                if "인사랑" not in t:
+                    continue
+                lines.append("")
+                lines.append("-- 인사랑 창 %s: 이름에 초과/퇴근/기록/근무가 든 요소 --" % hwnd)
+                try:
+                    arr = ui.ElementFromHandle(hwnd).FindAll(U.TreeScope_Descendants, ui.CreateTrueCondition())
+                    lines.append("전체 요소 수: %d" % arr.Length)
+                    n = 0
+                    for i in range(min(arr.Length, 20000)):
+                        el = arr.GetElement(i)
+                        nm = el.CurrentName or ""
+                        if kw.search(nm):
+                            lines.append("종류=%s 이름=%r 클래스=%r 위치=%s" % (
+                                el.CurrentLocalizedControlType, nm[:60], el.CurrentClassName, cls._rect(el)))
+                            n += 1
+                            if n >= 60:
+                                break
+                except Exception as e:
+                    lines.append("읽기 실패: %r" % (e,))
+                for ie in cls._ie_children(hwnd):
+                    lines.append("IE 모드 화면 핸들: %s" % ie)
+            with open(cls.DEBUG_FILE, "w", encoding="utf-8") as f:
+                f.write("\n".join(lines) + "\n")
+            return cls.DEBUG_FILE
+        except Exception:
             return None
-        if len(hits) > 1:
-            return "multi"                                     # 어느 것인지 알 수 없으면 누르지 않음
-        return "ok" if cls._press(ui, U, hits[0]) else None
 
     @classmethod
     def _run(cls, root, on_result):
         result = "시간 안에 인사랑 화면에서 '초과근무기록' 버튼을 찾지 못했습니다. 본창에서 직접 눌러 주세요."
         comtypes = None
+        ui = U = None
+        ok = False
         try:
             import comtypes
             import comtypes.client
@@ -6237,36 +6290,55 @@ class InsarangRecordOpener:
                                            clsctx=comtypes.CLSCTX_INPROC_SERVER)
             deadline = time.time() + cls.WAIT_SEC
             time.sleep(4)                                      # Edge가 뜰 시간
-            while time.time() < deadline:
-                if cls._popup_open():                          # 이미 떠 있으면 또 누르지 않음
-                    result = "ok"
+            attempt = 0
+            while time.time() < deadline and not ok:
+                attempt += 1
+                wins = [h for h, _t in cls._windows("인사랑")]
+                handles = []
+                for w in wins:
+                    handles += [w] + cls._ie_children(w)
+                if handles and cls._popup_open(ui, U, handles):    # 이미 떠 있으면 또 누르지 않음
+                    ok = True
                     break
-                done = False
-                for hwnd, _title in cls._windows("인사랑"):
-                    for h in [hwnd] + cls._ie_children(hwnd):
-                        try:
-                            r = cls._try_open(ui, U, h)
-                        except Exception:
-                            r = None
-                        if r == "ok":
-                            done = True
-                            break
-                        if r == "multi":
-                            result = "'초과근무기록' 버튼이 여러 개라 누르지 않았습니다. 본창에서 직접 눌러 주세요."
-                    if done:
+                for h in handles:
+                    try:
+                        root_el = ui.ElementFromHandle(h)
+                        hits = cls._by_name(ui, U, root_el, cls.BTN_NAME)
+                        if not hits and attempt % 3 == 0:          # 이름이 조금 다르게 읽히는 경우를 대비
+                            hits = cls._scan(ui, U, root_el, cls.NAME_RE)
+                        if not hits:
+                            continue
+                        target = cls._choose(ui, U, root_el, hits)
+                        if target is None:
+                            result = "'초과근무기록' 버튼이 여러 개라 어느 것인지 알 수 없어 누르지 않았습니다. 본창에서 직접 눌러 주세요."
+                            continue
+                        if not cls._press(ui, U, target):
+                            result = "'초과근무기록' 버튼을 찾았지만 눌러지지 않았습니다. 본창에서 직접 눌러 주세요."
+                            continue
+                        result = "'초과근무기록' 버튼은 눌렀지만 팝업이 뜬 것은 확인하지 못했습니다. 화면을 확인해 주세요."
+                        t_end = time.time() + 10
+                        while time.time() < t_end:
+                            if cls._popup_open(ui, U, handles):
+                                ok = True
+                                break
+                            time.sleep(1)
+                        deadline = 0                           # 한 번 눌렀으면 다시 누르지 않고 마친다
                         break
-                if done:
-                    t_end = time.time() + 10                   # 팝업이 떴는지 확인 (다시 누르지는 않음)
-                    result = "'초과근무기록' 버튼은 눌렀지만 기록 팝업이 뜬 것은 확인하지 못했습니다. 화면을 확인해 주세요."
-                    while time.time() < t_end:
-                        if cls._popup_open():
-                            result = "ok"
-                            break
-                        time.sleep(1)
+                    except Exception:
+                        continue
+                if ok or deadline == 0:
                     break
                 time.sleep(2.5)
-        except Exception:
+        except Exception as e:
             result = "화면 읽기(접근성)를 시작하지 못했습니다. 본창에서 직접 눌러 주세요."
+            result += "\n(%r)" % (e,)
+        try:
+            if not ok and ui is not None:
+                path = cls._dump(ui, U, result)
+                if path:
+                    result += "\n\n원인 확인용 기록: " + path
+        except Exception:
+            pass
         finally:
             cls.running = False
             try:
@@ -6276,7 +6348,7 @@ class InsarangRecordOpener:
                 pass
         if on_result:
             try:
-                on_result(result)
+                on_result("ok" if ok else result)
             except Exception:
                 pass
 
@@ -6284,7 +6356,7 @@ class InsarangRecordOpener:
 def alarm_extras(app, cfg, on_error=None, quiet_insarang=True):
     """알람이 울릴 때(또는 시험할 때) 소리 말고 하는 일: 음성·노래, 인사랑 자동 열기"""
     AlarmAudio.play(app, cfg.get("message", ""), cfg, on_error)
-    if cfg.get("open_insarang") or cfg.get("open_record"):
+    if cfg.get("open_insarang"):
         app.root.after(1200, lambda: open_insarang(
             None, with_record=bool(cfg.get("open_record")), root=app.root, quiet=quiet_insarang))
 
@@ -6626,7 +6698,7 @@ class AlarmDialog:
         self.song_on = tk.BooleanVar(value=a.get("song_on", False))
         self.song = tk.StringVar(value=a.get("song", ""))
         self.open_ins = tk.BooleanVar(value=a.get("open_insarang", False))
-        self.open_rec = tk.BooleanVar(value=a.get("open_record", False))
+        self.open_rec = tk.BooleanVar(value=a.get("open_record", True))
         r1 = ttk.Frame(vf)
         r1.pack(fill="x")
         ttk.Checkbutton(r1, text="알림 글을 음성으로 읽어주기", variable=self.tts).pack(side="left")
@@ -6642,7 +6714,7 @@ class AlarmDialog:
         r3.pack(fill="x", pady=(6, 0))
         ttk.Checkbutton(r3, text="🏢 알람이 울리면 인사랑도 함께 열기 (행정포털 로그인이 되어 있을 때)",
                         variable=self.open_ins).pack(anchor="w")
-        ttk.Checkbutton(r3, text="   └ 인사랑이 열리면 '초과근무기록' 버튼을 눌러 팝업까지 자동으로 띄우기 (시험 기능)",
+        ttk.Checkbutton(r3, text="   └ 인사랑이 열리면 '초과근무기록' 버튼을 눌러 팝업까지 띄우기 (🏢 인사랑 버튼에도 적용)",
                         variable=self.open_rec).pack(anchor="w")
         ttk.Label(vf, text="※ 팝업의 [확인]·[알람 끄기]를 누르면 음성과 노래가 멈춥니다. 노래는 끌 때까지 반복됩니다.\n"
                            "   mp3·wav·wma·m4a 파일을 쓸 수 있고, [지금 시험해 보기]로 미리 들어 볼 수 있습니다.",
