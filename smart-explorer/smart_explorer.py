@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.28"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.29"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -4003,8 +4003,10 @@ class SearchPane(tk.Frame):
         paned.pack(fill="both", expand=True)
 
         tf = ttk.Frame(inner)              # 경계창을 다시 만들 수 있게 경계창의 부모(inner) 아래에 만듦
-        self.tree = ttk.Treeview(tf, columns=("name", "count", "mtime", "folder"), show="headings",
+        self.tree = ttk.Treeview(tf, columns=("name", "count", "mtime", "folder"), show="tree headings",
                                  selectmode="extended")
+        self.tree.heading("#0", text="")
+        self.tree.column("#0", width=0, minwidth=0, stretch=False)       # 폴더 아이콘 자리 (폴더 보기에서만 보임)
         ys = ttk.Scrollbar(tf, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=ys.set)
         ys.pack(side="right", fill="y")
@@ -4076,6 +4078,8 @@ class SearchPane(tk.Frame):
         if self.mode == mode:
             return
         self.mode = mode
+        iw = int(self.tree.winfo_fpixels("1i") / 96 * 24) if mode == "browse" else 0
+        self.tree.column("#0", width=iw, minwidth=0, stretch=False)
         for c, t, w, anchor, stretch in self.COLS[mode]:
             self.tree.heading(c, text=t, command=lambda c=c: self.sort_by(c))
             self.tree.column(c, width=w, minwidth=40, anchor=anchor, stretch=stretch)
@@ -4367,8 +4371,9 @@ class SearchPane(tk.Frame):
         for i, h in enumerate(items):
             iid = str(i)
             self.hits[iid] = h
-            self.tree.insert("", "end", iid=iid, tags=("dir",) if h["is_dir"] else (), values=(
-                ("📁 " if h["is_dir"] else "") + h["name"], "" if h["is_dir"] else fmt_size(h["size"]),
+            ico = folder_icon(self.tree) if h["is_dir"] else None
+            self.tree.insert("", "end", iid=iid, tags=("dir",) if h["is_dir"] else (), image=ico or "", values=(
+                h["name"], "" if h["is_dir"] else fmt_size(h["size"]),
                 h["mtime"], type_name(h)))
             if os.path.normcase(h["path"]) in keep_n:
                 sel.append(iid)
@@ -4968,6 +4973,7 @@ DEFAULT_THEME = {
     "font_family": "맑은 고딕", "font_size": 10,
     "text_color": "", "bg_color": "", "list_bg": "", "accent": "",   # 비어 있으면 윈도우 기본 모양
     "bg_image": "", "bg_mode": "fill", "bg_dim": True,
+    "folder_color": "",                                          # 폴더 아이콘 색 (비어 있으면 윈도우 탐색기처럼 노란색)
 }
 THEME_PRESETS = {
     "기본(윈도우)": {"text_color": "", "bg_color": "", "list_bg": "", "accent": ""},
@@ -5070,6 +5076,35 @@ def apply_style(root):
                      ("*Menu.activeBackground", ac), ("*Menu.activeForeground", "#ffffff"),
                      ("*Toplevel.background", bg), ("*Listbox.background", lb), ("*Listbox.foreground", fg)):
         root.option_add(pat, val)
+
+
+DEFAULT_FOLDER_COLOR = "#f4c94a"
+_FOLDER_ICONS = {}
+
+
+def folder_icon(widget):
+    """폴더 아이콘(그림). 환경설정의 '폴더 색'으로 그림"""
+    color = THEME.get("folder_color") or DEFAULT_FOLDER_COLOR
+    try:
+        k = max(1, int(round(widget.winfo_fpixels("1i") / 96)))
+    except Exception:
+        k = 1
+    key = (color, k)
+    img = _FOLDER_ICONS.get(key)
+    if img is None:
+        try:
+            back, front, tab = _mix(color, "#000000", 0.18), color, _mix(color, "#000000", 0.28)
+            im = tk.PhotoImage(width=16, height=13)
+            im.put(tab, to=(1, 1, 7, 3))
+            im.put(back, to=(1, 2, 15, 12))
+            im.put(_mix(color, "#ffffff", 0.35), to=(1, 4, 15, 5))
+            im.put(front, to=(1, 5, 15, 12))
+            im.put(_mix(color, "#000000", 0.12), to=(1, 11, 15, 12))
+            img = im.zoom(k, k) if k > 1 else im
+        except Exception:
+            img = None
+        _FOLDER_ICONS[key] = img
+    return img
 
 
 def theme_dir_color():
@@ -5391,7 +5426,8 @@ class SettingsDialog:
         ttk.Label(body, text="색상", font=(FONT[0], fsz(10), "bold")).grid(row=5, column=0, sticky="w")
         self.swatches = {}
         for r, (key, label) in enumerate((("text_color", "글자색"), ("bg_color", "창 배경색"),
-                                           ("list_bg", "목록·글 상자 배경"), ("accent", "강조색(선택 줄·검색 버튼)"))):
+                                           ("list_bg", "목록·글 상자 배경"), ("accent", "강조색(선택 줄·검색 버튼)"),
+                                           ("folder_color", "폴더 아이콘 색"))):
             ttk.Label(body, text=label).grid(row=6 + r, column=0, sticky="w", pady=2)
             sw = tk.Label(body, width=6, relief="solid", borderwidth=1, cursor="hand2")
             sw.grid(row=6 + r, column=1, sticky="w", pady=2)
@@ -5401,29 +5437,29 @@ class SettingsDialog:
             self.swatches[key] = sw
 
         # 배경 그림
-        ttk.Separator(body).grid(row=10, column=0, columnspan=4, sticky="ew", pady=8)
-        ttk.Label(body, text="배경 그림", font=(FONT[0], fsz(10), "bold")).grid(row=11, column=0, sticky="w")
+        ttk.Separator(body).grid(row=11, column=0, columnspan=4, sticky="ew", pady=8)
+        ttk.Label(body, text="배경 그림", font=(FONT[0], fsz(10), "bold")).grid(row=12, column=0, sticky="w")
         self.img_var = tk.StringVar(value=self.t.get("bg_image", ""))
-        ttk.Entry(body, textvariable=self.img_var, width=30, state="readonly").grid(row=11, column=1, columnspan=2, sticky="w")
+        ttk.Entry(body, textvariable=self.img_var, width=30, state="readonly").grid(row=12, column=1, columnspan=2, sticky="w")
         bf = ttk.Frame(body)
-        bf.grid(row=11, column=3, sticky="w")
+        bf.grid(row=12, column=3, sticky="w")
         ttk.Button(bf, text="찾기…", command=self.pick_image).pack(side="left")
         ttk.Button(bf, text="지우기", command=lambda: (self.img_var.set(""), self._sync())).pack(side="left", padx=(2, 0))
-        ttk.Label(body, text="보이는 방식").grid(row=12, column=0, sticky="w", pady=(6, 0))
+        ttk.Label(body, text="보이는 방식").grid(row=13, column=0, sticky="w", pady=(6, 0))
         self.mode_var = tk.StringVar(value=BG_MODES.get(self.t.get("bg_mode", "fill"), "꽉 채우기"))
         mcb = ttk.Combobox(body, textvariable=self.mode_var, values=list(BG_MODES.values()), state="readonly", width=12)
-        mcb.grid(row=12, column=1, sticky="w", pady=(6, 0))
+        mcb.grid(row=13, column=1, sticky="w", pady=(6, 0))
         mcb.bind("<<ComboboxSelected>>", lambda e: self._sync())
         self.dim_var = tk.BooleanVar(value=self.t.get("bg_dim", True))
         ttk.Checkbutton(body, text="흐리게 (글씨가 잘 보이게)", variable=self.dim_var,
-                        command=self._sync).grid(row=12, column=2, columnspan=2, sticky="w", pady=(6, 0))
+                        command=self._sync).grid(row=13, column=2, columnspan=2, sticky="w", pady=(6, 0))
         ttk.Label(body, text="배경 그림은 미리보기가 비어 있을 때(파일을 고르기 전) 보입니다. 위 '빠른 선택'에서 기본 그림을 고를 수 있습니다.",
-                  foreground="#888").grid(row=13, column=0, columnspan=4, sticky="w", pady=(4, 0))
+                  foreground="#888").grid(row=14, column=0, columnspan=4, sticky="w", pady=(4, 0))
 
         # 미리보기
-        ttk.Separator(body).grid(row=14, column=0, columnspan=4, sticky="ew", pady=8)
+        ttk.Separator(body).grid(row=15, column=0, columnspan=4, sticky="ew", pady=8)
         self.sample = tk.Label(body, text="가나다라 ABC 123  —  미리보기", padx=10, pady=8, relief="solid", borderwidth=1)
-        self.sample.grid(row=15, column=0, columnspan=4, sticky="ew")
+        self.sample.grid(row=16, column=0, columnspan=4, sticky="ew")
 
         btns = ttk.Frame(w, padding=(14, 0, 14, 12))
         btns.pack(fill="x")
@@ -5518,7 +5554,7 @@ class SettingsDialog:
         c = colorchooser.askcolor(color=self.t.get(key) or None, parent=self.win, title="색 고르기")[1]
         if c:
             self.t[key] = c
-            if key != "accent" and not self.t.get("accent"):
+            if key not in ("accent", "folder_color") and not self.t.get("accent"):
                 self.t["accent"] = "#2a6fdb"
             self._refresh()
 
@@ -7500,7 +7536,10 @@ class NavPane(ttk.Frame):
 
     # ── 내용 만들기
     def _add(self, parent, text, path, lazy=True):
-        iid = self.tree.insert(parent, "end", text=text, open=False)
+        if text.startswith("📁 "):                          # 폴더는 글자 그림 대신 색을 고를 수 있는 폴더 아이콘
+            iid = self.tree.insert(parent, "end", text=" " + text[2:], image=folder_icon(self.tree) or "", open=False)
+        else:
+            iid = self.tree.insert(parent, "end", text=text, open=False)
         self.paths[iid] = path
         if path and lazy:
             self.tree.insert(iid, "end", text="…")          # 펼칠 때 채움
@@ -7632,7 +7671,10 @@ class NavPane(ttk.Frame):
                 self.tree.delete(ch)
         for idx, (text, pth) in enumerate(items):
             if os.path.normcase(pth) not in have:
-                iid = self.tree.insert(parent, idx, text=text, open=False)
+                if text.startswith("📁 "):
+                    iid = self.tree.insert(parent, idx, text=" " + text[2:], image=folder_icon(self.tree) or "", open=False)
+                else:
+                    iid = self.tree.insert(parent, idx, text=text, open=False)
                 self.paths[iid] = pth
                 self.tree.insert(iid, "end", text="…")
 
