@@ -1,7 +1,7 @@
 {
- "name": "일본어 꼬리잡기",
+ "name": "가나다 일본어",
  "short_name": "일본어",
- "description": "일본어 꼬리잡기 - 스마트공",
+ "description": "가나다 일본어 - 스마트공",
  "start_url": "./index.html?pwa=1",
  "scope": "./",
  "display": "standalone",
