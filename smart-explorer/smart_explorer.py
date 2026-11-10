@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.36"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.37"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -8148,7 +8148,11 @@ class App:
         self.rows_var = tk.StringVar(value=str(lay.get("rows", 1)))
         # 맨 앞: 프로그램 이름과 한 줄 소개
         ttk.Label(bar, text="스마트탐색기", foreground="#b4690e",
-                  font=(FONT[0], fsz(11), "bold")).pack(side="left", padx=(0, 6))
+                  font=(FONT[0], fsz(11), "bold")).pack(side="left", padx=(0, 4))
+        self.hk_var = tk.StringVar()
+        self._hk_label()
+        ttk.Label(bar, textvariable=self.hk_var, foreground="#b4690e",
+                  font=(FONT[0], fsz(9))).pack(side="left", padx=(0, 10))
         ttk.Label(bar, text=INTRO_LINE, foreground="#7a6a52", font=(FONT[0], fsz(9))).pack(side="left", padx=(0, 16))
         ttk.Label(bar, text="화면 분할   가로").pack(side="left")
         for i, var in enumerate((self.cols_var, self.rows_var)):
@@ -8581,10 +8585,19 @@ class App:
     def set_alarm_enabled(self, on):
         self.set_alarm(dict(self.alarm, enabled=on))
 
+    def _hk_label(self):
+        """이름 옆 안내: (바로가기 Ctrl + Shift + E) — 환경설정에서 바꾼 단축키를 따라감, 꺼 두면 표시 안 함"""
+        hk = self.hotkey
+        self.hk_var.set(f"(바로가기 {hotkey_text(hk).replace('+', ' + ')})" if hk.get("enabled", True) else "")
+
     def set_hotkey(self, hk):
         self.hotkey = dict(DEFAULT_HOTKEY, **hk)
         self.s["hotkey"] = self.hotkey
         self.hotkey_ctl.start(self.hotkey)
+        try:
+            self._hk_label()
+        except Exception:
+            pass
         self.schedule_save()
 
     def fire_alarm(self):
