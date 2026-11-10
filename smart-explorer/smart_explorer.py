@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.24"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.25"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -4309,6 +4309,10 @@ class SearchPane(tk.Frame):
         self.app.add_recent(folder)
         self.app.schedule_save()
         self._update_location()
+        try:
+            self.app.nav_sync(folder)
+        except Exception:
+            pass
 
     def go_up(self):
         if not self.cwd:
@@ -7437,6 +7441,188 @@ def load_settings():
         return {}
 
 
+class NavPane(ttk.Frame):
+    """왼쪽 탐색창: 즐겨찾기 + 내 PC(드라이브·폴더 트리). 칸이 1개일 때만 보임.
+    폴더를 누르면 가운데 목록이 그 폴더로 바뀝니다."""
+    QUICK = [("바탕화면", "Desktop"), ("다운로드", "Downloads"), ("문서", "Documents"),
+             ("사진", "Pictures"), ("음악", "Music"), ("동영상", "Videos")]
+
+    def __init__(self, master, app):
+        super().__init__(master)
+        self.app = app
+        self.paths = {}                  # 항목 번호 → 폴더 경로
+        self.loaded = set()
+        self._quiet = False              # 프로그램이 직접 고른 것은 '눌렀다'로 보지 않음
+        top = ttk.Frame(self)
+        top.pack(fill="x", pady=(0, 3))
+        ttk.Button(top, text="★ 지금 폴더를 즐겨찾기에", command=self.add_current).pack(fill="x")
+        body = ttk.Frame(self)
+        body.pack(fill="both", expand=True)
+        self.tree = ttk.Treeview(body, show="tree", selectmode="browse")
+        sb = ttk.Scrollbar(body, orient="vertical", command=self.tree.yview)
+        self.tree.configure(yscrollcommand=sb.set)
+        sb.pack(side="right", fill="y")
+        self.tree.pack(side="left", fill="both", expand=True)
+        self.tree.bind("<<TreeviewOpen>>", self._on_open)
+        self.tree.bind("<<TreeviewSelect>>", self._on_select)
+        self.tree.bind("<Button-3>", self._menu)
+        self.menu = tk.Menu(self, tearoff=0)
+        self.build()
+
+    # ── 내용 만들기
+    def _add(self, parent, text, path, lazy=True):
+        iid = self.tree.insert(parent, "end", text=text, open=False)
+        self.paths[iid] = path
+        if path and lazy:
+            self.tree.insert(iid, "end", text="…")          # 펼칠 때 채움
+        return iid
+
+    @staticmethod
+    def _drives():
+        out = []
+        if sys.platform == "win32":
+            try:
+                import ctypes
+                mask = ctypes.windll.kernel32.GetLogicalDrives()
+                out = [chr(65 + i) + ":\\" for i in range(26) if mask & (1 << i)]
+            except Exception:
+                pass
+        return out or [os.path.abspath(os.sep)]
+
+    @staticmethod
+    def _subdirs(path):
+        names = []
+        try:
+            with os.scandir(path) as it:
+                for e in it:
+                    try:
+                        if not e.is_dir(follow_symlinks=False) or e.name.startswith("$"):
+                            continue
+                        if sys.platform == "win32" and getattr(e.stat(), "st_file_attributes", 0) & 0x6:   # 숨김·시스템
+                            continue
+                        names.append(e.name)
+                    except OSError:
+                        pass
+        except OSError:
+            return []
+        names.sort(key=lambda n: n.lower())
+        return names[:3000]
+
+    def build(self):
+        self.tree.delete(*self.tree.get_children())
+        self.paths.clear()
+        self.loaded.clear()
+        home = os.path.expanduser("~")
+        fav = self.tree.insert("", "end", text="★ 즐겨찾기", open=True)
+        self.fav_root = fav
+        shown = set()
+        for label, sub in self.QUICK:
+            pth = os.path.join(home, sub)
+            if os.path.isdir(pth):
+                self._add(fav, "📁 " + label, pth, lazy=False)
+                shown.add(os.path.normcase(pth))
+        for pth in self.app.s.get("nav_fav", []):
+            if os.path.normcase(pth) not in shown:
+                iid = self._add(fav, "★ " + (os.path.basename(pth.rstrip("\\/")) or pth), pth, lazy=False)
+                shown.add(os.path.normcase(pth))
+        self.user_fav = {i for i in self.paths if os.path.normcase(self.paths[i]) not in
+                         {os.path.normcase(os.path.join(home, s)) for _l, s in self.QUICK}}
+        pc = self.tree.insert("", "end", text="💻 내 PC", open=True)
+        for d in self._drives():
+            self._add(pc, "💾 " + d.rstrip("\\/") if sys.platform == "win32" else "💾 " + d, d)
+        self.pc_root = pc
+
+    def _fill(self, iid):
+        if iid in self.loaded:
+            return
+        self.loaded.add(iid)
+        for ch in self.tree.get_children(iid):
+            self.tree.delete(ch)
+        base = self.paths.get(iid)
+        if not base:
+            return
+        for n in self._subdirs(base):
+            self._add(iid, "📁 " + n, os.path.join(base, n))
+
+    def _on_open(self, _e):
+        iid = self.tree.focus()
+        if iid:
+            self._fill(iid)
+
+    def _on_select(self, _e):
+        if self._quiet:
+            return
+        sel = self.tree.selection()
+        pth = self.paths.get(sel[0]) if sel else None
+        pane = self.app.active or (self.app.panes[0] if self.app.panes else None)
+        if pth and pane is not None:
+            pane.navigate(pth)
+
+    # ── 즐겨찾기
+    def add_current(self):
+        pane = self.app.active or (self.app.panes[0] if self.app.panes else None)
+        cwd = getattr(pane, "cwd", None)
+        if cwd and os.path.isdir(cwd):
+            self.add_fav(cwd)
+
+    def add_fav(self, pth):
+        favs = self.app.s.setdefault("nav_fav", [])
+        if not any(os.path.normcase(f) == os.path.normcase(pth) for f in favs):
+            favs.append(pth)
+            self.app.schedule_save()
+            self.build()
+
+    def remove_fav(self, pth):
+        favs = self.app.s.setdefault("nav_fav", [])
+        self.app.s["nav_fav"] = [f for f in favs if os.path.normcase(f) != os.path.normcase(pth)]
+        self.app.schedule_save()
+        self.build()
+
+    def _menu(self, e):
+        iid = self.tree.identify_row(e.y)
+        pth = self.paths.get(iid) if iid else None
+        if not pth:
+            return
+        self.menu.delete(0, "end")
+        if iid in self.user_fav:
+            self.menu.add_command(label="즐겨찾기에서 빼기", command=lambda: self.remove_fav(pth))
+        else:
+            self.menu.add_command(label="즐겨찾기에 넣기", command=lambda: self.add_fav(pth))
+        self.menu.tk_popup(e.x_root, e.y_root)
+
+    # ── 가운데 목록의 폴더를 따라가며 트리에서도 보여 줌
+    def reveal(self, folder):
+        try:
+            norm = os.path.normcase(os.path.normpath(folder))
+            sel = self.tree.selection()
+            if sel and os.path.normcase(os.path.normpath(self.paths.get(sel[0], ""))) == norm:
+                return
+            drive = os.path.splitdrive(os.path.normpath(folder))[0] + os.sep
+            node = next((i for i in self.tree.get_children(self.pc_root)
+                         if os.path.normcase(self.paths.get(i, "")) == os.path.normcase(drive)), None)
+            if node is None:
+                return
+            cur = os.path.normpath(drive)
+            rest = os.path.normpath(folder)[len(os.path.normpath(drive)):].strip("\\/")
+            for part in [x for x in re.split(r"[\\/]+", rest) if x]:
+                self._fill(node)
+                self.tree.item(node, open=True)
+                cur = os.path.join(cur, part)
+                nxt = next((i for i in self.tree.get_children(node)
+                            if os.path.normcase(self.paths.get(i, "")) == os.path.normcase(cur)), None)
+                if nxt is None:
+                    break
+                node = nxt
+            self._quiet = True
+            try:
+                self.tree.selection_set(node)
+                self.tree.see(node)
+            finally:
+                self.after(50, lambda: setattr(self, "_quiet", False))
+        except Exception:
+            self._quiet = False
+
+
 class App:
     ole_target = None          # 끌어 온 파일 받는 곳 (윈도우)
     drag_source = None
@@ -7617,6 +7803,8 @@ class App:
             notes.append("PDF 패키지 없음")
         if not SHELL_PREVIEW and sys.platform == "win32":
             notes.append("원래 모양 미리보기 불가(comtypes 없음)")
+        self.nav_var = tk.BooleanVar(value=bool(self.s.get("nav_pane", True)))
+        ttk.Checkbutton(bar, text="왼쪽 탐색창 (칸 1개일 때)", variable=self.nav_var, command=self.toggle_nav).pack(side="left", padx=(12, 0))
         self.hint_var = tk.StringVar()
         ttk.Label(bar, textvariable=self.hint_var, foreground="#2a6fdb",
                   font=(FONT[0], fsz(10), "bold")).pack(side="left", padx=12)
@@ -7624,9 +7812,44 @@ class App:
         if notes:
             ttk.Label(bar, text="※ " + ", ".join(notes), foreground="#b0412b",
                       font=(FONT[0], fsz(9))).pack(side="right", padx=(0, 10))
-        self.grid_frame = tk.Frame(self.root)          # 칸들은 place로 배치 (경계를 끌어 크기 조절)
-        self.grid_frame.pack(fill="both", expand=True, padx=5, pady=(2, 5))
+        self.main_pw = ttk.PanedWindow(self.root, orient="horizontal")   # 왼쪽 탐색창 | 칸들
+        self.main_pw.pack(fill="both", expand=True, padx=5, pady=(2, 5))
+        self.grid_frame = tk.Frame(self.main_pw)       # 칸들은 place로 배치 (경계를 끌어 크기 조절)
+        self.main_pw.add(self.grid_frame, weight=1)
+        self.nav = NavPane(self.main_pw, self)
+        self.nav_shown = False
         self.grid_frame.bind("<Configure>", lambda e: self._on_grid_resize())
+
+    def update_nav(self):
+        """왼쪽 탐색창은 칸이 1개이고 켜져 있을 때만 보임"""
+        want = len(self.panes) == 1 and bool(self.s.get("nav_pane", True))
+        if want and not self.nav_shown:
+            self.main_pw.insert(0, self.nav, weight=0)
+            self.nav_shown = True
+            for ms in (60, 400, 1200):
+                self.root.after(ms, self._nav_width)
+            pane = self.panes[0]
+            if getattr(pane, "cwd", None):
+                self.nav.reveal(pane.cwd)
+        elif not want and self.nav_shown:
+            self.main_pw.forget(self.nav)
+            self.nav_shown = False
+
+    def _nav_width(self):
+        try:
+            if self.nav_shown:
+                self.main_pw.sashpos(0, int(self.s.get("nav_w", 230)))
+        except tk.TclError:
+            pass
+
+    def nav_sync(self, folder):
+        if self.nav_shown:
+            self.nav.reveal(folder)
+
+    def toggle_nav(self):
+        self.s["nav_pane"] = bool(self.nav_var.get())
+        self.schedule_save()
+        self.update_nav()
 
     def set_layout(self, cols, rows):
         self.cols_var.set(str(cols))
@@ -7687,6 +7910,7 @@ class App:
         self.schedule_save()
         if self.active is None and self.panes:
             self.set_active(self.panes[0])
+        self.update_nav()
 
     # ───────── 칸 경계 끌어서 크기 조절 ─────────
     SPLIT_W = 6
