@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.21"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.22"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -6129,6 +6129,37 @@ class InsarangRecordOpener:
     POPUP_NAME = "초과근무기록관리 팝업"   # 눌렀을 때 뜨는 팝업의 제목
     NAME_RE = re.compile(r"^\s*초과근무\s*기록\s*$")
     DEBUG_FILE = os.path.join(APP_DIR, "insarang_debug.txt")
+    # 인사랑(넥사크로) 화면의 이 버튼은 글자 이름이 아니라 '요소 아이디'로 찾는 것이 정확합니다
+    # (초과근무 알리미 1.3.4 의 분석 결과: ...divCont0.form.btnWrkRec)
+    BTN_ID = "mainframe.WorkFrame.form.divMain.form.divMain.form.divCont0.form.btnWrkRec"
+    BTN_ID_PART = "btnWrkRec"
+
+    @classmethod
+    def _by_autoid(cls, ui, U, root, limit=60000):
+        """요소 아이디(AutomationId)가 버튼 아이디인 요소들. 정확히 같은 것을 먼저, 없으면 btnWrkRec 가 든 것"""
+        try:
+            cond = ui.CreatePropertyCondition(U.UIA_AutomationIdPropertyId, cls.BTN_ID)
+            arr = root.FindAll(U.TreeScope_Descendants, cond)
+            hits = [arr.GetElement(i) for i in range(min(arr.Length, 50))]
+            if hits:
+                return hits
+        except Exception:
+            pass
+        hits = []
+        try:
+            arr = root.FindAll(U.TreeScope_Descendants, ui.CreateTrueCondition())
+            for i in range(min(arr.Length, limit)):
+                try:
+                    el = arr.GetElement(i)
+                    aid = el.CurrentAutomationId or ""
+                    if cls.BTN_ID_PART in aid:
+                        hits.append((len(aid), el))
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        hits.sort(key=lambda x: x[0])                     # 짧은 아이디(버튼 본체)를 앞으로, 안쪽 글자 요소는 뒤로
+        return [el for _n, el in hits[:10]]
 
     @classmethod
     def start(cls, root=None, on_result=None):
@@ -6290,9 +6321,10 @@ class InsarangRecordOpener:
                     for i in range(min(arr.Length, 20000)):
                         el = arr.GetElement(i)
                         nm = el.CurrentName or ""
-                        if kw.search(nm):
-                            lines.append("종류=%s 이름=%r 클래스=%r 위치=%s" % (
-                                el.CurrentLocalizedControlType, nm[:60], el.CurrentClassName, cls._rect(el)))
+                        aid = el.CurrentAutomationId or ""
+                        if kw.search(nm) or "Wrk" in aid:
+                            lines.append("종류=%s 이름=%r 아이디=%r 클래스=%r 위치=%s" % (
+                                el.CurrentLocalizedControlType, nm[:60], aid[-80:], el.CurrentClassName, cls._rect(el)))
                             n += 1
                             if n >= 60:
                                 break
@@ -6335,7 +6367,11 @@ class InsarangRecordOpener:
                 for h in handles:
                     try:
                         root_el = ui.ElementFromHandle(h)
-                        hits = cls._by_name(ui, U, root_el, cls.BTN_NAME)
+                        hits = cls._by_autoid(ui, U, root_el)
+                        if hits:
+                            hits = hits[:1]                    # 아이디가 정해진 버튼이므로 첫 번째(본체)만
+                        else:
+                            hits = cls._by_name(ui, U, root_el, cls.BTN_NAME)
                         if not hits and attempt % 3 == 0:          # 이름이 조금 다르게 읽히는 경우를 대비
                             hits = cls._scan(ui, U, root_el, cls.NAME_RE)
                         if not hits:
