@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.32"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.33"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -8612,15 +8612,12 @@ class App:
             tx.insert("1.0", info["notes"])
             tx.configure(state="disabled")
             tx.pack(fill="both", expand=True)
-        can_auto = sys.platform == "win32" and getattr(sys, "frozen", False)
-        ttk.Label(f, text=("① [지금 설치]를 누르면 새 파일을 받아 확인한 뒤, 실행 중인 프로그램을 강제로 닫고 바꿔서 다시 실행합니다.\n"
-                           "    (저장하지 않은 작업이 없는지 먼저 확인하세요. 설정·즐겨찾기는 그대로 이어집니다)\n" if can_auto else
-                           "① [새 버전 내려받기]로 받은 SmartExplorer.exe 를 지금 쓰는 파일 자리에 바꿔 넣고 다시 실행하세요.\n"
-                           "    (설정·즐겨찾기는 그대로 이어집니다)\n") +
-                          "② smartgong.kr 또는 깃허브 공식 릴리스에서 받은 파일만 실행하세요.",
+        ttk.Label(f, text="[새 버전 내려받기] → 받은 SmartExplorer.exe 로 바꾸는 방법\n"
+                          "  ① 스마트탐색기를 완전히 종료합니다 (오른쪽 아래 트레이 아이콘 우클릭 → 종료)\n"
+                          "  ② 내려받은 SmartExplorer.exe 를 지금 쓰는 파일 자리에 덮어쓰거나 바꿔 넣습니다\n"
+                          "  ③ 다시 실행합니다  (설정·즐겨찾기는 그대로 이어집니다)\n"
+                          "※ smartgong.kr 또는 깃허브 공식 릴리스에서 받은 파일만 실행하세요.",
                   foreground="#b0412b", justify="left").pack(anchor="w", pady=(8, 0))
-        stv = tk.StringVar()
-        ttk.Label(f, textvariable=stv, foreground="#2a6fdb").pack(anchor="w", pady=(4, 0))
         bf = ttk.Frame(f)
         bf.pack(fill="x", pady=(10, 0))
 
@@ -8633,98 +8630,9 @@ class App:
         ttk.Button(bf, text="이 버전 건너뛰기", command=skip).pack(side="right", padx=4)
         ttk.Button(bf, text="깃허브에서 보기",
                    command=lambda: (__import__("webbrowser").open(info["url"]), w.destroy())).pack(side="right", padx=4)
-        ttk.Button(bf, text="새 버전 내려받기",
+        ttk.Button(bf, text="새 버전 내려받기", style="Accent.TButton",
                    command=lambda: (__import__("webbrowser").open(DOWNLOAD_URL), w.destroy())).pack(side="right")
-        if can_auto:
-            ib = ttk.Button(bf, text="⬇ 지금 설치 (자동으로 닫고 교체)", style="Accent.TButton",
-                            command=lambda: self.install_update(info, w, ib, stv))
-            ib.pack(side="right", padx=(0, 4))
         center_on(w, self.root)
-
-    def install_update(self, info, w, btn, stv):
-        """새 exe를 받아 해시를 확인한 뒤, 실행 중인 프로그램을 강제 종료하고 파일을 바꿔 다시 실행"""
-        if not messagebox.askyesno(APP_NAME, "새 버전을 받아 설치합니다.\n\n받는 일이 끝나면 지금 실행 중인 스마트탐색기를 "
-                                   "강제로 닫고 새 버전으로 바꿔 다시 실행합니다.\n계속할까요?", parent=w):
-            return
-        btn.state(["disabled"])
-        tag = str(info.get("version", ""))
-        base = f"https://github.com/{GITHUB_REPO}/releases/download/{RELEASE_TAG_PREFIX}{tag}/"
-        exe = sys.executable
-        new = exe + ".new"
-
-        def post(msg):
-            try:
-                w.after(0, lambda: stv.set(msg))
-            except Exception:
-                pass
-
-        def fail(msg):
-            def ui():
-                stv.set("")
-                btn.state(["!disabled"])
-                if messagebox.askyesno(APP_NAME, msg + "\n\n브라우저로 직접 내려받을까요?", parent=w):
-                    __import__("webbrowser").open(DOWNLOAD_URL)
-            try:
-                w.after(0, ui)
-            except Exception:
-                pass
-
-        def work():
-            import hashlib
-            try:
-                post("확인 파일을 받는 중…")
-                sums = net_request(base + "SHA256SUMS.txt", headers={"User-Agent": f"SmartExplorer/{APP_VERSION}"},
-                                   limit=64 * 1024).decode("utf-8", "replace")
-                want = None
-                for line in sums.splitlines():
-                    parts = line.strip().split()
-                    if len(parts) >= 2 and parts[-1].lstrip("*") == "SmartExplorer.exe":
-                        want = parts[0].lower()
-                if not want or len(want) != 64:
-                    return fail("릴리스의 SHA256 확인 값을 찾지 못했습니다.")
-                post("새 버전을 받는 중… (잠시 걸립니다)")
-                data = net_request(base + "SmartExplorer.exe", headers={"User-Agent": f"SmartExplorer/{APP_VERSION}"},
-                                   limit=400 * 1024 * 1024, timeout=120)
-                if len(data) > 400 * 1024 * 1024:
-                    return fail("받은 파일이 너무 큽니다.")
-                if hashlib.sha256(data).hexdigest() != want or data[:2] != b"MZ":
-                    return fail("받은 파일이 공식 릴리스와 달라 설치하지 않았습니다.")
-                with open(new, "wb") as f:
-                    f.write(data)
-            except Exception as e:
-                return fail("새 버전을 받지 못했습니다: " + net_error_text(e))
-            post("확인 완료. 곧 닫고 교체합니다…")
-            try:
-                w.after(600, lambda: self._swap_and_restart(new))
-            except Exception:
-                pass
-        threading.Thread(target=work, daemon=True).start()
-
-    def _swap_and_restart(self, new):
-        exe = sys.executable
-        name = os.path.basename(exe)
-        bat = os.path.join(tempfile.gettempdir(), "smartexplorer_update.bat")
-        lines = ["@echo off", "chcp 65001 >nul",
-                 f'taskkill /F /IM "{name}" >nul 2>&1',
-                 "set n=0", ":retry", "ping 127.0.0.1 -n 2 >nul",
-                 f'move /Y "{new}" "{exe}" >nul 2>&1',
-                 "if errorlevel 1 (", "  set /a n+=1", "  if %n% lss 20 goto retry", ")",
-                 f'start "" "{exe}"', '(goto) 2>nul & del "%~f0"']
-        with open(bat, "w", encoding="utf-8", newline="\r\n") as f:
-            f.write("\r\n".join(lines) + "\r\n")
-        try:
-            self.save_settings()
-        except Exception:
-            pass
-        env = {k: v for k, v in os.environ.items() if not k.startswith(("_MEI", "_PYI"))}
-        env["PYINSTALLER_RESET_ENVIRONMENT"] = "1"
-        subprocess.Popen(["cmd", "/c", bat], env=env, close_fds=True,
-                         creationflags=0x08000000 | 0x00000008)     # 창 없이, 이 프로그램과 따로 실행
-        try:
-            self.tray.stop()
-        except Exception:
-            pass
-        os._exit(0)
 
     def send_stats(self):
         if not (STATS_URL or FIREBASE_DB_URL):
