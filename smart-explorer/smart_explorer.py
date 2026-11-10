@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.31"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.32"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -4004,9 +4004,8 @@ class SearchPane(tk.Frame):
 
         tf = ttk.Frame(inner)              # 경계창을 다시 만들 수 있게 경계창의 부모(inner) 아래에 만듦
         self.tree = ttk.Treeview(tf, columns=("name", "count", "mtime", "folder"), show="tree headings",
-                                 selectmode="extended")
-        self.tree.heading("#0", text="")
-        self.tree.column("#0", width=0, minwidth=0, stretch=False)       # 폴더 아이콘 자리 (폴더 보기에서만 보임)
+                                 selectmode="extended", displaycolumns=("count", "mtime", "folder"))
+        # 이름 칸 = 맨 왼쪽 칸(#0): 폴더 아이콘과 이름이 한 칸에 같이 나옴 (윈도우 탐색기처럼). 숨은 'name' 칸에는 이름을 따로 보관
         ys = ttk.Scrollbar(tf, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=ys.set)
         ys.pack(side="right", fill="y")
@@ -4078,11 +4077,10 @@ class SearchPane(tk.Frame):
         if self.mode == mode:
             return
         self.mode = mode
-        iw = int(self.tree.winfo_fpixels("1i") / 96 * 24) if mode == "browse" else 0
-        self.tree.column("#0", width=iw, minwidth=0, stretch=False)
         for c, t, w, anchor, stretch in self.COLS[mode]:
-            self.tree.heading(c, text=t, command=lambda c=c: self.sort_by(c))
-            self.tree.column(c, width=w, minwidth=40, anchor=anchor, stretch=stretch)
+            cid = "#0" if c == "name" else c
+            self.tree.heading(cid, text=t, command=lambda c=c: self.sort_by(c))
+            self.tree.column(cid, width=w, minwidth=40, anchor=anchor, stretch=stretch)
         self.sort_state = {}
         if mode == "browse":
             col, rev = self.browse_sort
@@ -4372,7 +4370,7 @@ class SearchPane(tk.Frame):
             iid = str(i)
             self.hits[iid] = h
             ico = folder_icon(self.tree) if h["is_dir"] else None
-            self.tree.insert("", "end", iid=iid, tags=("dir",) if h["is_dir"] else (), image=ico or "", values=(
+            self.tree.insert("", "end", iid=iid, tags=("dir",) if h["is_dir"] else (), text=h["name"], image=ico or "", values=(
                 h["name"], "" if h["is_dir"] else fmt_size(h["size"]),
                 h["mtime"], type_name(h)))
             if os.path.normcase(h["path"]) in keep_n:
@@ -4525,7 +4523,7 @@ class SearchPane(tk.Frame):
         iid = str(len(self.hits))
         h.setdefault("is_dir", False)
         self.hits[iid] = h
-        self.tree.insert("", "end", iid=iid, values=(h["name"], h["count"] or ("폴더" if h["is_dir"] else "이름"),
+        self.tree.insert("", "end", iid=iid, text=h["name"], values=(h["name"], h["count"] or ("폴더" if h["is_dir"] else "이름"),
                                                       h["mtime"], h["folder"]))
 
     def _sort_key(self, col, browse):
@@ -4668,6 +4666,14 @@ class SearchPane(tk.Frame):
             m.add_separator()
         if has:
             m.add_command(label="폴더 열기" if h.get("is_dir") else "열기", command=self.activate)
+            dirs = [self.hits[i]["path"] for i in self.tree.selection() if i in self.hits and self.hits[i].get("is_dir")]
+            if dirs:
+                favs = {os.path.normcase(f) for f in self.app.s.get("nav_fav", [])}
+                if all(os.path.normcase(d) in favs for d in dirs):
+                    m.add_command(label="★ 즐겨찾기에서 빼기", command=lambda ds=dirs: self.app.nav.remove_fav(*ds))
+                else:
+                    m.add_command(label="★ 즐겨찾기에 추가" + (f" ({len(dirs)}개)" if len(dirs) > 1 else ""),
+                                  command=lambda ds=dirs: self.app.nav.add_fav(*ds))
             if not h.get("is_dir"):
                 m.add_command(label="전체 내용 보기", command=self.show_full)
             if not browse:
@@ -4804,7 +4810,7 @@ class SearchPane(tk.Frame):
                 nb = mp.get(h["path"])
                 if nb and os.path.exists(nb):
                     h.update(path=nb, name=os.path.basename(nb))
-                    self.tree.item(iid, values=(h["name"], h["count"] or "이름", h["mtime"], h["folder"]))
+                    self.tree.item(iid, text=h["name"], values=(h["name"], h["count"] or "이름", h["mtime"], h["folder"]))
         self.status_var.set(f"{ok}개 이름을 바꿨습니다.")
         self.app.refresh_browsers(except_pane=self)
         return "break"
@@ -7714,7 +7720,7 @@ class NavPane(ttk.Frame):
                 shown.add(os.path.normcase(pth))
         for pth in self.app.s.get("nav_fav", []):
             if os.path.normcase(pth) not in shown:
-                iid = self._add(fav, "★ " + (os.path.basename(pth.rstrip("\\/")) or pth), pth, lazy=False)
+                iid = self._add(fav, "📁 " + (os.path.basename(pth.rstrip("\\/")) or pth), pth, lazy=False)
                 shown.add(os.path.normcase(pth))
         self.user_fav = {i for i in self.paths if os.path.normcase(self.paths[i]) not in quick_norm}
         pc = self.tree.insert("", "end", text="💻 내 PC", open=True)
@@ -7819,18 +7825,29 @@ class NavPane(ttk.Frame):
         if cwd and os.path.isdir(cwd):
             self.add_fav(cwd)
 
-    def add_fav(self, pth):
-        favs = self.app.s.setdefault("nav_fav", [])
-        if not any(os.path.normcase(f) == os.path.normcase(pth) for f in favs):
-            favs.append(pth)
-            self.app.schedule_save()
-            self.build()
+    def _rebuilt(self):
+        self.build()                                         # 다시 그린 뒤 지금 보는 폴더까지 펼쳐 둠
+        pane = self.app.active or (self.app.panes[0] if self.app.panes else None)
+        if getattr(pane, "cwd", None):
+            self.reveal(pane.cwd)
 
-    def remove_fav(self, pth):
+    def add_fav(self, *paths):
         favs = self.app.s.setdefault("nav_fav", [])
-        self.app.s["nav_fav"] = [f for f in favs if os.path.normcase(f) != os.path.normcase(pth)]
+        changed = False
+        for pth in paths:
+            if not any(os.path.normcase(f) == os.path.normcase(pth) for f in favs):
+                favs.append(pth)
+                changed = True
+        if changed:
+            self.app.schedule_save()
+            self._rebuilt()
+
+    def remove_fav(self, *paths):
+        drop = {os.path.normcase(p) for p in paths}
+        favs = self.app.s.setdefault("nav_fav", [])
+        self.app.s["nav_fav"] = [f for f in favs if os.path.normcase(f) not in drop]
         self.app.schedule_save()
-        self.build()
+        self._rebuilt()
 
     def _menu(self, e):
         iid = self.tree.identify_row(e.y)
