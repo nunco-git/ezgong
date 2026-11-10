@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.23"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.24"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -6167,7 +6167,7 @@ class InsarangRecordOpener:
     BTN_ID_PART = "btnWrkRec"
 
     @classmethod
-    def _by_autoid(cls, ui, U, root, limit=60000):
+    def _by_autoid(cls, ui, U, root, limit=60000, full=True):
         """요소 아이디(AutomationId)가 버튼 아이디인 요소들. 정확히 같은 것을 먼저, 없으면 btnWrkRec 가 든 것"""
         try:
             cond = ui.CreatePropertyCondition(U.UIA_AutomationIdPropertyId, cls.BTN_ID)
@@ -6178,6 +6178,8 @@ class InsarangRecordOpener:
         except Exception:
             pass
         hits = []
+        if not full:                                      # 빠른 검사에서는 전체 훑기를 건너뜀 (느림)
+            return hits
         try:
             arr = root.FindAll(U.TreeScope_Descendants, ui.CreateTrueCondition())
             for i in range(min(arr.Length, limit)):
@@ -6385,7 +6387,7 @@ class InsarangRecordOpener:
             ui = comtypes.CoCreateInstance(U.CUIAutomation._reg_clsid_, interface=U.IUIAutomation,
                                            clsctx=comtypes.CLSCTX_INPROC_SERVER)
             deadline = time.time() + cls.WAIT_SEC
-            time.sleep(4)                                      # Edge가 뜰 시간
+            time.sleep(0.5)
             attempt = 0
             while time.time() < deadline and not ok:
                 attempt += 1
@@ -6399,7 +6401,7 @@ class InsarangRecordOpener:
                 for h in handles:
                     try:
                         root_el = ui.ElementFromHandle(h)
-                        hits = cls._by_autoid(ui, U, root_el)
+                        hits = cls._by_autoid(ui, U, root_el, full=(attempt % 4 == 0))
                         if hits:
                             hits = hits[:1]                    # 아이디가 정해진 버튼이므로 첫 번째(본체)만
                         else:
@@ -6421,14 +6423,14 @@ class InsarangRecordOpener:
                             if cls._popup_open(ui, U, handles):
                                 ok = True
                                 break
-                            time.sleep(1)
+                            time.sleep(0.3)
                         deadline = 0                           # 한 번 눌렀으면 다시 누르지 않고 마친다
                         break
                     except Exception:
                         continue
                 if ok or deadline == 0:
                     break
-                time.sleep(2.5)
+                time.sleep(0.4)
         except Exception as e:
             result = "화면 읽기(접근성)를 시작하지 못했습니다. 본창에서 직접 눌러 주세요."
             result += "\n(%r)" % (e,)
