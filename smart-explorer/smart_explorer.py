@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.22"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.23"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -5021,6 +5021,8 @@ def apply_style(root):
     st.configure("Treeview", rowheight=int(FONT[1] * 2.4), font=FONT)
     st.configure("Treeview.Heading", font=(FONT[0], fsz(10), "bold"))
     st.configure("Accent.TButton", font=(FONT[0], fsz(10), "bold"))
+    if st.theme_use() == "clam":
+        _check_indicator(st)              # clam 의 X 표시 대신 V 체크 표시
     if not custom_colors():
         return
     fg = THEME.get("text_color") or "#222222"
@@ -6086,6 +6088,42 @@ def launch_insarang():
         return False
 
 
+_CHECK_IMGS = []
+
+
+def _check_indicator(st):
+    """체크박스 칸에 X 대신 V(체크) 모양을 그려 넣음 (clam 모양 전용)"""
+    try:
+        box = THEME.get("list_bg") or "#ffffff"
+        line = _mix(THEME.get("bg_color") or "#f0f0f0", THEME.get("text_color") or "#222222", 0.45)
+        mark = THEME.get("accent") or "#2a6fdb"
+        N = 14
+        pts = [(3, 7), (4, 8), (5, 9), (6, 8), (7, 7), (8, 6), (9, 5), (10, 4)]
+
+        def make(checked, dis=False):
+            im = tk.PhotoImage(width=N, height=N)
+            im.put(line if not dis else _mix(line, box, 0.5), to=(0, 0, N, N))
+            im.put(box if not dis else _mix(box, line, 0.15), to=(1, 1, N - 1, N - 1))
+            if checked:
+                c = mark if not dis else _mix(mark, box, 0.6)
+                for x, y in pts:
+                    im.put(c, to=(x, y, x + 2, y + 3))
+            _CHECK_IMGS.append(im)
+            return im
+        off, on, off_d, on_d = make(False), make(True), make(False, True), make(True, True)
+        try:
+            st.element_create("smart.check", "image", off, ("disabled", "selected", on_d), ("disabled", off_d),
+                              ("selected", on), width=N + 4, sticky="w", padding=(0, 0, 4, 0))
+        except tk.TclError:
+            pass                                  # 이미 만들어져 있으면 그대로 씀
+        st.layout("TCheckbutton", [("Checkbutton.padding", {"sticky": "nswe", "children": [
+            ("smart.check", {"side": "left", "sticky": ""}),
+            ("Checkbutton.focus", {"side": "left", "sticky": "w", "children": [
+                ("Checkbutton.label", {"sticky": "nswe"})]})]})])
+    except Exception:
+        pass
+
+
 def open_insarang(parent=None, with_record=False, root=None, quiet=False):
     """🏢 인사랑 열기: 행정포털(SSO) 로그인 상태를 보고 Edge로 인사랑을 엽니다.
     with_record=True 이면 인사랑이 뜬 뒤 '초과근무기록' 버튼을 눌러 팝업까지 띄워 봅니다.
@@ -6107,13 +6145,7 @@ def open_insarang(parent=None, with_record=False, root=None, quiet=False):
     if with_record:
         host = root or parent
 
-        def _report(msg):                                      # 안 됐으면 이유를 알려 줌 (성공이면 조용히)
-            if msg != "ok" and host is not None:
-                try:
-                    host.after(0, lambda: messagebox.showinfo("인사랑", msg))
-                except Exception:
-                    pass
-        InsarangRecordOpener.start(host, _report)
+        InsarangRecordOpener.start(host, None)                 # 안 됐을 때도 알림창은 띄우지 않음 (원인은 기록 파일에만 남김)
     return True
 
 
@@ -6426,7 +6458,7 @@ def alarm_extras(app, cfg, on_error=None, quiet_insarang=True):
     AlarmAudio.play(app, cfg.get("message", ""), cfg, on_error)
     if cfg.get("open_insarang"):
         app.root.after(1200, lambda: open_insarang(
-            None, with_record=bool(cfg.get("open_record")), root=app.root, quiet=quiet_insarang))
+            None, with_record=True, root=app.root, quiet=quiet_insarang))
 
 
 class AlarmAudio:
@@ -6664,7 +6696,7 @@ class AlarmPopup:
         ttk.Button(bf, text="알람 끄기", style="BigPlain.TButton",
                    command=lambda: (app.set_alarm_enabled(False), self.close())).pack(side="right", padx=8)
         ttk.Button(bf, text="🏢 인사랑 열기", style="BigPlain.TButton",
-                   command=lambda: self.close() if open_insarang(w, with_record=bool(app.alarm.get("open_record")), root=app.root) else None).pack(side="right", padx=(0, 8))
+                   command=lambda: self.close() if open_insarang(w, with_record=True, root=app.root) else None).pack(side="right", padx=(0, 8))
         w.bind("<Escape>", lambda e: self.close())
         w.bind("<Return>", lambda e: self.close())
         w.update_idletasks()
@@ -6766,7 +6798,6 @@ class AlarmDialog:
         self.song_on = tk.BooleanVar(value=a.get("song_on", False))
         self.song = tk.StringVar(value=a.get("song", ""))
         self.open_ins = tk.BooleanVar(value=a.get("open_insarang", False))
-        self.open_rec = tk.BooleanVar(value=a.get("open_record", True))
         r1 = ttk.Frame(vf)
         r1.pack(fill="x")
         ttk.Checkbutton(r1, text="알림 글을 음성으로 읽어주기", variable=self.tts).pack(side="left")
@@ -6782,8 +6813,6 @@ class AlarmDialog:
         r3.pack(fill="x", pady=(6, 0))
         ttk.Checkbutton(r3, text="🏢 알람이 울리면 인사랑도 함께 열기 (행정포털 로그인이 되어 있을 때)",
                         variable=self.open_ins).pack(anchor="w")
-        ttk.Checkbutton(r3, text="   └ 인사랑이 열리면 '초과근무기록' 버튼을 눌러 팝업까지 띄우기 (🏢 인사랑 버튼에도 적용)",
-                        variable=self.open_rec).pack(anchor="w")
         ttk.Label(vf, text="※ 팝업의 [확인]·[알람 끄기]를 누르면 음성과 노래가 멈춥니다. 노래는 끌 때까지 반복됩니다.\n"
                            "   mp3·wav·wma·m4a 파일을 쓸 수 있고, [지금 시험해 보기]로 미리 들어 볼 수 있습니다.",
                   foreground="#888").pack(fill="x", pady=(4, 0))
@@ -6846,7 +6875,7 @@ class AlarmDialog:
                 "message": self.msg.get().strip(), "sound": self.sound.get(),
                 "tts": self.tts.get(), "tts_repeat": num(self.tts_rep, 1, 9, 2),
                 "song_on": self.song_on.get(), "song": self.song.get().strip(),
-                "open_insarang": self.open_ins.get(), "open_record": self.open_rec.get(),
+                "open_insarang": self.open_ins.get(), "open_record": True,
                 "extra_holidays": self.extra.get().strip()}
 
     def pick_song(self):
@@ -7568,7 +7597,7 @@ class App:
         series.bind("<Button-1>", lambda e: __import__("webbrowser").open("https://smartgong.kr"))
         ttk.Button(bar, text="ⓘ 사용 안내", command=self.show_guide).pack(side="right", padx=(10, 10))
         ttk.Button(bar, text="⚙ 환경설정", command=lambda: SettingsDialog(self)).pack(side="right", padx=(0, 4))
-        ttk.Button(bar, text="🏢 인사랑", command=lambda: open_insarang(self.root, with_record=bool(self.alarm.get("open_record")), root=self.root)).pack(side="right", padx=(0, 4))
+        ttk.Button(bar, text="🏢 인사랑", command=lambda: open_insarang(self.root, with_record=True, root=self.root)).pack(side="right", padx=(0, 4))
         self.update_var = tk.StringVar(value="")
         self.update_slot = ttk.Frame(bar)                 # 새 버전이 있을 때만 [업데이트 필요] 버튼이 나타남
         self.update_slot.pack(side="right", padx=(0, 10))
