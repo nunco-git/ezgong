@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.27"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.28"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -7463,6 +7463,8 @@ class NavPane(ttk.Frame):
         self.tree.configure(yscrollcommand=sb.set)
         sb.pack(side="right", fill="y")
         self.tree.pack(side="left", fill="both", expand=True)
+        self.ad_slot = tk.Frame(self)                      # 칸이 1개일 때 광고가 앉는 자리 (맨 아래)
+        self.adbox = None
         self.tree.bind("<<TreeviewOpen>>", self._on_open)
         self.tree.bind("<<TreeviewSelect>>", self._on_select)
         self.tree.bind("<Button-3>", self._menu)
@@ -7471,6 +7473,30 @@ class NavPane(ttk.Frame):
         self._pending = None             # 뒤에서 읽어 둔 폴더 목록 (화면에 반영 대기)
         self._reading = False
         self.after(2500, self._tick)
+
+    # ── 광고 (칸이 1개일 때만 여기 아래에 둠)
+    def set_ad(self, on):
+        if bool(self.adbox) == bool(on):
+            return
+        if on:
+            self.adbox = AdBox(self.ad_slot)
+            self.ad_slot.pack(side="bottom", fill="x", pady=(4, 0), before=self.winfo_children()[1])
+        else:
+            self.adbox.destroy()
+            self.adbox = None
+            self.ad_slot.pack_forget()
+        self.layout_ad()
+
+    def layout_ad(self):
+        if not self.adbox:
+            return
+        aw, ah = ad_pixels(self)
+        self.ad_slot.configure(height=ah, width=aw)
+        self.ad_slot.pack_propagate(False)
+        self.adbox.place(relx=0.5, rely=1, anchor="s", width=aw, height=ah)
+
+    def ad_width(self):
+        return ad_pixels(self)[0] + 12 if self.adbox else 0
 
     # ── 내용 만들기
     def _add(self, parent, text, path, lazy=True):
@@ -7898,11 +7924,24 @@ class App:
         elif not want and self.nav_shown:
             self.main_pw.forget(self.nav)
             self.nav_shown = False
+        self.assign_ad()
+
+    def assign_ad(self):
+        """광고 자리: 칸이 1개이고 왼쪽 탐색창이 보이면 탐색창 아래, 아니면 맨 오른쪽 아래 칸의 미리보기 옆"""
+        in_nav = self.nav_shown
+        self.nav.set_ad(in_nav)
+        for i, p in enumerate(self.panes):
+            last = (i == len(self.panes) - 1) and not in_nav
+            p.preview.set_ad(last)
+            p.set_ad_pane(last)
+            p.after(50, p.clamp_sash)
+        if in_nav:
+            self.root.after(80, self._nav_width)
 
     def _nav_width(self):
         try:
             if self.nav_shown:
-                self.main_pw.sashpos(0, int(self.s.get("nav_w", 230)))
+                self.main_pw.sashpos(0, max(int(self.s.get("nav_w", 230)), self.nav.ad_width()))
         except tk.TclError:
             pass
 
@@ -7967,10 +8006,6 @@ class App:
                 p.set_side_preview(side)
             except Exception:
                 pass
-        for i, p in enumerate(self.panes):              # 광고는 맨 오른쪽 아래 칸 하나에만
-            p.preview.set_ad(i == len(self.panes) - 1)
-            p.set_ad_pane(i == len(self.panes) - 1)
-            p.after(50, p.clamp_sash)
         self.schedule_save()
         if self.active is None and self.panes:
             self.set_active(self.panes[0])
@@ -8558,6 +8593,9 @@ class App:
         for p in self.panes:
             p.preview._layout_ad()
             p.clamp_sash()
+        if self.nav_shown:
+            self.nav.layout_ad()
+            self._nav_width()
         self.enforce_ad_cell()
         self.place_panes()
 
