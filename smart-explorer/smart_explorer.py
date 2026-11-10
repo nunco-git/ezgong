@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.25"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.26"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -7468,6 +7468,9 @@ class NavPane(ttk.Frame):
         self.tree.bind("<Button-3>", self._menu)
         self.menu = tk.Menu(self, tearoff=0)
         self.build()
+        self._pending = None             # 뒤에서 읽어 둔 폴더 목록 (화면에 반영 대기)
+        self._reading = False
+        self.after(2500, self._tick)
 
     # ── 내용 만들기
     def _add(self, parent, text, path, lazy=True):
@@ -7557,6 +7560,67 @@ class NavPane(ttk.Frame):
         pane = self.app.active or (self.app.panes[0] if self.app.panes else None)
         if pth and pane is not None:
             pane.navigate(pth)
+
+    # ── 실시간 새로고침: 펼쳐 둔 폴더만 2.5초마다 훑어서 새로 생기거나 사라진 폴더를 반영
+    def _visible_loaded(self):
+        out, stack = [], list(self.tree.get_children(self.pc_root))
+        while stack:
+            i = stack.pop()
+            if i in self.loaded and self.tree.item(i, "open"):
+                out.append(i)
+                stack.extend(self.tree.get_children(i))
+        return out
+
+    def _tick(self):
+        try:
+            if self.app.nav_shown:
+                if self._pending is not None:
+                    res, self._pending = self._pending, None
+                    self._apply(res)
+                if not self._reading:
+                    jobs = [(i, self.paths[i]) for i in self._visible_loaded() if self.paths.get(i)]
+                    self._reading = True
+                    threading.Thread(target=self._read, args=(jobs,), daemon=True).start()
+        except Exception:
+            self._reading = False
+        self.after(2500, self._tick)
+
+    def _read(self, jobs):
+        res = {"drives": self._drives()}
+        for iid, pth in jobs:
+            try:
+                res[iid] = self._subdirs(pth) if os.path.isdir(pth) else None
+            except Exception:
+                pass
+        self._pending = res
+        self._reading = False
+
+    def _sync_children(self, parent, items):
+        """items = [(이름, 경로)] 정렬된 목록. 없어진 건 지우고 새로 생긴 건 제자리에 끼워 넣음 (펼침 상태는 유지)"""
+        have = {}
+        for ch in self.tree.get_children(parent):
+            have[os.path.normcase(self.paths.get(ch, ""))] = ch
+        want = {os.path.normcase(p) for _n, p in items}
+        for key, ch in have.items():
+            if key not in want:
+                self.tree.delete(ch)
+        for idx, (text, pth) in enumerate(items):
+            if os.path.normcase(pth) not in have:
+                iid = self.tree.insert(parent, idx, text=text, open=False)
+                self.paths[iid] = pth
+                self.tree.insert(iid, "end", text="…")
+
+    def _apply(self, res):
+        drives = res.pop("drives", None)
+        if drives:
+            self._sync_children(self.pc_root, [("💾 " + (d.rstrip("\\/") if sys.platform == "win32" else d), d) for d in drives])
+        for iid, names in res.items():
+            if not self.tree.exists(iid) or iid not in self.loaded:
+                continue
+            base = self.paths.get(iid)
+            if names is None:
+                continue
+            self._sync_children(iid, [("📁 " + n, os.path.join(base, n)) for n in names])
 
     # ── 즐겨찾기
     def add_current(self):
