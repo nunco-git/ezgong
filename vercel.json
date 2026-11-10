@@ -47,12 +47,12 @@
     },
     {
       "source": "/download/smart-explorer",
-      "destination": "https://github.com/nunco-git/ezgong/releases/download/smartexplorer-v1.0.27/SmartExplorer.exe",
+      "destination": "https://github.com/nunco-git/ezgong/releases/download/smartexplorer-v1.0.28/SmartExplorer.exe",
       "permanent": false
     },
     {
       "source": "/download/smart-explorer/info",
-      "destination": "https://github.com/nunco-git/ezgong/releases/tag/smartexplorer-v1.0.27",
+      "destination": "https://github.com/nunco-git/ezgong/releases/tag/smartexplorer-v1.0.28",
       "permanent": false
     }
   ]
