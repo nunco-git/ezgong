@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.20"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.21"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -5615,10 +5615,42 @@ def _parse_hm(text, default=(18, 0)):
     return default
 
 
+HOLIDAY_FEED_URL = "https://smartgong.kr/ads/holidays_kr.json"   # 인터넷에서 받는 공휴일 목록 (임시공휴일 포함)
+HOLIDAYS_ONLINE = set()          # 인터넷에서 받은 공휴일 (받기 전엔 비어 있음)
+HOLIDAY_CACHE = os.path.join(APP_DIR, "holidays_cache.json")
+
+
+def load_holiday_cache():
+    """지난번에 받아 둔 공휴일 목록을 읽어 옴 (인터넷이 안 돼도 쓰도록)"""
+    try:
+        with open(HOLIDAY_CACHE, encoding="utf-8") as f:
+            HOLIDAYS_ONLINE.update(x for x in json.load(f).get("dates", []) if re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(x)))
+    except Exception:
+        pass
+
+
+def fetch_online_holidays():
+    """공휴일 목록을 받아 HOLIDAYS_ONLINE에 합치고, 새 날짜가 생겼으면 True"""
+    raw = net_request(HOLIDAY_FEED_URL, headers={"User-Agent": f"SmartExplorer/{APP_VERSION}"}, limit=256 * 1024)
+    dates = {str(x) for x in json.loads(raw.decode("utf-8")).get("dates", [])}
+    dates = {x for x in dates if re.fullmatch(r"\d{4}-\d{2}-\d{2}", x)}
+    if not dates:
+        return False
+    changed = not dates <= HOLIDAYS_ONLINE
+    HOLIDAYS_ONLINE.update(dates)
+    try:
+        os.makedirs(APP_DIR, exist_ok=True)
+        with open(HOLIDAY_CACHE, "w", encoding="utf-8") as f:
+            json.dump({"dates": sorted(HOLIDAYS_ONLINE)}, f)
+    except Exception:
+        pass
+    return changed
+
+
 def is_holiday(d, alarm):
     extra = {x.strip() for x in re.split(r"[,\s]+", alarm.get("extra_holidays", "")) if x.strip()}
     key = d.strftime("%Y-%m-%d")
-    return d.weekday() >= 5 or key in HOLIDAYS_KR or key in extra
+    return d.weekday() >= 5 or key in HOLIDAYS_KR or key in HOLIDAYS_ONLINE or key in extra
 
 
 def next_alarm_time(alarm, after, anchor):
@@ -5651,8 +5683,8 @@ def next_alarm_time(alarm, after, anchor):
             end = day_start + eh * 3600 + em * 60
             overnight = end <= start
 
-            def allowed(x):
-                return (x <= end or x >= start) if overnight else (start <= x <= end)
+            def allowed(x):   # 시작·끝 정각(예: 9시, 18시)에는 울리지 않음
+                return (x < end or x > start) if overnight else (start < x < end)
             base = max(after, day_start - 1e-6)
             k = int((base - start) // iv) + 1
             t = start + k * iv
@@ -6672,7 +6704,7 @@ class AlarmDialog:
         ttk.Label(af, text="   추가 휴일").grid(row=3, column=0, sticky="w", pady=2)
         self.extra = tk.StringVar(value=a.get("extra_holidays", ""))
         ttk.Entry(af, textvariable=self.extra, width=34).grid(row=3, column=1, columnspan=4, sticky="w")
-        ttk.Label(af, text="      예: 2026-12-31, 2027-01-01 (2026년 공휴일은 이미 들어 있음)",
+        ttk.Label(af, text="      예: 2026-12-31, 2027-01-01 (공휴일·임시공휴일은 인터넷으로 자동 반영)",
                   foreground="#888").grid(row=4, column=0, columnspan=5, sticky="w")
         ttk.Radiobutton(af, text="단순 반복", value="interval", variable=self.mode).grid(row=5, column=0, sticky="w", pady=(6, 0))
         rf = ttk.Frame(af)
@@ -7403,7 +7435,9 @@ class App:
         self.hotkey_ctl.start(self.hotkey)
         if instance is not None and instance.first:
             instance.serve(self.bgq)
+        load_holiday_cache()
         self._reset_alarm()
+        threading.Thread(target=self._holiday_loop, daemon=True).start()
         root.after(500, self._bg_poll)
         root.after(30000, self._autosave)
         root.after(5000, self.send_stats)
@@ -7818,6 +7852,17 @@ class App:
                            if self.alarm.get("enabled") else None)
         self._tray_title()
 
+    def _holiday_loop(self):
+        """공휴일 목록을 켤 때 한 번, 그 뒤 12시간마다 인터넷에서 받아 옴 (실패하면 조용히 넘어감)"""
+        time.sleep(8)
+        while True:
+            try:
+                if fetch_online_holidays():
+                    self.bgq.put(("holidays", None))
+            except Exception:
+                pass
+            time.sleep(12 * 3600)
+
     def _anchor(self):
         if self.alarm.get("mode") == "interval":
             return getattr(self, "alarm_anchor", self.started)
@@ -7879,6 +7924,8 @@ class App:
                     self.on_update(*data)
                 elif kind == "ocr_missing":
                     self.ocr_missing()
+                elif kind == "holidays":
+                    self._reset_alarm()
                 elif kind == "index_done":
                     self.s["index_last"] = data
                     self.schedule_save()
