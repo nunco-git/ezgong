@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.30"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.31"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -7576,6 +7576,33 @@ class NavPane(ttk.Frame):
     폴더를 누르면 가운데 목록이 그 폴더로 바뀝니다."""
     QUICK = [("바탕화면", "Desktop"), ("다운로드", "Downloads"), ("문서", "Documents"),
              ("사진", "Pictures"), ("음악", "Music"), ("동영상", "Videos")]
+    KNOWN = {"Desktop": "B4BFCC3A-DB2C-424C-B029-7FE99A87C641", "Downloads": "374DE290-123F-4565-9164-83F0E15C4B8D",
+             "Documents": "FDD39AD0-238F-46AF-ADB4-6C85480369C7", "Pictures": "33E28130-4E1E-4676-835A-98395C3BC3BB",
+             "Music": "4BD8D571-6D19-48D3-BE97-422220080E43", "Videos": "18989B1D-99B5-42AC-AC5F-FD1B2E2A2C46"}
+
+    @classmethod
+    def quick_path(cls, sub):
+        """윈도우가 알려 주는 실제 위치(바탕화면·다운로드가 OneDrive 등으로 옮겨진 경우도 맞음). 안 되면 사용자 폴더 아래"""
+        if sys.platform == "win32":
+            try:
+                import ctypes
+                from ctypes import wintypes
+                import uuid
+                g = uuid.UUID(cls.KNOWN[sub])
+                data4 = (ctypes.c_ubyte * 8).from_buffer_copy(g.bytes[8:])
+
+                class GUID(ctypes.Structure):
+                    _fields_ = [("a", ctypes.c_ulong), ("b", ctypes.c_ushort), ("c", ctypes.c_ushort), ("d", ctypes.c_ubyte * 8)]
+                guid = GUID(g.time_low, g.time_mid, g.time_hi_version, data4)
+                out = ctypes.c_wchar_p()
+                if ctypes.windll.shell32.SHGetKnownFolderPath(ctypes.byref(guid), 0, None, ctypes.byref(out)) == 0:
+                    val = out.value
+                    ctypes.windll.ole32.CoTaskMemFree(out)
+                    if val and os.path.isdir(val):
+                        return val
+            except Exception:
+                pass
+        return os.path.join(os.path.expanduser("~"), sub)
 
     def __init__(self, master, app):
         super().__init__(master)
@@ -7678,17 +7705,18 @@ class NavPane(ttk.Frame):
         fav = self.tree.insert("", "end", text="★ 즐겨찾기", open=True)
         self.fav_root = fav
         shown = set()
+        quick_norm = set()
         for label, sub in self.QUICK:
-            pth = os.path.join(home, sub)
-            if os.path.isdir(pth):
+            pth = self.quick_path(sub)
+            if os.path.isdir(pth) and os.path.normcase(pth) not in shown:
+                quick_norm.add(os.path.normcase(pth))
                 self._add(fav, "📁 " + label, pth, lazy=False)
                 shown.add(os.path.normcase(pth))
         for pth in self.app.s.get("nav_fav", []):
             if os.path.normcase(pth) not in shown:
                 iid = self._add(fav, "★ " + (os.path.basename(pth.rstrip("\\/")) or pth), pth, lazy=False)
                 shown.add(os.path.normcase(pth))
-        self.user_fav = {i for i in self.paths if os.path.normcase(self.paths[i]) not in
-                         {os.path.normcase(os.path.join(home, s)) for _l, s in self.QUICK}}
+        self.user_fav = {i for i in self.paths if os.path.normcase(self.paths[i]) not in quick_norm}
         pc = self.tree.insert("", "end", text="💻 내 PC", open=True)
         for d in self._drives():
             self._add(pc, "💾 " + d.rstrip("\\/") if sys.platform == "win32" else "💾 " + d, d)
