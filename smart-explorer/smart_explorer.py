@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.35"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.36"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -7607,7 +7607,7 @@ class IndexDialog:
 
 
 CONTACT_EMAIL = "smartgongmaster@gmail.com"   # 오류·개선 제안 받는 주소
-INTRO_LINE = "파일명 + 본문 내용까지 검색  ·  PDF·엑셀·PPT·워드·이미지·압축파일 미리보기 (한글은 1쪽 미리보기)"
+INTRO_LINE = "파일명 + 본문 내용까지 검색  ·  각종 파일 미리보기 가능"
 GUIDE = [
     ("스마트탐색기  v" + APP_VERSION, "화면을 여러 칸으로 나눠 쓰는 탐색기에, 파일 이름은 물론 문서 안의 내용까지 찾아 주는 검색 기능을 더한 프로그램입니다."),
     ("🔍 파일명 검색 · 📄 본문 추가 검색",
@@ -8202,7 +8202,7 @@ class App:
         if not SHELL_PREVIEW and sys.platform == "win32":
             notes.append("원래 모양 미리보기 불가(comtypes 없음)")
         self.nav_var = tk.BooleanVar(value=bool(self.s.get("nav_pane", True)))
-        ttk.Checkbutton(bar, text="왼쪽 탐색창 (칸 1개일 때)", variable=self.nav_var, command=self.toggle_nav).pack(side="left", padx=(12, 0))
+        ttk.Checkbutton(bar, text="왼쪽 탐색창", variable=self.nav_var, command=self.toggle_nav).pack(side="left", padx=(12, 0))
         self.hint_var = tk.StringVar()
         ttk.Label(bar, textvariable=self.hint_var, foreground="#2a6fdb",
                   font=(FONT[0], fsz(10), "bold")).pack(side="left", padx=12)
