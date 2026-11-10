@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.29"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.30"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -4974,6 +4974,7 @@ DEFAULT_THEME = {
     "text_color": "", "bg_color": "", "list_bg": "", "accent": "",   # 비어 있으면 윈도우 기본 모양
     "bg_image": "", "bg_mode": "fill", "bg_dim": True,
     "folder_color": "",                                          # 폴더 아이콘 색 (비어 있으면 윈도우 탐색기처럼 노란색)
+    "folder_style": "폴더", "folder_image": "",                  # 아이콘 모양 / 직접 고른 그림 파일
 }
 THEME_PRESETS = {
     "기본(윈도우)": {"text_color": "", "bg_color": "", "list_bg": "", "accent": ""},
@@ -5079,31 +5080,100 @@ def apply_style(root):
 
 
 DEFAULT_FOLDER_COLOR = "#f4c94a"
+FOLDER_STYLES = ["폴더", "열린 폴더", "별", "하트", "동그라미", "마름모"]
 _FOLDER_ICONS = {}
 
 
+def _inside_poly(x, y, poly):
+    inside = False
+    n = len(poly)
+    for i in range(n):
+        x1, y1 = poly[i]
+        x2, y2 = poly[(i + 1) % n]
+        if (y1 > y) != (y2 > y) and x < (x2 - x1) * (y - y1) / (y2 - y1) + x1:
+            inside = not inside
+    return inside
+
+
+def _draw_icon(style, color):
+    """16×16 칸에 모양을 그림 (프로그램이 직접 그림)"""
+    import math
+    dark, light = _mix(color, "#000000", 0.22), _mix(color, "#ffffff", 0.35)
+    N = 16
+    im = tk.PhotoImage(width=N, height=N)
+    star = [(7.5 + (7.5 if i % 2 == 0 else 3.2) * math.sin(math.pi * i / 5),
+             8.2 - (7.5 if i % 2 == 0 else 3.2) * math.cos(math.pi * i / 5)) for i in range(10)]
+    open_front = [(3, 6), (15.5, 6), (13, 13.5), (0.5, 13.5)]
+
+    def pix(x, y):
+        if style == "폴더":
+            if 1 <= x <= 6 and 1 <= y <= 2:
+                return dark
+            if 1 <= x <= 14 and 2 <= y <= 13:
+                if y == 4:
+                    return light
+                return dark if (y < 4 or y == 13) else color
+            return None
+        if style == "열린 폴더":
+            if 1 <= x <= 6 and 1 <= y <= 2:
+                return dark
+            if 1 <= x <= 13 and 2 <= y <= 12 and not _inside_poly(x, y, open_front):
+                return dark
+            if _inside_poly(x, y, open_front):
+                return light if y < 7 else color
+            return None
+        if style == "별":
+            return color if _inside_poly(x, y, star) else None
+        if style == "하트":
+            u, v = (x - 7.5) / 7.0, (7.0 - y) / 7.0 + 0.1
+            return color if (u * u + v * v - 1) ** 3 - u * u * v ** 3 <= 0 else None
+        if style == "동그라미":
+            d = (x - 7.5) ** 2 + (y - 7.5) ** 2
+            return (dark if d > 5.2 ** 2 else color) if d <= 6.8 ** 2 else None
+        if style == "마름모":
+            d = abs(x - 7.5) + abs(y - 7.5)
+            return (dark if d > 5.6 else color) if d <= 7.2 else None
+        return None
+    for y in range(N):
+        row = [pix(x, y) for x in range(N)]
+        im.put("{" + " ".join(c or "#ffffff" for c in row) + "}", to=(0, y))
+    # 모양 밖은 투명하게
+    for y in range(N):
+        for x in range(N):
+            if pix(x, y) is None:
+                im.transparency_set(x, y, True)
+    return im
+
+
 def folder_icon(widget):
-    """폴더 아이콘(그림). 환경설정의 '폴더 색'으로 그림"""
+    """폴더 아이콘(그림). 환경설정의 '폴더 색·아이콘 모양·직접 고른 그림'으로 만듦"""
     color = THEME.get("folder_color") or DEFAULT_FOLDER_COLOR
+    style = THEME.get("folder_style") or "폴더"
+    path = THEME.get("folder_image") or ""
     try:
         k = max(1, int(round(widget.winfo_fpixels("1i") / 96)))
     except Exception:
         k = 1
-    key = (color, k)
-    img = _FOLDER_ICONS.get(key)
+    try:
+        mt = os.path.getmtime(path) if path else 0
+    except OSError:
+        mt = 0
+    key = (color, style, path, mt, k)
+    if key in _FOLDER_ICONS:
+        return _FOLDER_ICONS[key]
+    img = None
+    if path and mt:
+        try:
+            img, _sz = make_photo(path, 18 * k, 16 * k, upscale=True)
+        except Exception:
+            img = None
     if img is None:
         try:
-            back, front, tab = _mix(color, "#000000", 0.18), color, _mix(color, "#000000", 0.28)
-            im = tk.PhotoImage(width=16, height=13)
-            im.put(tab, to=(1, 1, 7, 3))
-            im.put(back, to=(1, 2, 15, 12))
-            im.put(_mix(color, "#ffffff", 0.35), to=(1, 4, 15, 5))
-            im.put(front, to=(1, 5, 15, 12))
-            im.put(_mix(color, "#000000", 0.12), to=(1, 11, 15, 12))
+            im = _draw_icon(style if style in FOLDER_STYLES else "폴더", color)
             img = im.zoom(k, k) if k > 1 else im
         except Exception:
             img = None
-        _FOLDER_ICONS[key] = img
+    _FOLDER_ICONS[key] = img
     return img
 
 
@@ -5436,30 +5506,43 @@ class SettingsDialog:
             ttk.Button(body, text="기본", command=lambda k=key: self.reset_color(k)).grid(row=6 + r, column=3, sticky="w")
             self.swatches[key] = sw
 
+        ttk.Label(body, text="폴더 아이콘 모양").grid(row=11, column=0, sticky="w", pady=2)
+        self.fstyle_var = tk.StringVar(value=self.t.get("folder_style") or "폴더")
+        fcb = ttk.Combobox(body, textvariable=self.fstyle_var, values=FOLDER_STYLES, state="readonly", width=10)
+        fcb.grid(row=11, column=1, sticky="w", pady=2)
+        fcb.bind("<<ComboboxSelected>>", lambda e: self._sync())
+        fb = ttk.Frame(body)
+        fb.grid(row=11, column=2, columnspan=2, sticky="w", padx=4)
+        ttk.Button(fb, text="그림 파일로…", command=self.pick_folder_image).pack(side="left")
+        ttk.Button(fb, text="지우기", command=lambda: (self.fimg_var.set(""), self._sync())).pack(side="left", padx=(2, 0))
+        self.fimg_var = tk.StringVar(value=self.t.get("folder_image", ""))
+        ttk.Label(body, textvariable=self.fimg_var, foreground="#888", wraplength=420).grid(
+            row=12, column=0, columnspan=4, sticky="w")
+
         # 배경 그림
-        ttk.Separator(body).grid(row=11, column=0, columnspan=4, sticky="ew", pady=8)
-        ttk.Label(body, text="배경 그림", font=(FONT[0], fsz(10), "bold")).grid(row=12, column=0, sticky="w")
+        ttk.Separator(body).grid(row=13, column=0, columnspan=4, sticky="ew", pady=8)
+        ttk.Label(body, text="배경 그림", font=(FONT[0], fsz(10), "bold")).grid(row=14, column=0, sticky="w")
         self.img_var = tk.StringVar(value=self.t.get("bg_image", ""))
-        ttk.Entry(body, textvariable=self.img_var, width=30, state="readonly").grid(row=12, column=1, columnspan=2, sticky="w")
+        ttk.Entry(body, textvariable=self.img_var, width=30, state="readonly").grid(row=14, column=1, columnspan=2, sticky="w")
         bf = ttk.Frame(body)
-        bf.grid(row=12, column=3, sticky="w")
+        bf.grid(row=14, column=3, sticky="w")
         ttk.Button(bf, text="찾기…", command=self.pick_image).pack(side="left")
         ttk.Button(bf, text="지우기", command=lambda: (self.img_var.set(""), self._sync())).pack(side="left", padx=(2, 0))
-        ttk.Label(body, text="보이는 방식").grid(row=13, column=0, sticky="w", pady=(6, 0))
+        ttk.Label(body, text="보이는 방식").grid(row=15, column=0, sticky="w", pady=(6, 0))
         self.mode_var = tk.StringVar(value=BG_MODES.get(self.t.get("bg_mode", "fill"), "꽉 채우기"))
         mcb = ttk.Combobox(body, textvariable=self.mode_var, values=list(BG_MODES.values()), state="readonly", width=12)
-        mcb.grid(row=13, column=1, sticky="w", pady=(6, 0))
+        mcb.grid(row=15, column=1, sticky="w", pady=(6, 0))
         mcb.bind("<<ComboboxSelected>>", lambda e: self._sync())
         self.dim_var = tk.BooleanVar(value=self.t.get("bg_dim", True))
         ttk.Checkbutton(body, text="흐리게 (글씨가 잘 보이게)", variable=self.dim_var,
-                        command=self._sync).grid(row=13, column=2, columnspan=2, sticky="w", pady=(6, 0))
+                        command=self._sync).grid(row=15, column=2, columnspan=2, sticky="w", pady=(6, 0))
         ttk.Label(body, text="배경 그림은 미리보기가 비어 있을 때(파일을 고르기 전) 보입니다. 위 '빠른 선택'에서 기본 그림을 고를 수 있습니다.",
-                  foreground="#888").grid(row=14, column=0, columnspan=4, sticky="w", pady=(4, 0))
+                  foreground="#888").grid(row=16, column=0, columnspan=4, sticky="w", pady=(4, 0))
 
         # 미리보기
-        ttk.Separator(body).grid(row=15, column=0, columnspan=4, sticky="ew", pady=8)
+        ttk.Separator(body).grid(row=17, column=0, columnspan=4, sticky="ew", pady=8)
         self.sample = tk.Label(body, text="가나다라 ABC 123  —  미리보기", padx=10, pady=8, relief="solid", borderwidth=1)
-        self.sample.grid(row=16, column=0, columnspan=4, sticky="ew")
+        self.sample.grid(row=18, column=0, columnspan=4, sticky="ew")
 
         btns = ttk.Frame(w, padding=(14, 0, 14, 12))
         btns.pack(fill="x")
@@ -5532,6 +5615,8 @@ class SettingsDialog:
         self.t["bg_image"] = self.img_var.get()
         self.t["bg_mode"] = next((k for k, v in BG_MODES.items() if v == self.mode_var.get()), "fill")
         self.t["bg_dim"] = self.dim_var.get()
+        self.t["folder_style"] = self.fstyle_var.get() or "폴더"
+        self.t["folder_image"] = self.fimg_var.get()
         self._refresh()
 
     def _refresh(self):
@@ -5571,6 +5656,13 @@ class SettingsDialog:
         self._sync()
         self.apply()                                  # 고르면 바로 미리보기 칸에 보이게
 
+    def pick_folder_image(self):
+        p = filedialog.askopenfilename(parent=self.win, title="폴더 아이콘으로 쓸 그림 고르기",
+                                       filetypes=[("그림 파일", "*.png *.jpg *.jpeg *.bmp *.gif *.webp *.ico"), ("모든 파일", "*.*")])
+        if p:
+            self.fimg_var.set(os.path.normpath(p))
+            self._sync()
+
     def pick_image(self):
         p = filedialog.askopenfilename(parent=self.win, title="배경 그림 고르기",
                                        filetypes=[("그림 파일", "*.png *.jpg *.jpeg *.bmp *.gif *.webp"), ("모든 파일", "*.*")])
@@ -5583,6 +5675,8 @@ class SettingsDialog:
         self.fam_var.set(self.t["font_family"])
         self.size_var.set(str(self.t["font_size"]))
         self.img_var.set("")
+        self.fstyle_var.set("폴더")
+        self.fimg_var.set("")
         self.mode_var.set(BG_MODES["fill"])
         self.dim_var.set(True)
         self._refresh()
