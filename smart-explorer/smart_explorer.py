@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.34"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.35"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -6895,28 +6895,34 @@ class SimpleAlarmDialog:
         self.unit = tk.StringVar(value="분")
         ttk.Combobox(r, textvariable=self.unit, values=["분", "시간"], state="readonly", width=4).pack(side="left", padx=4)
         ttk.Label(r, text="뒤에").pack(side="left")
-        ttk.Radiobutton(f, text="정해진 시각", value="at", variable=self.mode).grid(row=2, column=0, sticky="w", pady=4)
+        ttk.Radiobutton(f, text="날짜·시각 지정", value="at", variable=self.mode).grid(row=2, column=0, sticky="w", pady=4)
         r2 = ttk.Frame(f)
         r2.grid(row=2, column=1, columnspan=3, sticky="w")
+        self.date = tk.StringVar(value="")
+        de = ttk.Entry(r2, textvariable=self.date, width=12)
+        de.pack(side="left")
         self.hm = tk.StringVar(value=(datetime.now()).strftime("%H:%M"))
-        ttk.Entry(r2, textvariable=self.hm, width=7).pack(side="left")
-        ttk.Label(r2, text="  (예: 14:30 — 이미 지난 시각이면 내일)", foreground="#888").pack(side="left")
+        ttk.Entry(r2, textvariable=self.hm, width=7).pack(side="left", padx=(6, 0))
+        for w_ in (de,):
+            w_.bind("<FocusIn>", lambda ev: self.mode.set("at"))
+        ttk.Label(f, text="날짜 예: 2026-12-25 · 12/25 · 12월 25일  /  비우면 오늘 (시각이 지났으면 내일)",
+                  foreground="#888").grid(row=3, column=1, columnspan=3, sticky="w")
         ttk.Button(f, text="⏰ 알람 추가", style="Accent.TButton", command=self.add).grid(
-            row=3, column=0, columnspan=4, sticky="we", pady=(8, 6))
-        ttk.Label(f, text="기다리는 알람").grid(row=4, column=0, columnspan=4, sticky="w")
+            row=4, column=0, columnspan=4, sticky="we", pady=(8, 6))
+        ttk.Label(f, text="기다리는 알람").grid(row=5, column=0, columnspan=4, sticky="w")
         lf = ttk.Frame(f)
-        lf.grid(row=5, column=0, columnspan=4, sticky="nsew")
+        lf.grid(row=6, column=0, columnspan=4, sticky="nsew")
         self.lb = tk.Listbox(lf, height=6, activestyle="none")
         self.lb.pack(side="left", fill="both", expand=True)
         sb = ttk.Scrollbar(lf, orient="vertical", command=self.lb.yview)
         sb.pack(side="right", fill="y")
         self.lb.configure(yscrollcommand=sb.set)
         bf = ttk.Frame(f)
-        bf.grid(row=6, column=0, columnspan=4, sticky="we", pady=(6, 0))
+        bf.grid(row=7, column=0, columnspan=4, sticky="we", pady=(6, 0))
         ttk.Button(bf, text="선택한 알람 지우기", command=self.remove).pack(side="left")
         ttk.Button(bf, text="닫기", command=w.destroy).pack(side="right")
         self.info = ttk.Label(f, text="알림 글·소리·음성은 반복 알람 설정(음성 읽기 등)을 따릅니다.", foreground="#888")
-        self.info.grid(row=7, column=0, columnspan=4, sticky="w", pady=(6, 0))
+        self.info.grid(row=8, column=0, columnspan=4, sticky="w", pady=(6, 0))
         f.columnconfigure(1, weight=1)
         self.refresh()
         e.focus_set()
@@ -6924,6 +6930,28 @@ class SimpleAlarmDialog:
         w.bind("<Return>", lambda ev: self.add())
         w.bind("<Escape>", lambda ev: w.destroy())
         center_on(w, app.root)
+
+    @staticmethod
+    def _parse_date(text):
+        """'2026-12-25' '2026.12.25' '12/25' '12월 25일' → 날짜 (비어 있으면 None). 올해 안 지난 날짜가 아니면 내년으로"""
+        from datetime import date
+        t = text.strip()
+        if not t:
+            return None
+        nums = [int(x) for x in re.findall(r"\d+", t)]
+        today = date.today()
+        if len(nums) == 3:
+            y, mo, d = nums
+            if y < 100:
+                y += 2000
+        elif len(nums) == 2:
+            mo, d = nums
+            y = today.year
+            if date(y, mo, d) < today:
+                y += 1
+        else:
+            raise ValueError
+        return date(y, mo, d)
 
     def refresh(self):
         self.lb.delete(0, "end")
@@ -6940,8 +6968,15 @@ class SimpleAlarmDialog:
                 h, m = (int(x) for x in self.hm.get().strip().replace("시", ":").replace("분", "").split(":"))
                 if not (0 <= h < 24 and 0 <= m < 60):
                     raise ValueError
-                t = datetime.now().replace(hour=h, minute=m, second=0, microsecond=0).timestamp()
-                at = t if t > now else t + 86400
+                day = self._parse_date(self.date.get())
+                if day is None:                                   # 날짜를 비우면 오늘(지났으면 내일)
+                    t = datetime.now().replace(hour=h, minute=m, second=0, microsecond=0).timestamp()
+                    at = t if t > now else t + 86400
+                else:
+                    at = datetime(day.year, day.month, day.day, h, m).timestamp()
+                    if at <= now:
+                        messagebox.showwarning(APP_NAME, "이미 지난 날짜·시각입니다.", parent=self.win)
+                        return
         except ValueError:
             messagebox.showwarning(APP_NAME, "시간을 확인해 주세요.\n(몇 분 뒤는 숫자, 시각은 14:30 처럼)", parent=self.win)
             return
