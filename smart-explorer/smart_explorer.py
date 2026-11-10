@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.33"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.34"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -6802,7 +6802,7 @@ def play_alarm_sound():
 class AlarmPopup:
     """알람 알림 창: 모니터 가운데, 큼직하게, 항상 위에"""
 
-    def __init__(self, app, message):
+    def __init__(self, app, message, simple=False):
         # 설정 창처럼 '다른 창을 못 누르게 잡고 있는 창'(grab)이 열려 있으면 알람 창 버튼이 눌리지 않음
         # → 알람 창이 잠시 넘겨받았다가 닫힐 때 돌려줌
         try:
@@ -6826,7 +6826,7 @@ class AlarmPopup:
                  font=(FONT[0], fsz(26), "bold")).pack(anchor="w")
         tk.Label(f, text=message or "알람", bg=bg, fg="#3b2f20", wraplength=640, justify="left",
                  font=(FONT[0], fsz(22), "bold")).pack(anchor="w", pady=(14, 20))
-        nxt = app.alarm_next
+        nxt = None if simple else app.alarm_next
         tk.Label(f, text=(f"다음 알람: {datetime.fromtimestamp(nxt):%m월 %d일 %H:%M}" if nxt else ""), bg=bg,
                  fg="#8a8278", font=(FONT[0], fsz(14))).pack(anchor="w")
         bf = tk.Frame(f, bg=bg)
@@ -6835,10 +6835,11 @@ class AlarmPopup:
         st.configure("Big.TButton", font=(FONT[0], fsz(14), "bold"), padding=(18, 8))
         st.configure("BigPlain.TButton", font=(FONT[0], fsz(13)), padding=(14, 8))
         ttk.Button(bf, text="확인", style="Big.TButton", command=self.close).pack(side="right")
-        ttk.Button(bf, text="알람 끄기", style="BigPlain.TButton",
-                   command=lambda: (app.set_alarm_enabled(False), self.close())).pack(side="right", padx=8)
-        ttk.Button(bf, text="🏢 인사랑 열기", style="BigPlain.TButton",
-                   command=lambda: self.close() if open_insarang(w, with_record=True, root=app.root) else None).pack(side="right", padx=(0, 8))
+        if not simple:
+            ttk.Button(bf, text="알람 끄기", style="BigPlain.TButton",
+                       command=lambda: (app.set_alarm_enabled(False), self.close())).pack(side="right", padx=8)
+            ttk.Button(bf, text="🏢 인사랑 열기", style="BigPlain.TButton",
+                       command=lambda: self.close() if open_insarang(w, with_record=True, root=app.root) else None).pack(side="right", padx=(0, 8))
         w.bind("<Escape>", lambda e: self.close())
         w.bind("<Return>", lambda e: self.close())
         w.update_idletasks()
@@ -6869,6 +6870,97 @@ class AlarmPopup:
                     g.grab_set()              # 설정 창에 다시 넘겨줌
             except tk.TclError:
                 pass
+
+
+class SimpleAlarmDialog:
+    """간단 알람: 'N분 뒤' 또는 '정해진 시각'에 한 번만 알림 창을 띄움 (여러 개 가능)"""
+
+    def __init__(self, app, parent=None):
+        self.app = app
+        w = self.win = tk.Toplevel(parent or app.root)
+        w.title("간단 알람")
+        w.transient(parent or app.root)
+        f = ttk.Frame(w, padding=14)
+        f.pack(fill="both", expand=True)
+        ttk.Label(f, text="알림 글").grid(row=0, column=0, sticky="w")
+        self.msg = tk.StringVar(value="알람")
+        e = ttk.Entry(f, textvariable=self.msg, width=36)
+        e.grid(row=0, column=1, columnspan=3, sticky="we", pady=2)
+        self.mode = tk.StringVar(value="after")
+        ttk.Radiobutton(f, text="지금부터", value="after", variable=self.mode).grid(row=1, column=0, sticky="w", pady=4)
+        r = ttk.Frame(f)
+        r.grid(row=1, column=1, columnspan=3, sticky="w")
+        self.n = tk.StringVar(value="10")
+        ttk.Spinbox(r, from_=1, to=999, width=5, textvariable=self.n).pack(side="left")
+        self.unit = tk.StringVar(value="분")
+        ttk.Combobox(r, textvariable=self.unit, values=["분", "시간"], state="readonly", width=4).pack(side="left", padx=4)
+        ttk.Label(r, text="뒤에").pack(side="left")
+        ttk.Radiobutton(f, text="정해진 시각", value="at", variable=self.mode).grid(row=2, column=0, sticky="w", pady=4)
+        r2 = ttk.Frame(f)
+        r2.grid(row=2, column=1, columnspan=3, sticky="w")
+        self.hm = tk.StringVar(value=(datetime.now()).strftime("%H:%M"))
+        ttk.Entry(r2, textvariable=self.hm, width=7).pack(side="left")
+        ttk.Label(r2, text="  (예: 14:30 — 이미 지난 시각이면 내일)", foreground="#888").pack(side="left")
+        ttk.Button(f, text="⏰ 알람 추가", style="Accent.TButton", command=self.add).grid(
+            row=3, column=0, columnspan=4, sticky="we", pady=(8, 6))
+        ttk.Label(f, text="기다리는 알람").grid(row=4, column=0, columnspan=4, sticky="w")
+        lf = ttk.Frame(f)
+        lf.grid(row=5, column=0, columnspan=4, sticky="nsew")
+        self.lb = tk.Listbox(lf, height=6, activestyle="none")
+        self.lb.pack(side="left", fill="both", expand=True)
+        sb = ttk.Scrollbar(lf, orient="vertical", command=self.lb.yview)
+        sb.pack(side="right", fill="y")
+        self.lb.configure(yscrollcommand=sb.set)
+        bf = ttk.Frame(f)
+        bf.grid(row=6, column=0, columnspan=4, sticky="we", pady=(6, 0))
+        ttk.Button(bf, text="선택한 알람 지우기", command=self.remove).pack(side="left")
+        ttk.Button(bf, text="닫기", command=w.destroy).pack(side="right")
+        self.info = ttk.Label(f, text="알림 글·소리·음성은 반복 알람 설정(음성 읽기 등)을 따릅니다.", foreground="#888")
+        self.info.grid(row=7, column=0, columnspan=4, sticky="w", pady=(6, 0))
+        f.columnconfigure(1, weight=1)
+        self.refresh()
+        e.focus_set()
+        e.select_range(0, "end")
+        w.bind("<Return>", lambda ev: self.add())
+        w.bind("<Escape>", lambda ev: w.destroy())
+        center_on(w, app.root)
+
+    def refresh(self):
+        self.lb.delete(0, "end")
+        for a in sorted(self.app.s.get("simple_alarms", []), key=lambda a: a["at"]):
+            self.lb.insert("end", f"{datetime.fromtimestamp(a['at']):%m월 %d일 %H:%M}   {a['msg']}")
+
+    def add(self):
+        now = time.time()
+        try:
+            if self.mode.get() == "after":
+                n = max(1, min(999, int(float(self.n.get()))))
+                at = now + n * (3600 if self.unit.get() == "시간" else 60)
+            else:
+                h, m = (int(x) for x in self.hm.get().strip().replace("시", ":").replace("분", "").split(":"))
+                if not (0 <= h < 24 and 0 <= m < 60):
+                    raise ValueError
+                t = datetime.now().replace(hour=h, minute=m, second=0, microsecond=0).timestamp()
+                at = t if t > now else t + 86400
+        except ValueError:
+            messagebox.showwarning(APP_NAME, "시간을 확인해 주세요.\n(몇 분 뒤는 숫자, 시각은 14:30 처럼)", parent=self.win)
+            return
+        self.app.s.setdefault("simple_alarms", []).append({"at": at, "msg": self.msg.get().strip() or "알람"})
+        self.app.schedule_save()
+        self.info.configure(text=f"{datetime.fromtimestamp(at):%m월 %d일 %H:%M} 에 알려 드립니다.", foreground="#2f7a3a")
+        self.refresh()
+
+    def remove(self):
+        sel = self.lb.curselection()
+        if not sel:
+            return
+        items = sorted(self.app.s.get("simple_alarms", []), key=lambda a: a["at"])
+        for i in sel:
+            if i < len(items):
+                items[i]["_del"] = True
+        self.app.s["simple_alarms"] = [a for a in self.app.s.get("simple_alarms", []) if not a.get("_del")]
+        self.app.schedule_save()
+        self.refresh()
 
 
 class AlarmDialog:
@@ -7729,14 +7821,13 @@ class NavPane(ttk.Frame):
         self.pc_root = pc
 
     def _fill(self, iid):
-        if iid in self.loaded:
+        base = self.paths.get(iid)
+        if not base or iid in self.loaded:               # 즐겨찾기·내 PC 같은 묶음은 이미 채워져 있으니 건드리지 않음
             return
         self.loaded.add(iid)
         for ch in self.tree.get_children(iid):
-            self.tree.delete(ch)
-        base = self.paths.get(iid)
-        if not base:
-            return
+            if self.tree.item(ch, "text") == "…":        # 펼치기 전 자리표시만 지움
+                self.tree.delete(ch)
         for n in self._subdirs(base):
             self._add(iid, "📁 " + n, os.path.join(base, n))
 
@@ -8057,6 +8148,7 @@ class App:
         ttk.Button(bar, text="ⓘ 사용 안내", command=self.show_guide).pack(side="right", padx=(10, 10))
         ttk.Button(bar, text="⚙ 환경설정", command=lambda: SettingsDialog(self)).pack(side="right", padx=(0, 4))
         ttk.Button(bar, text="🏢 인사랑", command=lambda: open_insarang(self.root, with_record=True, root=self.root)).pack(side="right", padx=(0, 4))
+        ttk.Button(bar, text="⏰ 간단 알람", command=lambda: SimpleAlarmDialog(self)).pack(side="right", padx=(0, 4))
         self.update_var = tk.StringVar(value="")
         self.update_slot = ttk.Frame(bar)                 # 새 버전이 있을 때만 [업데이트 필요] 버튼이 나타남
         self.update_slot.pack(side="right", padx=(0, 10))
@@ -8466,6 +8558,15 @@ class App:
         AlarmPopup(self, self.alarm.get("message", ""))
         alarm_extras(self, self.alarm)
 
+    def fire_simple(self, a):
+        if self.alarm.get("sound", True):
+            play_alarm_sound()
+        AlarmPopup(self, a.get("msg", "알람"), simple=True)
+        try:
+            AlarmAudio.play(self, a.get("msg", "알람"), self.alarm, None)
+        except Exception:
+            pass
+
     def ocr_missing(self, force=False):
         """한국어 OCR이 없는 PC: 색인할 때 설치 안내 창 (하루 한 번, '다시 보지 않기' 가능)"""
         if not force and (self.s.get("ocr_nag_off") or time.time() - self.s.get("ocr_nag_at", 0) < 20 * 3600):
@@ -8507,6 +8608,16 @@ class App:
             self.pinned_folders = [p.folder_var.get() for p in self.panes if p.pinned_var.get()]
             if hasattr(self, "indexer"):
                 self.index_var.set(self.indexer.summary())
+        except Exception:
+            pass
+        try:
+            due = [a for a in self.s.get("simple_alarms", []) if a["at"] <= time.time()]
+            if due:
+                self.s["simple_alarms"] = [a for a in self.s["simple_alarms"] if a not in due]
+                self.schedule_save()
+                for a in due:
+                    if time.time() - a["at"] < 12 * 3600:          # 너무 오래 지난 건 조용히 버림
+                        self.fire_simple(a)
         except Exception:
             pass
         if self.alarm_next and time.time() >= self.alarm_next:
