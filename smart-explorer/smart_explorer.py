@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.37"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.38"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -6872,6 +6872,107 @@ class AlarmPopup:
                 pass
 
 
+def _repeat_text(a):
+    r = a.get("rep", "none")
+    return {"none": "", "daily": "   [매일]", "weekdays": "   [평일]", "weekly": "   [매주]", "monthly": "   [매월]",
+            "interval": f"   [{a.get('every_min', 30)}분마다]"}.get(r, "")
+
+
+def _next_repeat(a, now):
+    """반복 알람의 다음 울릴 시각(now 이후). 시각(시:분)은 그대로 유지"""
+    import calendar
+    from datetime import timedelta
+    rep = a.get("rep", "none")
+    t = datetime.fromtimestamp(a["at"])
+    if rep == "interval":
+        iv = max(1, int(a.get("every_min", 30))) * 60
+        k = int((now - a["at"]) // iv) + 1
+        return a["at"] + max(1, k) * iv
+    for _ in range(4000):
+        if rep in ("daily", "weekdays"):
+            t += timedelta(days=1)
+            if rep == "weekdays":
+                while t.weekday() >= 5:
+                    t += timedelta(days=1)
+        elif rep == "weekly":
+            t += timedelta(days=7)
+        elif rep == "monthly":
+            y, m = (t.year + 1, 1) if t.month == 12 else (t.year, t.month + 1)
+            day0 = datetime.fromtimestamp(a["at"]).day                    # 31일이면 짧은 달은 말일로
+            t = t.replace(year=y, month=m, day=min(day0, calendar.monthrange(y, m)[1]))
+        else:
+            return None
+        if t.timestamp() > now:
+            return t.timestamp()
+    return None
+
+
+class DatePickerPopup:
+    """작은 달력: 날짜를 눌러 고름 (일요일·공휴일은 빨강, 토요일은 파랑)"""
+
+    def __init__(self, parent, app, initial, on_pick):
+        import calendar
+        from datetime import date
+        self.cal = calendar.Calendar(firstweekday=6)
+        self.app, self.on_pick = app, on_pick
+        self.sel = initial
+        t = initial or date.today()
+        self.y, self.m = t.year, t.month
+        w = self.win = tk.Toplevel(parent)
+        w.title("날짜 고르기")
+        w.transient(parent)
+        w.resizable(False, False)
+        self.body = tk.Frame(w, padx=8, pady=8)
+        self.body.pack()
+        w.bind("<Escape>", lambda e: w.destroy())
+        self.draw()
+        try:
+            w.update_idletasks()
+            x = parent.winfo_rootx() + 30
+            y = parent.winfo_rooty() + 60
+            w.geometry(f"+{x}+{y}")
+        except Exception:
+            pass
+        w.focus_set()
+
+    def shift(self, dm):
+        n = self.y * 12 + (self.m - 1) + dm
+        self.y, self.m = divmod(n, 12)
+        self.m += 1
+        self.draw()
+
+    def draw(self):
+        from datetime import date
+        for ch in self.body.winfo_children():
+            ch.destroy()
+        top = tk.Frame(self.body)
+        top.grid(row=0, column=0, columnspan=7, sticky="we", pady=(0, 4))
+        ttk.Button(top, text="◀", width=3, command=lambda: self.shift(-1)).pack(side="left")
+        tk.Label(top, text=f"{self.y}년 {self.m}월", font=(FONT[0], fsz(11), "bold")).pack(side="left", expand=True)
+        ttk.Button(top, text="▶", width=3, command=lambda: self.shift(1)).pack(side="right")
+        for i, n in enumerate("일월화수목금토"):
+            tk.Label(self.body, text=n, width=4, fg="#c0392b" if i == 0 else ("#2a6fdb" if i == 6 else "#555")
+                     ).grid(row=1, column=i)
+        today = date.today()
+        for r, week in enumerate(self.cal.monthdatescalendar(self.y, self.m)):
+            for c, d in enumerate(week):
+                other = d.month != self.m
+                fg = "#bbb" if other else ("#c0392b" if (c == 0 or is_holiday(d, self.app.alarm)) else ("#2a6fdb" if c == 6 else "#222"))
+                bg = "#ffe08a" if d == self.sel else ("#e3f0fb" if d == today else "#ffffff")
+                b = tk.Button(self.body, text=str(d.day), width=3, relief="flat", bg=bg, fg=fg, bd=1,
+                              font=(FONT[0], fsz(10), "bold" if d == today else "normal"), cursor="hand2",
+                              command=lambda d=d: self.pick(d))
+                b.grid(row=2 + r, column=c, padx=1, pady=1)
+        bt = tk.Frame(self.body)
+        bt.grid(row=9, column=0, columnspan=7, sticky="we", pady=(6, 0))
+        ttk.Button(bt, text="오늘", command=lambda: self.pick(today)).pack(side="left")
+        ttk.Button(bt, text="닫기", command=self.win.destroy).pack(side="right")
+
+    def pick(self, d):
+        self.on_pick(d)
+        self.win.destroy()
+
+
 class SimpleAlarmDialog:
     """간단 알람: 'N분 뒤' 또는 '정해진 시각'에 한 번만 알림 창을 띄움 (여러 개 가능)"""
 
@@ -6901,28 +7002,41 @@ class SimpleAlarmDialog:
         self.date = tk.StringVar(value="")
         de = ttk.Entry(r2, textvariable=self.date, width=12)
         de.pack(side="left")
+        ttk.Button(r2, text="📅", width=3, command=self.pick_date).pack(side="left", padx=(2, 0))
         self.hm = tk.StringVar(value=(datetime.now()).strftime("%H:%M"))
         ttk.Entry(r2, textvariable=self.hm, width=7).pack(side="left", padx=(6, 0))
         for w_ in (de,):
             w_.bind("<FocusIn>", lambda ev: self.mode.set("at"))
         ttk.Label(f, text="날짜 예: 2026-12-25 · 12/25 · 12월 25일  /  비우면 오늘 (시각이 지났으면 내일)",
                   foreground="#888").grid(row=3, column=1, columnspan=3, sticky="w")
+        ttk.Label(f, text="반복").grid(row=4, column=0, sticky="w", pady=4)
+        r3 = ttk.Frame(f)
+        r3.grid(row=4, column=1, columnspan=3, sticky="w")
+        self.rep = tk.StringVar(value="한 번만")
+        rc = ttk.Combobox(r3, textvariable=self.rep, values=list(self.REPEATS), state="readonly", width=12)
+        rc.pack(side="left")
+        self.ev = tk.StringVar(value="30")
+        self.ev_sp = ttk.Spinbox(r3, from_=1, to=999, width=5, textvariable=self.ev)
+        self.ev_unit = tk.StringVar(value="분")
+        self.ev_cb = ttk.Combobox(r3, textvariable=self.ev_unit, values=["분", "시간"], state="readonly", width=4)
+        self.ev_lbl = ttk.Label(r3, text="마다")
+        rc.bind("<<ComboboxSelected>>", lambda ev: self._rep_changed())
         ttk.Button(f, text="⏰ 알람 추가", style="Accent.TButton", command=self.add).grid(
-            row=4, column=0, columnspan=4, sticky="we", pady=(8, 6))
-        ttk.Label(f, text="기다리는 알람").grid(row=5, column=0, columnspan=4, sticky="w")
+            row=5, column=0, columnspan=4, sticky="we", pady=(8, 6))
+        ttk.Label(f, text="기다리는 알람").grid(row=6, column=0, columnspan=4, sticky="w")
         lf = ttk.Frame(f)
-        lf.grid(row=6, column=0, columnspan=4, sticky="nsew")
+        lf.grid(row=7, column=0, columnspan=4, sticky="nsew")
         self.lb = tk.Listbox(lf, height=6, activestyle="none")
         self.lb.pack(side="left", fill="both", expand=True)
         sb = ttk.Scrollbar(lf, orient="vertical", command=self.lb.yview)
         sb.pack(side="right", fill="y")
         self.lb.configure(yscrollcommand=sb.set)
         bf = ttk.Frame(f)
-        bf.grid(row=7, column=0, columnspan=4, sticky="we", pady=(6, 0))
+        bf.grid(row=8, column=0, columnspan=4, sticky="we", pady=(6, 0))
         ttk.Button(bf, text="선택한 알람 지우기", command=self.remove).pack(side="left")
         ttk.Button(bf, text="닫기", command=w.destroy).pack(side="right")
         self.info = ttk.Label(f, text="알림 글·소리·음성은 반복 알람 설정(음성 읽기 등)을 따릅니다.", foreground="#888")
-        self.info.grid(row=8, column=0, columnspan=4, sticky="w", pady=(6, 0))
+        self.info.grid(row=9, column=0, columnspan=4, sticky="w", pady=(6, 0))
         f.columnconfigure(1, weight=1)
         self.refresh()
         e.focus_set()
@@ -6930,6 +7044,26 @@ class SimpleAlarmDialog:
         w.bind("<Return>", lambda ev: self.add())
         w.bind("<Escape>", lambda ev: w.destroy())
         center_on(w, app.root)
+
+    REPEATS = {"한 번만": "none", "매일": "daily", "평일만 (월~금)": "weekdays", "매주 같은 요일": "weekly",
+               "매월 같은 날": "monthly", "일정 간격마다": "interval"}
+
+    def _rep_changed(self):
+        for w_ in (self.ev_sp, self.ev_cb, self.ev_lbl):
+            w_.pack_forget()
+        if self.REPEATS.get(self.rep.get()) == "interval":
+            self.ev_sp.pack(side="left", padx=(6, 0))
+            self.ev_cb.pack(side="left", padx=4)
+            self.ev_lbl.pack(side="left")
+
+    def pick_date(self):
+        init = None
+        try:
+            init = self._parse_date(self.date.get())
+        except (ValueError, TypeError):
+            pass
+        self.mode.set("at")
+        DatePickerPopup(self.win, self.app, init, lambda d: self.date.set(d.strftime("%Y-%m-%d")))
 
     @staticmethod
     def _parse_date(text):
@@ -6956,7 +7090,7 @@ class SimpleAlarmDialog:
     def refresh(self):
         self.lb.delete(0, "end")
         for a in sorted(self.app.s.get("simple_alarms", []), key=lambda a: a["at"]):
-            self.lb.insert("end", f"{datetime.fromtimestamp(a['at']):%m월 %d일 %H:%M}   {a['msg']}")
+            self.lb.insert("end", f"{datetime.fromtimestamp(a['at']):%Y-%m-%d %H:%M}   {a['msg']}{_repeat_text(a)}")
 
     def add(self):
         now = time.time()
@@ -6980,7 +7114,21 @@ class SimpleAlarmDialog:
         except ValueError:
             messagebox.showwarning(APP_NAME, "시간을 확인해 주세요.\n(몇 분 뒤는 숫자, 시각은 14:30 처럼)", parent=self.win)
             return
-        self.app.s.setdefault("simple_alarms", []).append({"at": at, "msg": self.msg.get().strip() or "알람"})
+        rep = self.REPEATS.get(self.rep.get(), "none")
+        item = {"at": at, "msg": self.msg.get().strip() or "알람", "rep": rep}
+        if rep == "interval":
+            try:
+                n = max(1, min(999, int(float(self.ev.get()))))
+            except ValueError:
+                messagebox.showwarning(APP_NAME, "반복 간격을 숫자로 넣어 주세요.", parent=self.win)
+                return
+            item["every_min"] = n * (60 if self.ev_unit.get() == "시간" else 1)
+        if rep == "weekdays":                                    # 시작일이 주말이면 월요일로
+            d0 = datetime.fromtimestamp(at)
+            if d0.weekday() >= 5:
+                from datetime import timedelta
+                item["at"] = at = (d0 + timedelta(days=7 - d0.weekday())).timestamp()
+        self.app.s.setdefault("simple_alarms", []).append(item)
         self.app.schedule_save()
         self.info.configure(text=f"{datetime.fromtimestamp(at):%m월 %d일 %H:%M} 에 알려 드립니다.", foreground="#2f7a3a")
         self.refresh()
@@ -8659,13 +8807,19 @@ class App:
         except Exception:
             pass
         try:
-            due = [a for a in self.s.get("simple_alarms", []) if a["at"] <= time.time()]
+            now = time.time()
+            due = [a for a in self.s.get("simple_alarms", []) if a["at"] <= now]
             if due:
-                self.s["simple_alarms"] = [a for a in self.s["simple_alarms"] if a not in due]
-                self.schedule_save()
+                keep = [a for a in self.s["simple_alarms"] if a not in due]
                 for a in due:
-                    if time.time() - a["at"] < 12 * 3600:          # 너무 오래 지난 건 조용히 버림
+                    late = now - a["at"]
+                    nxt = _next_repeat(a, now) if a.get("rep", "none") != "none" else None
+                    if nxt:                                         # 반복 알람은 다음 시각으로 옮겨 계속 둠
+                        keep.append(dict(a, at=nxt))
+                    if late < 12 * 3600:                            # 너무 오래 지난 건 울리지 않음
                         self.fire_simple(a)
+                self.s["simple_alarms"] = keep
+                self.schedule_save()
         except Exception:
             pass
         if self.alarm_next and time.time() >= self.alarm_next:
