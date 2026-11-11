@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.42"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.43"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -3987,14 +3987,18 @@ class SearchPane(tk.Frame):
                                  command=(self.refresh_preview if k == "shell_preview" else None))
         mb["menu"] = menu
         mb.pack(side="left", padx=(2, 0))
-        # 상태 정보(폴더·파일 개수, 검색 진행)는 옵션 버튼 왼쪽에
-        self.status_var = tk.StringVar(value="")
-        self.status_lbl = ttk.Label(r2, textvariable=self.status_var, width=30, anchor="w", foreground="#555")
-        self.status_lbl.pack(side="left", padx=(8, 4), before=mb)   # mb(옵션)는 이미 배치돼 있음
         self.opt_btn = mb
         self.progress = ttk.Progressbar(r2, mode="indeterminate", length=50)   # 검색 중에만 보임
-        self.status_lbl.bind("<Enter>", self._status_tip)          # 글이 잘리면 마우스를 올려 전체 보기
-        self.status_lbl.bind("<Leave>", lambda e: self._status_tip(hide=True))
+        # 맨 아래 상태 표시줄 (윈도우 탐색기처럼): 왼쪽 = 항목 수·검색 상태, 오른쪽 = 선택한 항목
+        self.status_var = tk.StringVar(value="")
+        self.sel_var = tk.StringVar(value="")
+        sbar = ttk.Frame(inner)
+        sbar.pack(side="bottom", fill="x", pady=(3, 0))
+        ttk.Separator(sbar, orient="horizontal").pack(side="top", fill="x")
+        self.status_lbl = ttk.Label(sbar, textvariable=self.status_var, anchor="w", foreground="#555")
+        self.status_lbl.pack(side="left", padx=(6, 8), pady=(2, 1))
+        ttk.Label(sbar, textvariable=self.sel_var, anchor="e", foreground="#333").pack(side="right", padx=(8, 6), pady=(2, 1))
+        self.sbar = sbar
 
         self._inner = inner
         self.side_preview = False          # True = 미리보기를 목록 오른쪽에 (칸이 1개일 때)
@@ -4101,25 +4105,6 @@ class SearchPane(tk.Frame):
                 "shell_fit": self.preview.shell_fit, "shell_zoom": self.preview.shell_zoom,
                 "types": {k: v.get() for k, v in self.type_vars.items()},
                 "opts": {k: v.get() for k, v in self.opt_vars.items()}}
-
-    def _status_tip(self, e=None, hide=False):
-        tip = getattr(self, "_tip", None)
-        if tip is not None:
-            try:
-                tip.destroy()
-            except tk.TclError:
-                pass
-            self._tip = None
-        text = self.status_var.get()
-        if hide or len(text) <= 30:
-            return
-        t = self._tip = tk.Toplevel(self)
-        t.wm_overrideredirect(True)
-        t.attributes("-topmost", True)
-        tk.Label(t, text=text, bg="#ffffe0", relief="solid", borderwidth=1, padx=6, pady=3,
-                 font=(FONT[0], fsz(9))).pack()
-        x, y = self.status_lbl.winfo_rootx(), self.status_lbl.winfo_rooty() + self.status_lbl.winfo_height() + 2
-        t.geometry(f"+{x}+{y}")
 
     def _placeholder(self):
         try:
@@ -4381,8 +4366,9 @@ class SearchPane(tk.Frame):
             self.tree.see(sel[0])
         else:
             self.tree.yview_moveto(y)
-        self.status_var.set(f"폴더 {nd:,}개 숨김 · 파일 {nf:,}개" if self.hide_dirs and nd
-                            else f"폴더 {nd:,}개 · 파일 {nf:,}개")
+        self.status_var.set(f"{nf:,}개 항목 (폴더 {nd:,}개 숨김)" if self.hide_dirs and nd
+                            else f"{nd + nf:,}개 항목")
+        self.sel_var.set("")
         if not sel:
             self.preview.clear()
             self._set_matches([])
@@ -4562,10 +4548,10 @@ class SearchPane(tk.Frame):
         sel = self.tree.selection()
         h = self.current()
         if not h:
+            self.sel_var.set("")
             return
-        if len(sel) > 1:
-            total = sum(max(self.hits[i].get("size", 0), 0) for i in sel if i in self.hits)
-            self.status_var.set(f"{len(sel):,}개 선택" + (f" · {fmt_size(total)}" if total else ""))
+        total = sum(max(self.hits[i].get("size", 0), 0) for i in sel if i in self.hits)
+        self.sel_var.set(f"{len(sel):,}개 항목 선택함" + (f"   {fmt_size(total)}" if total else ""))
         parts = [(h["name"] + "\n", "title", True), (h["path"] + "\n\n", "path", False)]
         if h.get("name_hit") and not h["snippets"]:
             parts.append(("파일 이름에서 일치했습니다.\n", "note", False))
