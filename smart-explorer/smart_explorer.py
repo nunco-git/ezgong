@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.39"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.40"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -4980,6 +4980,7 @@ DEFAULT_THEME = {
     "text_color": "", "bg_color": "", "list_bg": "", "accent": "",   # 비어 있으면 윈도우 기본 모양
     "bg_image": "", "bg_mode": "fill", "bg_dim": True,
     "folder_color": "",                                          # 폴더 아이콘 색 (비어 있으면 윈도우 탐색기처럼 노란색)
+    "bg_folder": "", "bg_every": "켤 때만", "bg_order": "무작위",   # 폴더의 그림을 돌아가며 배경으로
     "folder_style": "폴더", "folder_image": "",                  # 아이콘 모양 / 직접 고른 그림 파일
 }
 THEME_PRESETS = {
@@ -5312,9 +5313,67 @@ def builtin_bg_path(name):
     return path
 
 
+BG_EVERY = {"켤 때만": 0, "10분마다": 600, "30분마다": 1800, "1시간마다": 3600, "하루마다": 86400}
+BG_ORDERS = ["무작위", "차례대로"]
+_AUTO_BG = {"folder": None, "path": "", "at": 0.0, "idx": -1, "list": [], "list_at": 0.0}
+
+
+def _bg_folder_images(folder):
+    now = time.time()
+    st = _AUTO_BG
+    if st["list"] and st["folder"] == folder and now - st["list_at"] < 60:
+        return st["list"]
+    exts = (".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp")
+    out = []
+    try:
+        with os.scandir(folder) as it:
+            for e in it:
+                if e.name.lower().endswith(exts) and e.is_file():
+                    out.append(e.path)
+                if len(out) >= 3000:
+                    break
+    except OSError:
+        pass
+    out.sort(key=lambda x: x.lower())
+    st["list"], st["list_at"] = out, now
+    return out
+
+
+def current_bg_image(advance=True):
+    """지금 쓸 배경 그림 경로: 폴더가 지정돼 있으면 그 안의 그림을 정해 둔 방식으로 돌려 가며, 아니면 직접 고른 그림"""
+    folder = THEME.get("bg_folder") or ""
+    if not folder or not os.path.isdir(folder):
+        return THEME.get("bg_image") or ""
+    st = _AUTO_BG
+    now = time.time()
+    every = BG_EVERY.get(THEME.get("bg_every"), 0)
+    due = (st["folder"] != folder or not st["path"] or not os.path.exists(st["path"]) or
+           (advance and every and now - st["at"] >= every))
+    if due:
+        imgs = _bg_folder_images(folder)
+        if not imgs:
+            return THEME.get("bg_image") or ""
+        if THEME.get("bg_order") == "차례대로":
+            st["idx"] = (st["idx"] + 1) % len(imgs)
+            pick = imgs[st["idx"]]
+        else:
+            import random
+            pool = [x for x in imgs if x != st["path"]] or imgs
+            pick = random.choice(pool)
+        st["folder"], st["path"], st["at"] = folder, pick, now
+    return st["path"]
+
+
+def bg_due():
+    """배경 그림을 바꿀 때가 되었는지 (바꿔야 하면 True — 실제 교체는 current_bg_image 가 함)"""
+    folder = THEME.get("bg_folder") or ""
+    every = BG_EVERY.get(THEME.get("bg_every"), 0)
+    return bool(folder and every and os.path.isdir(folder) and time.time() - _AUTO_BG["at"] >= every)
+
+
 def background_photo(w, h):
     """배경 그림을 (w, h) 크기에 맞춰 만든 tk 그림. 설정이 없거나 못 읽으면 None"""
-    path = THEME.get("bg_image") or ""
+    path = current_bg_image()
     if not path or not os.path.exists(path) or w < 20 or h < 20:
         return None
     key = (path, os.path.getmtime(path), w, h, THEME.get("bg_mode"), THEME.get("bg_dim"), THEME.get("bg_color"))
@@ -5542,13 +5601,30 @@ class SettingsDialog:
         self.dim_var = tk.BooleanVar(value=self.t.get("bg_dim", True))
         ttk.Checkbutton(body, text="흐리게 (글씨가 잘 보이게)", variable=self.dim_var,
                         command=self._sync).grid(row=15, column=2, columnspan=2, sticky="w", pady=(6, 0))
-        ttk.Label(body, text="배경 그림은 미리보기가 비어 있을 때(파일을 고르기 전) 보입니다. 위 '빠른 선택'에서 기본 그림을 고를 수 있습니다.",
-                  foreground="#888").grid(row=16, column=0, columnspan=4, sticky="w", pady=(4, 0))
+        ttk.Label(body, text="배경 그림은 미리보기가 비어 있을 때 보입니다. '그림 폴더'를 정하면 위 그림 대신 그 폴더의 그림이 정한 때마다 바뀝니다.",
+                  foreground="#888").grid(row=18, column=0, columnspan=4, sticky="w", pady=(4, 0))
+
+        ttk.Label(body, text="그림 폴더").grid(row=16, column=0, sticky="w", pady=(6, 0))
+        self.bgf_var = tk.StringVar(value=self.t.get("bg_folder", ""))
+        ttk.Entry(body, textvariable=self.bgf_var, width=30, state="readonly").grid(row=16, column=1, columnspan=2, sticky="w", pady=(6, 0))
+        bf2 = ttk.Frame(body)
+        bf2.grid(row=16, column=3, sticky="w", pady=(6, 0))
+        ttk.Button(bf2, text="폴더 고르기…", command=self.pick_bg_folder).pack(side="left")
+        ttk.Button(bf2, text="지우기", command=lambda: (self.bgf_var.set(""), self._sync())).pack(side="left", padx=(2, 0))
+        ttk.Label(body, text="바꾸는 때 / 순서").grid(row=17, column=0, sticky="w", pady=2)
+        self.bge_var = tk.StringVar(value=self.t.get("bg_every", "켤 때만"))
+        ec = ttk.Combobox(body, textvariable=self.bge_var, values=list(BG_EVERY), state="readonly", width=12)
+        ec.grid(row=17, column=1, sticky="w")
+        ec.bind("<<ComboboxSelected>>", lambda e: self._sync())
+        self.bgo_var = tk.StringVar(value=self.t.get("bg_order", "무작위"))
+        oc = ttk.Combobox(body, textvariable=self.bgo_var, values=BG_ORDERS, state="readonly", width=10)
+        oc.grid(row=17, column=2, sticky="w")
+        oc.bind("<<ComboboxSelected>>", lambda e: self._sync())
 
         # 미리보기
-        ttk.Separator(body).grid(row=17, column=0, columnspan=4, sticky="ew", pady=8)
+        ttk.Separator(body).grid(row=19, column=0, columnspan=4, sticky="ew", pady=8)
         self.sample = tk.Label(body, text="가나다라 ABC 123  —  미리보기", padx=10, pady=8, relief="solid", borderwidth=1)
-        self.sample.grid(row=18, column=0, columnspan=4, sticky="ew")
+        self.sample.grid(row=20, column=0, columnspan=4, sticky="ew")
 
         btns = ttk.Frame(w, padding=(14, 0, 14, 12))
         btns.pack(fill="x")
@@ -5621,6 +5697,9 @@ class SettingsDialog:
         self.t["bg_image"] = self.img_var.get()
         self.t["bg_mode"] = next((k for k, v in BG_MODES.items() if v == self.mode_var.get()), "fill")
         self.t["bg_dim"] = self.dim_var.get()
+        self.t["bg_folder"] = self.bgf_var.get()
+        self.t["bg_every"] = self.bge_var.get() or "켤 때만"
+        self.t["bg_order"] = self.bgo_var.get() or "무작위"
         self.t["folder_style"] = self.fstyle_var.get() or "폴더"
         self.t["folder_image"] = self.fimg_var.get()
         self._refresh()
@@ -5662,6 +5741,12 @@ class SettingsDialog:
         self._sync()
         self.apply()                                  # 고르면 바로 미리보기 칸에 보이게
 
+    def pick_bg_folder(self):
+        p = filedialog.askdirectory(parent=self.win, title="배경 그림이 들어 있는 폴더 고르기")
+        if p:
+            self.bgf_var.set(os.path.normpath(p))
+            self._sync()
+
     def pick_folder_image(self):
         p = filedialog.askopenfilename(parent=self.win, title="폴더 아이콘으로 쓸 그림 고르기",
                                        filetypes=[("그림 파일", "*.png *.jpg *.jpeg *.bmp *.gif *.webp *.ico"), ("모든 파일", "*.*")])
@@ -5681,6 +5766,9 @@ class SettingsDialog:
         self.fam_var.set(self.t["font_family"])
         self.size_var.set(str(self.t["font_size"]))
         self.img_var.set("")
+        self.bgf_var.set("")
+        self.bge_var.set("켤 때만")
+        self.bgo_var.set("무작위")
         self.fstyle_var.set("폴더")
         self.fimg_var.set("")
         self.mode_var.set(BG_MODES["fill"])
@@ -8817,6 +8905,13 @@ class App:
             self.pinned_folders = [p.folder_var.get() for p in self.panes if p.pinned_var.get()]
             if hasattr(self, "indexer"):
                 self.index_var.set(self.indexer.summary())
+        except Exception:
+            pass
+        try:
+            if bg_due():                                            # 그림 폴더: 바꿀 때가 되면 새 그림으로
+                current_bg_image()
+                for p in self.panes:
+                    p.preview._bg_later()
         except Exception:
             pass
         try:
