@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.49"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.50"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -2323,6 +2323,22 @@ class PreviewPanel(ttk.Frame):
         self._pdf_pw = None
         self._unlocked = []
 
+        # 인터넷에서 받은 파일: 미리보기 전에 한 번 확인
+        self.gate_frame = ttk.Frame(self.body)
+        gk = ttk.Frame(self.gate_frame)
+        gk.place(relx=0.5, rely=0.4, anchor="center")
+        ttk.Label(gk, text="🛡", font=(FONT[0], fsz(26))).pack()
+        self.gate_title = ttk.Label(gk, text="", font=(FONT[0], fsz(11), "bold"), justify="center")
+        self.gate_title.pack(pady=(2, 4))
+        ttk.Label(gk, text="인터넷에서 받은 파일은 미리보기만 해도 위험할 수 있습니다.\n"
+                           "믿을 수 있는 파일일 때만 미리보기하세요.", foreground="#666", justify="center").pack()
+        self.gate_row = ttk.Frame(gk)
+        self.gate_row.pack(pady=(10, 0))
+        self.gate_allow = ttk.Button(self.gate_row, text="이 파일 미리보기", style="Accent.TButton")
+        self.gate_allow.pack(side="left")
+        self.gate_trust = ttk.Button(self.gate_row, text="이 폴더는 믿기")
+        self.gate_trust.pack(side="left", padx=(6, 0))
+
         # 문서(첫 쪽 그림 + 글자)
         self.doc_frame = ttk.Frame(self.body)
         self.text = tk.Text(self.doc_frame, wrap="word", padx=10, pady=8, font=FONT, relief="flat")
@@ -2423,7 +2439,7 @@ class PreviewPanel(ttk.Frame):
     # 공통
     def _show(self, w):
         for x in (self.shell_frame, self.pic_frame, self.doc_frame, self.grid_frame, self.arc_frame, self.msg,
-                  self.lock_frame):
+                  self.lock_frame, self.gate_frame):
             if x is not w:
                 x.pack_forget()
         w.pack(fill="both", expand=True)
@@ -2468,6 +2484,20 @@ class PreviewPanel(ttk.Frame):
         self.canvas.delete("all")
         self.msg.configure(text="파일을 선택하면 미리보기가 나옵니다.", foreground="#888")
         self._show(self.msg)
+
+    def note(self, text):
+        self.clear()
+        self.current = None
+        self.msg.configure(text=text, anchor="center", justify="center")
+        self._show(self.msg)
+
+    def gate(self, path, on_allow, on_trust):
+        self.clear()
+        self.current = None
+        self.gate_title.configure(text=os.path.basename(path) + "\n인터넷에서 받은 파일입니다")
+        self.gate_allow.configure(command=on_allow)
+        self.gate_trust.configure(command=on_trust)
+        self._show(self.gate_frame)
 
     def show(self, path, pats, cache=None, use_shell=True):
         if path == self.current:
@@ -3136,6 +3166,19 @@ def same_drive(a, b):
 def is_inside(child, parent):
     c, p = os.path.normcase(os.path.abspath(child)), os.path.normcase(os.path.abspath(parent))
     return c == p or c.startswith(p.rstrip("\\/") + os.sep)
+
+
+def zone_marked(path):
+    """'인터넷에서 받은 파일' 표시(Zone.Identifier, ZoneId 3 이상)가 붙어 있나? (윈도우 NTFS 에서만)"""
+    if sys.platform != "win32":
+        return False
+    try:
+        with open(path + ":Zone.Identifier", "r", encoding="utf-8", errors="ignore") as f:
+            txt = f.read()
+    except OSError:
+        return False
+    m = re.search(r"ZoneId\s*=\s*(\d+)", txt)
+    return True if not m else int(m.group(1)) >= 3
 
 
 def list_folder(folder):
@@ -4667,7 +4710,34 @@ class SearchPane(tk.Frame):
         except Exception:
             visible = False
         if h and visible:
-            self.preview.show(h["path"], self.pats, self.app.cache, self.opt_vars["shell_preview"].get())
+            path = h["path"]
+            if not h.get("is_dir"):
+                if self.app.s.get("preview_off"):
+                    self.preview.note("미리보기가 꺼져 있습니다.\n(위쪽 '미리보기' 체크로 켤 수 있어요)")
+                    return
+                if self.app.needs_gate(path):
+                    self.preview.gate(path, lambda p=path: self._gate_allow(p), lambda p=path: self._gate_trust(p))
+                    return
+            self.preview.show(path, self.pats, self.app.cache, self.opt_vars["shell_preview"].get())
+
+    def _gate_allow(self, path):
+        ok = self.app.s.setdefault("preview_ok", [])
+        k = os.path.normcase(os.path.abspath(path))
+        if k not in ok:
+            ok.append(k)
+            del ok[:-3000]
+        self.app.schedule_save()
+        self.load_preview()
+
+    def _gate_trust(self, path):
+        d = os.path.dirname(os.path.abspath(path))
+        if messagebox.askyesno(APP_NAME, f"이 폴더와 그 아래 폴더의 파일은 앞으로 묻지 않고 미리보기합니다.\n\n{d}\n\n믿는 폴더로 지정할까요?",
+                               parent=self.app.root):
+            td = self.app.s.setdefault("trusted_dirs", [])
+            if d not in td:
+                td.append(d)
+            self.app.schedule_save()
+            self.load_preview()
 
     def refresh_preview(self):
         self.preview.clear()
@@ -5540,6 +5610,64 @@ def background_photo(w, h):
         return None
 
 
+class TrustDialog:
+    """미리보기 보안: 인터넷에서 받은 파일 확인 켜기/끄기, 믿는 폴더 목록, 허용한 파일 비우기"""
+
+    def __init__(self, app, parent):
+        self.app = app
+        w = self.win = tk.Toplevel(parent)
+        w.title("미리보기 보안")
+        w.transient(parent)
+        f = ttk.Frame(w, padding=14)
+        f.pack(fill="both", expand=True)
+        self.chk = tk.BooleanVar(value=app.s.get("mark_check", True))
+        ttk.Checkbutton(f, text="인터넷에서 받은 파일은 미리보기 전에 확인하기 (권장)", variable=self.chk,
+                        command=self.save_chk).pack(anchor="w")
+        ttk.Label(f, text="끄면 모든 파일을 바로 미리보기합니다. 위험할 수 있습니다.", foreground="#888").pack(anchor="w", pady=(0, 10))
+        ttk.Label(f, text="믿는 폴더 (이 아래 파일은 묻지 않음)", font=(FONT[0], fsz(10), "bold")).pack(anchor="w")
+        lf = ttk.Frame(f)
+        lf.pack(fill="both", expand=True, pady=(4, 4))
+        self.lb = tk.Listbox(lf, height=7, width=62, selectmode="extended", exportselection=False)
+        sb = ttk.Scrollbar(lf, orient="vertical", command=self.lb.yview)
+        self.lb.configure(yscrollcommand=sb.set)
+        sb.pack(side="right", fill="y")
+        self.lb.pack(side="left", fill="both", expand=True)
+        for d in app.s.get("trusted_dirs", []):
+            self.lb.insert("end", d)
+        bf = ttk.Frame(f)
+        bf.pack(fill="x")
+        ttk.Button(bf, text="폴더 추가…", command=self.add).pack(side="left")
+        ttk.Button(bf, text="선택한 폴더 빼기", command=self.remove).pack(side="left", padx=(6, 0))
+        ttk.Button(bf, text="'이 파일 미리보기'로 허용한 파일 목록 비우기", command=self.clear_ok).pack(side="right")
+        ttk.Button(f, text="닫기", command=w.destroy).pack(anchor="e", pady=(10, 0))
+
+    def save_chk(self):
+        self.app.s["mark_check"] = bool(self.chk.get())
+        self.app.schedule_save()
+
+    def _store(self):
+        self.app.s["trusted_dirs"] = list(self.lb.get(0, "end"))
+        self.app.schedule_save()
+
+    def add(self):
+        d = filedialog.askdirectory(parent=self.win, title="믿는 폴더 고르기")
+        if d:
+            d = os.path.normpath(d)
+            if d not in self.lb.get(0, "end"):
+                self.lb.insert("end", d)
+                self._store()
+
+    def remove(self):
+        for i in reversed(self.lb.curselection()):
+            self.lb.delete(i)
+        self._store()
+
+    def clear_ok(self):
+        self.app.s["preview_ok"] = []
+        self.app.schedule_save()
+        messagebox.showinfo(APP_NAME, "허용한 파일 목록을 비웠습니다.", parent=self.win)
+
+
 class SettingsDialog:
     """⚙ 환경설정 창: 글꼴, 글자·배경·목록·강조 색, 배경 그림"""
 
@@ -5633,6 +5761,8 @@ class SettingsDialog:
                    style="Accent.TButton", command=self.open_alarm).pack(fill="x")
         ttk.Button(af, text="🗂 색인 설정 (쉬는 동안 문서 내용 미리 읽어 두기) …",
                    command=self.open_index).pack(fill="x", pady=(4, 0))
+        ttk.Button(af, text="🛡 미리보기 보안 (인터넷에서 받은 파일 확인 · 믿는 폴더) …",
+                   command=lambda: TrustDialog(self.app, self.win)).pack(fill="x", pady=(4, 0))
         uf = ttk.Frame(af)
         uf.pack(fill="x", pady=(6, 0))
         ttk.Label(uf, text=f"버전 v{APP_VERSION}", foreground="#777").pack(side="left")
@@ -8910,6 +9040,11 @@ class App:
             notes.append("원래 모양 미리보기 불가(comtypes 없음)")
         self.nav_var = tk.BooleanVar(value=bool(self.s.get("nav_pane", True)))
         ttk.Checkbutton(bar, text="왼쪽 탐색창", variable=self.nav_var, command=self.toggle_nav).pack(side="left", padx=(12, 0))
+        self.preview_on_var = tk.BooleanVar(value=not self.s.get("preview_off", False))
+        ttk.Checkbutton(bar, text="미리보기", variable=self.preview_on_var,
+                        command=self.toggle_preview_on).pack(side="left", padx=(10, 0))
+        ttk.Label(bar, text="※ 인터넷에서 받은 파일은 먼저 직접 실행해 확인해야 안전합니다", foreground="#a05a00",
+                  font=(FONT[0], fsz(9))).pack(side="left", padx=(6, 0))
         self.hint_var = tk.StringVar()
         ttk.Label(bar, textvariable=self.hint_var, foreground="#2a6fdb",
                   font=(FONT[0], fsz(10), "bold")).pack(side="left", padx=12)
@@ -8958,6 +9093,26 @@ class App:
                 self.main_pw.sashpos(0, max(int(self.s.get("nav_w", 230)), self.nav.ad_width()))
         except tk.TclError:
             pass
+
+    def needs_gate(self, path):
+        """인터넷에서 받은 표시가 있고, 허용·믿는 폴더가 아니면 True (미리보기 전에 물어봄)"""
+        if not self.s.get("mark_check", True):
+            return False
+        try:
+            ap = os.path.abspath(path)
+            if os.path.normcase(ap) in set(self.s.get("preview_ok", [])):
+                return False
+            if any(is_inside(ap, d) for d in self.s.get("trusted_dirs", []) if d):
+                return False
+            return zone_marked(ap)
+        except Exception:
+            return False
+
+    def toggle_preview_on(self):
+        self.s["preview_off"] = not bool(self.preview_on_var.get())
+        self.schedule_save()
+        for p in self.panes:
+            p.refresh_preview()
 
     def nav_sync(self, folder):
         pass          # 가운데 목록에서 폴더를 눌러도 왼쪽 탐색창은 그대로 둠 (윈도우 탐색기처럼 펼치지 않음)
