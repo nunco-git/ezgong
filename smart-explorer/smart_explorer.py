@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.46"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.47"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -2466,7 +2466,7 @@ class PreviewPanel(ttk.Frame):
         self._unlocked = []
         self.page_limit = self.MAX_PDF_PAGES
         self.canvas.delete("all")
-        self.msg.configure(text="파일을 선택하면 미리보기가 나옵니다.")
+        self.msg.configure(text="파일을 선택하면 미리보기가 나옵니다.", foreground="#888")
         self._show(self.msg)
 
     def show(self, path, pats, cache=None, use_shell=True):
@@ -2485,7 +2485,8 @@ class PreviewPanel(ttk.Frame):
                                   for h in sorted(items, key=lambda h: (not h["is_dir"], h["name"].lower()))[:40])
                 more = "\n    …" if len(items) > 40 else ""
                 self.msg.configure(text=f"📁 {os.path.basename(path) or path}\n폴더 {nd}개 · 파일 {len(items) - nd}개"
-                                        f"\n\n{names}{more}", anchor="nw", justify="left")
+                                        f"\n\n{names}{more}", anchor="nw", justify="left",
+                                foreground=THEME.get("text_color") or "#000000")      # 폴더 목록은 진하게 (검정)
             except OSError as e:
                 self.msg.configure(text=f"폴더를 읽을 수 없습니다: {e}")
             return
