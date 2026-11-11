@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.38"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.39"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -4666,7 +4666,7 @@ class SearchPane(tk.Frame):
             m.add_separator()
         if has:
             m.add_command(label="폴더 열기" if h.get("is_dir") else "열기", command=self.activate)
-            dirs = [self.hits[i]["path"] for i in self.tree.selection() if i in self.hits and self.hits[i].get("is_dir")]
+            dirs = [self.hits[i]["path"] for i in self.tree.selection() if i in self.hits and self.hits[i].get("path")]
             if dirs:
                 favs = {os.path.normcase(f) for f in self.app.s.get("nav_fav", [])}
                 if all(os.path.normcase(d) in favs for d in dirs):
@@ -7905,6 +7905,7 @@ class NavPane(ttk.Frame):
         self.adbox = None
         self.tree.bind("<<TreeviewOpen>>", self._on_open)
         self.tree.bind("<<TreeviewSelect>>", self._on_select)
+        self.tree.bind("<Double-1>", self._on_double)
         self.tree.bind("<Button-3>", self._menu)
         self.menu = tk.Menu(self, tearoff=0)
         self.build()
@@ -7995,7 +7996,8 @@ class NavPane(ttk.Frame):
                 shown.add(os.path.normcase(pth))
         for pth in self.app.s.get("nav_fav", []):
             if os.path.normcase(pth) not in shown:
-                iid = self._add(fav, "📁 " + (os.path.basename(pth.rstrip("\\/")) or pth), pth, lazy=False)
+                nm = os.path.basename(pth.rstrip("\\/")) or pth
+                self._add(fav, ("📁 " if os.path.isdir(pth) or not os.path.isfile(pth) else "📄 ") + nm, pth, lazy=False)
                 shown.add(os.path.normcase(pth))
         self.user_fav = {i for i in self.paths if os.path.normcase(self.paths[i]) not in quick_norm}
         pc = self.tree.insert("", "end", text="💻 내 PC", open=True)
@@ -8026,7 +8028,19 @@ class NavPane(ttk.Frame):
         pth = self.paths.get(sel[0]) if sel else None
         pane = self.app.active or (self.app.panes[0] if self.app.panes else None)
         if pth and pane is not None:
-            pane.navigate(pth)
+            if os.path.isfile(pth):                           # 즐겨찾기에 넣은 파일: 들어 있는 폴더로 가서 그 파일을 고름
+                pane.navigate(os.path.dirname(pth), select=pth)
+            else:
+                pane.navigate(pth)
+
+    def _on_double(self, e):
+        iid = self.tree.identify_row(e.y)
+        pth = self.paths.get(iid) if iid else None
+        if pth and os.path.isfile(pth):                       # 두 번 누르면 파일 열기
+            try:
+                os.startfile(pth)
+            except Exception as ex:
+                messagebox.showwarning(APP_NAME, f"파일을 열지 못했습니다.\n{ex}", parent=self.app.root)
 
     # ── 실시간 새로고침: 펼쳐 둔 폴더만 2.5초마다 훑어서 새로 생기거나 사라진 폴더를 반영
     def _visible_loaded(self):
@@ -8302,24 +8316,23 @@ class App:
         ttk.Label(bar, textvariable=self.hk_var, foreground="#b4690e",
                   font=(FONT[0], fsz(9))).pack(side="left", padx=(0, 10))
         ttk.Label(bar, text=INTRO_LINE, foreground="#7a6a52", font=(FONT[0], fsz(9))).pack(side="left", padx=(0, 16))
-        ttk.Label(bar, text="화면 분할   가로").pack(side="left")
+        ttk.Label(bar, text="분할 가로").pack(side="left")
         for i, var in enumerate((self.cols_var, self.rows_var)):
             if i == 1:
-                ttk.Label(bar, text="칸  ×  세로").pack(side="left")
+                ttk.Label(bar, text="× 세로").pack(side="left")
             sp = ttk.Spinbox(bar, from_=1, to=self.MAX_SPLIT, width=3, textvariable=var,
                              command=self.apply_layout, justify="center")
             sp.pack(side="left", padx=4)
             sp.bind("<Return>", lambda e: self.apply_layout())
             sp.bind("<FocusOut>", lambda e: self.apply_layout())
-        ttk.Label(bar, text="칸").pack(side="left")
         for c, r in ((1, 1), (2, 1), (1, 2), (2, 2)):
             ttk.Button(bar, text=f"{c}×{r}", width=4,
                        command=lambda c=c, r=r: self.set_layout(c, r)).pack(side="left", padx=(6 if (c, r) == (1, 1) else 1, 0))
-        self.SPLIT_MODES = {"rows": "줄마다 따로 (세로 경계)", "cols": "열마다 따로 (가로 경계)"}
+        self.SPLIT_MODES = {"rows": "줄마다 따로", "cols": "열마다 따로"}
         self.split_mode = lay.get("split_mode", "rows")
         self.split_var = tk.StringVar(value=self.SPLIT_MODES.get(self.split_mode, self.SPLIT_MODES["rows"]))
-        ttk.Label(bar, text="   경계 조절").pack(side="left")
-        sm = ttk.Combobox(bar, textvariable=self.split_var, state="readonly", width=20,
+        ttk.Label(bar, text="  경계").pack(side="left")
+        sm = ttk.Combobox(bar, textvariable=self.split_var, state="readonly", width=11,
                           values=list(self.SPLIT_MODES.values()))
         sm.pack(side="left", padx=(4, 0))
         sm.bind("<<ComboboxSelected>>", lambda e: self.set_split_mode(
@@ -8332,8 +8345,8 @@ class App:
                                font=(FONT[0], fsz(9), "underline"))
         series.pack(side="right", padx=(0, 0))         # 맨 오른쪽
         series.bind("<Button-1>", lambda e: __import__("webbrowser").open("https://smartgong.kr"))
-        ttk.Button(bar, text="ⓘ 사용 안내", command=self.show_guide).pack(side="right", padx=(10, 10))
-        ttk.Button(bar, text="⚙ 환경설정", command=lambda: SettingsDialog(self)).pack(side="right", padx=(0, 4))
+        ttk.Button(bar, text="ⓘ 안내", command=self.show_guide).pack(side="right", padx=(10, 10))
+        ttk.Button(bar, text="⚙ 설정", command=lambda: SettingsDialog(self)).pack(side="right", padx=(0, 4))
         ttk.Button(bar, text="🏢 인사랑", command=lambda: open_insarang(self.root, with_record=True, root=self.root)).pack(side="right", padx=(0, 4))
         ttk.Button(bar, text="⏰ 간단 알람", command=lambda: SimpleAlarmDialog(self)).pack(side="right", padx=(0, 4))
         self.update_var = tk.StringVar(value="")
