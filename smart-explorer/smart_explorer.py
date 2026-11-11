@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.43"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.44"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -8790,9 +8790,6 @@ class App:
             self.nav_shown = True
             for ms in (60, 400, 1200):
                 self.root.after(ms, self._nav_width)
-            pane = self.panes[0]
-            if getattr(pane, "cwd", None):
-                self.nav.reveal(pane.cwd)
         elif not want and self.nav_shown:
             self.main_pw.forget(self.nav)
             self.nav_shown = False
@@ -8818,8 +8815,7 @@ class App:
             pass
 
     def nav_sync(self, folder):
-        if self.nav_shown:
-            self.nav.reveal(folder)
+        pass          # 가운데 목록에서 폴더를 눌러도 왼쪽 탐색창은 그대로 둠 (윈도우 탐색기처럼 펼치지 않음)
 
     def toggle_nav(self):
         self.s["nav_pane"] = bool(self.nav_var.get())
