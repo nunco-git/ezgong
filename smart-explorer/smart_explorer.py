@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.45"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.46"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -8742,6 +8742,10 @@ class App:
     def _build(self):
         bar = ttk.Frame(self.root, padding=(8, 6, 8, 2))
         bar.pack(fill="x")
+        try:
+            ttk.Style(self.root).configure("Slim.TButton", padding=(4, 1))      # 맨 위 줄 버튼은 좌우 여백을 줄여 폭을 아낌
+        except tk.TclError:
+            pass
         lay = self.s.get("layout", {})
         self.cols_var = tk.StringVar(value=str(lay.get("cols", 1)))
         self.rows_var = tk.StringVar(value=str(lay.get("rows", 1)))
@@ -8757,9 +8761,9 @@ class App:
         for i, var in enumerate((self.cols_var, self.rows_var)):
             if i == 1:
                 ttk.Label(bar, text="× 세로").pack(side="left")
-            sp = ttk.Spinbox(bar, from_=1, to=self.MAX_SPLIT, width=3, textvariable=var,
+            sp = ttk.Spinbox(bar, from_=1, to=self.MAX_SPLIT, width=2, textvariable=var,
                              command=self.apply_layout, justify="center")
-            sp.pack(side="left", padx=4)
+            sp.pack(side="left", padx=3)
             sp.bind("<Return>", lambda e: self.apply_layout())
             sp.bind("<FocusOut>", lambda e: self.apply_layout())
         for c, r in ((1, 1), (2, 1), (1, 2), (2, 2)):
@@ -8782,10 +8786,10 @@ class App:
                                font=(FONT[0], fsz(9), "underline"))
         series.pack(side="right", padx=(0, 0))         # 맨 오른쪽
         series.bind("<Button-1>", lambda e: __import__("webbrowser").open("https://smartgong.kr"))
-        ttk.Button(bar, text="ⓘ 안내", command=self.show_guide).pack(side="right", padx=(10, 10))
-        ttk.Button(bar, text="⚙ 설정", command=lambda: SettingsDialog(self)).pack(side="right", padx=(0, 4))
-        ttk.Button(bar, text="🏢 인사랑", command=lambda: open_insarang(self.root, with_record=True, root=self.root)).pack(side="right", padx=(0, 4))
-        ttk.Button(bar, text="⏰ 간단 알람", command=lambda: SimpleAlarmDialog(self)).pack(side="right", padx=(0, 4))
+        ttk.Button(bar, text="ⓘ 안내", style="Slim.TButton", width=0, command=self.show_guide).pack(side="right", padx=(10, 10))
+        ttk.Button(bar, text="⚙ 설정", style="Slim.TButton", width=0, command=lambda: SettingsDialog(self)).pack(side="right", padx=(0, 4))
+        ttk.Button(bar, text="🏢 인사랑", style="Slim.TButton", width=0, command=lambda: open_insarang(self.root, with_record=True, root=self.root)).pack(side="right", padx=(0, 4))
+        ttk.Button(bar, text="⏰ 간단 알람", style="Slim.TButton", width=0, command=lambda: SimpleAlarmDialog(self)).pack(side="right", padx=(0, 4))
         self.update_var = tk.StringVar(value="")
         self.update_slot = ttk.Frame(bar)                 # 새 버전이 있을 때만 [업데이트 필요] 버튼이 나타남
         self.update_slot.pack(side="right", padx=(0, 10))
