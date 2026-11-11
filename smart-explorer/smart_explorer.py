@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.47"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.48"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -4072,8 +4072,11 @@ class SearchPane(tk.Frame):
         self.matches.tag_configure("note", foreground="#2a6fdb")
         self.preview.fit_mode = st.get("fit", "auto")
         self.preview.zoom = st.get("zoom", 1.0)
-        self.preview.shell_fit = st.get("shell_fit", "width")
-        self.preview.shell_zoom = st.get("shell_zoom", 1.0)
+        if st.get("shell_v2"):
+            self.preview.shell_fit = st.get("shell_fit", "custom")
+            self.preview.shell_zoom = st.get("shell_zoom", 1.6)
+        else:                                  # 한글 문서가 작게 보인다는 의견: 처음엔 160% 로 키워서 보여 줌 (↔ 가로 맞춤으로 되돌릴 수 있음)
+            self.preview.shell_fit, self.preview.shell_zoom = "custom", 1.6
         self.nb.add(self.preview, text="미리보기")
         self.nb.add(mf, text="일치한 문장")
         self.nb.select(st.get("tab", 0))
@@ -4115,7 +4118,7 @@ class SearchPane(tk.Frame):
                 "sash_side": (self._sash_pos() if self.side_preview else self._sashes.get("side")),
                 "fit": self.preview.fit_mode, "zoom": self.preview.zoom,
                 "sash": (self._sashes.get("bottom") if self.side_preview else self._sash_pos()),
-                "shell_fit": self.preview.shell_fit, "shell_zoom": self.preview.shell_zoom,
+                "shell_fit": self.preview.shell_fit, "shell_zoom": self.preview.shell_zoom, "shell_v2": True,
                 "types": {k: v.get() for k, v in self.type_vars.items()},
                 "opts": {k: v.get() for k, v in self.opt_vars.items()}}
 
