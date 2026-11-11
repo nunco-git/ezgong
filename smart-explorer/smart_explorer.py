@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.44"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.45"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -3603,7 +3603,7 @@ if sys.platform == "win32" and struct.calcsize("P") == 8:
                     try:
                         self.paths = _files_from_dataobject(pdo)
                         x, y = _pt(pt)
-                        peff[0] = self._effect(self.handler("enter", self.paths, x, y, keys), peff[0])
+                        peff[0] = self._effect(self.handler("enter", self.paths, x, y, keys, peff[0]), peff[0])
                         if self.helper:
                             p = _O.POINT(x, y)
                             _vcall(self.helper, 3, ctypes.c_long, [_wt.HWND, ctypes.c_void_p, ctypes.c_void_p,
@@ -3615,7 +3615,7 @@ if sys.platform == "win32" and struct.calcsize("P") == 8:
                 def drag_over(this, keys, pt, peff):
                     try:
                         x, y = _pt(pt)
-                        peff[0] = self._effect(self.handler("over", self.paths, x, y, keys), peff[0])
+                        peff[0] = self._effect(self.handler("over", self.paths, x, y, keys, peff[0]), peff[0])
                         if self.helper:
                             p = _O.POINT(x, y)
                             _vcall(self.helper, 5, ctypes.c_long, [ctypes.c_void_p, ctypes.c_ulong],
@@ -3637,7 +3637,7 @@ if sys.platform == "win32" and struct.calcsize("P") == 8:
                     try:
                         x, y = _pt(pt)
                         paths = _files_from_dataobject(pdo) or self.paths
-                        want = self._effect(self.handler("drop", paths, x, y, keys), peff[0])
+                        want = self._effect(self.handler("drop", paths, x, y, keys, peff[0]), peff[0])
                         if self.helper:
                             p = _O.POINT(x, y)
                             _vcall(self.helper, 6, ctypes.c_long, [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_ulong],
@@ -3656,7 +3656,16 @@ if sys.platform == "win32" and struct.calcsize("P") == 8:
 
             @staticmethod
             def _effect(want, allowed):
-                return want if want and (want & allowed) else 0
+                # 보낸 쪽(브라우저 다운로드 등)이 '복사'만 허용하면 이동 대신 복사로 받음 → 거절하지 않음
+                if not want:
+                    return 0
+                if want & allowed:
+                    return want
+                if allowed & _O.DROPEFFECT_COPY:
+                    return _O.DROPEFFECT_COPY
+                if allowed & _O.DROPEFFECT_MOVE:
+                    return _O.DROPEFFECT_MOVE
+                return 0
 
             def revoke(self):
                 if self.ok:
@@ -3918,6 +3927,8 @@ class SearchPane(tk.Frame):
 
         r1 = ttk.Frame(inner)
         r1.pack(fill="x")
+        self.r1 = r1
+        self._compact = False
         self.back_btn = ttk.Button(r1, text="◀", width=3, command=self.go_back)
         self.back_btn.pack(side="left")
         self.up_btn = ttk.Button(r1, text="⬆", width=3, command=self.go_up)
@@ -3949,6 +3960,7 @@ class SearchPane(tk.Frame):
 
         r2 = ttk.Frame(inner)
         r2.pack(fill="x", pady=(4, 4))
+        self.r2 = r2
         self.query_var = tk.StringVar(value=st.get("query", ""))
         self.query_entry = ttk.Entry(r2, textvariable=self.query_var, font=(FONT[0], fsz(11)))
         self.query_entry.pack(side="left", fill="x", expand=True, ipady=1)
@@ -4116,6 +4128,30 @@ class SearchPane(tk.Frame):
         else:
             self.ph.place_forget()
 
+    def set_compact(self, on):
+        """칸이 1개일 때: 폴더 위치 뒤에 검색줄을 붙여 한 줄로. 2칸 이상이면 원래대로 두 줄"""
+        on = bool(on)
+        if on == self._compact:
+            return
+        self._compact = on
+        self.r2.pack_forget()
+        if on:
+            self.r2.pack(in_=self.r1, side="left", fill="x", expand=True, padx=(6, 4), after=self.folder_cb)
+            self.query_entry.configure(width=14)
+            self.folder_cb.configure(width=20)                 # 위치칸은 적당히, 남는 폭은 검색칸이 씀
+            self.folder_cb.pack_configure(expand=False, fill="none")
+            self.name_btn.configure(text="🔍 파일명")
+            self.search_btn.configure(text="📄 본문 검색")
+            self._dir_btn_text()
+        else:
+            self.r2.pack(in_=self._inner, fill="x", pady=(4, 4), after=self.r1)
+            self.query_entry.configure(width=20)
+            self.folder_cb.configure(width=20)
+            self.folder_cb.pack_configure(expand=True, fill="x")
+            self.name_btn.configure(text="🔍 파일명 검색")
+            self.search_btn.configure(text="📄 본문 추가 검색")
+            self._dir_btn_text()
+
     def _bind_paned(self, paned):
         paned.bind("<ButtonRelease-1>", lambda e: self.after(10, self.clamp_sash), add="+")
         paned.bind("<Configure>", lambda e: self.after(10, self.clamp_sash), add="+")
@@ -4246,7 +4282,9 @@ class SearchPane(tk.Frame):
         self.back_btn.state(["!disabled" if self.back_stack else "disabled"])
 
     def _dir_btn_text(self):
-        self.dir_btn.configure(text="📁 폴더 보이기" if self.hide_dirs else "📁 폴더 숨기기")
+        short = getattr(self, "_compact", False)
+        self.dir_btn.configure(text=("📁 보이기" if short else "📁 폴더 보이기") if self.hide_dirs
+                               else ("📁 숨기기" if short else "📁 폴더 숨기기"))
 
     def toggle_dirs(self):
         """누르면 목록에서 폴더 숨기기 ↔ 다시 누르면 보이기"""
@@ -8784,6 +8822,8 @@ class App:
 
     def update_nav(self):
         """왼쪽 탐색창은 칸이 1개이고 켜져 있을 때만 보임"""
+        for p in self.panes:
+            p.set_compact(len(self.panes) == 1)
         want = len(self.panes) == 1 and bool(self.s.get("nav_pane", True))
         if want and not self.nav_shown:
             self.main_pw.insert(0, self.nav, weight=0)
@@ -9623,14 +9663,25 @@ class App:
             except Exception:
                 pass
 
-    def _ole_drop_event(self, kind, paths, x, y, keys):
+    @staticmethod
+    def _fit_effect(eff, allowed):
+        """보낸 쪽이 허용한 동작에 맞춤 (복사만 허용하면 복사)"""
+        if not eff or not allowed or eff & allowed:
+            return eff
+        if allowed & OLE_DND.DROPEFFECT_COPY:
+            return OLE_DND.DROPEFFECT_COPY
+        if allowed & OLE_DND.DROPEFFECT_MOVE:
+            return OLE_DND.DROPEFFECT_MOVE
+        return 0
+
+    def _ole_drop_event(self, kind, paths, x, y, keys, allowed=0):
         """끌어 놓기 알림 (윈도우가 부름).
         다른 프로그램(탐색기 등)에서 끌어 올 때는 tkinter가 이벤트를 처리하는 도중에 불리므로 여기서 화면(tk)을 만지면
         프로그램이 멈출 수 있음 → 요청만 적어 두고, 화면 일은 _ole_poll 이 이어서 함.
         이 프로그램에서 끌기 시작한 경우(drag_source)는 끄는 동안 tk 가 돌지 않으므로 바로 처리"""
         if self.drag_source is not None:
-            return self._ole_apply(kind, paths, x, y, keys)
-        self._ole_req = (kind, list(paths), x, y, keys)
+            return self._ole_apply(kind, paths, x, y, keys, allowed=allowed)
+        self._ole_req = (kind, list(paths), x, y, keys, allowed)
         if kind == "drop":
             self._ole_drop_req = self._ole_req
         st = self._ole_state                    # 화면 쪽에서 마지막으로 계산해 둔 결과
@@ -9643,27 +9694,27 @@ class App:
             eff = OLE_DND.DROPEFFECT_COPY
         elif eff and keys & OLE_DND.MK_SHIFT:
             eff = OLE_DND.DROPEFFECT_MOVE
-        return eff
+        return self._fit_effect(eff, allowed)
 
     def _ole_poll(self):
         """다른 프로그램에서 끌어 오는 동안 화면 표시(놓을 폴더 강조·안내 글)와, 놓았을 때 옮기기"""
         try:
             req, self._ole_req = self._ole_req, None
             if req is not None:
-                kind, paths, x, y, keys = req
+                kind, paths, x, y, keys, allowed = req
                 if kind == "leave":
                     self._ole_state = None
-                self._ole_apply("over" if kind == "drop" else kind, paths, x, y, keys, remember=True)
+                self._ole_apply("over" if kind == "drop" else kind, paths, x, y, keys, remember=True, allowed=allowed)
             drop, self._ole_drop_req = self._ole_drop_req, None
             if drop is not None:
-                kind, paths, x, y, keys = drop
+                kind, paths, x, y, keys, allowed = drop
                 self._ole_state = None
-                self._ole_apply("drop", paths, x, y, keys)
+                self._ole_apply("drop", paths, x, y, keys, allowed=allowed)
         except Exception:
             pass
         self.root.after(40, self._ole_poll)
 
-    def _ole_apply(self, kind, paths, x, y, keys, remember=False):
+    def _ole_apply(self, kind, paths, x, y, keys, remember=False, allowed=0):
         if kind == "leave" or not paths:
             self._set_drop_highlight(None, None)
             self.set_hint("")
@@ -9679,7 +9730,7 @@ class App:
             except Exception:
                 pass
         self._set_drop_highlight(pane, row)
-        eff = self._drop_effect(paths, dest, keys) if dest else 0
+        eff = self._fit_effect(self._drop_effect(paths, dest, keys), allowed) if dest else 0
         if remember:
             self._ole_state = (pane, dest, eff)
         if not dest:
