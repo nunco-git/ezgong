@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.48"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.49"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -3913,6 +3913,7 @@ class SearchPane(tk.Frame):
         self._cwd_sig = None
         self._tick = 0
         self._drag = None
+        self._mq = None
         self._build(state)
         start = state.get("cwd") or self.folder_var.get()
         if self.pinned_var.get() and not (start and os.path.isdir(start) and is_inside(start, self.folder_var.get())):
@@ -4879,7 +4880,96 @@ class SearchPane(tk.Frame):
         return "break"
 
     # ───────── 끌어다 놓기 (칸끼리) ─────────
+    # ── 빈 곳을 끌어서 여러 개 고르기 (윈도우 탐색기의 사각형 선택)
+    def _text_end(self, row):
+        """이름 칸에서 아이콘+글자가 끝나는 x (그 오른쪽 빈 곳을 누르면 사각형 선택)"""
+        try:
+            bb = self.tree.bbox(row, "#0")
+            if not bb:
+                return 0
+            from tkinter import font as tkfont
+            f = tkfont.Font(root=self.tree, font=FONT)
+            return bb[0] + 26 + f.measure(self.tree.item(row, "text")) + 8
+        except Exception:
+            return 0
+
+    def _mq_press(self, e):
+        reg = self.tree.identify_region(e.x, e.y)
+        if reg in ("heading", "separator"):
+            return False
+        row = self.tree.identify_row(e.y)
+        if row:
+            col = self.tree.identify_column(e.x)
+            if col != "#0" or e.x < self._text_end(row):
+                return False                 # 파일·폴더를 누른 것 → 끌어 옮기기 쪽
+        rows = self.tree.get_children()
+        if not rows:
+            return False
+        n = len(rows)
+        first = min(n - 1, max(0, int(round(self.tree.yview()[0] * n))))
+        bb = self.tree.bbox(rows[first])
+        if not bb:
+            return False
+        hh, rh = bb[1], max(1, bb[3])
+        a = first + (e.y - hh) / rh
+        add = bool(e.state & 0x5)            # Ctrl/Shift = 기존 선택에 더하기
+        base = tuple(self.tree.selection()) if add else ()
+        if not add:
+            self.tree.selection_set(())
+        self._mq = {"a": a, "x0": e.x, "hh": hh, "rh": rh, "base": base, "last": None, "on": False, "y": e.y}
+        self.tree.focus_set()
+        return True
+
+    def _mq_lines(self):
+        if not hasattr(self, "_mqf"):
+            self._mqf = [tk.Frame(self.tree, bg="#2b6fe6", width=1, height=1) for _ in range(4)]
+        return self._mqf
+
+    def _mq_hide(self):
+        for f in getattr(self, "_mqf", []):
+            f.place_forget()
+
+    def _mq_motion(self, e):
+        m = self._mq
+        rows = self.tree.get_children()
+        n = len(rows)
+        if not n:
+            return
+        if not m["on"] and abs(e.y - m["y"]) + abs(e.x - m["x0"]) < 4:
+            return
+        m["on"] = True
+        H = self.tree.winfo_height()
+        if e.y < m["hh"] + 4:                # 위·아래 끝으로 가면 목록이 따라 움직임
+            self.tree.yview_scroll(-1, "units")
+        elif e.y > H - 6:
+            self.tree.yview_scroll(1, "units")
+        first = min(n - 1, max(0, int(round(self.tree.yview()[0] * n))))
+        b = first + (min(max(e.y, 0), H) - m["hh"]) / m["rh"]
+        lo, hi = min(m["a"], b), max(m["a"], b)
+        picked = [rows[i] for i in range(max(0, int(lo)), min(n, int(hi) + 1)) if i + 1 > lo and i < hi]
+        sel = list(m["base"]) + [r for r in picked if r not in m["base"]]
+        if sel != m["last"]:
+            m["last"] = sel
+            self.tree.selection_set(sel)
+            if sel:
+                self.tree.focus(sel[-1])
+        # 사각형 테두리
+        W = self.tree.winfo_width()
+        ya, yb = m["hh"] + (m["a"] - first) * m["rh"], m["hh"] + (b - first) * m["rh"]
+        x0, x1 = sorted((min(max(m["x0"], 0), W), min(max(e.x, 0), W)))
+        y0, y1 = sorted((ya, yb))
+        y0, y1 = max(m["hh"], y0), min(H, y1)
+        t, bo, l, r = self._mq_lines()
+        t.place(x=x0, y=y0, width=max(1, x1 - x0), height=1)
+        bo.place(x=x0, y=max(y0, y1 - 1), width=max(1, x1 - x0), height=1)
+        l.place(x=x0, y=y0, width=1, height=max(1, y1 - y0))
+        r.place(x=max(x0, x1 - 1), y=y0, width=1, height=max(1, y1 - y0))
+
     def _drag_press(self, e):
+        self._mq = None
+        if self._mq_press(e):
+            self._drag = None
+            return "break"
         row = self.tree.identify_row(e.y)
         self._drag = None
         if not row or self.tree.identify_region(e.x, e.y) == "heading":
@@ -4891,6 +4981,9 @@ class SearchPane(tk.Frame):
             return "break"
 
     def _drag_motion(self, e):
+        if getattr(self, "_mq", None):
+            self._mq_motion(e)
+            return "break"
         d = self._drag
         if not d:
             return
@@ -4928,6 +5021,10 @@ class SearchPane(tk.Frame):
         return "break"
 
     def _drag_release(self, e):
+        if getattr(self, "_mq", None):
+            self._mq = None
+            self._mq_hide()
+            return "break"
         d, self._drag = self._drag, None
         if not d:
             return
