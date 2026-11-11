@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.40"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.41"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -5473,13 +5473,28 @@ class SettingsDialog:
         w = self.win = tk.Toplevel(app.root)
         w.title("스마트탐색기 환경설정")
         w.transient(app.root)
-        w.resizable(False, False)
+        w.resizable(False, True)
         w.protocol("WM_DELETE_WINDOW", self.cancel)
-        body = ttk.Frame(w, padding=14)
+        # 내용이 길면 화면 높이의 80% 까지만 보이고 나머지는 스크롤 (버튼 줄은 아래에 늘 보임)
+        self._cont = ttk.Frame(w)
+        self._cont.pack(fill="both", expand=True)
+        self._cv = tk.Canvas(self._cont, highlightthickness=0, bd=0)
+        self._sb = ttk.Scrollbar(self._cont, orient="vertical", command=self._cv.yview)
+        self._cv.configure(yscrollcommand=self._sb.set)
+        self._sb.pack(side="right", fill="y")
+        self._cv.pack(side="left", fill="both", expand=True)
+        holder = ttk.Frame(self._cv)
+        self._holder = holder
+        wid = self._cv.create_window((0, 0), window=holder, anchor="nw")
+        holder.bind("<Configure>", lambda e: self._cv.configure(scrollregion=self._cv.bbox("all")))
+        self._cv.bind("<Configure>", lambda e: self._cv.itemconfigure(wid, width=e.width))
+        w.bind("<MouseWheel>", lambda e: self._cv.yview_scroll(-1 * (e.delta // 120 or (1 if e.delta > 0 else -1)), "units")
+               if self._sb.winfo_ismapped() else None)
+        body = ttk.Frame(holder, padding=14)
         body.pack(fill="both", expand=True)
 
         # 바로가기 (바탕화면·작업표시줄) — 만들고 나면 숨김
-        self.sc_frame = ttk.LabelFrame(w, text=" 📌 바로가기 ", padding=(10, 6))
+        self.sc_frame = ttk.LabelFrame(holder, text=" 📌 바로가기 ", padding=(10, 6))
         self.sc_frame.pack(fill="x", padx=14, pady=(12, 0), before=body)
         self.sc_desk = ttk.Button(self.sc_frame, text="🖥 바탕화면에 바로가기 만들기", command=self.make_desk)
         self.sc_task = ttk.Button(self.sc_frame, text="📌 작업표시줄에 고정하기 …", command=self.pin_task)
@@ -5487,7 +5502,7 @@ class SettingsDialog:
         self.refresh_shortcuts()
 
         # 알람·실행 설정 (자동 실행, 트레이, 단축키, 반복 알람)
-        af = ttk.Frame(w, padding=(14, 12, 14, 0))
+        af = ttk.Frame(holder, padding=(14, 12, 14, 0))
         af.pack(fill="x", before=body)
         ttk.Button(af, text="⏰ 알람·실행 설정 (반복 알람 · 자동 실행 · 트레이 · 단축키) …",
                    style="Accent.TButton", command=self.open_alarm).pack(fill="x")
@@ -5626,13 +5641,23 @@ class SettingsDialog:
         self.sample = tk.Label(body, text="가나다라 ABC 123  —  미리보기", padx=10, pady=8, relief="solid", borderwidth=1)
         self.sample.grid(row=20, column=0, columnspan=4, sticky="ew")
 
-        btns = ttk.Frame(w, padding=(14, 0, 14, 12))
-        btns.pack(fill="x")
+        btns = ttk.Frame(w, padding=(14, 6, 14, 12))
+        btns.pack(side="bottom", fill="x", before=self._cont)
         ttk.Button(btns, text="처음 설정으로", command=self.defaults).pack(side="left")
         ttk.Button(btns, text="취소", command=self.cancel).pack(side="right")
         ttk.Button(btns, text="확인", style="Accent.TButton", command=self.ok).pack(side="right", padx=4)
         ttk.Button(btns, text="적용", command=self.apply).pack(side="right")
         self._refresh()
+        w.update_idletasks()
+        avail = int(w.winfo_screenheight() * 0.8) - btns.winfo_reqheight()       # 화면 높이의 80% 까지
+        hh = holder.winfo_reqheight()
+        if hh <= avail:
+            self._sb.pack_forget()
+            ch = hh
+        else:
+            ch = avail
+        self._cv.configure(width=holder.winfo_reqwidth(), height=ch)
+        w.maxsize(10000, int(w.winfo_screenheight() * 0.8))
         center_on(w, app.root)
         w.grab_set()
 
