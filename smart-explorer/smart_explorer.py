@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.41"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.42"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -4668,12 +4668,12 @@ class SearchPane(tk.Frame):
             m.add_command(label="폴더 열기" if h.get("is_dir") else "열기", command=self.activate)
             dirs = [self.hits[i]["path"] for i in self.tree.selection() if i in self.hits and self.hits[i].get("path")]
             if dirs:
-                favs = {os.path.normcase(f) for f in self.app.s.get("nav_fav", [])}
-                if all(os.path.normcase(d) in favs for d in dirs):
+                if all(self.app.nav.is_fav(d) for d in dirs):
                     m.add_command(label="★ 즐겨찾기에서 빼기", command=lambda ds=dirs: self.app.nav.remove_fav(*ds))
                 else:
                     m.add_command(label="★ 즐겨찾기에 추가" + (f" ({len(dirs)}개)" if len(dirs) > 1 else ""),
                                   command=lambda ds=dirs: self.app.nav.add_fav(*ds))
+                    self.app.nav.fav_group_menu(m, dirs)
             if not h.get("is_dir"):
                 m.add_command(label="전체 내용 보기", command=self.show_full)
             if not browse:
@@ -8020,7 +8020,13 @@ class NavPane(ttk.Frame):
         self.tree.bind("<<TreeviewSelect>>", self._on_select)
         self.tree.bind("<Double-1>", self._on_double)
         self.tree.bind("<Button-3>", self._menu)
+        self.tree.bind("<<TreeviewClose>>", self._on_close)
+        self.tree.bind("<ButtonPress-1>", self._press, add="+")
+        self.tree.bind("<B1-Motion>", self._motion, add="+")
+        self.tree.bind("<ButtonRelease-1>", self._release, add="+")
         self.menu = tk.Menu(self, tearoff=0)
+        self._drag = None
+        self.fnode = {}
         self.build()
         self._pending = None             # 뒤에서 읽어 둔 폴더 목록 (화면에 반영 대기)
         self._reading = False
@@ -8099,20 +8105,8 @@ class NavPane(ttk.Frame):
         home = os.path.expanduser("~")
         fav = self.tree.insert("", "end", text="★ 즐겨찾기", open=True)
         self.fav_root = fav
-        shown = set()
-        quick_norm = set()
-        for label, sub in self.QUICK:
-            pth = self.quick_path(sub)
-            if os.path.isdir(pth) and os.path.normcase(pth) not in shown:
-                quick_norm.add(os.path.normcase(pth))
-                self._add(fav, "📁 " + label, pth, lazy=False)
-                shown.add(os.path.normcase(pth))
-        for pth in self.app.s.get("nav_fav", []):
-            if os.path.normcase(pth) not in shown:
-                nm = os.path.basename(pth.rstrip("\\/")) or pth
-                self._add(fav, ("📁 " if os.path.isdir(pth) or not os.path.isfile(pth) else "📄 ") + nm, pth, lazy=False)
-                shown.add(os.path.normcase(pth))
-        self.user_fav = {i for i in self.paths if os.path.normcase(self.paths[i]) not in quick_norm}
+        self.fnode = {}                  # 즐겨찾기 항목 번호 → 저장된 항목(딕셔너리)
+        self._fill_favs()
         pc = self.tree.insert("", "end", text="💻 내 PC", open=True)
         for d in self._drives():
             self._add(pc, "💾 " + d.rstrip("\\/") if sys.platform == "win32" else "💾 " + d, d)
@@ -8132,6 +8126,9 @@ class NavPane(ttk.Frame):
     def _on_open(self, _e):
         iid = self.tree.focus()
         if iid:
+            if iid in self.fnode and self.fnode[iid].get("t") == "g":
+                self.fnode[iid]["open"] = True
+                self.app.schedule_save()
             self._fill(iid)
 
     def _on_select(self, _e):
@@ -8219,7 +8216,79 @@ class NavPane(ttk.Frame):
                 continue
             self._sync_children(iid, [("📁 " + n, os.path.join(base, n)) for n in names])
 
-    # ── 즐겨찾기
+    # ── 즐겨찾기: s["nav_favs"] = [ {"t":"f","p":경로} | {"t":"g","n":이름,"open":bool,"c":[...]} ]  (묶음은 가상 — 실제 폴더 아님)
+    def _favs(self):
+        v = self.app.s.get("nav_favs")
+        if not isinstance(v, list):                          # 처음 한 번: 예전 기본 폴더 + 직접 넣은 것으로 채움
+            v, seen = [], set()
+            for _label, sub in self.QUICK:
+                pth = self.quick_path(sub)
+                if os.path.isdir(pth) and os.path.normcase(pth) not in seen:
+                    seen.add(os.path.normcase(pth))
+                    v.append({"t": "f", "p": pth})
+            for pth in self.app.s.get("nav_fav", []):
+                if os.path.normcase(pth) not in seen:
+                    seen.add(os.path.normcase(pth))
+                    v.append({"t": "f", "p": pth})
+            self.app.s["nav_favs"] = v
+        return v
+
+    def _walk(self, nodes=None):
+        for n in (self._favs() if nodes is None else nodes):
+            yield n
+            if n.get("t") == "g":
+                yield from self._walk(n.setdefault("c", []))
+
+    def _owner(self, node):
+        """node 가 들어 있는 목록과 그 안의 위치"""
+        def rec(lst):
+            for i, n in enumerate(lst):
+                if n is node:
+                    return lst, i
+                if n.get("t") == "g":
+                    r = rec(n.setdefault("c", []))
+                    if r:
+                        return r
+            return None
+        return rec(self._favs())
+
+    def is_fav(self, path):
+        k = os.path.normcase(path)
+        return any(n.get("t") == "f" and os.path.normcase(n.get("p", "")) == k for n in self._walk())
+
+    def _fill_favs(self):
+        def rec(parent, nodes):
+            for n in nodes:
+                if n.get("t") == "g":
+                    iid = self.tree.insert(parent, "end", text="🗂 " + n.get("n", "묶음"), open=bool(n.get("open")))
+                    self.fnode[iid] = n
+                    rec(iid, n.setdefault("c", []))
+                else:
+                    pth = n.get("p", "")
+                    nm = os.path.basename(pth.rstrip("\\/")) or pth
+                    isf = os.path.isfile(pth)
+                    iid = self._add(parent, ("📄 " if isf else "📁 ") + nm, pth, lazy=False)
+                    self.fnode[iid] = n
+        rec(self.fav_root, self._favs())
+
+    def _refresh_favs(self):
+        for ch in self.tree.get_children(self.fav_root):
+            self.tree.delete(ch)
+        for i in [i for i in self.paths if not self.tree.exists(i)]:
+            self.paths.pop(i, None)
+        self.fnode.clear()
+        self._fill_favs()
+
+    def _changed(self):
+        self.app.schedule_save()
+        self._refresh_favs()
+
+    def _group_of(self, name):
+        for n in self._walk():
+            if n.get("t") == "g" and n.get("n") == name:
+                return n
+        return None
+
     def add_current(self):
         pane = self.app.active or (self.app.panes[0] if self.app.panes else None)
         cwd = getattr(pane, "cwd", None)
@@ -8227,40 +8296,271 @@ class NavPane(ttk.Frame):
             self.add_fav(cwd)
 
     def _rebuilt(self):
-        self.build()                                         # 다시 그린 뒤 지금 보는 폴더까지 펼쳐 둠
-        pane = self.app.active or (self.app.panes[0] if self.app.panes else None)
-        if getattr(pane, "cwd", None):
-            self.reveal(pane.cwd)
+        self._refresh_favs()
 
-    def add_fav(self, *paths):
-        favs = self.app.s.setdefault("nav_fav", [])
+    def add_fav(self, *paths, group=None):
+        target = group["c"] if group is not None else self._favs()
         changed = False
         for pth in paths:
-            if not any(os.path.normcase(f) == os.path.normcase(pth) for f in favs):
-                favs.append(pth)
+            if not self.is_fav(pth):
+                target.append({"t": "f", "p": pth})
                 changed = True
-        if changed:
-            self.app.schedule_save()
-            self._rebuilt()
+        if group is not None:
+            group["open"] = True
+        if changed or group is not None:
+            self._changed()
 
     def remove_fav(self, *paths):
         drop = {os.path.normcase(p) for p in paths}
-        favs = self.app.s.setdefault("nav_fav", [])
-        self.app.s["nav_fav"] = [f for f in favs if os.path.normcase(f) not in drop]
-        self.app.schedule_save()
-        self._rebuilt()
+
+        def rec(lst):
+            lst[:] = [n for n in lst if not (n.get("t") == "f" and os.path.normcase(n.get("p", "")) in drop)]
+            for n in lst:
+                if n.get("t") == "g":
+                    rec(n.setdefault("c", []))
+        rec(self._favs())
+        self._changed()
+
+    def new_group(self, into=None, move=None):
+        name = simpledialog.askstring(APP_NAME, "새 즐겨찾기 묶음 이름 (실제 폴더는 만들어지지 않아요)", parent=self.app.root)
+        if not name or not name.strip():
+            return
+        g = {"t": "g", "n": name.strip(), "open": True, "c": []}
+        (into["c"] if into is not None else self._favs()).append(g)
+        if into is not None:
+            into["open"] = True
+        if move is not None:
+            self._move_into(move, g)
+        else:
+            self._changed()
+
+    def rename_group(self, node):
+        name = simpledialog.askstring(APP_NAME, "묶음 이름", initialvalue=node.get("n", ""), parent=self.app.root)
+        if name and name.strip():
+            node["n"] = name.strip()
+            self._changed()
+
+    def delete_node(self, node):
+        if node.get("t") == "g" and node.get("c"):
+            if not messagebox.askyesno(APP_NAME, f"'{node.get('n')}' 묶음과 안에 담긴 즐겨찾기를 모두 지울까요?\n(실제 폴더는 지워지지 않아요)",
+                                       parent=self.app.root):
+                return
+        o = self._owner(node)
+        if o:
+            o[0].pop(o[1])
+            self._changed()
+
+    def restore_defaults(self):
+        have = {os.path.normcase(n.get("p", "")) for n in self._walk() if n.get("t") == "f"}
+        add = []
+        for _label, sub in self.QUICK:
+            pth = self.quick_path(sub)
+            if os.path.isdir(pth) and os.path.normcase(pth) not in have:
+                have.add(os.path.normcase(pth))
+                add.append({"t": "f", "p": pth})
+        self._favs()[0:0] = add
+        self._changed()
+
+    def _inside(self, node, group):
+        """group 안(자손 포함)에 node 가 있나?"""
+        return any(n is node for n in self._walk(group.setdefault("c", [])))
+
+    def _move_into(self, node, group):
+        """node 를 group(None이면 맨 바깥) 맨 끝으로"""
+        if group is not None and (group is node or (node.get("t") == "g" and self._inside(group, node))):
+            return
+        o = self._owner(node)
+        if not o:
+            return
+        o[0].pop(o[1])
+        (group["c"] if group is not None else self._favs()).append(node)
+        if group is not None:
+            group["open"] = True
+        self._changed()
+
+    def _shift(self, node, d):
+        o = self._owner(node)
+        if o:
+            lst, i = o
+            j = i + d
+            if 0 <= j < len(lst):
+                lst[i], lst[j] = lst[j], lst[i]
+                self._changed()
+
+    def _drop(self, node, target, where):
+        """where: before / after / into"""
+        if target is node or (node.get("t") == "g" and self._inside(target, node)):
+            return
+        if where == "into" and target.get("t") != "g":
+            where = "after"
+        o = self._owner(node)
+        if not o:
+            return
+        o[0].pop(o[1])
+        if where == "into":
+            target.setdefault("c", []).append(node)
+            target["open"] = True
+        else:
+            lst, i = self._owner(target)
+            lst.insert(i if where == "before" else i + 1, node)
+        self._changed()
+
+    # 끌어서 순서 바꾸기·묶음에 넣기
+    def _press(self, e):
+        self._drag = None
+        iid = self.tree.identify_row(e.y)
+        if iid in self.fnode:
+            self._drag = {"iid": iid, "y": e.y, "on": False}
+
+    def _motion(self, e):
+        d = getattr(self, "_drag", None)
+        if not d:
+            return
+        if not d["on"]:
+            if abs(e.y - d["y"]) < 6:
+                return
+            d["on"] = True
+            self.tree.configure(cursor="hand2")
+        self._clear_mark()
+        t = self._target(e.y, d["iid"])
+        d["t"] = t
+        if t:
+            tiid, where = t
+            bb = self.tree.bbox(tiid)
+            if bb:
+                if where == "into":
+                    self.tree.tag_configure("dropgrp", background="#cfe3ff")
+                    self.tree.item(tiid, tags=("dropgrp",))
+                    self._marked = tiid
+                else:
+                    y = bb[1] if where == "before" else bb[1] + bb[3]
+                    if not hasattr(self, "_line"):
+                        self._line = tk.Frame(self.tree, height=2, bg="#2b6fe6")
+                    self._line.place(x=0, y=y - 1, relwidth=1)
+
+    def _target(self, y, src):
+        tiid = self.tree.identify_row(y)
+        if not tiid:
+            return None
+        if tiid == self.fav_root:
+            return (tiid, "into")
+        if tiid not in self.fnode:
+            return None
+        bb = self.tree.bbox(tiid)
+        rel = (y - bb[1]) / max(1, bb[3]) if bb else 0.5
+        n = self.fnode[tiid]
+        if n.get("t") == "g":
+            return (tiid, "before" if rel < 0.25 else "after" if rel > 0.75 else "into")
+        return (tiid, "before" if rel < 0.5 else "after")
+
+    def _clear_mark(self):
+        if hasattr(self, "_line"):
+            self._line.place_forget()
+        m = getattr(self, "_marked", None)
+        if m and self.tree.exists(m):
+            self.tree.item(m, tags=())
+        self._marked = None
+
+    def _release(self, e):
+        d = getattr(self, "_drag", None)
+        self._drag = None
+        self._clear_mark()
+        self.tree.configure(cursor="")
+        if not d or not d["on"]:
+            return
+        t = d.get("t")
+        if not t:
+            return
+        node = self.fnode.get(d["iid"])
+        tiid, where = t
+        if node is None:
+            return
+        if tiid == self.fav_root:
+            self._move_into(node, None)
+        else:
+            self._drop(node, self.fnode[tiid], where)
+        return "break"
+
+    def _on_close(self, _e):
+        iid = self.tree.focus()
+        if iid in self.fnode and self.fnode[iid].get("t") == "g":
+            self.fnode[iid]["open"] = False
+            self.app.schedule_save()
+
+    def _groups_menu(self, parent_menu, label, cmd_for, exclude=None, top_label=None):
+        sub = tk.Menu(parent_menu, tearoff=0)
+        gs = [g for g in self._walk() if g.get("t") == "g"
+              and not (exclude is not None and (g is exclude or (exclude.get("t") == "g" and self._inside(g, exclude))))]
+        if top_label:
+            sub.add_command(label=top_label, command=cmd_for(None))
+        for g in gs:
+            sub.add_command(label="🗂 " + g.get("n", ""), command=cmd_for(g))
+        if gs or top_label:
+            sub.add_separator()
+        sub.add_command(label="➕ 새 묶음 만들기…", command=cmd_for("new"))
+        parent_menu.add_cascade(label=label, menu=sub)
 
     def _menu(self, e):
         iid = self.tree.identify_row(e.y)
-        pth = self.paths.get(iid) if iid else None
-        if not pth:
+        if not iid:
             return
-        self.menu.delete(0, "end")
-        if iid in self.user_fav:
-            self.menu.add_command(label="즐겨찾기에서 빼기", command=lambda: self.remove_fav(pth))
+        m = self.menu
+        m.delete(0, "end")
+        if iid == self.fav_root:
+            m.add_command(label="새 묶음 만들기…", command=self.new_group)
+            m.add_command(label="기본 즐겨찾기(바탕화면·다운로드·문서…) 되살리기", command=self.restore_defaults)
+        elif iid in self.fnode:
+            node = self.fnode[iid]
+            isg = node.get("t") == "g"
+            if isg:
+                m.add_command(label="이름 바꾸기…", command=lambda: self.rename_group(node))
+                m.add_command(label="이 묶음 안에 새 묶음 만들기…", command=lambda: self.new_group(into=node))
+            m.add_command(label="▲ 위로", command=lambda: self._shift(node, -1))
+            m.add_command(label="▼ 아래로", command=lambda: self._shift(node, 1))
+
+            def mv(g):
+                if g == "new":
+                    return lambda: self.new_group(move=node)
+                return lambda: self._move_into(node, g)
+            self._groups_menu(m, "묶음으로 옮기기", mv, exclude=node, top_label="(묶음 밖 — 맨 위 목록으로)")
+            m.add_separator()
+            m.add_command(label="묶음 삭제" if isg else "즐겨찾기에서 빼기", command=lambda: self.delete_node(node))
+            if isg is False and node.get("p"):
+                pass
+            m.add_separator()
+            m.add_command(label="새 묶음 만들기…", command=self.new_group)
         else:
-            self.menu.add_command(label="즐겨찾기에 넣기", command=lambda: self.add_fav(pth))
+            pth = self.paths.get(iid)
+            if not pth:
+                return
+            if self.is_fav(pth):
+                m.add_command(label="즐겨찾기에서 빼기", command=lambda: self.remove_fav(pth))
+            else:
+                m.add_command(label="즐겨찾기에 넣기", command=lambda: self.add_fav(pth))
+                self._groups_menu(m, "즐겨찾기 묶음에 넣기", lambda g: (lambda: self._add_to(pth, g)))
         self.menu.tk_popup(e.x_root, e.y_root)
+
+    def _add_to(self, pth, g):
+        if g == "new":
+            name = simpledialog.askstring(APP_NAME, "새 즐겨찾기 묶음 이름", parent=self.app.root)
+            if not name or not name.strip():
+                return
+            g = {"t": "g", "n": name.strip(), "open": True, "c": []}
+            self._favs().append(g)
+        self.add_fav(pth, group=g)
+
+    def fav_group_menu(self, menu, paths):
+        """가운데 목록 오른쪽 클릭 메뉴에 '묶음에 추가' 붙이기"""
+        self._groups_menu(menu, "★ 즐겨찾기 묶음에 추가", lambda g: (lambda ps=paths: self._add_many(ps, g)))
+
+    def _add_many(self, paths, g):
+        if g == "new":
+            name = simpledialog.askstring(APP_NAME, "새 즐겨찾기 묶음 이름", parent=self.app.root)
+            if not name or not name.strip():
+                return
+            g = {"t": "g", "n": name.strip(), "open": True, "c": []}
+            self._favs().append(g)
+        self.add_fav(*paths, group=g)
 
     # ── 가운데 목록의 폴더를 따라가며 트리에서도 보여 줌
     def reveal(self, folder):
