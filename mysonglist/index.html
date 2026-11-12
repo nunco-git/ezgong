@@ -367,6 +367,11 @@ body.guest-view .no-view,body.guest-view .sec-actions,body.guest-view .row-more,
         <button id="btnModeEdit" type="button" aria-pressed="false">수정 가능</button>
       </div>
       <p id="modeDesc" class="hint"></p>
+      <div class="seg" role="group" aria-label="링크 형태">
+        <button id="btnKindShort" type="button" aria-pressed="true">짧은 링크</button>
+        <button id="btnKindLong" type="button" aria-pressed="false">긴 주소</button>
+      </div>
+      <p id="kindDesc" class="hint"></p>
       <div class="add-actions">
         <button id="btnShareSend" class="btn primary" type="button" disabled>링크 보내기</button>
         <button id="btnShareCopy" class="btn" type="button" disabled>링크 복사</button>
@@ -377,7 +382,7 @@ body.guest-view .no-view,body.guest-view .sec-actions,body.guest-view .row-more,
 
     <div id="importPanel" class="panel-box" hidden>
       <label for="importText">받은 링크를 붙여넣으세요</label>
-      <textarea id="importText" rows="3" spellcheck="false" placeholder="https://…#share=…"></textarea>
+      <textarea id="importText" rows="3" spellcheck="false" placeholder="https://…#s=… 또는 #share=…"></textarea>
       <div class="add-actions">
         <button id="btnImportGo" class="btn primary" type="button">불러오기</button>
         <button id="btnImportClose" class="btn" type="button">닫기</button>
@@ -1665,7 +1670,7 @@ function deleteList(){
 }
 
 /* 공유 보내기 */
-let shareMode='view', shareToken=0;
+let shareMode='view', shareToken=0, shareCode='', shareKind=(lsGet('gayo-share-kind')==='long'?'long':'short');
 const MODE_DESC={
   view:'수정 불가: 받는 사람은 듣기만 가능하고 저장되지 않아요. 영상을 못 찾은 곡은 빠져요.',
   edit:'수정 가능: 이 목록 하나만 보내고, 받는 사람이 고친 내용은 내 목록에 영향이 없어요.'
@@ -1676,11 +1681,77 @@ async function openShare(){
   if(!/^https?:$/.test(location.protocol)){ toast('웹 주소로 올려서 연 뒤에 공유할 수 있어요.',4500); return; }
   if(!activeList().songs.length){ toast('곡이 들어 있는 목록만 공유할 수 있어요.'); return; }
   $('#sharePanel').hidden=false;
+  if(shareKind==='short'&&webOk()) loadFirebase().catch(()=>{}); /* 로그인 팝업이 막히지 않도록 미리 준비 */
   await buildShareLink();
 }
 function setShareMode(m){ shareMode=m; buildShareLink(); }
+function setShareKind(k){ shareKind=k; lsSet('gayo-share-kind',k); renderKind(); }
+const KIND_DESC={
+  short:'짧은 링크: 주소가 짧아요. 목록이 공유 서버(Firebase)에 저장되고, 만들 때 구글 로그인이 필요해요. 받는 사람은 로그인 없이 열어요.',
+  long:'긴 주소: 목록 내용이 주소 안에 들어 있어요. 로그인도, 서버 저장도 필요 없지만 주소가 길어요.'
+};
+function renderKind(){
+  $('#btnKindShort').setAttribute('aria-pressed',String(shareKind==='short'));
+  $('#btnKindLong').setAttribute('aria-pressed',String(shareKind==='long'));
+  $('#kindDesc').textContent=KIND_DESC[shareKind];
+}
+const SHORT_ABC='abcdefghjkmnpqrstuvwxyz23456789';
+function newShortId(){
+  const a=new Uint8Array(8); crypto.getRandomValues(a);
+  let r=''; for(let i=0;i<a.length;i++) r+=SHORT_ABC[a[i]%SHORT_ABC.length];
+  return r;
+}
+function shortCacheGet(code){ try{ return (JSON.parse(lsGet('gayo-short-cache')||'{}')||{})[hashStr(code)]||''; }catch(e){ return ''; } }
+function shortCacheSet(code,id){
+  try{
+    const m=JSON.parse(lsGet('gayo-short-cache')||'{}')||{}; m[hashStr(code)]=id;
+    const ks=Object.keys(m); while(ks.length>40) delete m[ks.shift()];
+    lsSet('gayo-short-cache',JSON.stringify(m));
+  }catch(e){}
+}
+/* 짧은 링크 만들기. 실패하면 이유를 담은 Error를 던진다(호출한 쪽에서 긴 주소로 대체) */
+async function makeShortUrl(code){
+  const base=location.origin+location.pathname+'#s=';
+  const old=shortCacheGet(code);
+  if(old) return base+old;
+  if(code.length>200000) throw new Error('toolong');
+  await loadFirebase();
+  try{ if(firebase.auth().authStateReady) await firebase.auth().authStateReady(); }catch(e){}
+  if(!cuser&&!firebase.auth().currentUser){
+    await cloudButton();
+    if(!cuser&&!firebase.auth().currentUser) throw new Error('nologin');
+  }
+  const uid=(cuser||firebase.auth().currentUser).uid;
+  for(let i=0;i<3;i++){
+    const id=newShortId();
+    try{
+      await cdb.collection('shares').doc(id).set({code:code,t:Date.now(),uid:uid});
+      shortCacheSet(code,id);
+      return base+id;
+    }catch(e){
+      if(e&&e.code==='permission-denied'&&i<2) continue; /* 번호가 겹쳤을 가능성 */
+      throw new Error(e&&e.code==='permission-denied'?'noperm':'net');
+    }
+  }
+  throw new Error('noperm');
+}
+let shareFallback=''; /* 짧은 링크를 못 만들고 긴 주소로 대체한 이유(복사 완료 안내에 함께 보여줌) */
+async function currentShareUrl(){
+  shareFallback='';
+  if(!shareUrl) return '';
+  if(shareKind==='long') return shareUrl;
+  try{ return await makeShortUrl(shareCode); }
+  catch(e){
+    const why=e&&e.message;
+    shareFallback=why==='nologin'?'로그인이 안 돼서 긴 주소로 보내요.':why==='noperm'?'공유 서버 설정이 아직 안 돼 있어 긴 주소로 보내요.':why==='toolong'?'목록이 너무 커서 긴 주소로 보내요.':'짧은 링크를 만들지 못해 긴 주소로 보내요. 인터넷 연결을 확인해 보세요.';
+    toast(shareFallback,5500);
+    return shareUrl;
+  }
+}
+const COPIED_MSG=()=>(shareFallback?shareFallback+' ':'')+'링크를 복사했어요. 카카오톡이나 문자에 붙여넣어 보내세요.';
 async function buildShareLink(){
   const L=activeList();
+  renderKind();
   $('#btnModeView').setAttribute('aria-pressed',String(shareMode==='view'));
   $('#btnModeEdit').setAttribute('aria-pressed',String(shareMode==='edit'));
   $('#modeDesc').textContent=MODE_DESC[shareMode];
@@ -1695,6 +1766,7 @@ async function buildShareLink(){
   try{
     const code=await encodeShare(packList(L.name,songs,shareMode));
     if(token!==shareToken) return;
+    shareCode=code;
     shareUrl=location.origin+location.pathname+'#share='+code;
     let note='';
     if(shareMode==='view'&&skipped) note+='영상을 아직 못 찾은 '+skipped+'곡은 빠졌어요. ';
@@ -1703,27 +1775,34 @@ async function buildShareLink(){
       if(un) note+='영상을 아직 못 찾은 '+un+'곡은 이름만 전달돼요(받는 사람이 API 키를 넣어야 찾아져요). ';
     }
     note+='영상을 이미 찾은 곡은 받는 사람이 API 키 없이도 바로 들을 수 있어요.';
-    if(shareUrl.length>6000) note+=' 링크가 아주 길어서 일부 메신저에서 잘릴 수 있어요. 목록을 나눠서 보내 보세요.';
+    if(shareKind==='long'&&shareUrl.length>6000) note+=' 링크가 아주 길어서 일부 메신저에서 잘릴 수 있어요. 짧은 링크로 바꾸거나 목록을 나눠서 보내 보세요.';
     $('#shareNote').textContent=note;
     $('#btnShareSend').disabled=false; $('#btnShareCopy').disabled=false;
   }catch(e){
     if(token===shareToken) $('#shareNote').textContent='링크를 만들지 못했어요.';
   }
 }
+let shareBusy=false;
 async function sendShare(){
-  if(!shareUrl) return;
+  if(!shareUrl||shareBusy) return;
+  shareBusy=true; $('#btnShareSend').disabled=true; $('#btnShareCopy').disabled=true;
+  let url; try{ url=await currentShareUrl(); } finally{ shareBusy=false; $('#btnShareSend').disabled=false; $('#btnShareCopy').disabled=false; }
+  if(!url) return;
   const L=activeList();
   if(navigator.share){
     try{
-      await navigator.share({title:'애창곡 리스트 · '+L.name,text:'‘'+L.name+'’ 노래 목록이에요. '+(shareMode==='view'?'링크를 열면 바로 들을 수 있어요.':'링크를 열면 이 목록을 듣고 고칠 수 있어요.'),url:shareUrl});
+      await navigator.share({title:'애창곡 리스트 · '+L.name,text:'‘'+L.name+'’ 노래 목록이에요. '+(shareMode==='view'?'링크를 열면 바로 들을 수 있어요.':'링크를 열면 이 목록을 듣고 고칠 수 있어요.'),url:url});
       return;
     }catch(e){ if(e&&e.name==='AbortError') return; }
   }
-  copyShare();
+  toast(await copyText(url)?COPIED_MSG():'복사하지 못했어요.',shareFallback?6000:4200);
 }
 async function copyShare(){
-  if(!shareUrl) return;
-  toast(await copyText(shareUrl)?'링크를 복사했어요. 카카오톡이나 문자에 붙여넣어 보내세요.':'복사하지 못했어요.',4200);
+  if(!shareUrl||shareBusy) return;
+  shareBusy=true; $('#btnShareSend').disabled=true; $('#btnShareCopy').disabled=true;
+  let url; try{ url=await currentShareUrl(); } finally{ shareBusy=false; $('#btnShareSend').disabled=false; $('#btnShareCopy').disabled=false; }
+  if(!url) return;
+  toast(await copyText(url)?COPIED_MSG():'복사하지 못했어요.',shareFallback?6000:4200);
 }
 
 /* 공유 받기 */
@@ -1731,18 +1810,31 @@ function extractCode(text){
   const t=String(text||'').trim();
   const m=t.match(/share=([\w-]+)/);
   if(m) return m[1];
+  const sm=t.match(/#s=([A-Za-z0-9]{6,16})\b/);
+  if(sm) return 's:'+sm[1];
   return /^[01][\w-]{10,}$/.test(t)?t:'';
 }
 function clearHash(){ try{ if(location.hash) window.history.replaceState(null,'',location.pathname+location.search); }catch(e){} }
+async function fetchShort(id){
+  await loadFirebase();
+  let snap;
+  try{ snap=await cdb.collection('shares').doc(id).get(); }
+  catch(e){ const err=new Error(e&&e.code==='permission-denied'?'noperm':'net'); throw err; }
+  if(!snap.exists) throw new Error('notfound');
+  const c=snap.data()&&snap.data().code;
+  if(typeof c!=='string'||!c) throw new Error('badcode');
+  return c;
+}
 async function loadIncoming(code){
   try{
+    if(String(code).startsWith('s:')) code=await fetchShort(code.slice(2));
     const data=sanitizeShared(await decodeShare(code));
     if(!data) throw new Error('empty');
     $('#shareErr').hidden=true;
     enterGuest(data,code);
     return true;
   }catch(e){
-    const msg=e&&e.message==='nodecomp'?'이 폰의 브라우저가 오래돼서 이 링크를 열 수 없어요. 브라우저를 업데이트하거나 크롬·사파리로 열어 주세요.':'공유 링크를 읽지 못했어요. 링크가 중간에 잘렸을 수 있으니, 보낸 사람에게 링크를 다시 받아 주세요.';
+    const msg=e&&e.message==='notfound'?'이 짧은 링크를 찾지 못했어요. 링크가 잘못됐거나 삭제됐을 수 있어요. 보낸 사람에게 다시 받아 주세요.':e&&e.message==='net'?'공유된 목록을 불러오지 못했어요. 인터넷 연결을 확인하고 다시 열어 주세요.':e&&e.message==='noperm'?'공유 서버에서 읽기가 허용되지 않았어요. 보낸 사람에게 알려 주세요.':e&&e.message==='load'?'불러오는 도구를 가져오지 못했어요. 인터넷 연결을 확인해 주세요.':e&&e.message==='nodecomp'?'이 폰의 브라우저가 오래돼서 이 링크를 열 수 없어요. 브라우저를 업데이트하거나 크롬·사파리로 열어 주세요.':'공유 링크를 읽지 못했어요. 링크가 중간에 잘렸을 수 있으니, 보낸 사람에게 링크를 다시 받아 주세요.';
     $('#shareErr').textContent=msg; $('#shareErr').hidden=false; toast(msg,5500);
     return false;
   }
@@ -1794,7 +1886,9 @@ function resetGuest(){
 function exitGuest(){ stopPlayback(); leaveGuest(); clearHash(); openRow=null; render(); }
 function checkIncomingHash(){
   const m=location.hash.match(/^#share=([\w-]+)/);
-  if(m) loadIncoming(m[1]);
+  if(m){ loadIncoming(m[1]); return; }
+  const sm=location.hash.match(/^#s=([A-Za-z0-9]{6,16})$/);
+  if(sm) loadIncoming('s:'+sm[1]);
 }
 
 function bindLists(){
@@ -1828,6 +1922,8 @@ function bindLists(){
   $('#btnGuestReset').addEventListener('click',resetGuest);
   $('#btnModeView').addEventListener('click',()=>setShareMode('view'));
   $('#btnModeEdit').addEventListener('click',()=>setShareMode('edit'));
+  $('#btnKindShort').addEventListener('click',()=>setShareKind('short'));
+  $('#btnKindLong').addEventListener('click',()=>setShareKind('long'));
   $('#btnGuestExit').addEventListener('click',exitGuest);
   window.addEventListener('hashchange',checkIncomingHash);
 }
