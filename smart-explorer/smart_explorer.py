@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.50"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.51"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -2385,7 +2385,7 @@ class PreviewPanel(ttk.Frame):
             ap = ttk.PanedWindow(self.arc_frame, orient="vertical")
             ap.pack(fill="both", expand=True)
             af = ttk.Frame(ap)
-            self.arc_tree = ttk.Treeview(af, columns=("name", "size", "mtime"), show="headings", selectmode="browse")
+            self.arc_tree = ttk.Treeview(af, columns=("name", "size", "mtime"), show="headings", selectmode="extended")
             for c, t, w, anc, st in (("name", "압축 안 파일", 300, "w", True), ("size", "크기", 80, "e", False),
                                      ("mtime", "수정일", 120, "center", False)):
                 self.arc_tree.heading(c, text=t)
@@ -2398,6 +2398,11 @@ class PreviewPanel(ttk.Frame):
             self.arc_tree.tag_configure("dim", foreground="#999")
             self.arc_tree.bind("<<TreeviewSelect>>", lambda e: self._arc_schedule())
             self.arc_tree.bind("<Double-1>", lambda e: self._arc_open())
+            # 압축 안 파일을 끌어서 폴더(이 프로그램·탐색기·바탕화면)에 놓으면 그 자리에 풀림
+            self.arc_tree.bind("<ButtonPress-1>", self._arc_press)
+            self.arc_tree.bind("<B1-Motion>", self._arc_motion)
+            self.arc_tree.bind("<ButtonRelease-1>", self._arc_release)
+            self._arc_drag = None
             ap.add(af, weight=1)
             self.inner = PreviewPanel(ap, nested=True)
             ap.add(self.inner, weight=2)
@@ -2957,6 +2962,67 @@ class PreviewPanel(ttk.Frame):
             return
         self.inner.current = None
         self.inner.show(f, self.pats, None, use_shell=False)
+
+    def _arc_press(self, e):
+        row = self.arc_tree.identify_row(e.y)
+        self._arc_drag = None
+        if not row or self.arc_tree.identify_region(e.x, e.y) == "heading":
+            return
+        self._arc_drag = {"x": e.x_root, "y": e.y_root, "active": False, "pending": None}
+        if row in self.arc_tree.selection() and len(self.arc_tree.selection()) > 1 and not (e.state & 0x5):
+            self._arc_drag["pending"] = row          # 여러 개 골라 둔 채로 끌 수 있게 선택 유지
+            return "break"
+
+    def _arc_motion(self, e):
+        d = self._arc_drag
+        if not d or d["active"]:
+            return "break" if d and d["active"] else None
+        if abs(e.x_root - d["x"]) + abs(e.y_root - d["y"]) < 10:
+            return "break" if d["pending"] else None
+        d["active"] = True
+        self._arc_do_drag()
+        self._arc_drag = None
+        return "break"
+
+    def _arc_release(self, e):
+        d, self._arc_drag = self._arc_drag, None
+        if d and d["pending"] and not d["active"]:
+            self.arc_tree.selection_set(d["pending"])
+
+    def _arc_do_drag(self):
+        """고른 파일들을 임시 폴더에 풀어 둔 뒤, 진짜 파일처럼 끌고 감 (놓은 곳으로 복사·이동됨)"""
+        pane = getattr(self, "owner", None)
+        app = getattr(pane, "app", None)
+        if OLE_DND is None or app is None or app.ole_target is None or not self.current:
+            return
+        ents = [self.arc_entries[i] for i in self.arc_tree.selection() if i in self.arc_entries]
+        skipped = [e for e in ents if e["enc"]]
+        ents = [e for e in ents if not e["enc"]]
+        if not ents:
+            if skipped:
+                messagebox.showinfo(APP_NAME, "암호가 걸린 파일은 끌어서 풀 수 없습니다. 압축 프로그램으로 열어 주세요.")
+            return
+        base = os.path.join(TMP_DIR, "drag", str(int(time.time() * 1000)))
+        paths = []
+        top = self.winfo_toplevel()
+        top.configure(cursor="watch")
+        top.update_idletasks()
+        try:
+            for i, e in enumerate(ents):
+                paths.append(archive_extract(self.current, e, os.path.join(base, str(i))))
+        except Exception as ex:
+            top.configure(cursor="")
+            messagebox.showerror(APP_NAME, f"압축을 풀 수 없습니다.\n{ex}")
+            return
+        top.configure(cursor="")
+        app.drag_source = pane
+        try:
+            OLE_DND.drag_files(int(top.wm_frame(), 16), paths)
+        except Exception:
+            pass
+        finally:
+            app.drag_source = None
+        self.after(300, app.refresh_browsers)
 
     def _arc_open(self):
         sel = self.arc_tree.selection()
@@ -4104,6 +4170,7 @@ class SearchPane(tk.Frame):
         self.nb = ttk.Notebook(bf)
         self.nb.pack(fill="both", expand=True, pady=(4, 0))
         self.preview = PreviewPanel(self.nb)
+        self.preview.owner = self
         mf = ttk.Frame(self.nb)
         self.matches = tk.Text(mf, wrap="word", padx=10, pady=8, font=FONT, state="disabled", relief="flat")
         ms = ttk.Scrollbar(mf, orient="vertical", command=self.matches.yview)
