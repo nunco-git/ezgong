@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.51"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.52"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -1122,7 +1122,14 @@ def _safe_target(dest, name):
 
 
 def archive_extract(path, entry, dest):
-    """압축 안 파일 하나를 dest 폴더에 풀고 그 경로를 돌려줌"""
+    """압축 안 파일 하나를 dest 폴더에 풀고 그 경로를 돌려줌 (압축 파일이 인터넷에서 받은 것이면 풀린 파일에도 같은 표시)"""
+    out = _archive_extract(path, entry, dest)
+    if zone_marked(path):
+        mark_zone(out)
+    return out
+
+
+def _archive_extract(path, entry, dest):
     os.makedirs(dest, exist_ok=True)
     target = _safe_target(dest, entry["name"])
     kind = archive_kind(path)
@@ -2399,6 +2406,7 @@ class PreviewPanel(ttk.Frame):
             self.arc_tree.bind("<<TreeviewSelect>>", lambda e: self._arc_schedule())
             self.arc_tree.bind("<Double-1>", lambda e: self._arc_open())
             # 압축 안 파일을 끌어서 폴더(이 프로그램·탐색기·바탕화면)에 놓으면 그 자리에 풀림
+            self._arc_ok = set()
             self.arc_tree.bind("<ButtonPress-1>", self._arc_press)
             self.arc_tree.bind("<B1-Motion>", self._arc_motion)
             self.arc_tree.bind("<ButtonRelease-1>", self._arc_release)
@@ -2496,10 +2504,11 @@ class PreviewPanel(ttk.Frame):
         self.msg.configure(text=text, anchor="center", justify="center")
         self._show(self.msg)
 
-    def gate(self, path, on_allow, on_trust):
+    def gate(self, path, on_allow, on_trust, title=None, trust_text="이 폴더는 믿기"):
         self.clear()
         self.current = None
-        self.gate_title.configure(text=os.path.basename(path) + "\n인터넷에서 받은 파일입니다")
+        self.gate_title.configure(text=title or (os.path.basename(path) + "\n인터넷에서 받은 파일입니다"))
+        self.gate_trust.configure(text=trust_text)
         self.gate_allow.configure(command=on_allow)
         self.gate_trust.configure(command=on_trust)
         self._show(self.gate_frame)
@@ -2951,8 +2960,39 @@ class PreviewPanel(ttk.Frame):
         except Exception as ex:
             return e, f"풀 수 없음: {ex}"
 
+    def _arc_gated(self, e):
+        """인터넷에서 받은 압축 파일 안의 파일은 파일마다 확인 (믿는 폴더·끄기 설정이면 건너뜀)"""
+        pane = getattr(self, "owner", None)
+        app = getattr(pane, "app", None)
+        if app is None or not app.s.get("mark_check", True) or not self.current:
+            return False
+        if (self.current, e["key"]) in self._arc_ok:
+            return False
+        ap = os.path.abspath(self.current)
+        if any(is_inside(ap, d) for d in app.s.get("trusted_dirs", []) if d):
+            return False
+        return zone_marked(ap)
+
     def _arc_preview(self):
         self._arc_job = None
+        sel = self.arc_tree.selection()
+        e0 = self.arc_entries.get(sel[0]) if sel else None
+        if e0 and not e0["enc"] and self._arc_gated(e0):
+            arc = self.current
+            def allow(k=(arc, e0["key"])):
+                self._arc_ok.add(k)
+                self._arc_preview()
+            def trust(a=arc):
+                pane = getattr(self, "owner", None)
+                d = os.path.dirname(os.path.abspath(a))
+                if messagebox.askyesno(APP_NAME, f"이 폴더와 그 아래 폴더의 파일은 앞으로 묻지 않고 미리보기합니다.\n\n{d}\n\n믿는 폴더로 지정할까요?",
+                                       parent=self.winfo_toplevel()):
+                    pane.app.s.setdefault("trusted_dirs", []).append(d)
+                    pane.app.schedule_save()
+                    self._arc_preview()
+            self.inner.gate(e0["name"], allow, trust, title=os.path.basename(e0["name"]) + "\n인터넷에서 받은 압축 파일 안의 파일입니다",
+                            trust_text="이 압축 파일이 있는 폴더는 믿기")
+            return
         f, err = self._arc_extract()
         if f is None:
             return
@@ -3245,6 +3285,17 @@ def zone_marked(path):
         return False
     m = re.search(r"ZoneId\s*=\s*(\d+)", txt)
     return True if not m else int(m.group(1)) >= 3
+
+
+def mark_zone(path):
+    """풀어 낸 파일에도 '인터넷에서 받음' 표시를 붙임 (윈도우 보호 기능이 계속 작동하도록)"""
+    if sys.platform != "win32":
+        return
+    try:
+        with open(path + ":Zone.Identifier", "w", encoding="utf-8") as f:
+            f.write("[ZoneTransfer]\nZoneId=3\n")
+    except OSError:
+        pass
 
 
 def list_folder(folder):
