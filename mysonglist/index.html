@@ -1565,13 +1565,35 @@ function ytOpenUrl(){
   if(!ids.length) return null;
   return {url:'https://www.youtube.com/watch_videos?video_ids='+ids.join(','),count:ids.length,total:total};
 }
+/* 폰이면 브라우저 대신 유튜브 앱을 직접 지정해서 연다(안드로이드: intent, iOS: youtube:// 주소). 앱이 없으면 일반 주소로 대신 연다 */
+function ytPlatform(){
+  const ua=navigator.userAgent||'';
+  if(/Android/i.test(ua)) return 'android';
+  if(/iPhone|iPad|iPod/i.test(ua)||(/Macintosh/i.test(ua)&&navigator.maxTouchPoints>1)) return 'ios';
+  return 'web';
+}
+function ytAppLink(url,plat){
+  const m=url.match(/^https:\/\/([^?#]+)\?(.*)$/); if(!m) return '';
+  if(plat==='android') return 'intent://'+m[1]+'?'+m[2]+'#Intent;scheme=https;package=com.google.android.youtube;S.browser_fallback_url='+encodeURIComponent(url)+';end';
+  if(plat==='ios') return 'youtube://'+m[1]+'?'+m[2];
+  return '';
+}
+function navigateTo(url){ const a=document.createElement('a'); a.href=url; a.rel='noopener'; document.body.append(a); a.click(); a.remove(); }
 function openInYouTube(){
   const r=ytOpenUrl();
   if(!r){ toast('유튜브로 열 수 있는 곡이 없어요. 영상을 먼저 찾아 주세요.',3500); return; }
   try{ if(player&&playerReady) player.pauseVideo(); }catch(e){}
-  const w=window.open(r.url,'_blank','noopener,noreferrer');
-  if(!w) location.href=r.url;
-  toast(r.count+'곡을 유튜브에서 열어요.'+(r.total>r.count?' (50곡까지만 열려요)':'')+' 앱으로 열리지 않으면 유튜브 앱에서 열기를 선택해 주세요.',6000);
+  const plat=ytPlatform(), app=ytAppLink(r.url,plat);
+  if(app){
+    navigateTo(app);
+    if(plat==='ios'){ /* 앱이 안 열렸으면(화면이 그대로면) 일반 주소로 */
+      setTimeout(()=>{ if(document.visibilityState==='visible') navigateTo(r.url); },1800);
+    }
+  }else{
+    const w=window.open(r.url,'_blank','noopener,noreferrer');
+    if(!w) location.href=r.url;
+  }
+  toast(r.count+'곡을 유튜브'+(app?' 앱':'')+'에서 열어요.'+(r.total>r.count?' (50곡까지만 열려요)':'')+(app?'':' 앱으로 열리지 않으면 유튜브 앱에서 열기를 선택해 주세요.'),6000);
 }
 function exportText(){
   return state.songs.map(s=>{
