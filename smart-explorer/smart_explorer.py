@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.52"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.53"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -4558,7 +4558,7 @@ class SearchPane(tk.Frame):
         for i, h in enumerate(items):
             iid = str(i)
             self.hits[iid] = h
-            ico = folder_icon(self.tree) if h["is_dir"] else None
+            ico = folder_icon(self.tree) if h["is_dir"] else file_icon(self.tree, h["path"])
             self.tree.insert("", "end", iid=iid, tags=("dir",) if h["is_dir"] else (), text=h["name"], image=ico or "", values=(
                 h["name"], "" if h["is_dir"] else fmt_size(h["size"]),
                 h["mtime"], type_name(h)))
@@ -4713,7 +4713,8 @@ class SearchPane(tk.Frame):
         iid = str(len(self.hits))
         h.setdefault("is_dir", False)
         self.hits[iid] = h
-        self.tree.insert("", "end", iid=iid, text=h["name"], values=(h["name"], h["count"] or ("폴더" if h["is_dir"] else "이름"),
+        ico = folder_icon(self.tree) if h["is_dir"] else file_icon(self.tree, h.get("path") or h["name"])
+        self.tree.insert("", "end", iid=iid, text=h["name"], image=ico or "", values=(h["name"], h["count"] or ("폴더" if h["is_dir"] else "이름"),
                                                       h["mtime"], h["folder"]))
 
     def _sort_key(self, col, browse):
@@ -5494,6 +5495,120 @@ def folder_icon(widget):
         except Exception:
             img = None
     _FOLDER_ICONS[key] = img
+    return img
+
+
+# ───────────── 파일 아이콘: 윈도우 탐색기와 같은 그림 (확장자별 기본 아이콘, 프로그램·바로가기는 파일마다) ─────────────
+_FILE_ICONS = {}
+_OWN_ICON_EXTS = {".exe", ".lnk", ".ico", ".url", ".scr", ".msi", ".cpl"}
+
+
+def _hicon_to_image(hicon, size):
+    """HICON → PIL 그림 (검정·흰 배경에 두 번 그려 투명도 계산)"""
+    import ctypes
+    from ctypes import wintypes
+    gdi, usr = ctypes.windll.gdi32, ctypes.windll.user32
+
+    class BIH(ctypes.Structure):
+        _fields_ = [("biSize", wintypes.DWORD), ("biWidth", wintypes.LONG), ("biHeight", wintypes.LONG),
+                    ("biPlanes", wintypes.WORD), ("biBitCount", wintypes.WORD), ("biCompression", wintypes.DWORD),
+                    ("biSizeImage", wintypes.DWORD), ("biXPelsPerMeter", wintypes.LONG),
+                    ("biYPelsPerMeter", wintypes.LONG), ("biClrUsed", wintypes.DWORD), ("biClrImportant", wintypes.DWORD)]
+
+    gdi.CreateCompatibleDC.argtypes = [wintypes.HDC]
+    gdi.CreateCompatibleDC.restype = wintypes.HDC
+    gdi.CreateDIBSection.argtypes = [wintypes.HDC, ctypes.c_void_p, wintypes.UINT, ctypes.POINTER(ctypes.c_void_p),
+                                     wintypes.HANDLE, wintypes.DWORD]
+    gdi.CreateDIBSection.restype = wintypes.HBITMAP
+    gdi.DeleteObject.argtypes = [wintypes.HGDIOBJ]
+    gdi.DeleteDC.argtypes = [wintypes.HDC]
+    gdi.SelectObject.argtypes = [wintypes.HDC, wintypes.HGDIOBJ]
+    gdi.SelectObject.restype = wintypes.HGDIOBJ
+    usr.DrawIconEx.argtypes = [wintypes.HDC, ctypes.c_int, ctypes.c_int, wintypes.HICON, ctypes.c_int, ctypes.c_int,
+                               wintypes.UINT, wintypes.HBRUSH, wintypes.UINT]
+    n = size * size * 4
+    out = []
+    for fill in (0, 255):
+        bih = BIH(ctypes.sizeof(BIH), size, -size, 1, 32, 0, n, 0, 0, 0, 0)
+        bits = ctypes.c_void_p()
+        dc = gdi.CreateCompatibleDC(None)
+        bmp = gdi.CreateDIBSection(dc, ctypes.byref(bih), 0, ctypes.byref(bits), None, 0)
+        if not bmp or not bits.value:
+            gdi.DeleteDC(dc)
+            raise OSError("DIB")
+        old = gdi.SelectObject(dc, bmp)
+        ctypes.memset(bits.value, fill, n)
+        usr.DrawIconEx(dc, 0, 0, hicon, size, size, 0, None, 3)
+        out.append(ctypes.string_at(bits.value, n))
+        gdi.SelectObject(dc, old)
+        gdi.DeleteObject(bmp)
+        gdi.DeleteDC(dc)
+    blk, wht = out
+    px = bytearray(n)
+    for i in range(0, n, 4):
+        d = ((wht[i] - blk[i]) + (wht[i + 1] - blk[i + 1]) + (wht[i + 2] - blk[i + 2])) // 3
+        a = max(0, min(255, 255 - d))
+        if a:
+            px[i] = min(255, blk[i + 2] * 255 // a)        # R
+            px[i + 1] = min(255, blk[i + 1] * 255 // a)    # G
+            px[i + 2] = min(255, blk[i] * 255 // a)        # B
+            px[i + 3] = a
+    return Image.frombytes("RGBA", (size, size), bytes(px))
+
+
+def _shell_icon_image(path, attrs_only, size):
+    import ctypes
+    from ctypes import wintypes
+
+    class SHFILEINFOW(ctypes.Structure):
+        _fields_ = [("hIcon", wintypes.HICON), ("iIcon", ctypes.c_int), ("dwAttributes", wintypes.DWORD),
+                    ("szDisplayName", ctypes.c_wchar * 260), ("szTypeName", ctypes.c_wchar * 80)]
+    sh = ctypes.windll.shell32
+    sh.SHGetFileInfoW.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, ctypes.POINTER(SHFILEINFOW), wintypes.UINT, wintypes.UINT]
+    sh.SHGetFileInfoW.restype = ctypes.c_size_t
+    info = SHFILEINFOW()
+    flags = 0x100 | (0x1 if size <= 20 else 0)          # SHGFI_ICON | SMALLICON
+    if attrs_only:
+        flags |= 0x10                                    # USEFILEATTRIBUTES: 파일을 열지 않고 확장자만 보고
+    if not sh.SHGetFileInfoW(path, 0x80, ctypes.byref(info), ctypes.sizeof(info), flags) or not info.hIcon:
+        return None
+    try:
+        return _hicon_to_image(info.hIcon, size)
+    finally:
+        ctypes.windll.user32.DestroyIcon.argtypes = [wintypes.HICON]
+        ctypes.windll.user32.DestroyIcon(info.hIcon)
+
+
+def file_icon(widget, path):
+    """파일 하나의 윈도우 아이콘 (tk 그림). 못 만들면 None → 그림 없이 이름만"""
+    if sys.platform != "win32" or Image is None:
+        return None
+    import ctypes
+    ext = os.path.splitext(path)[1].lower()
+    own = ext in _OWN_ICON_EXTS
+    key = path if own else ext
+    if own:
+        try:
+            key = (path, os.path.getmtime(path))
+        except OSError:
+            key, own = ext, False
+    if key in _FILE_ICONS:
+        return _FILE_ICONS[key]
+    if len(_FILE_ICONS) > 1500:
+        _FILE_ICONS.clear()
+    img = None
+    try:
+        from PIL import ImageTk
+        try:
+            size = int(ctypes.windll.user32.GetSystemMetrics(49)) or 16        # SM_CXSMICON
+        except Exception:
+            size = 16
+        im = _shell_icon_image(path if own else ("x" + ext if ext else "x"), not own, size)
+        if im is not None:
+            img = ImageTk.PhotoImage(im, master=widget)
+    except Exception:
+        img = None
+    _FILE_ICONS[key] = img
     return img
 
 
@@ -8433,6 +8548,9 @@ class NavPane(ttk.Frame):
     def _add(self, parent, text, path, lazy=True):
         if text.startswith("📁 "):                          # 폴더는 글자 그림 대신 색을 고를 수 있는 폴더 아이콘
             iid = self.tree.insert(parent, "end", text=" " + text[2:], image=folder_icon(self.tree) or "", open=False)
+        elif text.startswith("📄 "):                        # 즐겨찾기에 넣은 파일: 그 파일의 윈도우 아이콘
+            ico = file_icon(self.tree, path) if path else None
+            iid = self.tree.insert(parent, "end", text=(" " + text[2:]) if ico else text, image=ico or "", open=False)
         else:
             iid = self.tree.insert(parent, "end", text=text, open=False)
         self.paths[iid] = path
