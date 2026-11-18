@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.53"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.54"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -4189,7 +4189,9 @@ class SearchPane(tk.Frame):
         ys.pack(side="right", fill="y")
         self.tree.pack(side="left", fill="both", expand=True)
         self.tree.tag_configure("dir", foreground=theme_dir_color())
-        self.tree.tag_configure("drophl", background="#cce8ff")     # 끌어 놓을 폴더 표시
+        dark = is_dark(THEME.get("list_bg"))                          # 끌어 놓을 폴더 표시 (탐색기처럼 파란 바탕)
+        self.tree.tag_configure("drophl", background="#2f5f8f" if dark else "#bcdcf7",
+                                foreground="#ffffff" if dark else "#000000")
         t = self.tree
         t.bind("<<TreeviewSelect>>", self.on_select)
         t.bind("<Double-1>", lambda e: self.activate())
@@ -10148,6 +10150,7 @@ class App:
                 if orow and op.tree.exists(orow):
                     tags = [t for t in op.tree.item(orow, "tags") if t != "drophl"]
                     op.tree.item(orow, tags=tags)
+                    op.tree.update_idletasks()          # 끌기 중에는 화면이 저절로 안 갱신되므로 바로 그림
             except Exception:
                 pass
         self._drop_hl = (pane, row) if pane is not None and row else None
@@ -10156,6 +10159,7 @@ class App:
                 tags = list(pane.tree.item(row, "tags"))
                 if "drophl" not in tags:
                     pane.tree.item(row, tags=tags + ["drophl"])
+                    pane.tree.update_idletasks()
             except Exception:
                 pass
 
