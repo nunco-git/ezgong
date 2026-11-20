@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.55"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.56"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -3330,6 +3330,11 @@ BAD_NAME_RE = re.compile(r'[\\/:*?"<>|\x00-\x1f]')
 RESERVED_NAMES = {"CON", "PRN", "AUX", "NUL"} | {f"COM{i}" for i in range(1, 10)} | {f"LPT{i}" for i in range(1, 10)}
 
 
+def nm_text(name):
+    """목록의 이름 앞 여백 (아이콘과 이름이 붙어 보이지 않게)"""
+    return "  " + name
+
+
 def split_name(path, name=None):
     """(이름, 확장자). 폴더는 확장자 없음"""
     name = name or os.path.basename(path)
@@ -4104,6 +4109,11 @@ class SearchPane(tk.Frame):
         self.folder_var = tk.StringVar(value=st.get("folder", os.path.join(os.path.expanduser("~"), "Documents")))
         self.folder_cb = ttk.Combobox(r1, textvariable=self.folder_var, values=self.app.s.get("recent", []))
         self.folder_cb.pack(side="left", fill="x", expand=True)
+        self.folder_w = int(st.get("folder_w", 20) or 20)          # 한 줄 배치일 때 폴더 위치칸 폭 (글자 수) — 끌어서 조절
+        self.grip = tk.Frame(r1, width=7, cursor="sb_h_double_arrow", bg="#c8c8c8")
+        self.grip.bind("<ButtonPress-1>", self._grip_press)
+        self.grip.bind("<B1-Motion>", self._grip_move)
+        self.grip.bind("<ButtonRelease-1>", lambda e: self.app.schedule_save())
         self.folder_cb.bind("<Return>", lambda e: self.navigate(self.folder_var.get().strip().strip('"')))
         self.folder_cb.bind("<<ComboboxSelected>>", lambda e: self.navigate(self.folder_var.get()))
         # 고정했을 때 보여 줄 표시줄
@@ -4283,7 +4293,7 @@ class SearchPane(tk.Frame):
             tab = 0
         return {"folder": self.folder_var.get(), "query": self.query_var.get(), "tab": tab,
                 "tabs": [t["cwd"] for t in self.tabs], "tab_i": self.tab_i,
-                "search_mode": self.search_mode,
+                "search_mode": self.search_mode, "folder_w": self.folder_w,
                 "pinned": self.pinned_var.get(), "cwd": self.cwd or "", "preview_hidden": self.preview_hidden,
                 "hide_dirs": self.hide_dirs,
                 "sash_side": (self._sash_pos() if self.side_preview else self._sashes.get("side")),
@@ -4311,14 +4321,16 @@ class SearchPane(tk.Frame):
         self._compact = on
         self.r2.pack_forget()
         if on:
-            self.r2.pack(in_=self.r1, side="left", fill="x", expand=True, padx=(6, 4), after=self.folder_cb)
+            self.grip.pack(in_=self.r1, side="left", fill="y", padx=(3, 0), after=self.folder_cb)
+            self.r2.pack(in_=self.r1, side="left", fill="x", expand=True, padx=(3, 4), after=self.grip)
             self.query_entry.configure(width=14)
-            self.folder_cb.configure(width=20)                 # 위치칸은 적당히, 남는 폭은 검색칸이 씀
+            self.folder_cb.configure(width=self.folder_w)      # 위치칸은 끌어서 조절, 남는 폭은 검색칸이 씀
             self.folder_cb.pack_configure(expand=False, fill="none")
             self.name_btn.configure(text="🔍 파일명")
             self.search_btn.configure(text="📄 본문 검색")
             self._dir_btn_text()
         else:
+            self.grip.pack_forget()
             self.r2.pack(in_=self._inner, fill="x", pady=(4, 4), after=self.r1)
             self.query_entry.configure(width=20)
             self.folder_cb.configure(width=20)
@@ -4326,6 +4338,21 @@ class SearchPane(tk.Frame):
             self.name_btn.configure(text="🔍 파일명 검색")
             self.search_btn.configure(text="📄 본문 추가 검색")
             self._dir_btn_text()
+
+    def _grip_press(self, e):
+        self._grip_x0, self._grip_w0 = e.x_root, int(self.folder_cb.cget("width"))
+
+    def _grip_move(self, e):
+        try:
+            from tkinter import font as tkfont
+            cw = max(4, tkfont.Font(root=self, font=FONT).measure("0"))
+        except Exception:
+            cw = 8
+        w = self._grip_w0 + int((e.x_root - self._grip_x0) / cw)
+        w = max(8, min(120, w))
+        if w != self.folder_w:
+            self.folder_w = w
+            self.folder_cb.configure(width=w)
 
     def _bind_paned(self, paned):
         paned.bind("<ButtonRelease-1>", lambda e: self.after(10, self.clamp_sash), add="+")
@@ -4427,6 +4454,8 @@ class SearchPane(tk.Frame):
             if not quiet:
                 self.folder_var.set(os.path.normpath(folder))
             self.folder_cb.pack_forget()
+            if self._compact:
+                self.grip.pack_forget()
             self.pin_label.pack(side="left", fill="x", expand=True, before=self.browse_btn, ipady=2)
             self.browse_btn.state(["disabled"])
             if not quiet:
@@ -4436,6 +4465,9 @@ class SearchPane(tk.Frame):
         else:
             self.pin_label.pack_forget()
             self.folder_cb.pack(side="left", fill="x", expand=True, before=self.browse_btn)
+            if self._compact:
+                self.folder_cb.pack_configure(expand=False, fill="none")
+                self.grip.pack(in_=self.r1, side="left", fill="y", padx=(3, 0), after=self.folder_cb)
             self.browse_btn.state(["!disabled"])
             if self.cwd:
                 self.folder_var.set(self.cwd)
@@ -4692,7 +4724,7 @@ class SearchPane(tk.Frame):
             iid = str(i)
             self.hits[iid] = h
             ico = folder_icon(self.tree) if h["is_dir"] else file_icon(self.tree, h["path"])
-            self.tree.insert("", "end", iid=iid, tags=("dir",) if h["is_dir"] else (), text=h["name"], image=ico or "", values=(
+            self.tree.insert("", "end", iid=iid, tags=("dir",) if h["is_dir"] else (), text=nm_text(h["name"]), image=ico or "", values=(
                 h["name"], "" if h["is_dir"] else fmt_size(h["size"]),
                 h["mtime"], type_name(h)))
             if os.path.normcase(h["path"]) in keep_n:
@@ -4847,7 +4879,7 @@ class SearchPane(tk.Frame):
         h.setdefault("is_dir", False)
         self.hits[iid] = h
         ico = folder_icon(self.tree) if h["is_dir"] else file_icon(self.tree, h.get("path") or h["name"])
-        self.tree.insert("", "end", iid=iid, text=h["name"], image=ico or "", values=(h["name"], h["count"] or ("폴더" if h["is_dir"] else "이름"),
+        self.tree.insert("", "end", iid=iid, text=nm_text(h["name"]), image=ico or "", values=(h["name"], h["count"] or ("폴더" if h["is_dir"] else "이름"),
                                                       h["mtime"], h["folder"]))
 
     def _sort_key(self, col, browse):
@@ -5134,19 +5166,14 @@ class SearchPane(tk.Frame):
         if not sel:
             return "break"
         if len(sel) == 1:
-            h = self.hits[sel[0]]
-            dlg = RenameDialog(self, h)
-            self.wait_window(dlg.win)
-            if not dlg.result:
-                return "break"
-            pairs = [(h["path"], dlg.result)]
-        else:
-            items = [(self.hits[i]["path"], self.hits[i]["name"], self.hits[i].get("is_dir", False)) for i in sel]
-            dlg = BatchRenameDialog(self, items)
-            self.wait_window(dlg.win)
-            if not dlg.result:
-                return "break"
-            pairs = dlg.result
+            self.rename_inline(sel[0])              # 윈도우 탐색기처럼 그 자리에서 바로 고침
+            return "break"
+        items = [(self.hits[i]["path"], self.hits[i]["name"], self.hits[i].get("is_dir", False)) for i in sel]
+        dlg = BatchRenameDialog(self, items)
+        self.wait_window(dlg.win)
+        if not dlg.result:
+            return "break"
+        pairs = dlg.result
         self.app.release_previews()
         ok, errors = do_renames(pairs)
         if errors:
@@ -5161,10 +5188,88 @@ class SearchPane(tk.Frame):
                 nb = mp.get(h["path"])
                 if nb and os.path.exists(nb):
                     h.update(path=nb, name=os.path.basename(nb))
-                    self.tree.item(iid, text=h["name"], values=(h["name"], h["count"] or "이름", h["mtime"], h["folder"]))
+                    self.tree.item(iid, text=nm_text(h["name"]), values=(h["name"], h["count"] or "이름", h["mtime"], h["folder"]))
         self.status_var.set(f"{ok}개 이름을 바꿨습니다.")
         self.app.refresh_browsers(except_pane=self)
         return "break"
+
+    # ── 그 자리에서 이름 바꾸기 (F2): 목록의 이름 칸 위에 입력칸을 덮어 바로 고침
+    def rename_inline(self, iid):
+        self._rename_end(commit=False)
+        h = self.hits.get(iid)
+        if not h:
+            return
+        self.tree.see(iid)
+        self.tree.update_idletasks()
+        bb = self.tree.bbox(iid, "#0")
+        if not bb:
+            return
+        from tkinter import font as tkfont
+        base, ext = split_name(h["path"], h["name"])
+        var = tk.StringVar(value=base)
+        ent = tk.Entry(self.tree, textvariable=var, font=FONT, relief="solid", borderwidth=1,
+                       bg="white", fg="black", insertbackground="black",
+                       selectbackground="#3d8bd8", selectforeground="white")
+        x0 = bb[0] + 20                                      # 아이콘 오른쪽부터
+        w = max(160, min(self.tree.winfo_width() - x0 - 4, tkfont.Font(font=FONT).measure(base + ext) + 60))
+        ent.place(x=x0, y=bb[1], width=w, height=bb[3])
+        ent.focus_set()
+        ent.select_range(0, "end")
+        ent.icursor("end")
+        self._ren = {"iid": iid, "ent": ent, "var": var, "ext": ext, "h": h, "busy": False}
+        ent.bind("<Return>", lambda e: (self._rename_end(True), "break")[1])
+        ent.bind("<KP_Enter>", lambda e: (self._rename_end(True), "break")[1])
+        ent.bind("<Escape>", lambda e: (self._rename_end(False), "break")[1])
+        ent.bind("<FocusOut>", lambda e: self.after(1, lambda: self._rename_end(True)))
+        ent.bind("<Button-1>", lambda e: None)
+
+    def _rename_end(self, commit):
+        r = getattr(self, "_ren", None)
+        if not r or r["busy"]:
+            return
+        r["busy"] = True
+        ent, h, iid = r["ent"], r["h"], r["iid"]
+        text = r["var"].get().strip()
+        try:
+            ent.destroy()
+        except Exception:
+            pass
+        self._ren = None
+        self.tree.focus_set()
+        if not commit or iid not in self.hits:
+            return
+        cleaned = clean_name(text, 200)
+        if not cleaned or BAD_NAME_RE.search(text):
+            if text:
+                self.status_var.set('이름을 바꾸지 못했습니다: \\ / : * ? " < > | 는 쓸 수 없습니다.')
+            return
+        new = cleaned + r["ext"]
+        path = h["path"]
+        if new == h["name"]:
+            return
+        target = os.path.join(os.path.dirname(path), new)
+        if os.path.exists(target) and os.path.normcase(target) != os.path.normcase(path):
+            messagebox.showwarning(APP_NAME, "같은 이름이 이미 있습니다.\n" + new)
+            return
+        try:
+            try:
+                os.rename(path, target)
+            except PermissionError:                         # 미리보기가 붙잡고 있을 수 있음 → 놓고 다시
+                self.app.release_previews()
+                os.rename(path, target)
+        except OSError as e:
+            messagebox.showerror(APP_NAME, f"이름을 바꿀 수 없습니다.\n{e.strerror or e}")
+            return
+        h.update(path=target, name=new)
+        vals = list(self.tree.item(iid, "values"))
+        if vals:
+            vals[0] = new
+        self.tree.item(iid, text=nm_text(new), values=vals)
+        self.tree.selection_set(iid)
+        if self.mode == "browse":
+            self._cwd_sig = self._dir_sig(self.cwd)          # 방금 바뀐 걸 다시 읽지 않게
+        self.status_var.set("이름을 바꿨습니다.")
+        self.after_idle(lambda: self.app.refresh_browsers(except_pane=self))
 
     def delete(self):
         paths = self.selected_paths()
