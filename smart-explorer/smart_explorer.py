@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.57"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.58"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -10514,11 +10514,39 @@ class App:
             pass
         self.root.after(40, self._ole_poll)
 
+    def _drag_autoscroll(self, xr, yr):
+        """끄는 중 목록(가운데·왼쪽 트리)의 위·아래 가장자리에 커서가 있으면 그쪽으로 저절로 스크롤 (가장자리에 가까울수록 빠름)"""
+        try:
+            w = self.root.winfo_containing(xr, yr)
+            if not isinstance(w, ttk.Treeview):
+                return
+            h = w.winfo_height()
+            ry = yr - w.winfo_rooty()
+            edge = max(18, int(int(FONT[1] * 2.4) * 1.2))
+            if ry < edge:
+                d, near = -1, ry
+            elif ry > h - edge:
+                d, near = 1, h - ry
+            else:
+                return
+            near = max(0, min(edge, near))
+            gap = 0.04 + 0.14 * near / edge                 # 가장자리 끝 0.04초 ~ 안쪽 0.18초마다 한 줄
+            now = time.time()
+            if now - getattr(self, "_as_t", 0) < gap:
+                return
+            self._as_t = now
+            w.yview_scroll(d, "units")
+            w.update_idletasks()
+        except Exception:
+            pass
+
     def _ole_apply(self, kind, paths, x, y, keys, remember=False, allowed=0):
         if kind == "leave" or not paths:
             self._set_drop_highlight(None)
             self.set_hint("")
             return 0
+        if kind != "drop":
+            self._drag_autoscroll(x, y)
         pane, dest, hl = self.drop_info(x, y, paths)
         self._set_drop_highlight(hl)
         eff = self._fit_effect(self._drop_effect(paths, dest, keys), allowed) if dest else 0
