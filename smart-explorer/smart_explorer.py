@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.56"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.57"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -4588,6 +4588,9 @@ class SearchPane(tk.Frame):
                 x.bind("<Button-1>", lambda e, i=i: self.tab_close(i))
                 x.bind("<Enter>", lambda e, w=x: w.configure(fg="#d33"))
                 x.bind("<Leave>", lambda e, w=x: w.configure(fg="#888"))
+            for w in (f, lb, x):
+                w._drop_tab = (self, i)                     # 파일을 끌어다 놓을 수 있는 탭 (그 탭의 폴더로)
+            f._tab_labels = (lb, x)
             for w in (f, lb):
                 w.bind("<Button-1>", lambda e, i=i: self.tab_select(i))
                 w.bind("<Button-2>", lambda e, i=i: self.tab_close(i))
@@ -8742,6 +8745,9 @@ class NavPane(ttk.Frame):
         self.tree.pack(side="left", fill="both", expand=True)
         self.ad_slot = tk.Frame(self)                      # 칸이 1개일 때 광고가 앉는 자리 (맨 아래)
         self.adbox = None
+        dark = is_dark(THEME.get("list_bg"))                # 파일을 끌어 놓을 폴더 표시 (탐색기처럼 파란 바탕)
+        self.tree.tag_configure("drophl", background="#2f5f8f" if dark else "#bcdcf7",
+                                foreground="#ffffff" if dark else "#000000")
         self.tree.bind("<<TreeviewOpen>>", self._on_open)
         self.tree.bind("<<TreeviewSelect>>", self._on_select)
         self.tree.bind("<Double-1>", self._on_double)
@@ -10328,28 +10334,64 @@ class App:
             w = getattr(w, "master", None)
         return w if w in self.panes else None
 
-    def drop_target(self, xr, yr, paths):
-        """끌어 놓는 위치 → (칸, 넣을 폴더). 폴더 줄 위면 그 폴더, 아니면 그 칸이 보고 있는 폴더"""
+    def drop_info(self, xr, yr, paths):
+        """끌어 놓는 위치 → (칸, 넣을 폴더, 강조할 곳).
+        왼쪽 탐색창(즐겨찾기·폴더 트리)의 폴더, 탭, 목록의 폴더 줄 위면 그 폴더, 그 밖에는 그 칸이 보고 있는 폴더"""
+        w = self.root.winfo_containing(xr, yr)
+        pane, dest, hl = None, None, None
+        try:
+            nav = getattr(self, "nav", None)
+            x = w
+            while x is not None and x is not nav and getattr(x, "_drop_tab", None) is None:
+                x = getattr(x, "master", None)
+            if nav is not None and x is nav:
+                pane = self.panes[0] if self.panes else None
+                if w is nav.tree:
+                    row = nav.tree.identify_row(yr - nav.tree.winfo_rooty())
+                    pth = nav.paths.get(row)
+                    if pth and os.path.isdir(pth):
+                        dest, hl = pth, ("tree", nav.tree, row)
+                return self._drop_check(pane, dest, hl, paths)
+            if x is not None and getattr(x, "_drop_tab", None):
+                tp, i = x._drop_tab
+                pane = tp
+                t = tp.tabs[i]["cwd"]
+                if t and os.path.isdir(t):
+                    dest = t
+                    f = x if hasattr(x, "_tab_labels") else x.master
+                    hl = ("tab", f)
+                return self._drop_check(pane, dest, hl, paths)
+        except Exception:
+            pass
         pane = self.pane_at(xr, yr)
         if pane is None:
-            return None, None
-        dest = None
+            return None, None, None
         try:
             row = pane.tree.identify_row(yr - pane.tree.winfo_rooty())
-            if self.root.winfo_containing(xr, yr) is pane.tree:
+            if w is pane.tree:
                 h = pane.hits.get(row)
                 if h and h.get("is_dir") and h["path"] not in paths:
-                    dest = h["path"]
+                    dest, hl = h["path"], ("tree", pane.tree, row)
         except Exception:
             pass
         if dest is None and pane.mode == "browse":
             dest = pane.cwd
+        return self._drop_check(pane, dest, hl, paths)
+
+    @staticmethod
+    def _drop_check(pane, dest, hl, paths):
         if not dest:
-            return pane, None
+            return pane, None, None
+        if any(os.path.normcase(p) == os.path.normcase(dest) for p in paths):
+            return pane, None, None
         if all(os.path.normcase(os.path.dirname(p)) == os.path.normcase(dest) for p in paths):
-            return pane, None                          # 원래 있던 폴더에 놓음 = 아무 일 없음
+            return pane, None, None                    # 원래 있던 폴더에 놓음 = 아무 일 없음
         if any(os.path.isdir(p) and is_inside(dest, p) for p in paths):
-            return pane, None                          # 폴더를 자기 안으로 옮길 수 없음
+            return pane, None, None                    # 폴더를 자기 안으로 옮길 수 없음
+        return pane, dest, hl
+
+    def drop_target(self, xr, yr, paths):
+        pane, dest, _hl = self.drop_info(xr, yr, paths)
         return pane, dest
 
     # ───────── 탐색기·바탕화면에서 끌어 온 파일 받기 ─────────
@@ -10378,24 +10420,46 @@ class App:
             return OLE_DND.DROPEFFECT_MOVE
         return OLE_DND.DROPEFFECT_MOVE if same_drive(paths[0], dest) else OLE_DND.DROPEFFECT_COPY
 
-    def _set_drop_highlight(self, pane, row):
+    def _set_drop_highlight(self, hl):
+        """hl = ("tree", 트리, 줄) 또는 ("tab", 탭 틀) 또는 None"""
         old = self._drop_hl
-        if old and old != (pane, row):
+        key = lambda h: None if not h else (h[0], id(h[1]), h[2] if len(h) > 2 else None)
+        if key(old) == key(hl):
+            return
+        if old:
             try:
-                op, orow = old
-                if orow and op.tree.exists(orow):
-                    tags = [t for t in op.tree.item(orow, "tags") if t != "drophl"]
-                    op.tree.item(orow, tags=tags)
-                    op.tree.update_idletasks()          # 끌기 중에는 화면이 저절로 안 갱신되므로 바로 그림
+                if old[0] == "tree":
+                    _k, tr, orow = old
+                    if tr.exists(orow):
+                        tr.item(orow, tags=[t for t in tr.item(orow, "tags") if t != "drophl"])
+                        tr.update_idletasks()          # 끌기 중에는 화면이 저절로 안 갱신되므로 바로 그림
+                else:
+                    f = old[1]
+                    bg = getattr(f, "_orig_bg", None)
+                    if bg and f.winfo_exists():
+                        f.configure(bg=bg, highlightbackground=f._orig_hb)
+                        for c in f._tab_labels:
+                            c.configure(bg=bg)
+                        f.update_idletasks()
             except Exception:
                 pass
-        self._drop_hl = (pane, row) if pane is not None and row else None
-        if self._drop_hl:
+        self._drop_hl = hl if hl else None
+        if hl:
             try:
-                tags = list(pane.tree.item(row, "tags"))
-                if "drophl" not in tags:
-                    pane.tree.item(row, tags=tags + ["drophl"])
-                    pane.tree.update_idletasks()
+                if hl[0] == "tree":
+                    _k, tr, row = hl
+                    tags = list(tr.item(row, "tags"))
+                    if "drophl" not in tags:
+                        tr.item(row, tags=tags + ["drophl"])
+                        tr.update_idletasks()
+                else:
+                    f = hl[1]
+                    f._orig_bg, f._orig_hb = f.cget("bg"), f.cget("highlightbackground")
+                    nb = "#2f5f8f" if is_dark(THEME.get("list_bg")) else "#bcdcf7"
+                    f.configure(bg=nb, highlightbackground="#2b6fe6")
+                    for c in f._tab_labels:
+                        c.configure(bg=nb)
+                    f.update_idletasks()
             except Exception:
                 pass
 
@@ -10452,32 +10516,23 @@ class App:
 
     def _ole_apply(self, kind, paths, x, y, keys, remember=False, allowed=0):
         if kind == "leave" or not paths:
-            self._set_drop_highlight(None, None)
+            self._set_drop_highlight(None)
             self.set_hint("")
             return 0
-        pane, dest = self.drop_target(x, y, paths)
-        row = None
-        if pane is not None and dest:
-            try:
-                r = pane.tree.identify_row(y - pane.tree.winfo_rooty())
-                h = pane.hits.get(r)
-                if h and h.get("is_dir") and os.path.normcase(h["path"]) == os.path.normcase(dest):
-                    row = r
-            except Exception:
-                pass
-        self._set_drop_highlight(pane, row)
+        pane, dest, hl = self.drop_info(x, y, paths)
+        self._set_drop_highlight(hl)
         eff = self._fit_effect(self._drop_effect(paths, dest, keys), allowed) if dest else 0
         if remember:
             self._ole_state = (pane, dest, eff)
         if not dest:
-            self.set_hint("여기에는 놓을 수 없습니다" if pane is not None else "")
+            self.set_hint("여기에는 놓을 수 없습니다" if self.root.winfo_containing(x, y) is not None else "")
             return 0
         op = "이동" if eff == OLE_DND.DROPEFFECT_MOVE else "복사"
         if kind != "drop":
             self.set_hint(f"{len(paths)}개 → {os.path.basename(dest.rstrip(os.sep)) or dest} 로 {op}  "
                           "(Ctrl=복사, Shift=이동)")
             return eff
-        self._set_drop_highlight(None, None)
+        self._set_drop_highlight(None)
         self.set_hint("")
         src = self.drag_source
         # 끌어 놓기가 끝난 뒤에 옮김 (보낸 쪽이 기다리지 않게)
