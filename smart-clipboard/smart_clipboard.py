@@ -81,7 +81,7 @@ from tkinter import messagebox
 # 설정
 # ─────────────────────────────────────────────────────────────
 APP_NAME = "스마트클립"
-APP_VERSION = "1.1.6"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
+APP_VERSION = "1.1.7"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
 
 MOD_ALT, MOD_CONTROL, MOD_SHIFT, MOD_WIN, MOD_NOREPEAT = 0x1, 0x2, 0x4, 0x8, 0x4000
 HOTKEY_MODS = MOD_CONTROL | MOD_SHIFT      # 단축키 조합
@@ -702,6 +702,7 @@ def exe_of_hwnd(hwnd):
 # 키보드 입력 (Ctrl+V 보내기)
 # ─────────────────────────────────────────────────────────────
 VK_SHIFT, VK_CONTROL, VK_MENU, VK_LWIN, VK_RWIN = 0x10, 0x11, 0x12, 0x5B, 0x5C
+VK_RETURN = 0x0D
 KEYEVENTF_KEYUP = 0x0002
 
 
@@ -715,6 +716,13 @@ def _key(vk, up=False):
 def send_ctrl_v():
     # 키보드 상태는 읽지 않고, Shift만 떼어 준 뒤 Ctrl+V 입력 (Shift+Enter로 고른 경우 대비)
     seq = [_key(VK_SHIFT, True), _key(VK_CONTROL), _key(ord("V")), _key(ord("V"), True), _key(VK_CONTROL, True)]
+    arr = (INPUT * len(seq))(*seq)
+    user32.SendInput(len(seq), arr, ctypes.sizeof(INPUT))
+
+
+def send_enter():
+    """Enter 키 한 번 입력 (붙여넣기 직후 로그인·확인 단계까지 이어서 실행)"""
+    seq = [_key(VK_SHIFT, True), _key(VK_CONTROL, True), _key(VK_RETURN), _key(VK_RETURN, True)]
     arr = (INPUT * len(seq))(*seq)
     user32.SendInput(len(seq), arr, ctypes.sizeof(INPUT))
 
@@ -1128,6 +1136,8 @@ class Store:
             self.db.execute("ALTER TABLE items ADD COLUMN meta BLOB")
         if "hidden" not in cols:         # 가리기(비밀번호 등) 표시
             self.db.execute("ALTER TABLE items ADD COLUMN hidden INTEGER DEFAULT 0")
+        if "enter" not in cols:          # 붙여넣은 뒤 Enter 자동 입력 표시
+            self.db.execute("ALTER TABLE items ADD COLUMN enter INTEGER DEFAULT 0")
         self.db.commit()
         self.max_items = MAX_ITEMS
         self.cache = {}                  # id → (preview, search) 복호화한 값 (메모리에만 보관)
@@ -1194,16 +1204,16 @@ class Store:
     def list(self):
         # 고정 항목은 사용자가 정한 순서로 맨 위, 나머지는 최근 순
         cur = self.db.execute("SELECT id, ts, pinned, source, kind, size, keyhash, enc, preview, search, meta, "
-                              "hidden FROM items ORDER BY pinned DESC, "
+                              "hidden, enter FROM items ORDER BY pinned DESC, "
                               "CASE WHEN pinned=1 THEN pin_order END ASC, ts DESC")
         out = []
-        for iid, ts, pinned, source, kind, size, kh, enc, preview, search, meta, hidden in cur.fetchall():
+        for iid, ts, pinned, source, kind, size, kh, enc, preview, search, meta, hidden, enter in cur.fetchall():
             pm = self._meta(iid, enc, preview, search, meta)
             if pm is None:
                 continue
             out.append({"id": iid, "ts": ts, "pinned": pinned, "source": source, "kind": kind,
                         "preview": pm[0], "search": pm[1], "size": size, "keyhash": kh,
-                        "hidden": bool(hidden), "title": pm[2] if len(pm) > 2 else ""})
+                        "hidden": bool(hidden), "enter": bool(enter), "title": pm[2] if len(pm) > 2 else ""})
         return out
 
     def formats(self, item_id):
@@ -1292,25 +1302,29 @@ class Store:
         meta = protect(pickle.dumps((preview, search, title), protocol=pickle.HIGHEST_PROTOCOL))
         return data, meta
 
-    def add_memo(self, text, title="", hidden=False):
+    def add_memo(self, text, title="", hidden=False, enter=False):
         """직접 적은 메모 → 고정 목록 맨 위에 추가 (기록 개수 제한으로 지워지지 않음)"""
         formats, preview, search = self._memo_parts(text, title)
         d, m = self._seal_memo(formats, preview, search, title)
         top = self.db.execute("SELECT MIN(pin_order) FROM items WHERE pinned=1").fetchone()[0]
         order = (top if top is not None else 0) - 1
         cur = self.db.execute("INSERT INTO items(ts, pinned, pin_order, source, kind, preview, search, keyhash, "
-                              "size, data, meta, enc, hidden) VALUES(?,1,?,'',?,'','',?,?,?,?,1,?)",
+                              "size, data, meta, enc, hidden, enter) VALUES(?,1,?,'',?,'','',?,?,?,?,1,?,?)",
                               (time.time(), order, "메모", self._hkey("memo:" + os.urandom(16).hex()),
-                               len(formats[0][1]), d, m, 1 if hidden else 0))
+                               len(formats[0][1]), d, m, 1 if hidden else 0, 1 if enter else 0))
         self.db.commit()
         self.cache[cur.lastrowid] = (preview, search, title)
         return cur.lastrowid
 
-    def update_memo(self, item_id, text, title="", hidden=False):
+    def set_enter(self, item_id, on):
+        self.db.execute("UPDATE items SET enter=? WHERE id=?", (1 if on else 0, item_id))
+        self.db.commit()
+
+    def update_memo(self, item_id, text, title="", hidden=False, enter=False):
         formats, preview, search = self._memo_parts(text, title)
         d, m = self._seal_memo(formats, preview, search, title)
-        self.db.execute("UPDATE items SET data=?, meta=?, size=?, hidden=?, enc=1 WHERE id=?",
-                        (d, m, len(formats[0][1]), 1 if hidden else 0, item_id))
+        self.db.execute("UPDATE items SET data=?, meta=?, size=?, hidden=?, enter=?, enc=1 WHERE id=?",
+                        (d, m, len(formats[0][1]), 1 if hidden else 0, 1 if enter else 0, item_id))
         self.db.commit()
         self.cache[item_id] = (preview, search, title)
 
@@ -2502,13 +2516,14 @@ class MemoDialog:
             t.iconbitmap(icon_file())
         except Exception:
             pass
-        text, title, hidden = "", "", False
+        text, title, hidden, enter = "", "", False, False
         if item:
             try:
                 text = get_text(dict(app.store.formats(item["id"])))
             except Exception:
                 text = ""
             title, hidden = item.get("title") or "", bool(item.get("hidden"))
+            enter = bool(item.get("enter"))
 
         f = tk.Frame(t, bg=C_BG, padx=14, pady=12)
         f.pack(fill="both", expand=True)
@@ -2528,6 +2543,10 @@ class MemoDialog:
         tk.Checkbutton(f, text=" 가리기 — 비밀번호 등 (목록·미리보기에 ●●●로 표시, 붙여넣기는 그대로)",
                        image=icon("pw", "b"), compound="left",
                        variable=self.hidden_var, bg=C_BG, fg=C_BROWN, activebackground=C_BG,
+                       selectcolor=C_WHITE, font=FONT_SMALL, anchor="w").pack(fill="x")
+        self.enter_var = tk.BooleanVar(value=enter)
+        tk.Checkbutton(f, text=" 붙여넣은 뒤 Enter 키까지 자동 입력 (비밀번호 입력 후 바로 로그인 등)",
+                       variable=self.enter_var, bg=C_BG, fg=C_BROWN, activebackground=C_BG,
                        selectcolor=C_WHITE, font=FONT_SMALL, anchor="w").pack(fill="x")
         tk.Label(f, text="내용은 암호화되어 저장됩니다. 설정에서 비밀번호를 정하면 가린 내용을 볼 때 비밀번호를 묻습니다.",
                  font=FONT_SMALL, bg=C_BG, fg="#B49B74", anchor="w").pack(fill="x", pady=(2, 0))
@@ -2559,10 +2578,10 @@ class MemoDialog:
             self.body.focus_set()
             return
         if self.item:
-            self.app.store.update_memo(self.item["id"], text, title, self.hidden_var.get())
+            self.app.store.update_memo(self.item["id"], text, title, self.hidden_var.get(), self.enter_var.get())
             iid = self.item["id"]
         else:
-            iid = self.app.store.add_memo(text, title, self.hidden_var.get())
+            iid = self.app.store.add_memo(text, title, self.hidden_var.get(), self.enter_var.get())
             if self.app.search_var.get():
                 self.app.search_var.set("")
         self.app.revealed = None
@@ -2838,6 +2857,7 @@ class App:
         self.menu.add_command(label="메모 고치기  (Ctrl+E)", command=self.edit_memo)
         self.menu.add_command(label=" 가리기 / 풀기  (Ctrl+H)", command=self.toggle_hidden, image=icon("pw", "b"),
                               compound="left")
+        self.menu.add_command(label="붙여넣은 뒤 Enter 자동 입력 켜기/끄기  (Ctrl+G)", command=self.toggle_enter)
         self.menu.add_command(label=" 가린 항목 비밀번호…", command=self.open_lock_settings, image=icon("pw", "l"),
                               compound="left")
         self.menu.add_separator()
@@ -2874,6 +2894,7 @@ class App:
             "<Control-n>": self.add_memo, "<Control-N>": self.add_memo,
             "<Control-e>": self.edit_memo, "<Control-E>": self.edit_memo,
             "<Control-h>": self.toggle_hidden, "<Control-H>": self.toggle_hidden,
+            "<Control-g>": self.toggle_enter, "<Control-G>": self.toggle_enter,
             "<Control-d>": self.delete, "<Control-D>": self.delete,
             "<Control-t>": self.flip_topmost, "<Control-T>": self.flip_topmost,
             "<Control-k>": self.flip_keep, "<Control-K>": self.flip_keep,
@@ -2994,10 +3015,11 @@ class App:
     HIDDEN_DOTS = "●●●●●●"
 
     def _list_text(self, it):
+        mark = "  ⏎" if it.get("enter") else ""         # ⏎ = 붙여넣은 뒤 Enter 자동 입력
         if not it.get("hidden"):
-            return it["preview"]
+            return it["preview"] + mark
         title = it.get("title") or ""
-        return "%s  %s" % (title, self.HIDDEN_DOTS) if title else self.HIDDEN_DOTS
+        return ("%s  %s" % (title, self.HIDDEN_DOTS) if title else self.HIDDEN_DOTS) + mark
 
     def _search_text(self, it):
         """가린 항목은 제목으로만 찾음 (내용은 검색에 걸리지 않게)"""
@@ -3081,6 +3103,15 @@ class App:
                 dlg.refresh_pw()
             except Exception:
                 pass
+
+    def toggle_enter(self):
+        it = self.current()
+        if not it:
+            return
+        on = not it.get("enter")
+        self.store.set_enter(it["id"], on)
+        self.reload(keep_id=it["id"])
+        self.toast("붙여넣은 뒤 Enter까지 자동 입력합니다 (⏎)" if on else "Enter 자동 입력을 껐습니다")
 
     def toggle_hidden(self):
         it = self.current()
@@ -3584,13 +3615,15 @@ class App:
             messagebox.showerror(APP_NAME, "클립보드에 넣지 못했습니다. 잠시 후 다시 시도해 주세요.")
             return
         if paste and target and user32.IsWindow(target):
-            self.root.after(40, lambda: self._paste_into(target))
+            self.root.after(40, lambda: self._paste_into(target, enter=bool(it.get("enter"))))
         elif not paste:
             self.toast("클립보드에 넣었습니다" + (" (호환 모드)" if used_compat else ""))
 
-    def _paste_into(self, target):
+    def _paste_into(self, target, enter=False):
         user32.SetForegroundWindow(target)
         self.root.after(80, send_ctrl_v)
+        if enter:                                   # 붙여넣기가 끝난 뒤 Enter (비밀번호 입력 후 바로 실행)
+            self.root.after(300, send_enter)
 
     def show_formats(self):
         """선택 항목에 저장된 클립보드 형식 목록 (문제 확인용)."""
