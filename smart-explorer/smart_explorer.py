@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.54"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.55"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -4070,11 +4070,15 @@ class SearchPane(tk.Frame):
         self.mode = None
         self.cwd = None
         self.back_stack = []
+        tl = [t for t in (state.get("tabs") or []) if isinstance(t, str) and t]      # 탭: 폴더 위치들 (저장해 둔 것)
+        self.tabs = [{"cwd": t, "back": []} for t in tl] or [{"cwd": state.get("cwd") or "", "back": []}]
+        self.tab_i = max(0, min(int(state.get("tab_i", 0) or 0), len(self.tabs) - 1))
         self._cwd_sig = None
         self._tick = 0
         self._drag = None
         self._mq = None
         self._build(state)
+        self._tab_bind()
         start = state.get("cwd") or self.folder_var.get()
         if self.pinned_var.get() and not (start and os.path.isdir(start) and is_inside(start, self.folder_var.get())):
             start = self.folder_var.get()
@@ -4087,6 +4091,8 @@ class SearchPane(tk.Frame):
         inner = ttk.Frame(self, padding=(6, 6, 6, 4))
         inner.pack(fill="both", expand=True)
 
+        self.tabbar = tk.Frame(inner)                       # 폴더 탭 (윈도우 탐색기 탭처럼)
+        self.tabbar.pack(fill="x", pady=(0, 4))
         r1 = ttk.Frame(inner)
         r1.pack(fill="x")
         self.r1 = r1
@@ -4276,6 +4282,7 @@ class SearchPane(tk.Frame):
         except Exception:
             tab = 0
         return {"folder": self.folder_var.get(), "query": self.query_var.get(), "tab": tab,
+                "tabs": [t["cwd"] for t in self.tabs], "tab_i": self.tab_i,
                 "search_mode": self.search_mode,
                 "pinned": self.pinned_var.get(), "cwd": self.cwd or "", "preview_hidden": self.preview_hidden,
                 "hide_dirs": self.hide_dirs,
@@ -4500,12 +4507,136 @@ class SearchPane(tk.Frame):
             self.browse_sort = ("mtime", True)              # 다른 폴더로 가면 늘 수정한 날짜 최신순 + 맨 위
         self.load_browse(select=[select] if select else None, top=True)
         self.app.add_recent(folder)
+        self._tab_update()
         self.app.schedule_save()
         self._update_location()
         try:
             self.app.nav_sync(folder)
         except Exception:
             pass
+
+    # ───────── 탭 ─────────
+    @staticmethod
+    def _tab_title(cwd):
+        n = os.path.basename((cwd or "").rstrip("\\/")) or (cwd or "새 탭")
+        return n if len(n) <= 16 else n[:15] + "…"
+
+    def _tab_bind(self):
+        for w in (self.tree, self.query_entry, self.folder_cb):
+            w.bind("<Control-t>", lambda e: (self.tab_new(), "break")[1])
+            w.bind("<Control-T>", lambda e: (self.tab_new(), "break")[1])
+            w.bind("<Control-w>", lambda e: (self.tab_close(self.tab_i), "break")[1])
+            w.bind("<Control-W>", lambda e: (self.tab_close(self.tab_i), "break")[1])
+            w.bind("<Control-Tab>", lambda e: (self.tab_step(1), "break")[1])
+            for seq in ("<Control-Shift-Tab>", "<Control-ISO_Left_Tab>"):
+                try:
+                    w.bind(seq, lambda e: (self.tab_step(-1), "break")[1])
+                except tk.TclError:
+                    pass
+        self._tabs_draw()
+
+    def _tabs_draw(self):
+        bar = self.tabbar
+        for c in bar.winfo_children():
+            c.destroy()
+        dark = is_dark(THEME.get("list_bg"))
+        sel_bg, off_bg, fg = ("#3a3f47", "#262a30", "#e8e8e8") if dark else ("#ffffff", "#e4e6ea", "#222222")
+        bar.configure(bg=off_bg if dark else "#d9dce1")
+        for i, t in enumerate(self.tabs):
+            cur = i == self.tab_i
+            f = tk.Frame(bar, bg=sel_bg if cur else off_bg, highlightthickness=1,
+                         highlightbackground="#2b6fe6" if cur else ("#555" if dark else "#c4c8ce"))
+            f.pack(side="left", padx=(0, 2), pady=(2, 0))
+            lb = tk.Label(f, text="📁 " + self._tab_title(t["cwd"]), bg=f["bg"], fg=fg, padx=6, pady=1,
+                          font=(FONT[0], fsz(9), "bold" if cur else "normal"))
+            lb.pack(side="left")
+            x = tk.Label(f, text="✕", bg=f["bg"], fg="#888", padx=4, pady=1, font=(FONT[0], fsz(8)))
+            if len(self.tabs) > 1:
+                x.pack(side="left")
+                x.bind("<Button-1>", lambda e, i=i: self.tab_close(i))
+                x.bind("<Enter>", lambda e, w=x: w.configure(fg="#d33"))
+                x.bind("<Leave>", lambda e, w=x: w.configure(fg="#888"))
+            for w in (f, lb):
+                w.bind("<Button-1>", lambda e, i=i: self.tab_select(i))
+                w.bind("<Button-2>", lambda e, i=i: self.tab_close(i))
+                w.bind("<Button-3>", lambda e, i=i: self._tab_menu(e, i))
+        plus = tk.Label(bar, text=" ＋ ", bg=off_bg if dark else "#d9dce1", fg=fg, font=(FONT[0], fsz(11), "bold"),
+                        cursor="hand2")
+        plus.pack(side="left", pady=(2, 0))
+        plus.bind("<Button-1>", lambda e: self.tab_new())
+
+    def _tab_menu(self, e, i):
+        m = tk.Menu(self, tearoff=0)
+        m.add_command(label="새 탭 (Ctrl+T)", command=self.tab_new)
+        m.add_command(label="탭 복제", command=lambda: self.tab_new(self.tabs[i]["cwd"]))
+        if len(self.tabs) > 1:
+            m.add_separator()
+            m.add_command(label="탭 닫기 (Ctrl+W)", command=lambda: self.tab_close(i))
+            m.add_command(label="다른 탭 모두 닫기", command=lambda: self.tab_close_others(i))
+        m.tk_popup(e.x_root, e.y_root)
+
+    def _tab_update(self):
+        """지금 보고 있는 폴더를 현재 탭에 기록"""
+        if self.cwd and self.tabs:
+            self.tabs[self.tab_i]["cwd"] = self.cwd
+            self._tabs_draw()
+
+    def _tab_load(self):
+        t = self.tabs[self.tab_i]
+        self.back_stack = list(t["back"])
+        target = t["cwd"] or os.path.expanduser("~")
+        while target and not os.path.isdir(target):          # 사라진 폴더면 위쪽 폴더로
+            up = os.path.dirname(target.rstrip("\\/"))
+            if not up or up == target:
+                target = os.path.expanduser("~")
+                break
+            target = up
+        if self.query_var.get():
+            self.query_var.set("")
+        self.navigate(target, remember=False)
+        self._tabs_draw()
+        self.app.schedule_save()
+
+    def tab_select(self, i):
+        if i == self.tab_i or not (0 <= i < len(self.tabs)):
+            return
+        self.tabs[self.tab_i]["back"] = list(self.back_stack)
+        self.tab_i = i
+        self._tab_load()
+
+    def tab_step(self, d):
+        if len(self.tabs) > 1:
+            self.tab_select((self.tab_i + d) % len(self.tabs))
+
+    def tab_new(self, cwd=None):
+        cwd = cwd or self.cwd or os.path.expanduser("~")
+        self.tabs[self.tab_i]["back"] = list(self.back_stack)
+        self.tabs.insert(self.tab_i + 1, {"cwd": cwd, "back": []})
+        self.tab_i += 1
+        self._tab_load()
+
+    def tab_close(self, i):
+        if len(self.tabs) <= 1 or not (0 <= i < len(self.tabs)):
+            return
+        cur = i == self.tab_i
+        if not cur:
+            self.tabs[self.tab_i]["back"] = list(self.back_stack)
+        self.tabs.pop(i)
+        if i < self.tab_i:
+            self.tab_i -= 1
+        elif cur:
+            self.tab_i = min(i, len(self.tabs) - 1)
+        if cur:
+            self._tab_load()
+        else:
+            self._tabs_draw()
+            self.app.schedule_save()
+
+    def tab_close_others(self, i):
+        keep = self.tabs[i]
+        self.tabs = [keep]
+        self.tab_i = 0
+        self._tab_load()
 
     def go_up(self):
         if not self.cwd:
