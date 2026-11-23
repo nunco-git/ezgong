@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.60"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.61"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -4109,7 +4109,7 @@ class SearchPane(tk.Frame):
         self.folder_var = tk.StringVar(value=st.get("folder", os.path.join(os.path.expanduser("~"), "Documents")))
         self.folder_cb = ttk.Combobox(r1, textvariable=self.folder_var, values=self.app.s.get("recent", []))
         self.folder_cb.pack(side="left", fill="x", expand=True)
-        self.folder_w = int(st.get("folder_w", 20) or 20)          # 한 줄 배치일 때 폴더 위치칸 폭 (글자 수) — 끌어서 조절
+        self.query_w = int(st.get("query_w", 12) or 12)            # 한 줄 배치일 때 검색칸 폭 (글자 수) — 끌어서 조절 (윈도우 탐색기처럼 주소가 길고 검색은 오른쪽에 짧게)
         self.grip = tk.Frame(r1, width=7, cursor="sb_h_double_arrow", bg="#c8c8c8")
         self.grip.bind("<ButtonPress-1>", self._grip_press)
         self.grip.bind("<B1-Motion>", self._grip_move)
@@ -4293,7 +4293,7 @@ class SearchPane(tk.Frame):
             tab = 0
         return {"folder": self.folder_var.get(), "query": self.query_var.get(), "tab": tab,
                 "tabs": [t["cwd"] for t in self.tabs], "tab_i": self.tab_i,
-                "search_mode": self.search_mode, "folder_w": self.folder_w,
+                "search_mode": self.search_mode, "query_w": self.query_w,
                 "pinned": self.pinned_var.get(), "cwd": self.cwd or "", "preview_hidden": self.preview_hidden,
                 "hide_dirs": self.hide_dirs,
                 "sash_side": (self._sash_pos() if self.side_preview else self._sashes.get("side")),
@@ -4321,11 +4321,9 @@ class SearchPane(tk.Frame):
         self._compact = on
         self.r2.pack_forget()
         if on:
-            self.grip.pack(in_=self.r1, side="left", fill="y", padx=(3, 0), after=self.folder_cb)
-            self.r2.pack(in_=self.r1, side="left", fill="x", expand=True, padx=(3, 4), after=self.grip)
-            self.query_entry.configure(width=14)
-            self.folder_cb.configure(width=self.folder_w)      # 위치칸은 끌어서 조절, 남는 폭은 검색칸이 씀
-            self.folder_cb.pack_configure(expand=False, fill="none")
+            self.query_entry.configure(width=self.query_w)
+            self.folder_cb.configure(width=20)
+            self._compact_pack()
             self.name_btn.configure(text="🔍 파일명")
             self.search_btn.configure(text="📄 본문 검색")
             self._dir_btn_text()
@@ -4334,13 +4332,27 @@ class SearchPane(tk.Frame):
             self.r2.pack(in_=self._inner, fill="x", pady=(4, 4), after=self.r1)
             self.query_entry.configure(width=20)
             self.folder_cb.configure(width=20)
-            self.folder_cb.pack_configure(expand=True, fill="x")
+            self._compact_pack()
             self.name_btn.configure(text="🔍 파일명 검색")
             self.search_btn.configure(text="📄 본문 추가 검색")
             self._dir_btn_text()
 
+    def _compact_pack(self):
+        """위쪽 한 줄 순서: ◀ ⬆ [주소(길게)] | [검색 + 버튼] [폴더…] … (윈도우 탐색기처럼 주소가 왼쪽에서 넓게, 검색은 오른쪽)"""
+        first = self.pin_label if self.pinned_var.get() else self.folder_cb
+        for w in (self.folder_cb, self.pin_label, self.grip, self.r2):
+            w.pack_forget()
+        if not self._compact:
+            first.pack(side="left", fill="x", expand=True, before=self.browse_btn,
+                       **({"ipady": 2} if first is self.pin_label else {}))
+            return
+        first.pack(side="left", fill="x", expand=True, before=self.browse_btn,
+                   **({"ipady": 2} if first is self.pin_label else {}))
+        self.grip.pack(in_=self.r1, side="left", fill="y", padx=(3, 0), before=self.browse_btn)
+        self.r2.pack(in_=self.r1, side="left", fill="none", expand=False, padx=(3, 4), before=self.browse_btn)
+
     def _grip_press(self, e):
-        self._grip_x0, self._grip_w0 = e.x_root, int(self.folder_cb.cget("width"))
+        self._grip_x0, self._grip_w0 = e.x_root, int(self.query_entry.cget("width"))
 
     def _grip_move(self, e):
         try:
@@ -4348,11 +4360,11 @@ class SearchPane(tk.Frame):
             cw = max(4, tkfont.Font(root=self, font=FONT).measure("0"))
         except Exception:
             cw = 8
-        w = self._grip_w0 + int((e.x_root - self._grip_x0) / cw)
-        w = max(8, min(120, w))
-        if w != self.folder_w:
-            self.folder_w = w
-            self.folder_cb.configure(width=w)
+        w = self._grip_w0 - int((e.x_root - self._grip_x0) / cw)       # 막대를 왼쪽으로 끌면 검색칸이 넓어짐
+        w = max(8, min(80, w))
+        if w != self.query_w:
+            self.query_w = w
+            self.query_entry.configure(width=w)
 
     def _bind_paned(self, paned):
         paned.bind("<ButtonRelease-1>", lambda e: self.after(10, self.clamp_sash), add="+")
@@ -4453,21 +4465,14 @@ class SearchPane(tk.Frame):
                 return
             if not quiet:
                 self.folder_var.set(os.path.normpath(folder))
-            self.folder_cb.pack_forget()
-            if self._compact:
-                self.grip.pack_forget()
-            self.pin_label.pack(side="left", fill="x", expand=True, before=self.browse_btn, ipady=2)
+            self._compact_pack()
             self.browse_btn.state(["disabled"])
             if not quiet:
                 self.app.schedule_save()
                 self.status_var.set("폴더를 고정했습니다. 검색은 늘 이 폴더 전체에서 합니다.")
                 self.query_entry.focus_set()
         else:
-            self.pin_label.pack_forget()
-            self.folder_cb.pack(side="left", fill="x", expand=True, before=self.browse_btn)
-            if self._compact:
-                self.folder_cb.pack_configure(expand=False, fill="none")
-                self.grip.pack(in_=self.r1, side="left", fill="y", padx=(3, 0), after=self.folder_cb)
+            self._compact_pack()
             self.browse_btn.state(["!disabled"])
             if self.cwd:
                 self.folder_var.set(self.cwd)
