@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.64"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.65"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -4368,18 +4368,22 @@ class SearchPane(tk.Frame):
             self._dir_btn_text()
 
     def _compact_pack(self):
-        """위쪽 한 줄 순서: ◀ ⬆ [주소(길게)] | [검색 + 버튼] [폴더…] … (윈도우 탐색기처럼 주소가 왼쪽에서 넓게, 검색은 오른쪽)"""
+        """위쪽 한 줄 순서: ◀ ⬆ [주소(길게)] [폴더…] [폴더 숨기기] [미리보기 숨기기] [📌 고정] | [검색 + 버튼]
+        (주소와 그 관련 버튼이 한 쌍으로 붙어 다니고, 검색은 맨 오른쪽)"""
         first = self.pin_label if self.pinned_var.get() else self.folder_cb
-        for w in (self.folder_cb, self.pin_label, self.grip, self.r2):
+        for w in (self.folder_cb, self.pin_label, self.browse_btn, self.dir_btn, self.pv_btn, self.pin_btn,
+                  self.grip):
             w.pack_forget()
-        if not self._compact:
-            first.pack(side="left", fill="x", expand=True, before=self.browse_btn,
-                       **({"ipady": 2} if first is self.pin_label else {}))
-            return
-        first.pack(side="left", fill="x", expand=True, before=self.browse_btn,
-                   **({"ipady": 2} if first is self.pin_label else {}))
-        self.grip.pack(in_=self.r1, side="left", fill="y", padx=(3, 0), before=self.browse_btn)
-        self.r2.pack(in_=self.r1, side="left", fill="none", expand=False, padx=(3, 4), before=self.browse_btn)
+        if self._compact:
+            self.r2.pack_forget()
+        first.pack(in_=self.r1, side="left", fill="x", expand=True, **({"ipady": 2} if first is self.pin_label else {}))
+        self.browse_btn.pack(in_=self.r1, side="left", padx=(4, 0))
+        self.dir_btn.pack(in_=self.r1, side="left", padx=(2, 0))
+        self.pv_btn.pack(in_=self.r1, side="left", padx=(2, 0))
+        self.pin_btn.pack(in_=self.r1, side="left", padx=(2, 0))
+        if self._compact:
+            self.grip.pack(in_=self.r1, side="left", fill="y", padx=(6, 0))
+            self.r2.pack(in_=self.r1, side="left", fill="none", expand=False, padx=(3, 4))
 
     def _grip_press(self, e):
         self._grip_x0, self._grip_w0 = e.x_root, int(self.query_entry.cget("width"))
