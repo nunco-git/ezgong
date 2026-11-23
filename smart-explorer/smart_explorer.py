@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.58"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.59"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -4592,7 +4592,9 @@ class SearchPane(tk.Frame):
                 w._drop_tab = (self, i)                     # 파일을 끌어다 놓을 수 있는 탭 (그 탭의 폴더로)
             f._tab_labels = (lb, x)
             for w in (f, lb):
-                w.bind("<Button-1>", lambda e, i=i: self.tab_select(i))
+                w.bind("<ButtonPress-1>", lambda e, i=i: self._tab_press(e, i))      # 선택은 뗄 때 (끌 수 있게 그 자리에서 다시 그리지 않음)
+                w.bind("<B1-Motion>", self._tab_motion)
+                w.bind("<ButtonRelease-1>", self._tab_release)
                 w.bind("<Button-2>", lambda e, i=i: self.tab_close(i))
                 w.bind("<Button-3>", lambda e, i=i: self._tab_menu(e, i))
         plus = tk.Label(bar, text=" ＋ ", bg=off_bg if dark else "#d9dce1", fg=fg, font=(FONT[0], fsz(11), "bold"),
@@ -4600,10 +4602,70 @@ class SearchPane(tk.Frame):
         plus.pack(side="left", pady=(2, 0))
         plus.bind("<Button-1>", lambda e: self.tab_new())
 
+    # ── 탭을 창 밖으로 끌어 놓으면 독립된 새 창으로 (윈도우 탐색기처럼)
+    def _tab_press(self, e, i):
+        self._tdrag = {"i": i, "x": e.x_root, "y": e.y_root, "moved": False, "out": False}
+
+    def _tab_out(self, e):
+        """탭 줄에서 충분히 벗어났는지 (위·아래로 30px 이상, 또는 창 밖)"""
+        bar = self.tabbar
+        top, bot = bar.winfo_rooty(), bar.winfo_rooty() + bar.winfo_height()
+        r = self.winfo_toplevel()
+        inside = r.winfo_rootx() <= e.x_root <= r.winfo_rootx() + r.winfo_width()
+        return e.y_root < top - 30 or e.y_root > bot + 30 or not inside
+
+    def _tab_motion(self, e):
+        d = getattr(self, "_tdrag", None)
+        if not d:
+            return
+        if not d["moved"] and abs(e.x_root - d["x"]) + abs(e.y_root - d["y"]) < 8:
+            return
+        d["moved"] = True
+        out = len(self.tabs) > 1 and self._tab_out(e)
+        if out != d["out"]:
+            d["out"] = out
+            try:
+                e.widget.configure(cursor="hand2" if out else "")
+            except tk.TclError:
+                pass
+            self.app.set_hint("놓으면 새 창으로 열립니다" if out else "")
+
+    def _tab_release(self, e):
+        d, self._tdrag = getattr(self, "_tdrag", None), None
+        self.app.set_hint("")
+        try:
+            e.widget.configure(cursor="")
+        except tk.TclError:
+            pass
+        if not d:
+            return
+        if d["moved"] and len(self.tabs) > 1 and self._tab_out(e):
+            self.tab_to_window(d["i"], e.x_root - 120, e.y_root - 14)
+        elif not d["moved"]:
+            self.tab_select(d["i"])
+
+    def tab_to_window(self, i, x=None, y=None, move=True):
+        """탭의 폴더를 독립된 새 창으로 엶. move면 이 탭은 닫음 (탭이 하나뿐이면 그대로 둠)"""
+        if not (0 <= i < len(self.tabs)):
+            return
+        if i == self.tab_i and self.cwd:
+            self.tabs[i]["cwd"] = self.cwd
+        path = self.tabs[i]["cwd"] or os.path.expanduser("~")
+        if x is None:
+            r = self.winfo_toplevel()
+            x, y = r.winfo_rootx() + 60, r.winfo_rooty() + 40
+        if not open_new_window(path, x, y):
+            messagebox.showerror(APP_NAME, "새 창을 열지 못했습니다.")
+            return
+        if move and len(self.tabs) > 1:
+            self.tab_close(i)
+
     def _tab_menu(self, e, i):
         m = tk.Menu(self, tearoff=0)
         m.add_command(label="새 탭 (Ctrl+T)", command=self.tab_new)
         m.add_command(label="탭 복제", command=lambda: self.tab_new(self.tabs[i]["cwd"]))
+        m.add_command(label="새 창으로 분리" if len(self.tabs) > 1 else "새 창에서 열기",
+                      command=lambda: self.tab_to_window(i))
         if len(self.tabs) > 1:
             m.add_separator()
             m.add_command(label="탭 닫기 (Ctrl+W)", command=lambda: self.tab_close(i))
@@ -6848,6 +6910,35 @@ def make_desktop_shortcut(folder=None):
 def hotkey_text(hk):
     parts = [n for k, n in (("ctrl", "Ctrl"), ("alt", "Alt"), ("shift", "Shift"), ("win", "Win")) if hk.get(k)]
     return "+".join(parts + [hk.get("key", "E")])
+
+
+class _Noop:
+    """새 창(보조 창)에서 쓰지 않는 기능(트레이·단축키·색인)의 자리 — 아무 일도 하지 않음"""
+    ok = False
+
+    def __getattr__(self, name):
+        return lambda *a, **k: ""
+
+
+def open_new_window(path, x=None, y=None):
+    """폴더를 독립된 새 탐색기 창(별도 프로세스)으로 엶. 새 창은 트레이·알람·설정 저장을 하지 않음"""
+    if getattr(sys, "frozen", False):
+        cmd = [sys.executable]
+    else:
+        cmd = [sys.executable, os.path.abspath(__file__)]
+    cmd += ["--new-window", path]
+    if x is not None and y is not None:
+        cmd += ["--pos", f"{int(x)},{int(y)}"]
+    env = {k: v for k, v in os.environ.items() if not k.startswith(("_MEIPASS", "_PYI"))}
+    env["PYINSTALLER_RESET_ENVIRONMENT"] = "1"           # exe(onefile)가 자기 자신을 다시 실행할 때 필요
+    kw = {}
+    if sys.platform == "win32":
+        kw["creationflags"] = 0x00000008 | 0x00000200      # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
+    try:
+        subprocess.Popen(cmd, env=env, close_fds=True, **kw)
+        return True
+    except Exception:
+        return False
 
 
 class SingleInstance:
@@ -9337,9 +9428,20 @@ class App:
     _ole_req = _ole_drop_req = _ole_state = None
     MAX_SPLIT = 4
 
-    def __init__(self, root, instance=None):
+    def __init__(self, root, instance=None, new_window=None, pos=None):
         self.root = root
         self.s = load_settings()
+        self.secondary = new_window is not None          # 탭을 떼어 연 독립 창: 트레이·알람·단축키·설정 저장 없음
+        if self.secondary:
+            self.s = dict(self.s)
+            st = dict((self.s.get("panes") or [{}])[0] or {})
+            for k in ("query", "pinned"):
+                st.pop(k, None)
+            st.update(cwd=new_window, tabs=[new_window], tab_i=0)
+            self.s["panes"] = [st]
+            self.s["layout"] = {"cols": 1, "rows": 1}
+            self.s["alarm"] = {"enabled": False}
+            self.s["autostart_init"] = True
         self.bgq = queue.Queue()                       # 트레이·단축키·두 번째 실행에서 온 요청
         install_ime_fix(root)                          # 한글 입력이 칸 안에서 같은 크기로 자연스럽게
         saved = self.s.get("alarm", {})
@@ -9355,7 +9457,11 @@ class App:
         self.alarm_next = None
         root.title(f"{APP_NAME}  v{APP_VERSION}")
         root.geometry(self.s.get("geometry", "1200x780"))
-        if True:                                          # 처음 켤 때도 늘 전체 화면
+        if self.secondary:
+            w, h = 1200, 780
+            if pos:
+                root.geometry(f"{w}x{h}+{max(0, pos[0])}+{max(0, pos[1])}")
+        elif True:                                        # 처음 켤 때도 늘 전체 화면
             try:
                 root.state("zoomed")
             except tk.TclError:
@@ -9388,25 +9494,31 @@ class App:
         self._build()
         self.apply_layout()
         self.pinned_folders = []
-        self.indexer = IdleIndexer(self)
         root.protocol("WM_DELETE_WINDOW", self.close_window)
-        self.tray = TrayIcon(self)
-        self.hotkey_ctl = GlobalHotkey(self.bgq)
-        self.hotkey_ctl.start(self.hotkey)
+        if self.secondary:
+            self.indexer, self.tray, self.hotkey_ctl = _Noop(), _Noop(), _Noop()
+        else:
+            self.indexer = IdleIndexer(self)
+            self.tray = TrayIcon(self)
+            self.hotkey_ctl = GlobalHotkey(self.bgq)
+            self.hotkey_ctl.start(self.hotkey)
         if instance is not None and instance.first:
             instance.serve(self.bgq)
         load_holiday_cache()
-        self._reset_alarm()
-        threading.Thread(target=self._holiday_loop, daemon=True).start()
+        if not self.secondary:
+            self._reset_alarm()
+            threading.Thread(target=self._holiday_loop, daemon=True).start()
         root.after(500, self._bg_poll)
         root.after(30000, self._autosave)
-        root.after(5000, self.send_stats)
+        if not self.secondary:
+            root.after(5000, self.send_stats)
         self.update_info = None                          # 새 버전 정보 (있으면)
         saved = self.s.get("update_avail")               # 지난번에 찾아 둔 새 버전 (12시간마다 확인하므로 기억)
         if isinstance(saved, dict) and self._ver_tuple(saved.get("version", "0")) > self._ver_tuple(APP_VERSION):
             self.update_info = saved
-        root.after(8000, lambda: self.check_update(force=True))   # 켤 때마다 바로 확인
-        root.after(30 * 60 * 1000, self._update_tick)
+        if not self.secondary:
+            root.after(8000, lambda: self.check_update(force=True))   # 켤 때마다 바로 확인
+            root.after(30 * 60 * 1000, self._update_tick)
         root.after(300, self.setup_ole_drop)             # 탐색기·바탕화면에서 끌어 온 파일 받기
         root.bind_all("<FocusIn>", self._focus_in, add="+")
         root.bind_all("<Control-f>", self._focus_query)
@@ -9851,7 +9963,7 @@ class App:
     # ───────── 창 숨기기·보이기, 알람, 단축키 ─────────
     def close_window(self):
         """닫기(X): 설정에 따라 트레이로 숨기거나 끝냄"""
-        if self.s.get("close_to_tray", True) and self.tray.ok:
+        if self.s.get("close_to_tray", True) and self.tray.ok and not self.secondary:
             self.save_settings()
             self.root.withdraw()
             if not self.s.get("tray_tip_shown"):
@@ -10220,6 +10332,8 @@ class App:
 
     def save_settings(self):
         self._save_job = None
+        if getattr(self, "secondary", False):            # 보조 창은 설정 파일을 건드리지 않음 (원래 창 설정 보호)
+            return True
         try:
             for i, p in enumerate(self.panes):
                 self._remember(i, p)
@@ -10660,14 +10774,27 @@ def main():
         except Exception:
             pass
     start_hidden = "--tray" in sys.argv
-    instance = SingleInstance()
-    if not instance.first:                             # 이미 켜져 있으면 그 창을 불러오고 끝냄
+    new_window, pos = None, None
+    if "--new-window" in sys.argv:                     # 탭을 끌어 떼어 연 독립 창
+        try:
+            new_window = sys.argv[sys.argv.index("--new-window") + 1]
+        except IndexError:
+            new_window = os.path.expanduser("~")
+        if "--pos" in sys.argv:
+            try:
+                px, py = sys.argv[sys.argv.index("--pos") + 1].split(",")
+                pos = (int(px), int(py))
+            except Exception:
+                pos = None
+        start_hidden = False
+    instance = SingleInstance() if new_window is None else None
+    if instance is not None and not instance.first:                             # 이미 켜져 있으면 그 창을 불러오고 끝냄
         if instance.notify_existing("tray" if start_hidden else "show"):
             return
         # 대답이 없으면 다른 프로그램이 같은 번호를 쓰는 것 → 그대로 실행 (하나만 실행 기능만 빠짐)
     root = tk.Tk()
     set_window_icon(root)
-    app = App(root, instance)
+    app = App(root, instance, new_window=new_window, pos=pos)
     if start_hidden and app.tray.ok:                   # 윈도우 시작 때는 트레이에 숨긴 채로
         root.withdraw()
     root.mainloop()
