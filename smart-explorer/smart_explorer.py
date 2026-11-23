@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.62"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.63"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -2469,17 +2469,30 @@ class PreviewPanel(ttk.Frame):
         try:
             if not self.msg.winfo_ismapped():
                 return
+            if getattr(self, "_msg_left", False):           # 폴더 목록: 배경 그림 없이 왼쪽 위에 붙여 (왼쪽에서 두 글자쯤 띄움)
+                self._bg_img = None
+                self.msg.configure(image="", compound="none", padding=(2 * self.msg_cw(), 4, 0, 0))
+                return
+            self.msg.configure(padding=0)
             img = background_photo(self.msg.winfo_width(), self.msg.winfo_height())
             self._bg_img = img
             self.msg.configure(image=img or "", compound="center")
         except tk.TclError:
             pass
 
+    def msg_cw(self):
+        try:
+            from tkinter import font as tkfont
+            return max(6, tkfont.Font(root=self, font=FONT).measure("0"))
+        except Exception:
+            return 9
+
     def _width(self):
         self.update_idletasks()
         return max(200, self.body.winfo_width() - 40)
 
     def clear(self):
+        self._msg_left = False
         if self.shell:
             self.shell.unload()
         if not self.nested and self.current:
@@ -2531,6 +2544,8 @@ class PreviewPanel(ttk.Frame):
                 self.msg.configure(text=f"📁 {os.path.basename(path) or path}\n폴더 {nd}개 · 파일 {len(items) - nd}개"
                                         f"\n\n{names}{more}", anchor="nw", justify="left",
                                 foreground=THEME.get("text_color") or "#000000")      # 폴더 목록은 진하게 (검정)
+                self._msg_left = True
+                self._show(self.msg)
             except OSError as e:
                 self.msg.configure(text=f"폴더를 읽을 수 없습니다: {e}")
             return
@@ -4076,7 +4091,10 @@ class SearchPane(tk.Frame):
         self.cwd = None
         self.back_stack = []
         tl = [t for t in (state.get("tabs") or []) if isinstance(t, str) and t]      # 탭: 폴더 위치들 (저장해 둔 것)
-        self.tabs = [{"cwd": t, "back": []} for t in tl] or [{"cwd": state.get("cwd") or "", "back": []}]
+        th = state.get("tab_hide") if isinstance(state.get("tab_hide"), list) else None
+        gh = bool(state.get("hide_dirs", False))                 # 예전 설정(전체 하나)이면 모든 탭이 그 값으로 시작
+        self.tabs = [{"cwd": t, "back": [], "hide": bool(th[i]) if th and i < len(th) else (gh if not th else False)}
+                     for i, t in enumerate(tl)] or [{"cwd": state.get("cwd") or "", "back": [], "hide": gh}]
         self.tab_i = max(0, min(int(state.get("tab_i", 0) or 0), len(self.tabs) - 1))
         self._cwd_sig = None
         self._tick = 0
@@ -4123,7 +4141,7 @@ class SearchPane(tk.Frame):
         self.pin_label.bind("<Double-1>", lambda e: self.navigate(self.folder_var.get()))
         self.browse_btn = ttk.Button(r1, text="폴더…", width=6, command=self.browse)
         self.browse_btn.pack(side="left", padx=(4, 0))
-        self.hide_dirs = bool(st.get("hide_dirs", False))      # 목록에서 폴더 숨기기 (파일만 보기)
+        self.hide_dirs = bool(self.tabs[self.tab_i].get("hide"))      # 목록에서 폴더 숨기기 (파일만 보기) — 탭마다 따로
         self.dir_btn = ttk.Button(r1, text="", command=self.toggle_dirs)
         self.dir_btn.pack(side="left", padx=(2, 0))
         self._dir_btn_text()
@@ -4293,6 +4311,7 @@ class SearchPane(tk.Frame):
             tab = 0
         return {"folder": self.folder_var.get(), "query": self.query_var.get(), "tab": tab,
                 "tabs": [t["cwd"] for t in self.tabs], "tab_i": self.tab_i,
+                "tab_hide": [bool(t.get("hide")) for t in self.tabs],
                 "search_mode": self.search_mode, "query_w": self.query_w,
                 "pinned": self.pinned_var.get(), "cwd": self.cwd or "", "preview_hidden": self.preview_hidden,
                 "hide_dirs": self.hide_dirs,
@@ -4499,6 +4518,8 @@ class SearchPane(tk.Frame):
     def toggle_dirs(self):
         """누르면 목록에서 폴더 숨기기 ↔ 다시 누르면 보이기"""
         self.hide_dirs = not self.hide_dirs
+        if self.tabs:
+            self.tabs[self.tab_i]["hide"] = self.hide_dirs          # 폴더 숨기기는 탭마다 따로
         self._dir_btn_text()
         if self.mode == "browse" and self.cwd:
             self.load_browse()
@@ -4706,6 +4727,8 @@ class SearchPane(tk.Frame):
     def _tab_load(self):
         t = self.tabs[self.tab_i]
         self.back_stack = list(t["back"])
+        self.hide_dirs = bool(t.get("hide"))                     # 이 탭의 폴더 숨기기 상태
+        self._dir_btn_text()
         target = t["cwd"] or os.path.expanduser("~")
         while target and not os.path.isdir(target):          # 사라진 폴더면 위쪽 폴더로
             up = os.path.dirname(target.rstrip("\\/"))
