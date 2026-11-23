@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.65"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.66"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -4024,18 +4024,38 @@ if sys.platform == "win32" and struct.calcsize("P") == 8:
                 for x in pidls:
                     _ole32.CoTaskMemFree(x)
 
-        def shell_menu(paths, x, y, background_dir=None, extended=False):
-            """윈도우 탐색기의 오른쪽 클릭 메뉴를 그대로 띄우고, 고른 명령을 실행. 고른 명령이 있으면 True"""
+        def _verb_of(pcm, idx):
+            try:
+                buf = ctypes.create_unicode_buffer(260)
+                if _vcall(pcm, 5, ctypes.c_long, [ctypes.c_size_t, ctypes.c_uint, ctypes.c_void_p, ctypes.c_void_p,
+                                                  ctypes.c_uint], idx, 4, None, buf, 260) == 0:     # GCS_VERBW
+                    return buf.value.lower()
+            except Exception:
+                pass
+            return ""
+
+        def shell_menu(paths, x, y, background_dir=None, extended=False, extras=None, verbs=None):
+            """윈도우 탐색기의 오른쪽 클릭 메뉴를 그대로 띄우고, 고른 명령을 실행. 고른 명령이 있으면 True,
+            메뉴를 못 만들면 None.  extras=[(글자, 함수)] 는 메뉴 끝에 덧붙이고, verbs={'cut':함수,...} 는
+            윈도우 대신 프로그램이 직접 처리할 명령(잘라내기·복사·붙여넣기·삭제·이름 바꾸기)"""
             pcm = _context_menu_for(paths, background_dir)
             if not pcm:
-                return False
+                return None
             hmenu = _u32.CreatePopupMenu()
             cm2, cm3 = ctypes.c_void_p(), ctypes.c_void_p()
             try:
                 flags = 0x0 | 0x4 | (0x100 if extended else 0)          # NORMAL | EXPLORE | (Shift: 확장 메뉴)
                 if _vcall(pcm, 3, ctypes.c_long, [ctypes.c_void_p, ctypes.c_uint, ctypes.c_uint, ctypes.c_uint,
                                                   ctypes.c_uint], hmenu, 0, 1, 0x7FFF, flags) < 0:
-                    return False
+                    return None
+                extra_cb = {}
+                if extras:
+                    _am = _u32.AppendMenuW
+                    _am.argtypes = [ctypes.c_void_p, ctypes.c_uint, ctypes.c_size_t, ctypes.c_wchar_p]
+                    _am(hmenu, 0x800, 0, None)                       # 구분선
+                    for n, (label, fn) in enumerate(extras):
+                        _am(hmenu, 0, 0x8001 + n, label)
+                        extra_cb[0x8001 + n] = fn
                 _vcall(pcm, 0, ctypes.c_long, [ctypes.c_void_p, ctypes.POINTER(ctypes.c_void_p)],
                        ctypes.byref(_O.IID_IContextMenu3), ctypes.byref(cm3))
                 if not cm3:
@@ -4048,6 +4068,14 @@ if sys.platform == "win32" and struct.calcsize("P") == 8:
                 _u32.PostMessageW(owner, 0, 0, 0)
                 if cmd <= 0:
                     return False
+                if cmd in extra_cb:
+                    extra_cb[cmd]()
+                    return True
+                if verbs:
+                    vb = _verb_of(pcm, cmd - 1)
+                    if vb in verbs:
+                        verbs[vb]()
+                        return True
                 ci = _CMICEX()
                 ci.cbSize = ctypes.sizeof(_CMICEX)
                 ci.fMask = 0x4000 | 0x20000000            # UNICODE | PTINVOKE
@@ -5165,14 +5193,17 @@ class SearchPane(tk.Frame):
             self.tree.selection_set(())
         has = bool(self.tree.selection())
         browse = self.mode == "browse"
-        if (e.state & 0x1) and OLE_DND is not None and (has or browse):      # Shift+오른쪽 클릭: 윈도우 메뉴 바로
-            self.windows_menu(e.x_root, e.y_root, extended=True)
+        if (e.state & 0x1) and OLE_DND is not None and (has or browse):      # Shift+오른쪽 클릭: 윈도우 확장 메뉴
+            self.windows_menu(e.x_root, e.y_root, extended=True, own=True)
             return "break"
+        if not (e.state & 0x4) and OLE_DND is not None and (has or browse):  # 그냥 오른쪽 클릭: 윈도우 탐색기와 같은 메뉴
+            if self.windows_menu(e.x_root, e.y_root, own=True) is not None:
+                return "break"
         m = self.menu
         m.delete(0, "end")
         h = self.current()
         if OLE_DND is not None and (has or browse):
-            m.add_command(label="Windows 메뉴 — 속성·압축·보내기·연결 프로그램 등  (Shift+오른쪽 클릭)",
+            m.add_command(label="Windows 메뉴 — 속성·압축·보내기·연결 프로그램 등",
                           command=lambda x=e.x_root, y=e.y_root: self.windows_menu(x, y))
             m.add_separator()
         if has:
@@ -5208,21 +5239,48 @@ class SearchPane(tk.Frame):
             m.add_command(label="새로 고침  (F5)", command=self.refresh)
         m.tk_popup(e.x_root, e.y_root)
 
-    def windows_menu(self, x, y, extended=False):
-        """윈도우 탐색기 오른쪽 클릭 메뉴 그대로 (고른 파일 / 빈 곳이면 이 폴더의 메뉴)"""
+    def windows_menu(self, x, y, extended=False, own=False):
+        """윈도우 탐색기 오른쪽 클릭 메뉴 그대로 (고른 파일 / 빈 곳이면 이 폴더의 메뉴).
+        own=True: 잘라내기·복사·붙여넣기·삭제·이름 바꾸기는 프로그램이 직접 처리하고 즐겨찾기 등을 덧붙임.
+        메뉴를 못 만들면 None"""
         paths = self.selected_paths()
         bg = None if paths else (self.cwd if self.mode == "browse" else None)
         if not paths and not bg:
-            return
+            return False
+        extras = verbs = None
+        if own:
+            verbs = {"cut": lambda: self.clip(cut=True), "copy": lambda: self.clip(cut=False),
+                     "paste": self.paste, "delete": self.delete, "rename": self.rename}
+            extras = []
+            if paths:
+                dirs = [self.hits[i]["path"] for i in self.tree.selection()
+                        if i in self.hits and self.hits[i].get("is_dir") and self.hits[i].get("path")]
+                if dirs:
+                    if all(self.app.nav.is_fav(d) for d in dirs):
+                        extras.append(("★ 즐겨찾기에서 빼기", lambda ds=dirs: self.app.nav.remove_fav(*ds)))
+                    else:
+                        extras.append(("★ 즐겨찾기에 추가", lambda ds=dirs: self.app.nav.add_fav(*ds)))
+                if len(paths) == 1 and not self.current().get("is_dir"):
+                    extras.append(("전체 내용 보기", self.show_full))
+                if self.mode != "browse":
+                    extras.append(("이 칸에서 들어 있는 폴더로 이동", self.goto_containing))
+                extras.append(("경로 복사", self.copy_path))
         self.app.release_previews()
         try:
-            done = OLE_DND.shell_menu(paths, x, y, background_dir=bg, extended=extended)
+            done = OLE_DND.shell_menu(paths, x, y, background_dir=bg, extended=extended, extras=extras, verbs=verbs)
         except Exception as ex:
+            if own:
+                return None
             messagebox.showerror(APP_NAME, f"Windows 메뉴를 열 수 없습니다.\n{ex}")
-            return
+            return False
+        if done is None:
+            if not own:
+                messagebox.showerror(APP_NAME, "Windows 메뉴를 열 수 없습니다.")
+            return None
         if done:                       # 지우기·압축·새로 만들기 등으로 폴더 내용이 바뀌었을 수 있음
             self.after(600, self.app.refresh_browsers)
             self.after(2500, self.app.refresh_browsers)
+        return done
 
     # ───────── 파일 동작 ─────────
     def open_file(self):
@@ -8888,7 +8946,7 @@ GUIDE = [
      "· 끌어서 옮기기 — 다른 칸은 물론 윈도우 탐색기·바탕화면·다른 프로그램과도 주고받습니다.\n"
      "   끄는 동안 탐색기처럼 파일 그림과 '이동/복사' 표시가 따라다니고, 놓을 폴더는 파랗게 표시됩니다.\n"
      "   같은 드라이브는 이동, 다른 드라이브는 복사 (Ctrl = 복사, Shift = 이동)\n"
-     "· 오른쪽 클릭 → 맨 위 「Windows 메뉴」(또는 Shift+오른쪽 클릭): 속성·압축·보내기·연결 프로그램·바로 가기 만들기 등\n"
+     "· 오른쪽 클릭 → 윈도우 탐색기와 같은 메뉴(속성·압축·보내기·연결 프로그램·바로 가기 만들기 등) + 즐겨찾기 / Shift+오른쪽 클릭: 확장 메뉴 / Ctrl+오른쪽 클릭: 스마트탐색기 전용 메뉴\n"
      "   윈도우 탐색기의 메뉴가 그대로 나옵니다. 빈 곳에서 열면 '새로 만들기' 메뉴도 쓸 수 있습니다."),
 ]
 SMARTGONG_LOGO_PNG = "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"
