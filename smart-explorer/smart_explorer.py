@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.63"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.64"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -2420,6 +2420,9 @@ class PreviewPanel(ttk.Frame):
         self.msg = ttk.Label(self.body, text="파일을 선택하면 미리보기가 나옵니다.", anchor="center", foreground="#888")
         self._bg_job = None
         self.msg.bind("<Configure>", lambda e: self._bg_later())
+        self.folder_cv = tk.Canvas(self.body, highlightthickness=0, bd=0)     # 폴더 안 목록: 배경 그림 위에 왼쪽 정렬로
+        self._folder_text = ""
+        self.folder_cv.bind("<Configure>", lambda e: self._folder_draw())
         self._show(self.msg)
 
     # 광고 칸 (화면 맨 오른쪽 아래 칸에만 하나)
@@ -2452,7 +2455,7 @@ class PreviewPanel(ttk.Frame):
     # 공통
     def _show(self, w):
         for x in (self.shell_frame, self.pic_frame, self.doc_frame, self.grid_frame, self.arc_frame, self.msg,
-                  self.lock_frame, self.gate_frame):
+                  self.folder_cv, self.lock_frame, self.gate_frame):
             if x is not w:
                 x.pack_forget()
         w.pack(fill="both", expand=True)
@@ -2469,30 +2472,37 @@ class PreviewPanel(ttk.Frame):
         try:
             if not self.msg.winfo_ismapped():
                 return
-            if getattr(self, "_msg_left", False):           # 폴더 목록: 배경 그림 없이 왼쪽 위에 붙여 (왼쪽에서 두 글자쯤 띄움)
-                self._bg_img = None
-                self.msg.configure(image="", compound="none", padding=(2 * self.msg_cw(), 4, 0, 0))
-                return
-            self.msg.configure(padding=0)
             img = background_photo(self.msg.winfo_width(), self.msg.winfo_height())
             self._bg_img = img
             self.msg.configure(image=img or "", compound="center")
         except tk.TclError:
             pass
 
-    def msg_cw(self):
+    def _folder_draw(self):
+        cv = self.folder_cv
+        if not cv.winfo_ismapped():
+            return
         try:
             from tkinter import font as tkfont
-            return max(6, tkfont.Font(root=self, font=FONT).measure("0"))
-        except Exception:
-            return 9
+            f = tkfont.Font(root=self, font=(FONT[0], fsz(10)))
+            cv.delete("all")
+            w, h = cv.winfo_width(), cv.winfo_height()
+            img = background_photo(w, h)
+            self._cv_img = img
+            if img is not None:
+                cv.create_image(0, 0, anchor="nw", image=img)
+            else:
+                cv.configure(bg=ttk.Style(self).lookup("TLabel", "background") or "#f0f0f0")
+            cv.create_text(2 * f.measure("0"), 8, anchor="nw", text=self._folder_text, font=f,
+                           fill=THEME.get("text_color") or "#000000")
+        except tk.TclError:
+            pass
 
     def _width(self):
         self.update_idletasks()
         return max(200, self.body.winfo_width() - 40)
 
     def clear(self):
-        self._msg_left = False
         if self.shell:
             self.shell.unload()
         if not self.nested and self.current:
@@ -2541,11 +2551,12 @@ class PreviewPanel(ttk.Frame):
                 names = "\n".join(("📁 " if h["is_dir"] else "    ") + h["name"]
                                   for h in sorted(items, key=lambda h: (not h["is_dir"], h["name"].lower()))[:40])
                 more = "\n    …" if len(items) > 40 else ""
-                self.msg.configure(text=f"📁 {os.path.basename(path) or path}\n폴더 {nd}개 · 파일 {len(items) - nd}개"
-                                        f"\n\n{names}{more}", anchor="nw", justify="left",
-                                foreground=THEME.get("text_color") or "#000000")      # 폴더 목록은 진하게 (검정)
-                self._msg_left = True
-                self._show(self.msg)
+                self._folder_text = (f"📁 {os.path.basename(path) or path}\n폴더 {nd}개 · 파일 {len(items) - nd}개"
+                                     f"\n\n{names}{more}")
+                self._show(self.folder_cv)                       # 배경 그림 위에 왼쪽 위부터 (왼쪽에서 두 글자쯤 띄움)
+                self.update_idletasks()
+                self._folder_draw()
+                self.after_idle(self._folder_draw)
             except OSError as e:
                 self.msg.configure(text=f"폴더를 읽을 수 없습니다: {e}")
             return
