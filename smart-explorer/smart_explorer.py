@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.59"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.60"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -4628,7 +4628,7 @@ class SearchPane(tk.Frame):
                 e.widget.configure(cursor="hand2" if out else "")
             except tk.TclError:
                 pass
-            self.app.set_hint("놓으면 새 창으로 열립니다" if out else "")
+            self.app.set_hint("놓으면 새 창으로 열립니다 (다른 탐색기 창의 탭 줄 위면 그 창에 합쳐짐)" if out else "")
 
     def _tab_release(self, e):
         d, self._tdrag = getattr(self, "_tdrag", None), None
@@ -4640,9 +4640,31 @@ class SearchPane(tk.Frame):
         if not d:
             return
         if d["moved"] and len(self.tabs) > 1 and self._tab_out(e):
-            self.tab_to_window(d["i"], e.x_root - 120, e.y_root - 14)
+            self.tab_detach(d["i"], e.x_root, e.y_root)
         elif not d["moved"]:
             self.tab_select(d["i"])
+
+    def tab_add(self, path, x=None):
+        """다른 창에서 끌어온 탭을 받아 탭 줄의 놓은 위치에 끼워 넣음"""
+        self.tabs[self.tab_i]["back"] = list(self.back_stack)
+        pos = len(self.tabs)
+        if x is not None:
+            frames = [c for c in self.tabbar.winfo_children() if hasattr(c, "_tab_labels")]
+            pos = sum(1 for f in frames if f.winfo_rootx() + f.winfo_width() // 2 < x)
+        self.tabs.insert(pos, {"cwd": path, "back": []})
+        self.tab_i = pos
+        self._tab_load()
+
+    def tab_detach(self, i, x, y):
+        """탭을 창 밖에 놓음: 다른 탐색기 창의 탭 줄이면 거기에 합치고, 아니면 새 창으로"""
+        tab = self.tabs[i]
+        path = (self.cwd if i == self.tab_i and self.cwd else tab["cwd"]) or os.path.expanduser("~")
+        app = self.app
+
+        def work():
+            ok = app.tabbus.offer(path, x, y)
+            app.busq.put((self, tab, path, ok, x, y))
+        threading.Thread(target=work, daemon=True).start()
 
     def tab_to_window(self, i, x=None, y=None, move=True):
         """탭의 폴더를 독립된 새 창으로 엶. move면 이 탭은 닫음 (탭이 하나뿐이면 그대로 둠)"""
@@ -6939,6 +6961,97 @@ def open_new_window(path, x=None, y=None):
         return True
     except Exception:
         return False
+
+
+WIN_DIR = os.path.join(APP_DIR, "windows")
+
+
+class TabBus:
+    """떠 있는 스마트탐색기 창들끼리 탭을 주고받는 통로.
+    창마다 내 컴퓨터 안에서만 쓰는 작은 연결 구멍을 열고 windows 폴더에 번호를 적어 둠.
+    탭을 놓으면 다른 창들에 '이 화면 위치에 놓았다'고 물어서, 그 위치가 탭 줄이면 그 창이 받음."""
+
+    def __init__(self, app):
+        import socket
+        import secrets
+        self.app = app
+        self.q = queue.Queue()
+        self.token = secrets.token_hex(8)
+        self.sock = None
+        self.file = None
+        try:
+            os.makedirs(WIN_DIR, exist_ok=True)
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.bind(("127.0.0.1", 0))
+            s.listen(5)
+            self.sock = s
+            self.file = os.path.join(WIN_DIR, f"{os.getpid()}_{self.token}.json")
+            with open(self.file, "w", encoding="utf-8") as f:
+                json.dump({"port": s.getsockname()[1], "token": self.token, "pid": os.getpid()}, f)
+            threading.Thread(target=self._serve, daemon=True).start()
+        except Exception:
+            self.sock = None
+
+    def _serve(self):
+        while self.sock is not None:
+            try:
+                c, _ = self.sock.accept()
+            except OSError:
+                break
+            try:
+                with c:
+                    c.settimeout(2)
+                    req = json.loads(c.recv(8192).decode("utf-8", "ignore") or "{}")
+                    if req.get("token") != self.token or req.get("op") != "tab":
+                        continue
+                    evt, box = threading.Event(), {}
+                    self.q.put((req, evt, box))
+                    evt.wait(1.5)
+                    c.sendall(b"ok" if box.get("ok") else b"no")
+            except Exception:
+                pass
+
+    def offer(self, path, x, y):
+        """다른 창이 이 탭을 받으면 True (새 창을 열 필요 없음)"""
+        import socket
+        try:
+            names = os.listdir(WIN_DIR)
+        except OSError:
+            return False
+        for n in names:
+            fp = os.path.join(WIN_DIR, n)
+            if not n.endswith(".json") or fp == self.file:
+                continue
+            try:
+                with open(fp, encoding="utf-8") as f:
+                    info = json.load(f)
+                with socket.create_connection(("127.0.0.1", int(info["port"])), timeout=0.5) as c:
+                    c.settimeout(2.5)
+                    c.sendall(json.dumps({"token": info["token"], "op": "tab", "path": path,
+                                          "x": int(x), "y": int(y)}).encode())
+                    if c.recv(8) == b"ok":
+                        return True
+            except ConnectionError:
+                try:
+                    os.remove(fp)                           # 꺼진 창이 남긴 흔적
+                except OSError:
+                    pass
+            except Exception:
+                pass
+        return False
+
+    def close(self):
+        s, self.sock = self.sock, None
+        try:
+            if s:
+                s.close()
+        except Exception:
+            pass
+        try:
+            if self.file:
+                os.remove(self.file)
+        except OSError:
+            pass
 
 
 class SingleInstance:
@@ -9442,6 +9555,7 @@ class App:
             self.s["layout"] = {"cols": 1, "rows": 1}
             self.s["alarm"] = {"enabled": False}
             self.s["autostart_init"] = True
+        self.busq = queue.Queue()                      # 탭 옮기기 결과 (다른 창이 받았는지)
         self.bgq = queue.Queue()                       # 트레이·단축키·두 번째 실행에서 온 요청
         install_ime_fix(root)                          # 한글 입력이 칸 안에서 같은 크기로 자연스럽게
         saved = self.s.get("alarm", {})
@@ -9508,6 +9622,8 @@ class App:
         if not self.secondary:
             self._reset_alarm()
             threading.Thread(target=self._holiday_loop, daemon=True).start()
+        self.tabbus = TabBus(self)                       # 다른 탐색기 창과 탭 주고받기
+        root.after(80, self._tabbus_poll)
         root.after(500, self._bg_poll)
         root.after(30000, self._autosave)
         if not self.secondary:
@@ -10072,6 +10188,59 @@ class App:
         self.s["ocr_nag_at"] = time.time()
         self.schedule_save()
         self._ocr_dlg = OcrInstallDialog(self)
+
+    def _tabbus_poll(self):
+        try:
+            while True:
+                req, evt, box = self.tabbus.q.get_nowait()
+                try:
+                    box["ok"] = self._tab_accept(req)
+                except Exception:
+                    box["ok"] = False
+                evt.set()
+        except queue.Empty:
+            pass
+        except Exception:
+            pass
+        try:
+            while True:
+                pane, tab, path, ok, x, y = self.busq.get_nowait()
+                if tab in pane.tabs:
+                    if not ok and not open_new_window(path, x - 120, y - 14):
+                        continue
+                    pane.tab_close(pane.tabs.index(tab))
+        except queue.Empty:
+            pass
+        except Exception:
+            pass
+        try:
+            self.root.after(80, self._tabbus_poll)
+        except tk.TclError:
+            pass
+
+    def _tab_accept(self, req):
+        """다른 창에서 탭을 이 화면 위치에 놓았을 때: 그 위치가 내 탭 줄이면 받음"""
+        if not self.root.winfo_viewable():
+            return False
+        path = req.get("path") or ""
+        if not os.path.isdir(path):
+            return False
+        x, y = req["x"], req["y"]
+        for p in self.panes:
+            bar = p.tabbar
+            if not bar.winfo_viewable():
+                continue
+            l, t = bar.winfo_rootx(), bar.winfo_rooty()
+            if l - 6 <= x <= l + bar.winfo_width() + 6 and t - 8 <= y <= t + bar.winfo_height() + 8:
+                p.tab_add(path, x)
+                self.root.deiconify()
+                self.root.lift()
+                try:
+                    self.root.focus_force()
+                except tk.TclError:
+                    pass
+                return True
+        return False
 
     def _bg_poll(self):
         try:
@@ -10735,6 +10904,10 @@ class App:
             self.cache.clear()
 
     def on_close(self):
+        try:
+            self.tabbus.close()
+        except Exception:
+            pass
         try:
             if self.ole_target is not None:
                 self.ole_target.revoke()
