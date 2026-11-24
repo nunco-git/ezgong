@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.66"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.67"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -4688,14 +4688,15 @@ class SearchPane(tk.Frame):
         if not d["moved"] and abs(e.x_root - d["x"]) + abs(e.y_root - d["y"]) < 8:
             return
         d["moved"] = True
-        out = len(self.tabs) > 1 and self._tab_out(e)
+        out = (len(self.tabs) > 1 or len(self.app.panes) == 1) and self._tab_out(e)
         if out != d["out"]:
             d["out"] = out
             try:
                 e.widget.configure(cursor="hand2" if out else "")
             except tk.TclError:
                 pass
-            self.app.set_hint("놓으면 새 창으로 열립니다 (다른 탐색기 창의 탭 줄 위면 그 창에 합쳐짐)" if out else "")
+            self.app.set_hint(("놓으면 새 창으로 열립니다 (다른 탐색기 창의 탭 줄 위면 그 창에 합쳐짐)" if len(self.tabs) > 1
+                               else "다른 탐색기 창의 탭 줄 위에 놓으면 그 창에 합쳐집니다") if out else "")
 
     def _tab_release(self, e):
         d, self._tdrag = getattr(self, "_tdrag", None), None
@@ -4706,8 +4707,11 @@ class SearchPane(tk.Frame):
             pass
         if not d:
             return
-        if d["moved"] and len(self.tabs) > 1 and self._tab_out(e):
-            self.tab_detach(d["i"], e.x_root, e.y_root)
+        if d["moved"]:
+            only = len(self.tabs) == 1 and len(self.app.panes) == 1      # 이 창의 마지막 탭
+            if len(self.tabs) > 1 or only:
+                # 다른 창의 탭 줄 위면 합치기 (탭이 하나뿐인 창도 가능), 아니면 새 창 (탭이 둘 이상일 때)
+                self.tab_detach(d["i"], e.x_root, e.y_root, allow_new=len(self.tabs) > 1 and self._tab_out(e))
         elif not d["moved"]:
             self.tab_select(d["i"])
 
@@ -4722,15 +4726,15 @@ class SearchPane(tk.Frame):
         self.tab_i = pos
         self._tab_load()
 
-    def tab_detach(self, i, x, y):
-        """탭을 창 밖에 놓음: 다른 탐색기 창의 탭 줄이면 거기에 합치고, 아니면 새 창으로"""
+    def tab_detach(self, i, x, y, allow_new=True):
+        """탭을 놓음: 다른 탐색기 창의 탭 줄이면 거기에 합치고, 아니면(allow_new) 새 창으로"""
         tab = self.tabs[i]
         path = (self.cwd if i == self.tab_i and self.cwd else tab["cwd"]) or os.path.expanduser("~")
         app = self.app
 
         def work():
             ok = app.tabbus.offer(path, x, y)
-            app.busq.put((self, tab, path, ok, x, y))
+            app.busq.put((self, tab, path, ok, x, y, allow_new))
         threading.Thread(target=work, daemon=True).start()
 
     def tab_to_window(self, i, x=None, y=None, move=True):
@@ -7041,15 +7045,12 @@ class _Noop:
         return lambda *a, **k: ""
 
 
-def open_new_window(path, x=None, y=None):
-    """폴더를 독립된 새 탐색기 창(별도 프로세스)으로 엶. 새 창은 트레이·알람·설정 저장을 하지 않음"""
+def _spawn_self(args):
     if getattr(sys, "frozen", False):
         cmd = [sys.executable]
     else:
         cmd = [sys.executable, os.path.abspath(__file__)]
-    cmd += ["--new-window", path]
-    if x is not None and y is not None:
-        cmd += ["--pos", f"{int(x)},{int(y)}"]
+    cmd += args
     env = {k: v for k, v in os.environ.items() if not k.startswith(("_MEIPASS", "_PYI"))}
     env["PYINSTALLER_RESET_ENVIRONMENT"] = "1"           # exe(onefile)가 자기 자신을 다시 실행할 때 필요
     kw = {}
@@ -7062,6 +7063,23 @@ def open_new_window(path, x=None, y=None):
         return False
 
 
+def open_new_window(path, x=None, y=None):
+    """폴더를 독립된 새 탐색기 창으로 엶. 미리 숨겨 둔 대기 창이 있으면 그것을 바로 보여 주고(즉시),
+    없으면 새 프로세스를 실행(몇 초 걸림). 새 창은 트레이·알람·설정 저장을 하지 않음"""
+    if TabBus.open_standby(path, x, y):
+        return True
+    cmd = ["--new-window", path]
+    if x is not None and y is not None:
+        cmd += ["--pos", f"{int(x)},{int(y)}"]
+    return _spawn_self(cmd)
+
+
+def ensure_standby():
+    """숨겨 둔 대기 창이 없으면 하나 준비 (새 창이 바로 뜨게)"""
+    if not TabBus.has_standby():
+        _spawn_self(["--standby"])
+
+
 WIN_DIR = os.path.join(APP_DIR, "windows")
 
 
@@ -7070,10 +7088,11 @@ class TabBus:
     창마다 내 컴퓨터 안에서만 쓰는 작은 연결 구멍을 열고 windows 폴더에 번호를 적어 둠.
     탭을 놓으면 다른 창들에 '이 화면 위치에 놓았다'고 물어서, 그 위치가 탭 줄이면 그 창이 받음."""
 
-    def __init__(self, app):
+    def __init__(self, app, standby=False):
         import socket
         import secrets
         self.app = app
+        self.standby = standby
         self.q = queue.Queue()
         self.token = secrets.token_hex(8)
         self.sock = None
@@ -7086,10 +7105,79 @@ class TabBus:
             self.sock = s
             self.file = os.path.join(WIN_DIR, f"{os.getpid()}_{self.token}.json")
             with open(self.file, "w", encoding="utf-8") as f:
-                json.dump({"port": s.getsockname()[1], "token": self.token, "pid": os.getpid()}, f)
+                json.dump({"port": s.getsockname()[1], "token": self.token, "pid": os.getpid(),
+                           "standby": bool(standby)}, f)
             threading.Thread(target=self._serve, daemon=True).start()
         except Exception:
             self.sock = None
+
+    def set_standby(self, on):
+        self.standby = on
+        try:
+            with open(self.file, "w", encoding="utf-8") as f:
+                json.dump({"port": self.sock.getsockname()[1], "token": self.token, "pid": os.getpid(),
+                           "standby": bool(on)}, f)
+        except Exception:
+            pass
+
+    @staticmethod
+    def _peers(standby):
+        """떠 있는 창 정보 목록 (standby: 대기 창만 / 일반 창만)"""
+        out = []
+        try:
+            names = os.listdir(WIN_DIR)
+        except OSError:
+            return out
+        for n in names:
+            fp = os.path.join(WIN_DIR, n)
+            if not n.endswith(".json"):
+                continue
+            try:
+                with open(fp, encoding="utf-8") as f:
+                    info = json.load(f)
+                if bool(info.get("standby")) == standby:
+                    out.append((fp, info))
+            except Exception:
+                pass
+        return out
+
+    @staticmethod
+    def _send(fp, info, msg, wait=2.5):
+        import socket
+        try:
+            with socket.create_connection(("127.0.0.1", int(info["port"])), timeout=0.5) as c:
+                c.settimeout(wait)
+                c.sendall(json.dumps(dict(msg, token=info["token"])).encode())
+                return c.recv(8) == b"ok"
+        except ConnectionError:
+            try:
+                os.remove(fp)                               # 꺼진 창이 남긴 흔적
+            except OSError:
+                pass
+        except Exception:
+            pass
+        return False
+
+    @staticmethod
+    def has_standby():
+        for fp, info in TabBus._peers(True):
+            if TabBus._send(fp, info, {"op": "ping"}, 1.0):
+                return True
+        return False
+
+    @staticmethod
+    def other_windows_alive(me):
+        for fp, info in TabBus._peers(False):
+            if fp != me and TabBus._send(fp, info, {"op": "ping"}, 1.0):
+                return True
+        return False
+
+    @staticmethod
+    def open_standby(path, x, y):
+        for fp, info in TabBus._peers(True):
+            if TabBus._send(fp, info, {"op": "open", "path": path, "x": int(x or 0), "y": int(y or 0)}, 3.0):
+                return True
+        return False
 
     def _serve(self):
         while self.sock is not None:
@@ -7101,7 +7189,10 @@ class TabBus:
                 with c:
                     c.settimeout(2)
                     req = json.loads(c.recv(8192).decode("utf-8", "ignore") or "{}")
-                    if req.get("token") != self.token or req.get("op") != "tab":
+                    if req.get("token") != self.token or req.get("op") not in ("tab", "open", "ping"):
+                        continue
+                    if req["op"] == "ping":
+                        c.sendall(b"ok")
                         continue
                     evt, box = threading.Event(), {}
                     self.q.put((req, evt, box))
@@ -7124,6 +7215,8 @@ class TabBus:
             try:
                 with open(fp, encoding="utf-8") as f:
                     info = json.load(f)
+                if info.get("standby"):
+                    continue
                 with socket.create_connection(("127.0.0.1", int(info["port"])), timeout=0.5) as c:
                     c.settimeout(2.5)
                     c.sendall(json.dumps({"token": info["token"], "op": "tab", "path": path,
@@ -9640,8 +9733,9 @@ class App:
     _ole_req = _ole_drop_req = _ole_state = None
     MAX_SPLIT = 4
 
-    def __init__(self, root, instance=None, new_window=None, pos=None):
+    def __init__(self, root, instance=None, new_window=None, pos=None, standby=False):
         self.root = root
+        self.standby = standby                           # 숨겨 둔 대기 창 (새 창이 바로 뜨게)
         self.s = load_settings()
         self.secondary = new_window is not None          # 탭을 떼어 연 독립 창: 트레이·알람·단축키·설정 저장 없음
         if self.secondary:
@@ -9721,7 +9815,11 @@ class App:
         if not self.secondary:
             self._reset_alarm()
             threading.Thread(target=self._holiday_loop, daemon=True).start()
-        self.tabbus = TabBus(self)                       # 다른 탐색기 창과 탭 주고받기
+        self.tabbus = TabBus(self, standby=standby)      # 다른 탐색기 창과 탭 주고받기
+        if standby:
+            root.after(10000, self._standby_watch)
+        elif not self.secondary:
+            root.after(12000, lambda: threading.Thread(target=ensure_standby, daemon=True).start())
         root.after(80, self._tabbus_poll)
         root.after(500, self._bg_poll)
         root.after(30000, self._autosave)
@@ -10293,7 +10391,7 @@ class App:
             while True:
                 req, evt, box = self.tabbus.q.get_nowait()
                 try:
-                    box["ok"] = self._tab_accept(req)
+                    box["ok"] = self._standby_open(req) if req.get("op") == "open" else self._tab_accept(req)
                 except Exception:
                     box["ok"] = False
                 evt.set()
@@ -10303,11 +10401,15 @@ class App:
             pass
         try:
             while True:
-                pane, tab, path, ok, x, y = self.busq.get_nowait()
+                pane, tab, path, ok, x, y, allow_new = self.busq.get_nowait()
                 if tab in pane.tabs:
-                    if not ok and not open_new_window(path, x - 120, y - 14):
-                        continue
-                    pane.tab_close(pane.tabs.index(tab))
+                    if not ok:
+                        if not allow_new or not open_new_window(path, x - 120, y - 14):
+                            continue
+                    if len(pane.tabs) > 1:
+                        pane.tab_close(pane.tabs.index(tab))
+                    elif len(self.panes) == 1:          # 마지막 탭을 다른 창이 받았으면 이 창은 닫음
+                        self.close_window()
         except queue.Empty:
             pass
         except Exception:
@@ -10316,6 +10418,56 @@ class App:
             self.root.after(80, self._tabbus_poll)
         except tk.TclError:
             pass
+
+    def _standby_open(self, req):
+        """대기 창이 일을 받음: 폴더를 열고 그 자리에 바로 보여 줌 → 다음 대기 창 준비"""
+        if not self.standby:
+            return False
+        path = req.get("path") or ""
+        if not os.path.isdir(path) or not self.panes:
+            return False
+        self.standby = False
+        self.tabbus.set_standby(False)
+        p = self.panes[0]
+        p.tabs = [{"cwd": path, "back": []}]
+        p.tab_i = 0
+        p._tab_load()
+        x, y = max(0, req.get("x", 0) - 120), max(0, req.get("y", 0) - 14)
+        r = self.root
+        r.geometry(f"1200x780+{x}+{y}")
+        r.deiconify()
+        r.lift()
+        try:
+            r.focus_force()
+        except tk.TclError:
+            pass
+        r.after(1500, lambda: threading.Thread(target=ensure_standby, daemon=True).start())
+        return True
+
+    def _standby_watch(self):
+        """대기 창은 다른 탐색기 창이 하나도 없으면 스스로 끝냄"""
+        if not self.standby:
+            return
+        box = {}
+
+        def work():
+            box["alive"] = TabBus.other_windows_alive(self.tabbus.file)
+        t = threading.Thread(target=work, daemon=True)
+        t.start()
+
+        def after():
+            if not t.is_alive():
+                if not box.get("alive"):
+                    self._standby_miss = getattr(self, "_standby_miss", 0) + 1
+                    if self._standby_miss >= 2:
+                        self.on_close()
+                        return
+                else:
+                    self._standby_miss = 0
+                self.root.after(10000, self._standby_watch)
+            else:
+                self.root.after(500, after)
+        self.root.after(500, after)
 
     def _tab_accept(self, req):
         """다른 창에서 탭을 이 화면 위치에 놓았을 때: 그 위치가 내 탭 줄이면 받음"""
@@ -11047,6 +11199,9 @@ def main():
             pass
     start_hidden = "--tray" in sys.argv
     new_window, pos = None, None
+    standby = "--standby" in sys.argv                   # 숨겨 둔 대기 창
+    if standby:
+        new_window = os.path.expanduser("~")
     if "--new-window" in sys.argv:                     # 탭을 끌어 떼어 연 독립 창
         try:
             new_window = sys.argv[sys.argv.index("--new-window") + 1]
@@ -11065,9 +11220,13 @@ def main():
             return
         # 대답이 없으면 다른 프로그램이 같은 번호를 쓰는 것 → 그대로 실행 (하나만 실행 기능만 빠짐)
     root = tk.Tk()
+    if standby:
+        root.withdraw()
     set_window_icon(root)
-    app = App(root, instance, new_window=new_window, pos=pos)
-    if start_hidden and app.tray.ok:                   # 윈도우 시작 때는 트레이에 숨긴 채로
+    app = App(root, instance, new_window=new_window, pos=pos, standby=standby)
+    if standby:
+        root.withdraw()
+    elif start_hidden and app.tray.ok:                   # 윈도우 시작 때는 트레이에 숨긴 채로
         root.withdraw()
     root.mainloop()
 
