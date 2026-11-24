@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.67"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.68"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -1523,19 +1523,57 @@ def iter_files(root, recursive):
             return
 
 
+SYSTEM_TOP_DIRS = {"windows", "program files", "program files (x86)", "programdata", "recovery", "perflogs",
+                   "msocache", "windows.old", "$winreagent", "config.msi", "intel", "amd"}   # 드라이브 맨 위의 시스템 폴더
+SYSTEM_ANY_DIRS = {"appdata"}                                                              # 어디에 있든 건너뜀 (전체 드라이브 검색·색인 때만)
+
+
+def is_drive_root(p):
+    p = os.path.normpath(p)
+    drive, rest = os.path.splitdrive(p)
+    return (bool(drive) and rest in ("\\", "/", "")) or p == os.sep
+
+
+def fixed_drives():
+    """내 컴퓨터의 하드 드라이브(고정 디스크) 맨 위 경로 목록. 테스트용: 환경변수 SE_TEST_DRIVES (; 로 구분)"""
+    fake = os.environ.get("SE_TEST_DRIVES")
+    if fake:
+        return [d for d in fake.split(";") if d]
+    if sys.platform == "win32":
+        out = []
+        try:
+            import ctypes
+            mask = ctypes.windll.kernel32.GetLogicalDrives()
+            for i in range(26):
+                if mask >> i & 1:
+                    root = f"{chr(65 + i)}:\\"
+                    if ctypes.windll.kernel32.GetDriveTypeW(root) == 3:      # DRIVE_FIXED
+                        out.append(root)
+        except Exception:
+            pass
+        return out
+    return [os.path.expanduser("~")]
+
+
 def iter_entries(root, recursive, dirs=False):
     """(경로, 이름, 수정시각, 크기) — 폴더 목록을 읽을 때 함께 오는 정보를 써서 파일마다 따로 묻지 않음
-    (공유 폴더·네트워크 드라이브에서 특히 빠름). dirs=True면 폴더도 내보냄(크기 -1)"""
+    (공유 폴더·네트워크 드라이브에서 특히 빠름). dirs=True면 폴더도 내보냄(크기 -1).
+    드라이브 맨 위(C:\\ 등)에서 시작하면 윈도우·Program Files 같은 시스템 폴더와 AppData는 건너뜀"""
+    whole = is_drive_root(root)
     stack = [root]
     while stack:
         d = stack.pop()
+        top = whole and d == root
         try:
             with os.scandir(d) as it:
                 subs = []
                 for e in it:
                     try:
                         if e.is_dir(follow_symlinks=False):
-                            if recursive and e.name.lower() not in SKIP_DIRS:
+                            low = e.name.lower()
+                            if whole and (low in SYSTEM_ANY_DIRS or (top and low in SYSTEM_TOP_DIRS)):
+                                continue
+                            if recursive and low not in SKIP_DIRS:
                                 subs.append(e.path)
                             if dirs:
                                 yield e.path, e.name, e.stat(follow_symlinks=False).st_mtime, -1
@@ -1551,20 +1589,153 @@ def iter_entries(root, recursive, dirs=False):
         stack.extend(reversed(subs))
 
 
+# ───────────── 휴지통 (윈도우 $Recycle.Bin 읽기) ─────────────
+def _parse_trash_info(info_path):
+    """$I 파일 → (원래 경로, 삭제한 시각(초))  (윈도우 7~11 형식)"""
+    try:
+        with open(info_path, "rb") as f:
+            data = f.read(2048)
+        ver = int.from_bytes(data[:8], "little")
+        ft = int.from_bytes(data[16:24], "little")
+        ts = ft / 1e7 - 11644473600 if ft else 0
+        if ver == 2:
+            n = int.from_bytes(data[24:28], "little")
+            path = data[28:28 + 2 * n].decode("utf-16-le", "ignore")
+        else:
+            path = data[24:24 + 520].decode("utf-16-le", "ignore")
+        return path.split("\0")[0], ts
+    except Exception:
+        return "", 0
+
+
+def trash_items():
+    """휴지통에 든 항목들: [{'r': 실제 경로($R…), 'info': $I 경로, 'orig': 원래 경로, 'ts': 삭제 시각}]"""
+    out = []
+    for drive in fixed_drives():
+        base = os.path.join(drive, "$Recycle.Bin")
+        try:
+            sids = os.listdir(base)
+        except OSError:
+            continue
+        for sid in sids:
+            d = os.path.join(base, sid)
+            try:
+                names = os.listdir(d)
+            except OSError:                      # 다른 사용자의 휴지통은 못 읽음
+                continue
+            for n in names:
+                if not n.startswith("$I"):
+                    continue
+                r = os.path.join(d, "$R" + n[2:])
+                if not os.path.lexists(r):
+                    continue
+                info = os.path.join(d, n)
+                orig, ts = _parse_trash_info(info)
+                out.append({"r": r, "info": info, "orig": orig or r, "ts": ts})
+    return out
+
+
+class Scope:
+    """검색 범위: 여러 드라이브(전체 컴퓨터) 그리고/또는 휴지통"""
+
+    def __init__(self, roots=(), trash=False):
+        self.roots = list(roots)
+        self.trash = trash
+        self.meta = {}
+
+    def entries(self, recursive, dirs=False):
+        for r in self.roots:
+            if os.path.isdir(r):
+                yield from iter_entries(r, recursive, dirs)
+        if self.trash:
+            for t in trash_items():
+                self.meta[t["r"]] = t
+                name = os.path.basename(t["orig"].rstrip("\\/")) or os.path.basename(t["r"])
+                try:
+                    st = os.stat(t["r"])
+                except OSError:
+                    continue
+                if os.path.isdir(t["r"]):
+                    if dirs:
+                        yield t["r"], name, st.st_mtime, -1
+                    if recursive:
+                        yield from iter_entries(t["r"], True, dirs)
+                else:
+                    yield t["r"], name, st.st_mtime, st.st_size
+
+    def decorate(self, h):
+        """휴지통 안의 항목이면 원래 위치·삭제 날짜를 표시하고 복원에 쓸 정보를 붙임"""
+        p = h.get("path", "")
+        for r, t in self.meta.items():
+            if p == r or p.startswith(r + os.sep):
+                rel = p[len(r):]
+                orig = t["orig"] + rel
+                when = datetime.fromtimestamp(t["ts"]).strftime("%Y-%m-%d %H:%M") if t["ts"] else ""
+                h["trash"] = t
+                h["orig_path"] = orig
+                h["folder"] = "🗑 " + os.path.dirname(orig) + (f"   (삭제 {when})" if when else "")
+                break
+        return h
+
+
+def _entries(root, recursive, dirs=False):
+    return root.entries(recursive, dirs) if isinstance(root, Scope) else iter_entries(root, recursive, dirs)
+
+
+def _decorate(root, h):
+    return root.decorate(h) if isinstance(root, Scope) else h
+
+
+def restore_trash(t):
+    """휴지통 항목을 원래 위치로 되돌림. 같은 이름이 있으면 '이름 (복원)' 으로. 되돌린 경로를 돌려줌"""
+    dst = t["orig"]
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    if os.path.lexists(dst):
+        base, ext = os.path.splitext(dst)
+        n = 1
+        while True:
+            cand = f"{base} (복원{'' if n == 1 else ' ' + str(n)}){ext}"
+            if not os.path.lexists(cand):
+                dst = cand
+                break
+            n += 1
+    shutil.move(t["r"], dst)
+    try:
+        os.remove(t["info"])
+    except OSError:
+        pass
+    return dst
+
+
+def purge_trash(t):
+    """휴지통 항목을 완전히 지움"""
+    if os.path.isdir(t["r"]) and not os.path.islink(t["r"]):
+        shutil.rmtree(t["r"], ignore_errors=True)
+    else:
+        try:
+            os.remove(t["r"])
+        except OSError:
+            pass
+    try:
+        os.remove(t["info"])
+    except OSError:
+        pass
+
+
 def name_worker(root, pats, recursive, out_q, stop):
     """파일명 검색: 문서 내용은 읽지 않고 파일·폴더 이름만 비교 (아주 빠름)"""
     scanned = found = 0
     last = time.time()
-    for path, name, mtime, size in iter_entries(root, recursive, dirs=True):
+    for path, name, mtime, size in _entries(root, recursive, dirs=True):
         if stop.is_set():
             break
         scanned += 1
         if all(p.search(name) for p in pats):
             found += 1
-            out_q.put(("hit", {
+            out_q.put(("hit", _decorate(root, {
                 "path": path, "name": name, "folder": os.path.dirname(path),
                 "mtime": datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M"),
-                "count": 0, "snippets": [], "name_hit": True, "is_dir": size < 0}))
+                "count": 0, "snippets": [], "name_hit": True, "is_dir": size < 0})))
         if time.time() - last > 0.2:
             last = time.time()
             out_q.put(("progress", scanned, path))
@@ -1580,10 +1751,10 @@ def search_worker(root, pats, exts, recursive, name_search, out_q, stop, cache, 
     batch = []
 
     def emit(path, name, mtime, count=0, snippets=(), name_hit=False):
-        out_q.put(("hit", {
+        out_q.put(("hit", _decorate(root, {
             "path": path, "name": name, "folder": os.path.dirname(path),
             "mtime": datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M"),
-            "count": count, "snippets": list(snippets), "name_hit": name_hit}))
+            "count": count, "snippets": list(snippets), "name_hit": name_hit})))
 
     def flush():
         """모아 둔 파일들의 색인을 한 번에 꺼내 와서 찾기"""
@@ -1625,7 +1796,7 @@ def search_worker(root, pats, exts, recursive, name_search, out_q, stop, cache, 
         batch.clear()
         return False
 
-    for path, name, mtime, size in iter_entries(root, recursive):
+    for path, name, mtime, size in _entries(root, recursive):
         if stop.is_set():
             break
         ext = os.path.splitext(name)[1].lower()
@@ -3653,7 +3824,9 @@ class BatchRenameDialog:
 # ───────────────────────── 검색 칸(분할 화면 하나) ─────────────────────────
 OPTION_LABELS = [("recursive", "하위 폴더 포함", True), ("name_search", "본문 검색 때 파일명도 함께", True),
                  ("ignore_space", "띄어쓰기 무시", True), ("ocr", "스캔 PDF 글자 인식", True),
-                 ("shell_preview", "원래 모양 미리보기", True)]
+                 ("shell_preview", "원래 모양 미리보기", True),
+                 ("scope_all", "💻 컴퓨터 전체에서 찾기 (모든 하드 드라이브 — 위 폴더 대신)", False),
+                 ("scope_trash", "🗑 휴지통에서 찾기 (삭제한 파일)", False)]
 
 
 # ───────────── 윈도우 탐색기와 끌어다 놓기 (OLE 드래그 앤 드롭) ─────────────
@@ -4223,6 +4396,13 @@ class SearchPane(tk.Frame):
         opts = st.get("opts", {})
         self.type_vars = {lb: tk.BooleanVar(value=types.get(lb, d)) for lb, _, d in TYPE_GROUPS}
         self.opt_vars = {k: tk.BooleanVar(value=opts.get(k, d)) for k, _, d in OPTION_LABELS}
+        for key, txt, tip in (("scope_all", "💻 전체", "컴퓨터 전체(모든 하드 드라이브)에서 찾기 — 특정 폴더 대신. 파일명·본문 검색 모두 적용"),
+                              ("scope_trash", "🗑 휴지통", "휴지통에서 찾기 (찾은 뒤 우클릭 → 원래 위치로 복원)")):
+            cb = ttk.Checkbutton(r2, text=txt, variable=self.opt_vars[key], style="Toolbutton",
+                                 command=self._scope_changed)
+            cb.pack(side="left", padx=(2, 0))
+            cb.bind("<Enter>", lambda e, t=tip: self.app.set_hint(t), add="+")
+            cb.bind("<Leave>", lambda e: self.app.set_hint(""), add="+")
         mb = ttk.Menubutton(r2, text="옵션")
         menu = tk.Menu(mb, tearoff=0)
         menu.add_command(label="파일 종류", state="disabled")
@@ -4231,7 +4411,8 @@ class SearchPane(tk.Frame):
         menu.add_separator()
         for k, lb, _ in OPTION_LABELS:
             menu.add_checkbutton(label=lb, variable=self.opt_vars[k],
-                                 command=(self.refresh_preview if k == "shell_preview" else None))
+                                 command=(self.refresh_preview if k == "shell_preview" else
+                                          self._scope_changed if k.startswith("scope_") else None))
         mb["menu"] = menu
         mb.pack(side="left", padx=(2, 0))
         self.opt_btn = mb
@@ -4942,7 +5123,15 @@ class SearchPane(tk.Frame):
             return
         folder = (self.folder_var.get() if self.pinned_var.get() else (self.cwd or self.folder_var.get()))
         folder = folder.strip().strip('"')
-        if not os.path.isdir(folder):
+        sa, st_ = self.opt_vars["scope_all"].get(), self.opt_vars["scope_trash"].get()
+        scope = None
+        if sa or st_:                                   # 컴퓨터 전체 / 휴지통
+            roots = fixed_drives() if sa else []
+            if sa and not roots:
+                messagebox.showwarning(APP_NAME, "하드 드라이브를 찾지 못했습니다.")
+                return
+            scope = Scope(roots, st_)
+        elif not os.path.isdir(folder):
             messagebox.showwarning(APP_NAME, "폴더를 찾을 수 없습니다.\n" + folder)
             return
         terms = parse_query(self.query_var.get())
@@ -4960,7 +5149,7 @@ class SearchPane(tk.Frame):
         self.hits.clear()
         self.preview.clear()
         self._set_matches([])
-        folder = os.path.normpath(folder)
+        folder = scope if scope else os.path.normpath(folder)
         self.stop_event = threading.Event()
         self.q = queue.Queue()
         self.warn = ""
@@ -4979,6 +5168,11 @@ class SearchPane(tk.Frame):
         self.progress.pack(side="left", padx=(0, 4), before=self.opt_btn)
         self.progress.start(12)
         self.status_var.set("검색 중…")
+
+    def _scope_changed(self):
+        a, t = self.opt_vars["scope_all"].get(), self.opt_vars["scope_trash"].get()
+        self.status_var.set(("💻 컴퓨터 전체" if a else "") + (" + " if a and t else "") + ("🗑 휴지통" if t else "") +
+                            " 에서 찾습니다 (위 폴더 대신)" if (a or t) else "지정한 폴더에서 찾습니다.")
 
     def stop(self):
         self.stop_event.set()
@@ -5197,6 +5391,16 @@ class SearchPane(tk.Frame):
             self.tree.selection_set(())
         has = bool(self.tree.selection())
         browse = self.mode == "browse"
+        if has and any("trash" in self.hits.get(i, {}) for i in self.tree.selection()):      # 휴지통 항목: 전용 메뉴
+            m = self.menu
+            m.delete(0, "end")
+            m.add_command(label="↩ 원래 위치로 복원", command=self.trash_restore)
+            m.add_command(label="🗑 완전히 삭제 (되돌릴 수 없음)", command=self.trash_purge)
+            m.add_separator()
+            m.add_command(label="열기", command=self.activate)
+            m.add_command(label="원래 경로 복사", command=self.copy_path)
+            m.tk_popup(e.x_root, e.y_root)
+            return "break"
         if (e.state & 0x1) and OLE_DND is not None and (has or browse):      # Shift+오른쪽 클릭: 윈도우 확장 메뉴
             self.windows_menu(e.x_root, e.y_root, extended=True, own=True)
             return "break"
@@ -5287,6 +5491,55 @@ class SearchPane(tk.Frame):
         return done
 
     # ───────── 파일 동작 ─────────
+    def _trash_selected(self):
+        """선택한 휴지통 항목들 (같은 삭제 항목은 한 번만)"""
+        seen, out = set(), []
+        for i in self.tree.selection():
+            h = self.hits.get(i)
+            if h and "trash" in h and h["trash"]["r"] not in seen:
+                seen.add(h["trash"]["r"])
+                out.append(h["trash"])
+        return out
+
+    def _trash_drop_rows(self, items):
+        rs = {t["r"] for t in items}
+        for iid in list(self.tree.get_children()):
+            t = self.hits.get(iid, {}).get("trash")
+            if t and t["r"] in rs:
+                self.tree.delete(iid)
+                self.hits.pop(iid, None)
+
+    def trash_restore(self):
+        items = self._trash_selected()
+        if not items:
+            return
+        ok, bad, dst = 0, [], ""
+        for t in items:
+            try:
+                dst = restore_trash(t)
+                ok += 1
+            except Exception as ex:
+                bad.append(f"{os.path.basename(t['orig'])}: {ex}")
+        self._trash_drop_rows([t for t in items if not os.path.lexists(t["r"])])
+        msg = f"{ok}개를 원래 위치로 복원했습니다." + (f"\n{dst}" if ok == 1 else "")
+        if bad:
+            msg += "\n\n복원하지 못함:\n" + "\n".join(bad[:5])
+        self.status_var.set(msg.replace("\n", " "))
+        messagebox.showinfo(APP_NAME, msg)
+
+    def trash_purge(self):
+        items = self._trash_selected()
+        if not items:
+            return
+        names = "\n".join("· " + os.path.basename(t["orig"].rstrip("\\/")) for t in items[:8])
+        if not messagebox.askyesno(APP_NAME, f"휴지통에서 완전히 삭제합니다. 되돌릴 수 없습니다.\n\n{names}"
+                                   + ("\n..." if len(items) > 8 else "") + "\n\n계속할까요?", icon="warning"):
+            return
+        for t in items:
+            purge_trash(t)
+        self._trash_drop_rows(items)
+        self.status_var.set(f"{len(items)}개를 완전히 삭제했습니다.")
+
     def open_file(self):
         h = self.current()
         if h:
@@ -6317,6 +6570,12 @@ class TrustDialog:
             if d not in self.lb.get(0, "end"):
                 self.lb.insert("end", d)
                 self._store()
+
+    def add_drives(self):
+        for d in fixed_drives():
+            d = os.path.normpath(d) if sys.platform != "win32" else d
+            if d not in self.lb.get(0, "end"):
+                self.lb.insert("end", d)
 
     def remove(self):
         for i in reversed(self.lb.curselection()):
@@ -8604,7 +8863,11 @@ def user_idle_seconds():
 
 
 def default_index_folders():
-    """바탕화면 · 문서 · 다운로드"""
+    """기본 색인 폴더: 컴퓨터의 모든 하드 드라이브 (윈도우·Program Files·AppData 같은 시스템 폴더는 자동으로 건너뜀).
+    드라이브를 못 찾으면 바탕화면 · 문서 · 다운로드"""
+    drives = [d for d in fixed_drives() if os.path.isdir(d)]
+    if drives:
+        return drives
     out = []
     if sys.platform == "win32":
         try:
@@ -8716,6 +8979,7 @@ class IdleIndexer:
                 seen[f].add(cache.key(path))          # 있는 파일은 모두 기억 (지워진 것만 정리하려고)
                 ext = os.path.splitext(name)[1].lower()
                 if ext in KNOWN_EXTS and ext not in skip and not name.startswith("~$") \
+                        and not (ext in IMAGE_EXTS and size < 30 * 1024) \
                         and size <= (MAX_ARCHIVE_SIZE if ext in ARCHIVE_EXTS else MAX_FILE_SIZE):
                     files.append((path, mtime, size))
         self.total = len(files)
@@ -8932,7 +9196,9 @@ class IndexDialog:
         bf.grid(row=6, column=2, sticky="n", padx=(6, 0))
         ttk.Button(bf, text="추가…", command=self.add).pack(fill="x")
         ttk.Button(bf, text="빼기", command=self.remove).pack(fill="x", pady=(4, 0))
-        ttk.Label(b, text="📌 고정해 둔 폴더는 자동으로 함께 색인합니다.", foreground="#888").grid(
+        ttk.Button(bf, text="💻 모든 하드\n드라이브 추가", command=self.add_drives).pack(fill="x", pady=(10, 0))
+        ttk.Label(b, text="📌 고정해 둔 폴더는 자동으로 함께 색인합니다. 드라이브 전체를 색인할 때 윈도우·Program Files·AppData는 건너뜁니다.\n"
+                          "(처음 한 번은 오래 걸리지만, 쉬는 동안 천천히 하고 이후에는 바뀐 파일만 읽습니다.)", foreground="#888", justify="left").grid(
             row=7, column=0, columnspan=3, sticky="w", pady=(4, 0))
 
         self.status = ttk.Label(b, text="", foreground="#2a6fdb")
@@ -9004,7 +9270,8 @@ GUIDE = [
      "· 여러 단어를 띄어 쓰면 모두 들어 있는 파일, \"따옴표\"로 묶으면 그 구절 그대로 찾습니다.\n"
      "· '띄어쓰기 무시'가 켜져 있으면 '예산집행'으로 '예산 집행'도 찾습니다.\n"
      "· 옵션에서 스캔 PDF·이미지 글자 인식, 파일 종류 선택, 하위 폴더 포함 여부를 정할 수 있습니다.\n"
-     "· 쉬는 동안 바탕화면·문서·다운로드(와 📌 고정 폴더)의 본문, 스캔 PDF·그림 글자까지 미리 읽어 두어(색인) 검색이 빠릅니다.\n"
+     "· [💻 전체] 를 누르면 폴더 대신 컴퓨터의 모든 하드 드라이브에서, [🗑 휴지통] 을 누르면 삭제한 파일 중에서 찾습니다. 찾은 휴지통 파일은 오른쪽 클릭 → [원래 위치로 복원].\n"
+     "· 쉬는 동안 컴퓨터의 모든 하드 드라이브(와 📌 고정 폴더)의 본문, 스캔 PDF·그림 글자까지 미리 읽어 두어(색인) 검색이 빠릅니다.\n"
      "· 검색어를 지우거나 Esc를 누르면 다시 폴더 보기로 돌아옵니다."),
     ("👁 미리보기",
      "· PDF, 엑셀, 파워포인트, 워드, 이미지, 압축파일 내용을 바로 볼 수 있습니다.\n"
