@@ -82,7 +82,7 @@ from tkinter import messagebox
 # 설정
 # ─────────────────────────────────────────────────────────────
 APP_NAME = "스마트클립"
-APP_VERSION = "1.3.2"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
+APP_VERSION = "1.4.0"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
 
 MOD_ALT, MOD_CONTROL, MOD_SHIFT, MOD_WIN, MOD_NOREPEAT = 0x1, 0x2, 0x4, 0x8, 0x4000
 HOTKEY_MODS = MOD_CONTROL | MOD_SHIFT      # 단축키 조합
@@ -4401,13 +4401,74 @@ class App:
         if not info:
             return
         self.menu_open = True
-        ok = messagebox.askyesno(APP_NAME, "스마트클립 새 버전 v%s 이(가) 나왔습니다. (지금 v%s)\n\n"
-                                 "내려받을까요?\n\n받은 SmartClip.exe 를 지금 쓰는 파일 자리에 바꿔 넣고, "
-                                 "트레이 아이콘에서 끝내기 → 다시 실행하세요.\n(기록·메모·설정은 그대로 이어집니다)"
-                                 % (info["version"], APP_VERSION), parent=self.root)
+        if getattr(sys, "frozen", False):
+            ans = messagebox.askyesnocancel(
+                APP_NAME, "스마트클립 새 버전 v%s 이(가) 나왔습니다. (지금 v%s)\n\n"
+                "[예]  ⚡ 자동 업데이트 — 새 버전을 받아 지금 쓰는 파일 자리에 덮어쓰고 자동으로 다시 실행합니다.\n"
+                "[아니요]  내려받기 페이지 열기 (직접 바꾸기)\n[취소]  나중에\n\n"
+                "(기록·메모·설정은 그대로 이어집니다)" % (info["version"], APP_VERSION), parent=self.root)
+        else:
+            ans = False if messagebox.askyesno(APP_NAME, "스마트클립 새 버전 v%s 이(가) 나왔습니다. 내려받기 페이지를 열까요?"
+                                               % info["version"], parent=self.root) else None
         self.menu_open = False
-        if ok:
+        if ans is True:
+            self.auto_update(info)
+        elif ans is False:
             webbrowser.open(DOWNLOAD_URL)
+
+    def auto_update(self, info):
+        """새 exe 를 내려받아 현재 exe 자리에 덮어쓰기 (끝내기 → 덮어쓰기 → 다시 실행)"""
+        exe = os.path.abspath(sys.executable)
+        base = os.path.splitext(exe)
+        new = base[0] + "_update" + base[1]
+        if not os.access(os.path.dirname(exe), os.W_OK):
+            self.menu_open = True
+            messagebox.showwarning(APP_NAME, "이 프로그램이 있는 폴더에 쓸 수 없어 자동 업데이트를 못 합니다.\n"
+                                   "내려받기 페이지에서 받아 직접 바꿔 주세요.", parent=self.root)
+            self.menu_open = False
+            webbrowser.open(DOWNLOAD_URL)
+            return
+        self.toast("새 버전을 내려받는 중… (잠시만 기다려 주세요)")
+        root_url = "https://github.com/%s/releases/download/%s%s/" % (GITHUB_REPO, RELEASE_TAG_PREFIX, info["version"])
+        hdr = {"User-Agent": "SmartClip/%s" % APP_VERSION}
+
+        def work():
+            err = None
+            try:
+                data = net_request(root_url + "SmartClip.exe", headers=hdr, limit=400 * 1024 * 1024, timeout=180)
+                if len(data) < 1024 * 1024 or data[:2] != b"MZ":
+                    raise RuntimeError("내려받은 파일이 올바른 프로그램이 아닙니다.")
+                try:                                          # 공식 해시와 비교 (받을 수 있으면)
+                    sums = net_request(root_url + "SHA256SUMS.txt", headers=hdr).decode("utf-8", "ignore")
+                    want = sums.split()[0].lower()
+                    import hashlib
+                    if len(want) == 64 and hashlib.sha256(data).hexdigest() != want:
+                        raise RuntimeError("파일 검증(SHA256)에 실패했습니다. 다시 시도해 주세요.")
+                except NetHTTPError:
+                    pass
+                with open(new, "wb") as f:
+                    f.write(data)
+            except Exception as e:
+                err = net_error_text(e) if isinstance(e, (NetHTTPError, OSError)) else str(e)
+            self.root.after(0, lambda: done(err))
+
+        def done(err):
+            if err:
+                self.menu_open = True
+                messagebox.showerror(APP_NAME, "자동 업데이트에 실패했습니다.\n%s\n\n내려받기 페이지에서 직접 받아 주세요." % err,
+                                     parent=self.root)
+                self.menu_open = False
+                try:
+                    os.remove(new)
+                except OSError:
+                    pass
+                return
+            if spawn_exe([new, "--apply-update", exe]):
+                self.toast("업데이트하는 중… 잠시 뒤 자동으로 다시 실행됩니다")
+                self.root.after(300, self.quit)
+            else:
+                self.toast("업데이트 프로그램을 실행하지 못했습니다")
+        threading.Thread(target=work, daemon=True).start()
 
     def toggle_pin(self):
         it = self.current()
@@ -4755,5 +4816,74 @@ def source_label_cached(exe):
     return _label_cache[exe]
 
 
+def spawn_exe(cmd):
+    env = {k: v for k, v in os.environ.items() if not k.startswith(("_MEIPASS", "_PYI"))}
+    env["PYINSTALLER_RESET_ENVIRONMENT"] = "1"           # onefile exe 가 다른 exe 를 띄울 때 필요
+    try:
+        subprocess.Popen(cmd, env=env, close_fds=True, creationflags=0x00000008 | 0x00000200)
+        return True
+    except Exception:
+        return False
+
+
+def apply_update(old_exe):
+    """--apply-update <옛 exe>: 내려받은 새 exe 가 스스로 실행되어 옛 프로그램을 끝내고
+    옛 파일 자리에 덮어쓴 뒤 다시 실행"""
+    import shutil
+    me = os.path.abspath(sys.executable)
+    old = os.path.abspath(old_exe)
+    name = os.path.basename(old)
+    if os.path.normcase(me) == os.path.normcase(old):
+        return
+
+    def kill(force):
+        try:
+            subprocess.run(["taskkill", "/T", "/IM", name] + (["/F"] if force else []),
+                           capture_output=True, creationflags=0x08000000, timeout=20)
+        except Exception:
+            pass
+    kill(False)
+    ok, err = False, ""
+    for n in range(60):                             # 최대 약 30초
+        if n == 8:
+            kill(True)
+        try:
+            shutil.copyfile(me, old + ".new")
+            os.replace(old + ".new", old)
+            ok = True
+            break
+        except OSError as e:
+            err = str(e)
+            time.sleep(0.5)
+    if not ok:
+        try:
+            ctypes.windll.user32.MessageBoxW(0, "업데이트하지 못했습니다.\n%s\n\n새 파일: %s\n옛 파일 자리에 직접 덮어써 주세요." % (err, me),
+                                             APP_NAME, 0x10)
+        except Exception:
+            pass
+        return
+    spawn_exe([old, "--updated"])
+
+
+def cleanup_update_file():
+    """지난 업데이트 때 남은 임시 실행 파일 지우기"""
+    if not getattr(sys, "frozen", False):
+        return
+    try:
+        b = os.path.splitext(os.path.abspath(sys.executable))
+        for f in (b[0] + "_update" + b[1], sys.executable + ".new"):
+            if os.path.exists(f):
+                os.remove(f)
+    except OSError:
+        pass
+
+
 if __name__ == "__main__":
+    if "--apply-update" in sys.argv:
+        try:
+            apply_update(sys.argv[sys.argv.index("--apply-update") + 1])
+        except Exception:
+            pass
+        sys.exit(0)
+    cleanup_update_file()
     App().run()
