@@ -82,7 +82,7 @@ from tkinter import messagebox
 # 설정
 # ─────────────────────────────────────────────────────────────
 APP_NAME = "스마트클립"
-APP_VERSION = "1.2.5"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
+APP_VERSION = "1.3.0"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
 
 MOD_ALT, MOD_CONTROL, MOD_SHIFT, MOD_WIN, MOD_NOREPEAT = 0x1, 0x2, 0x4, 0x8, 0x4000
 HOTKEY_MODS = MOD_CONTROL | MOD_SHIFT      # 단축키 조합
@@ -2294,8 +2294,8 @@ class SettingsDialog:
         for mode, label in CAP_MODES.items():
             self._combo(p, label, list(CAP_KEY_CHOICES), a.cap_key_vars[mode].get(),
                         lambda v, m=mode: (a.cap_key_vars[m].set(v), a.on_cap_keys()), width=14)
-        tk.Label(p, text="스크롤 캡쳐: 창을 클릭하면 맨 위로 올린 뒤 마우스 휠로 맨 아래까지 내리며 한 장으로 이어 붙입니다 (Esc: 중지).\n"
-                         "움직이지 않는 위쪽 머리글·아래쪽 바닥글은 자동으로 알아내 한 번만 넣습니다. 창 일부만 찍으려면 드래그하세요.",
+        tk.Label(p, text="화면분할 캡쳐: 창을 클릭하면 맨 위로 올린 뒤 자동으로 맨 아래까지 내리며, 창 높이 단위로 딱 이어지게 나눠\n"
+                         "01, 02, 03… 순서로 폴더 하나에 저장합니다 (겹치거나 빠지는 부분 없음, Esc: 중지). 창 일부만 찍으려면 드래그하세요.",
                  font=FONT_SMALL, bg=C_BG, fg="#B49B74", justify="left", anchor="w", wraplength=420).pack(fill="x", pady=(8, 0))
 
     def _pick_cap_dir(self):
@@ -2685,7 +2685,7 @@ try:
 except Exception:
     ImageGrab = None
 
-CAP_MODES = {"region": "영역 캡쳐", "window": "창 캡쳐", "scroll": "스크롤 캡쳐"}
+CAP_MODES = {"region": "영역 캡쳐", "window": "창 캡쳐", "scroll": "화면분할 캡쳐"}
 CAP_DEFAULT_KEYS = {"region": "Ctrl+Shift+1", "window": "Ctrl+Shift+2", "scroll": "Ctrl+Shift+3"}
 CAP_HOTKEY_IDS = {"region": 11, "window": 12, "scroll": 13}
 CAP_KEY_CHOICES = {"사용 안 함": None}
@@ -2845,7 +2845,7 @@ class CaptureOverlay:
         self.sel = None
         self.start = None
         hint = {"region": "캡쳐할 범위를 드래그하세요", "window": "캡쳐할 창 위에 마우스를 올리고 클릭하세요",
-                "scroll": "스크롤 캡쳐할 창을 클릭하세요 (일부분만 찍으려면 드래그)"}[mode]
+                "scroll": "화면분할 캡쳐할 창을 클릭하세요 (일부분만 찍으려면 드래그)"}[mode]
         self._hint = hint + "   ·   Esc: 취소"
         self._set(None)
         self._label(40, 30, self._hint)
@@ -4528,15 +4528,49 @@ class App:
                 time.sleep(0.2)
                 self.root.update()
                 img, n, note = scroll_capture(self.root, (x0, y0, x1, y1), hwnd)
-                extra = ("%d장 이어 붙임" % n) + ((" · " + note) if note else "")
-            else:
-                img = shot.crop((x0 - vx, y0 - vy, x1 - vx, y1 - vy))
-                extra = ""
-            self._cap_save(img, title, extra)
+                extra = ((note) if note else "")
+                self._cap_save_split(img, y1 - y0, title, extra)
+                return
+            img = shot.crop((x0 - vx, y0 - vy, x1 - vx, y1 - vy))
+            self._cap_save(img, title, "")
         except Exception as e:
             self.toast("캡쳐 실패: %s" % e)
         finally:
             self._cap_end()
+
+    def _cap_save_split(self, img, piece_h, title, extra=""):
+        """화면분할 캡쳐: 맨 위에서 아래까지 자동 스크롤한 내용을 창 높이 단위로 딱 이어지게 나눠 저장
+        (겹치거나 빠지는 부분 없이 01, 02, 03… 순서대로, 폴더 하나에 모음)"""
+        w, h = img.size
+        n = max(1, -(-h // max(1, piece_h)))
+        if n <= 1 or h <= piece_h * 1.05:
+            self._cap_save(img, title, extra)
+            return
+        folder = (self.cap_dir_var.get() or "").strip() or default_cap_dir()
+        fmt = self.cap_fmt_var.get()
+        ext = ".jpg" if fmt == "JPG" else ".png"
+        try:
+            os.makedirs(folder, exist_ok=True)
+            stem = os.path.splitext(cap_filename(folder, self.cap_style_var.get(), title, fmt))[0]
+            sub, k = stem, 2
+            while os.path.exists(sub):
+                sub = "%s_%d" % (stem, k)
+                k += 1
+            os.makedirs(sub)
+            first = None
+            for i in range(n):
+                piece = img.crop((0, i * piece_h, w, min(h, (i + 1) * piece_h)))
+                path = os.path.join(sub, "%02d%s" % (i + 1, ext))
+                if fmt == "JPG":
+                    piece.convert("RGB").save(path, "JPEG", quality=92)
+                else:
+                    piece.save(path, "PNG")
+                first = first or path
+        except Exception as e:
+            self.toast("저장하지 못했습니다: %s" % e)
+            return
+        self.last_cap_path = first
+        self.toast("📷 %d장으로 나눠 저장됨: %s 폴더%s" % (n, os.path.basename(sub), ("\n" + extra) if extra else ""))
 
     def _cap_save(self, img, title, extra=""):
         folder = (self.cap_dir_var.get() or "").strip() or default_cap_dir()
