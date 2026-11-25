@@ -82,7 +82,7 @@ from tkinter import messagebox
 # 설정
 # ─────────────────────────────────────────────────────────────
 APP_NAME = "스마트클립"
-APP_VERSION = "1.3.0"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
+APP_VERSION = "1.3.1"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
 
 MOD_ALT, MOD_CONTROL, MOD_SHIFT, MOD_WIN, MOD_NOREPEAT = 0x1, 0x2, 0x4, 0x8, 0x4000
 HOTKEY_MODS = MOD_CONTROL | MOD_SHIFT      # 단축키 조합
@@ -2295,7 +2295,7 @@ class SettingsDialog:
             self._combo(p, label, list(CAP_KEY_CHOICES), a.cap_key_vars[mode].get(),
                         lambda v, m=mode: (a.cap_key_vars[m].set(v), a.on_cap_keys()), width=14)
         tk.Label(p, text="화면분할 캡쳐: 창을 클릭하면 맨 위로 올린 뒤 자동으로 맨 아래까지 내리며, 창 높이 단위로 딱 이어지게 나눠\n"
-                         "01, 02, 03… 순서로 폴더 하나에 저장합니다 (겹치거나 빠지는 부분 없음, Esc: 중지). 창 일부만 찍으려면 드래그하세요.",
+                         "정한 폴더에 파일 이름_01, _02, _03… 연번으로 저장합니다 (겹치거나 빠지는 부분 없음, Esc: 중지). 창 일부만 찍으려면 드래그하세요.",
                  font=FONT_SMALL, bg=C_BG, fg="#B49B74", justify="left", anchor="w", wraplength=420).pack(fill="x", pady=(8, 0))
 
     def _pick_cap_dir(self):
@@ -4540,7 +4540,7 @@ class App:
 
     def _cap_save_split(self, img, piece_h, title, extra=""):
         """화면분할 캡쳐: 맨 위에서 아래까지 자동 스크롤한 내용을 창 높이 단위로 딱 이어지게 나눠 저장
-        (겹치거나 빠지는 부분 없이 01, 02, 03… 순서대로, 폴더 하나에 모음)"""
+        (겹치거나 빠지는 부분 없이, 정한 폴더에 이름_01, 이름_02… 연번으로)"""
         w, h = img.size
         n = max(1, -(-h // max(1, piece_h)))
         if n <= 1 or h <= piece_h * 1.05:
@@ -4552,15 +4552,14 @@ class App:
         try:
             os.makedirs(folder, exist_ok=True)
             stem = os.path.splitext(cap_filename(folder, self.cap_style_var.get(), title, fmt))[0]
-            sub, k = stem, 2
-            while os.path.exists(sub):
-                sub = "%s_%d" % (stem, k)
+            base, k = stem, 2
+            while any(os.path.exists("%s_%02d%s" % (base, i + 1, ext)) for i in range(n)):
+                base = "%s_%d" % (stem, k)               # 겹치는 이름이 있으면 다른 이름으로
                 k += 1
-            os.makedirs(sub)
             first = None
             for i in range(n):
                 piece = img.crop((0, i * piece_h, w, min(h, (i + 1) * piece_h)))
-                path = os.path.join(sub, "%02d%s" % (i + 1, ext))
+                path = "%s_%02d%s" % (base, i + 1, ext)
                 if fmt == "JPG":
                     piece.convert("RGB").save(path, "JPEG", quality=92)
                 else:
@@ -4570,7 +4569,7 @@ class App:
             self.toast("저장하지 못했습니다: %s" % e)
             return
         self.last_cap_path = first
-        self.toast("📷 %d장으로 나눠 저장됨: %s 폴더%s" % (n, os.path.basename(sub), ("\n" + extra) if extra else ""))
+        self.toast("📷 %d장으로 나눠 저장됨: %s_01 ~ %02d%s" % (n, os.path.basename(base), n, ("\n" + extra) if extra else ""))
 
     def _cap_save(self, img, title, extra=""):
         folder = (self.cap_dir_var.get() or "").strip() or default_cap_dir()
