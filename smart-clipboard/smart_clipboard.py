@@ -59,6 +59,7 @@ import hashlib
 import hmac
 import queue
 import threading
+import subprocess
 import re
 import json
 import base64
@@ -81,7 +82,7 @@ from tkinter import messagebox
 # 설정
 # ─────────────────────────────────────────────────────────────
 APP_NAME = "스마트클립"
-APP_VERSION = "1.1.7"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
+APP_VERSION = "1.2.0"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
 
 MOD_ALT, MOD_CONTROL, MOD_SHIFT, MOD_WIN, MOD_NOREPEAT = 0x1, 0x2, 0x4, 0x8, 0x4000
 HOTKEY_MODS = MOD_CONTROL | MOD_SHIFT      # 단축키 조합
@@ -828,6 +829,9 @@ class ClipListener(threading.Thread):
         self.debounce_ms = 120              # 연속 복사 신호를 모으는 간격
         self.big_text_only = True           # 아주 긴 내용은 글자만 기록 (원래 프로그램이 멈추지 않게)
         self._pending_hotkey = None
+        self.cap_keys = {}                  # 캡쳐 단축키 {모드: '이름'}
+        self.cap_failed = []
+        self._pending_cap = None
         self._proc = WNDPROC(self._wndproc)   # GC 방지용 참조
         self._nid = None
         self._msg_taskbar = 0
@@ -845,6 +849,7 @@ class ClipListener(threading.Thread):
         user32.AddClipboardFormatListener(self.hwnd)
         mods, vk = HOTKEY_CHOICES.get(HOTKEY_TEXT, (HOTKEY_MODS, HOTKEY_VK))
         self.hotkey_ok = bool(user32.RegisterHotKey(self.hwnd, 1, mods | MOD_NOREPEAT, vk))
+        self.cap_failed = self._reg_cap_keys()
         self._msg_taskbar = user32.RegisterWindowMessageW("TaskbarCreated")
         self.add_tray()
         self.ready.set()
@@ -865,7 +870,15 @@ class ClipListener(threading.Thread):
                 self._capture()
                 return 0
             if msg == WM_HOTKEY:
+                for _m, _id in CAP_HOTKEY_IDS.items():
+                    if wp == _id:
+                        self.q.put(("capture", _m))
+                        return 0
                 self.q.put(("hotkey", user32.GetForegroundWindow()))
+                return 0
+            if msg == WM_SET_CAPKEYS and self._pending_cap is not None:
+                keys, self._pending_cap = self._pending_cap, None
+                self.q.put(("cap_keys_set", self._reg_cap_keys(keys)))
                 return 0
             if msg == WM_SHOW_MAIN:
                 self.q.put(("tray_cmd", 1))
@@ -929,6 +942,11 @@ class ClipListener(threading.Thread):
         chk = lambda on: MF_STRING | (MF_CHECKED if on else 0)
         user32.AppendMenuW(m, MF_STRING, 1, "기록 창 열기\t" + HOTKEY_TEXT)
         user32.AppendMenuW(m, MF_SEPARATOR, 0, None)
+        for _mode, _label in CAP_MODES.items():
+            _k = self.cap_keys.get(_mode)
+            user32.AppendMenuW(m, MF_STRING, 10 + CAP_HOTKEY_IDS[_mode] - 10, "📷 " + _label + ("\t" + _k if CAP_KEY_CHOICES.get(_k) else ""))
+        user32.AppendMenuW(m, MF_STRING, 14, "📂 캡쳐 폴더 열기")
+        user32.AppendMenuW(m, MF_SEPARATOR, 0, None)
         user32.AppendMenuW(m, chk(self.menu_state["topmost"]), 2, "항상 위에 표시")
         user32.AppendMenuW(m, chk(self.menu_state["keep_open"]), 3, "창 유지 (붙여넣어도 닫지 않음)")
         user32.AppendMenuW(m, chk(self.paused), 4, "기록 일시정지")
@@ -953,6 +971,22 @@ class ClipListener(threading.Thread):
                                        BIG_TEXT_CHARS if self.big_text_only else 0)
         if formats:
             self.q.put(("clip", formats, exe, note))
+
+    def _reg_cap_keys(self, keys=None):
+        """캡쳐 단축키 등록 → 등록하지 못한 모드 목록"""
+        if keys is not None:
+            self.cap_keys = dict(keys)
+        failed = []
+        for mode, hid in CAP_HOTKEY_IDS.items():
+            user32.UnregisterHotKey(self.hwnd, hid)
+            c = CAP_KEY_CHOICES.get(self.cap_keys.get(mode))
+            if c and not user32.RegisterHotKey(self.hwnd, hid, c[0] | MOD_NOREPEAT, c[1]):
+                failed.append(mode)
+        return failed
+
+    def set_cap_keys(self, keys):
+        self._pending_cap = dict(keys)
+        user32.PostMessageW(self.hwnd, WM_SET_CAPKEYS, 0, 0)
 
     def set_hotkey(self, mods, vk):
         self._pending_hotkey = (mods, vk)
@@ -2143,6 +2177,10 @@ class SettingsDialog:
         nb.add(p1, text="  기록  ")
         nb.add(p3, text=" 비밀번호  ", image=icon("pw", "b"), compound="left")
         nb.add(p2, text="  화면  ")
+        p4 = tk.Frame(nb, bg=C_BG, padx=14, pady=12)
+        nb.add(p4, text="  캡쳐  ")
+        self._build_cap(p4)
+        self.cap_tab = p4
         self._build_record(p1)
         self._build_lock(p3)
         self._build_look(p2)
@@ -2232,6 +2270,44 @@ class SettingsDialog:
         bar = tk.Frame(p, bg=C_BG)
         bar.pack(fill="x", pady=(12, 0))
         FlatButton(bar, "모든 기록 삭제 (고정 포함)…", a.wipe_all).pack(side="left")
+
+    def _build_cap(self, p):
+        a = self.app
+        self._section(p, "저장")
+        row = tk.Frame(p, bg=C_BG)
+        row.pack(fill="x", pady=2)
+        tk.Label(row, text="저장 폴더", font=FONT_SMALL, bg=C_BG, fg=C_BROWN, width=16, anchor="w").pack(side="left")
+        ent = tk.Entry(row, textvariable=a.cap_dir_var, font=FONT_SMALL, width=30, bg=C_WHITE, fg=C_BROWN, relief="solid", bd=1)
+        ent.pack(side="left", fill="x", expand=True)
+        ent.bind("<FocusOut>", lambda e: a._save())
+        row2 = tk.Frame(p, bg=C_BG)
+        row2.pack(fill="x", pady=(4, 2))
+        FlatButton(row2, "폴더 바꾸기…", self._pick_cap_dir).pack(side="left")
+        FlatButton(row2, "폴더 열기", a.open_cap_folder).pack(side="left", padx=(6, 0))
+        self._combo(p, "파일 이름 방식", CAP_NAME_STYLES, a.cap_style_var.get(),
+                    lambda v: (a.cap_style_var.set(v), a._save()), width=18)
+        tk.Label(p, text="예) 캡쳐_20261125_134512.png · 창제목_날짜_시간은 찍은 창의 제목이 앞에 붙습니다 · 같은 이름이 있으면 _2, _3 을 붙입니다",
+                 font=FONT_SMALL, bg=C_BG, fg="#B49B74", justify="left", anchor="w", wraplength=400).pack(fill="x", padx=(24, 0))
+        self._combo(p, "그림 형식", CAP_FORMATS, a.cap_fmt_var.get(), lambda v: (a.cap_fmt_var.set(v), a._save()), width=8)
+        self._check(p, "찍으면 클립보드에도 복사 (바로 붙여넣기 가능, 기록에는 남기지 않음)", a.cap_copy_var, a._save)
+        self._section(p, "단축키")
+        for mode, label in CAP_MODES.items():
+            self._combo(p, label, list(CAP_KEY_CHOICES), a.cap_key_vars[mode].get(),
+                        lambda v, m=mode: (a.cap_key_vars[m].set(v), a.on_cap_keys()), width=14)
+        tk.Label(p, text="스크롤 캡쳐: 스크롤할 부분만 드래그하면 마우스 휠로 끝까지 내리며 한 장으로 이어 붙입니다 (Esc: 중지).\n"
+                         "머리글처럼 움직이지 않는 부분이나 오른쪽 스크롤바는 영역에서 빼고 지정하세요.",
+                 font=FONT_SMALL, bg=C_BG, fg="#B49B74", justify="left", anchor="w", wraplength=420).pack(fill="x", pady=(8, 0))
+
+    def _pick_cap_dir(self):
+        a = self.app
+        a.menu_open = True
+        try:
+            d = filedialog.askdirectory(parent=self.t, title="캡쳐를 저장할 폴더", initialdir=a.cap_dir_var.get() or None)
+        finally:
+            a.menu_open = False
+        if d:
+            a.cap_dir_var.set(os.path.normpath(d))
+            a._save()
 
     def _build_lock(self, p):
         a = self.app
@@ -2601,6 +2677,369 @@ class MemoDialog:
             pass
 
 
+# ─────────────────────────────────────────────────────────────
+# 화면 캡쳐 (영역 · 창 · 스크롤) — 찍으면 정한 폴더에 이름이 붙어 자동 저장
+# ─────────────────────────────────────────────────────────────
+try:
+    from PIL import ImageGrab
+except Exception:
+    ImageGrab = None
+
+CAP_MODES = {"region": "영역 캡쳐", "window": "창 캡쳐", "scroll": "스크롤 캡쳐"}
+CAP_DEFAULT_KEYS = {"region": "Ctrl+Shift+1", "window": "Ctrl+Shift+2", "scroll": "Ctrl+Shift+3"}
+CAP_HOTKEY_IDS = {"region": 11, "window": 12, "scroll": 13}
+CAP_KEY_CHOICES = {"사용 안 함": None}
+for _n in range(1, 10):
+    CAP_KEY_CHOICES["Ctrl+Shift+%d" % _n] = (MOD_CONTROL | MOD_SHIFT, ord(str(_n)))
+for _n in range(1, 10):
+    CAP_KEY_CHOICES["Ctrl+Alt+%d" % _n] = (MOD_CONTROL | MOD_ALT, ord(str(_n)))
+CAP_NAME_STYLES = ["캡쳐_날짜_시간", "날짜_시간", "창제목_날짜_시간", "캡쳐_번호"]
+CAP_FORMATS = ["PNG", "JPG"]
+WM_SET_CAPKEYS = 0x8000 + 4
+
+
+def default_cap_dir():
+    return os.path.join(os.path.expanduser("~"), "Pictures", "스마트클립 캡쳐")
+
+
+class _RECT(ctypes.Structure):
+    _fields_ = [("left", ctypes.c_long), ("top", ctypes.c_long), ("right", ctypes.c_long), ("bottom", ctypes.c_long)]
+
+
+_ENUMPROC = ctypes.WINFUNCTYPE(wt.BOOL, wt.HWND, wt.LPARAM)
+_proto(user32, "EnumWindows", wt.BOOL, _ENUMPROC, wt.LPARAM)
+_proto(user32, "IsIconic", wt.BOOL, wt.HWND)
+_proto(user32, "GetWindowTextW", ctypes.c_int, wt.HWND, wt.LPWSTR, ctypes.c_int)
+_proto(user32, "GetClassNameW", ctypes.c_int, wt.HWND, wt.LPWSTR, ctypes.c_int)
+_proto(user32, "GetWindowRect", wt.BOOL, wt.HWND, ctypes.POINTER(_RECT))
+_proto(user32, "SetCursorPos", wt.BOOL, ctypes.c_int, ctypes.c_int)
+_proto(user32, "GetAsyncKeyState", ctypes.c_short, ctypes.c_int)
+_proto(user32, "mouse_event", None, wt.DWORD, wt.DWORD, wt.DWORD, wt.DWORD, ctypes.c_size_t)
+try:
+    _dwm = ctypes.windll.dwmapi
+    _dwm.DwmGetWindowAttribute.argtypes = [wt.HWND, wt.DWORD, wt.LPVOID, wt.DWORD]
+    _dwm.DwmGetWindowAttribute.restype = ctypes.c_long
+except Exception:
+    _dwm = None
+
+
+def virtual_screen():
+    """모든 모니터를 합친 화면 (왼쪽 위 x, y, 너비, 높이)"""
+    return (user32.GetSystemMetrics(76), user32.GetSystemMetrics(77),
+            user32.GetSystemMetrics(78), user32.GetSystemMetrics(79))
+
+
+def grab_screen_all():
+    """(그림, 왼쪽 위 x, 왼쪽 위 y) — 모니터 전체"""
+    vx, vy, vw, vh = virtual_screen()
+    im = ImageGrab.grab(all_screens=True)
+    if im.size != (vw, vh):
+        im = im.resize((vw, vh))
+    return im.convert("RGB"), vx, vy
+
+
+def grab_rect(x0, y0, x1, y1):
+    im, vx, vy = grab_screen_all()
+    return im.crop((x0 - vx, y0 - vy, x1 - vx, y1 - vy))
+
+
+def list_windows():
+    """보이는 최상위 창 목록 (위에 있는 창부터): [(x0, y0, x1, y1, 제목, hwnd)]"""
+    out = []
+    my_pid = os.getpid()
+
+    def cb(h, lp):
+        try:
+            if not user32.IsWindowVisible(h) or user32.IsIconic(h):
+                return True
+            if _dwm:
+                cl = ctypes.c_int(0)
+                if _dwm.DwmGetWindowAttribute(h, 14, ctypes.byref(cl), 4) == 0 and cl.value:
+                    return True              # 다른 가상 데스크톱 등에 숨은 창
+            pid = wt.DWORD(0)
+            user32.GetWindowThreadProcessId(h, ctypes.byref(pid))
+            if pid.value == my_pid:
+                return True
+            r = _RECT()
+            if not (_dwm and _dwm.DwmGetWindowAttribute(h, 9, ctypes.byref(r), ctypes.sizeof(r)) == 0):
+                user32.GetWindowRect(h, ctypes.byref(r))
+            if r.right - r.left < 40 or r.bottom - r.top < 30:
+                return True
+            cls = ctypes.create_unicode_buffer(128)
+            user32.GetClassNameW(h, cls, 128)
+            if cls.value in ("Progman", "WorkerW"):
+                return True                  # 바탕화면
+            buf = ctypes.create_unicode_buffer(256)
+            user32.GetWindowTextW(h, buf, 256)
+            if not buf.value and cls.value != "Shell_TrayWnd":
+                return True                  # 제목 없는 보이지 않는 창
+            out.append((r.left, r.top, r.right, r.bottom, buf.value, h))
+        except Exception:
+            pass
+        return True
+    user32.EnumWindows(_ENUMPROC(cb), 0)
+    return out
+
+
+def safe_name(s, limit=30):
+    s = re.sub(r'[\\/:*?"<>|\x00-\x1f]', " ", s or "")
+    s = re.sub(r"\s+", " ", s).strip(" .")
+    return s[:limit].strip(" .")
+
+
+def cap_filename(folder, style, title, fmt):
+    import datetime
+    stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    ext = ".jpg" if fmt == "JPG" else ".png"
+    if style == "날짜_시간":
+        base = stamp
+    elif style == "창제목_날짜_시간":
+        t = safe_name(title)
+        base = (t + "_" if t else "캡쳐_") + stamp
+    elif style == "캡쳐_번호":
+        n = 0
+        try:
+            for f in os.listdir(folder):
+                m = re.match(r"캡쳐_(\d+)", f)
+                if m:
+                    n = max(n, int(m.group(1)))
+        except OSError:
+            pass
+        base = "캡쳐_%03d" % (n + 1)
+    else:
+        base = "캡쳐_" + stamp
+    path, k = os.path.join(folder, base + ext), 2
+    while os.path.exists(path):
+        path = os.path.join(folder, "%s_%d%s" % (base, k, ext))
+        k += 1
+    return path
+
+
+class CaptureOverlay:
+    """얼린 화면 위에서 영역을 끌어 고르거나(영역·스크롤), 마우스를 올린 창을 눌러 고름(창).
+    done(결과) — 결과: (x0, y0, x1, y1, 창제목) 화면 좌표, 취소하면 None"""
+
+    def __init__(self, root, shot, vx, vy, mode, wins, done):
+        self.root, self.shot, self.vx, self.vy = root, shot, vx, vy
+        self.mode, self.wins, self.done = mode, wins, done
+        W, H = shot.size
+        self.W, self.H = W, H
+        t = self.t = tk.Toplevel(root)
+        t.overrideredirect(True)
+        t.attributes("-topmost", True)
+        t.geometry("%dx%d+%d+%d" % (W, H, vx, vy))
+        self.cv = tk.Canvas(t, width=W, height=H, highlightthickness=0, bd=0, cursor="crosshair")
+        self.cv.pack()
+        self.img = ImageTk.PhotoImage(shot)
+        self.cv.create_image(0, 0, anchor="nw", image=self.img)
+        self.dim = [self.cv.create_rectangle(0, 0, 0, 0, fill="black", stipple="gray50", outline="")
+                    for _ in range(4)]
+        self.box = self.cv.create_rectangle(0, 0, 0, 0, outline="#F4B862", width=2)
+        self.tag = self.cv.create_text(0, 0, anchor="nw", fill="white", font=("맑은 고딕", 10, "bold"), text="")
+        self.tagbg = self.cv.create_rectangle(0, 0, 0, 0, fill="#5A3A12", outline="")
+        self.cv.tag_lower(self.tagbg, self.tag)
+        self.sel = None
+        self.start = None
+        hint = {"region": "캡쳐할 범위를 드래그하세요", "window": "캡쳐할 창 위에 마우스를 올리고 클릭하세요",
+                "scroll": "스크롤할 부분(글·표 내용)만 드래그하세요"}[mode]
+        self._hint = hint + "   ·   Esc: 취소"
+        self._set(None)
+        self._label(40, 30, self._hint)
+        self.cv.bind("<ButtonPress-1>", self._press)
+        self.cv.bind("<B1-Motion>", self._drag)
+        self.cv.bind("<ButtonRelease-1>", self._release)
+        self.cv.bind("<Motion>", self._move)
+        self.cv.bind("<ButtonPress-3>", lambda e: self._finish(None))
+        t.bind("<Escape>", lambda e: self._finish(None))
+        t.focus_force()
+        self.cv.focus_set()
+        self._grab_job = t.after(80, lambda: (t.focus_force(), self.cv.focus_set()))
+
+    def _label(self, x, y, text):
+        self.cv.itemconfigure(self.tag, text=text)
+        self.cv.coords(self.tag, x + 6, y + 3)
+        bb = self.cv.bbox(self.tag)
+        if bb:
+            self.cv.coords(self.tagbg, bb[0] - 6, bb[1] - 3, bb[2] + 6, bb[3] + 3)
+
+    def _set(self, r):
+        """밝게 보일 사각형 r=(x0,y0,x1,y1) (없으면 화면 전체를 어둡게)"""
+        W, H = self.W, self.H
+        if r is None:
+            rects = [(0, 0, W, H), (0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0)]
+            self.cv.coords(self.box, 0, 0, 0, 0)
+        else:
+            x0, y0, x1, y1 = r
+            rects = [(0, 0, W, y0), (0, y1, W, H), (0, y0, x0, y1), (x1, y0, W, y1)]
+            self.cv.coords(self.box, x0, y0, x1, y1)
+        for item, c in zip(self.dim, rects):
+            self.cv.coords(item, *c)
+
+    def _press(self, e):
+        if self.mode == "window":
+            return
+        self.start = (e.x, e.y)
+
+    def _drag(self, e):
+        if not self.start:
+            return
+        x0, y0 = self.start
+        r = (max(0, min(x0, e.x)), max(0, min(y0, e.y)), min(self.W, max(x0, e.x)), min(self.H, max(y0, e.y)))
+        self.sel = r
+        self._set(r)
+        self._label(r[0], max(0, r[1] - 28), "%d × %d" % (r[2] - r[0], r[3] - r[1]))
+
+    def _win_at(self, x, y):
+        ax, ay = x + self.vx, y + self.vy
+        for w in self.wins:
+            if w[0] <= ax < w[2] and w[1] <= ay < w[3]:
+                return w
+        return None
+
+    def _move(self, e):
+        if self.mode != "window":
+            return
+        w = self._win_at(e.x, e.y)
+        self.hover = w
+        if w:
+            r = (max(0, w[0] - self.vx), max(0, w[1] - self.vy), min(self.W, w[2] - self.vx), min(self.H, w[3] - self.vy))
+            self._set(r)
+            self._label(r[0], max(0, r[1] - 28), (w[4][:40] or "창") + "  (%d × %d)" % (r[2] - r[0], r[3] - r[1]))
+        else:
+            self._set(None)
+
+    def _release(self, e):
+        if self.mode == "window":
+            w = self._win_at(e.x, e.y)
+            if w:
+                x0, y0 = max(w[0], self.vx), max(w[1], self.vy)
+                x1, y1 = min(w[2], self.vx + self.W), min(w[3], self.vy + self.H)
+                self._finish((x0, y0, x1, y1, w[4]))
+            return
+        r = self.sel
+        if not self.start or not r or r[2] - r[0] < 8 or r[3] - r[1] < 8:
+            self.start = None
+            self.sel = None
+            self._set(None)
+            self._label(40, 30, self._hint)
+            return
+        cx, cy = (r[0] + r[2]) // 2 + self.vx, (r[1] + r[3]) // 2 + self.vy
+        title = ""
+        for w in self.wins:
+            if w[0] <= cx < w[2] and w[1] <= cy < w[3]:
+                title = w[4]
+                break
+        self._finish((r[0] + self.vx, r[1] + self.vy, r[2] + self.vx, r[3] + self.vy, title))
+
+    def _finish(self, res):
+        try:
+            self.t.destroy()
+        except tk.TclError:
+            pass
+        self.root.after(30, lambda: self.done(res))
+
+
+def _row_hashes(img, skip_right=24):
+    """줄마다 지문 (오른쪽 스크롤바 부분은 빼고)"""
+    w, h = img.size
+    raw = img.convert("RGB").tobytes()
+    stride = w * 3
+    keep = max(3, (w - skip_right) * 3) if w > skip_right * 3 else stride
+    return [hash(raw[i * stride:i * stride + keep]) for i in range(h)]
+
+
+def find_scroll_shift(ha, hb, prev=None):
+    """앞 화면(ha)을 위로 s줄 밀면 새 화면(hb) 위쪽과 겹친다 → s 반환 (못 찾으면 None, 안 움직였으면 0)"""
+    h = len(ha)
+    same = sum(1 for a, b in zip(ha, hb) if a == b)
+    if same >= h * 0.995:
+        return 0
+    idx = {}
+    for i, v in enumerate(ha):
+        idx.setdefault(v, []).append(i)
+    min_ov = max(16, int(h * 0.08))
+    cands = set()
+    for k in (0, h // 8, h // 4, h // 2):
+        if k >= h:
+            continue
+        for i in idx.get(hb[k], ()):
+            s = i - k
+            if 0 < s <= h - min_ov:
+                cands.add(s)
+    best = None
+    for s in cands:
+        n = h - s
+        m = sum(1 for j in range(n) if ha[s + j] == hb[j])
+        ratio = m / n
+        if ratio >= 0.97:
+            key = (-round(ratio, 3), abs(s - prev) if prev else s)
+            if best is None or key < best[0]:
+                best = (key, s)
+    return best[1] if best else None
+
+
+def scroll_capture(root, rect, notches=3, max_steps=80, max_height=40000):
+    """rect(화면 좌표) 안을 마우스 휠로 아래로 내리며 찍어 한 장으로 이어 붙임.
+    반환: (그림, 장수, 메시지) — Esc를 누르면 거기까지"""
+    x0, y0, x1, y1 = rect
+    w, h = x1 - x0, y1 - y0
+    cx, cy = x0 + w // 2, y0 + h // 2
+
+    def stable_grab():
+        user32.SetCursorPos(cx, cy)
+        prev = None
+        for _ in range(8):
+            time.sleep(0.18)
+            root.update()
+            cur = grab_rect(x0, y0, x1, y1)
+            if prev is not None and prev.tobytes() == cur.tobytes():
+                return cur
+            prev = cur
+        return prev
+
+    def esc():
+        return bool(user32.GetAsyncKeyState(0x1B) & 0x8000)
+
+    user32.SetCursorPos(cx, cy)
+    time.sleep(0.25)
+    cur = grab_rect(x0, y0, x1, y1)
+    parts = [cur]
+    total = h
+    ha = _row_hashes(cur)
+    prev_s = None
+    note = ""
+    for _ in range(max_steps):
+        if esc():
+            note = "Esc로 중지했습니다"
+            break
+        user32.SetCursorPos(cx, cy)
+        user32.mouse_event(0x0800, 0, 0, (-120 * notches) & 0xFFFFFFFF, 0)    # 휠 아래로
+        nxt = stable_grab()
+        hb = _row_hashes(nxt)
+        s = find_scroll_shift(ha, hb, prev_s)
+        if s == 0:
+            break                                              # 더 안 내려감 = 끝
+        if s is None:
+            note = "화면이 겹치는 곳을 찾지 못해 여기까지만 이어 붙였습니다 (움직이는 화면·고정된 머리글이 있으면 어렵습니다)"
+            break
+        parts.append(nxt.crop((0, h - s, w, h)))
+        total += s
+        prev_s = s
+        ha = hb
+        if total >= max_height:
+            note = "너무 길어서 여기까지만 찍었습니다"
+            break
+    else:
+        note = "최대 길이까지 찍었습니다"
+    out = Image.new("RGB", (w, total))
+    y = 0
+    for p in parts:
+        out.paste(p, (0, y))
+        y += p.size[1]
+    return out, len(parts), note
+
+
+
 class App:
     def __init__(self):
         global HOTKEY_TEXT
@@ -2631,6 +3070,9 @@ class App:
         self.store.max_items = int(self.settings.get("max_items", MAX_ITEMS))
         self.q = queue.Queue()
         self.listener = ClipListener(self.q)
+        _ck = self.settings.get("cap_keys", {})
+        self.listener.cap_keys = {m: (_ck.get(m, CAP_DEFAULT_KEYS[m]) if _ck.get(m, CAP_DEFAULT_KEYS[m]) in CAP_KEY_CHOICES
+                                      else CAP_DEFAULT_KEYS[m]) for m in CAP_MODES}
         self.listener.start()
         self.listener.ready.wait(5)
 
@@ -2663,6 +3105,13 @@ class App:
         self.retention_var = tk.IntVar(value=int(self.settings.get("retention_days", 0)))
         self.clear_exit_var = tk.BooleanVar(value=bool(self.settings.get("clear_on_exit", False)))
         self.hotkey_var = tk.StringVar(value=HOTKEY_TEXT)
+        self.cap_dir_var = tk.StringVar(value=self.settings.get("cap_dir") or default_cap_dir())
+        self.cap_style_var = tk.StringVar(value=self.settings.get("cap_style") if self.settings.get("cap_style") in CAP_NAME_STYLES else CAP_NAME_STYLES[0])
+        self.cap_fmt_var = tk.StringVar(value=self.settings.get("cap_fmt") if self.settings.get("cap_fmt") in CAP_FORMATS else "PNG")
+        self.cap_copy_var = tk.BooleanVar(value=bool(self.settings.get("cap_copy", True)))
+        self.cap_key_vars = {m: tk.StringVar(value=self.listener.cap_keys[m]) for m in CAP_MODES}
+        self._capturing = False
+        self.last_cap_path = None
         self.honor_var = tk.BooleanVar(value=bool(self.settings.get("honor_flags", True)))
         self.fast_var = tk.BooleanVar(value=bool(self.settings.get("fast_capture", False)))
         self.maxfmt_var = tk.IntVar(value=int(self.settings.get("max_format_mb", 32)))
@@ -2689,6 +3138,9 @@ class App:
                                    "오른쪽 클릭 메뉴 → 보안·환경 설정 → 단축키에서 다른 조합을 고르세요.\n"
                                    "트레이 아이콘을 클릭해서도 창을 열 수 있습니다." % HOTKEY_TEXT)
 
+        if self.listener.cap_failed:
+            self.root.after(1500, lambda f=list(self.listener.cap_failed): self.toast(
+                "캡쳐 단축키를 등록하지 못했습니다 (%s) · 설정 → 캡쳐에서 다른 조합을 고르세요" % ", ".join(CAP_MODES[m] for m in f)))
         if "--tray" in sys.argv:
             pass                   # Windows 시작 시 자동 실행: 트레이에서 조용히 시작
         else:
@@ -2779,6 +3231,9 @@ class App:
         self.clear_btn2 = FlatButton(bar, "", self.clear_all, icon_name="trash",
                                      tip="최근 기록 모두 비우기\n(★ 고정 항목은 남습니다)")
         self.clear_btn2.pack(side="left", padx=(4, 0))
+        self.cap_btn = FlatButton(bar, "📷 캡쳐", self.cap_menu_popup,
+                                  tip="화면 캡쳐 - 영역 · 창 · 스크롤(아래까지 이어 붙이기)\n찍으면 정한 폴더에 자동 저장됩니다")
+        self.cap_btn.pack(side="left", padx=(8, 0))
         self.set_btn = FlatButton(bar, "설정", self.open_settings, icon_name="gear",
                                   tip="설정 - 기록 제한, 자동 실행, 배경, 글자 (Ctrl+,)")
         self.set_btn.pack(side="right")
@@ -3434,6 +3889,11 @@ class App:
         self.settings["retention_days"] = int(self.retention_var.get())
         self.settings["clear_on_exit"] = bool(self.clear_exit_var.get())
         self.settings["hotkey"] = HOTKEY_TEXT
+        self.settings["cap_dir"] = self.cap_dir_var.get()
+        self.settings["cap_style"] = self.cap_style_var.get()
+        self.settings["cap_fmt"] = self.cap_fmt_var.get()
+        self.settings["cap_copy"] = bool(self.cap_copy_var.get())
+        self.settings["cap_keys"] = {m: v.get() for m, v in self.cap_key_vars.items()}
         self.settings.pop("exclude_apps", None)      # 이전 버전 설정 정리
         self.settings["honor_flags"] = bool(self.honor_var.get())
         self.settings["fast_capture"] = bool(self.fast_var.get())
@@ -3445,8 +3905,14 @@ class App:
         save_settings(self.settings)
 
     # ─────────────────────── 설정 창 / 화면 테마 ───────────────────────
-    def open_settings(self):
+    def open_settings(self, tab=None):
         SettingsDialog(self)
+        dlg = getattr(self, "_settings_obj", None)
+        if tab == "cap" and dlg is not None:
+            try:
+                dlg.nb.select(dlg.cap_tab)
+            except Exception:
+                pass
 
     def open_lock_settings(self):
         SettingsDialog(self)
@@ -3771,6 +4237,149 @@ class App:
             self.root.destroy()
             os._exit(0)
 
+    # ─────────────────────── 화면 캡쳐 ───────────────────────
+    def cap_menu_popup(self):
+        m = tk.Menu(self.root, tearoff=0)
+        for mode, label in CAP_MODES.items():
+            k = self.cap_key_vars[mode].get()
+            m.add_command(label="📷 %s%s" % (label, "    (%s)" % k if CAP_KEY_CHOICES.get(k) else ""),
+                          command=lambda md=mode: self.root.after(50, lambda: self.start_capture(md)))
+        m.add_separator()
+        m.add_command(label="📂 캡쳐 폴더 열기", command=self.open_cap_folder)
+        m.add_command(label="캡쳐 설정…", command=lambda: self.open_settings(tab="cap"))
+        self.menu_open = True
+        try:
+            b = self.cap_btn
+            m.tk_popup(b.winfo_rootx(), b.winfo_rooty() + b.winfo_height())
+        finally:
+            m.grab_release()
+            self.menu_open = False
+
+    def start_capture(self, mode):
+        if self._capturing:
+            return
+        if not HAS_PIL or ImageGrab is None:
+            self.toast("캡쳐에는 Pillow가 필요합니다 (exe 에는 들어 있습니다)")
+            return
+        self._capturing = True
+        self._cap_restore = False
+        try:
+            if self.visible:
+                if self.popup_mode:
+                    self.hide()
+                else:
+                    self._cap_restore = True
+                    self.root.withdraw()
+            self.root.update()
+        except tk.TclError:
+            pass
+        self.root.after(280, lambda: self._cap_begin(mode))      # 창이 완전히 사라진 뒤에 찍음
+
+    def _cap_end(self):
+        self._capturing = False
+        if self._cap_restore:
+            self._cap_restore = False
+            try:
+                self.root.deiconify()
+                self._bring_front()
+            except tk.TclError:
+                pass
+
+    def _cap_begin(self, mode):
+        try:
+            shot, vx, vy = grab_screen_all()
+            wins = list_windows()
+        except Exception as e:
+            self.toast("화면을 가져오지 못했습니다: %s" % e)
+            self._cap_end()
+            return
+        CaptureOverlay(self.root, shot, vx, vy, mode, wins,
+                       lambda res: self._cap_done(mode, shot, vx, vy, res))
+
+    def _cap_done(self, mode, shot, vx, vy, res):
+        if not res:
+            self._cap_end()
+            return
+        x0, y0, x1, y1, title = res
+        try:
+            if mode == "scroll":
+                time.sleep(0.2)
+                self.root.update()
+                img, n, note = scroll_capture(self.root, (x0, y0, x1, y1))
+                extra = ("%d장 이어 붙임" % n) + ((" · " + note) if note else "")
+            else:
+                img = shot.crop((x0 - vx, y0 - vy, x1 - vx, y1 - vy))
+                extra = ""
+            self._cap_save(img, title, extra)
+        except Exception as e:
+            self.toast("캡쳐 실패: %s" % e)
+        finally:
+            self._cap_end()
+
+    def _cap_save(self, img, title, extra=""):
+        folder = (self.cap_dir_var.get() or "").strip() or default_cap_dir()
+        fmt = self.cap_fmt_var.get()
+        path = None
+        try:
+            os.makedirs(folder, exist_ok=True)
+            path = cap_filename(folder, self.cap_style_var.get(), title, fmt)
+            if fmt == "JPG":
+                img.convert("RGB").save(path, "JPEG", quality=92)
+            else:
+                img.save(path, "PNG")
+        except Exception as e:
+            path = None
+            self.toast("저장하지 못했습니다: %s" % e)
+        copied = False
+        if self.cap_copy_var.get():
+            copied = self._cap_to_clipboard(img)
+        self.last_cap_path = path
+        if path:
+            self.toast("📷 저장됨: %s%s%s" % (os.path.basename(path), "  (클립보드에도 복사)" if copied else "",
+                                           ("\n" + extra) if extra else ""))
+        elif copied:
+            self.toast("📷 클립보드에만 복사했습니다")
+
+    def _cap_to_clipboard(self, img):
+        try:
+            import io
+            buf = io.BytesIO()
+            img.convert("RGB").save(buf, "BMP")
+            dib = buf.getvalue()[14:]
+            if len(dib) > 300 * 1024 * 1024:
+                return False
+            ok = write_clipboard(self.listener.hwnd, [("#8", dib)])
+            self.listener.ignore_seq = user32.GetClipboardSequenceNumber()     # 큰 그림이라 기록에는 남기지 않음
+            return bool(ok)
+        except Exception:
+            return False
+
+    def open_cap_folder(self):
+        try:
+            p = self.last_cap_path
+            if p and os.path.exists(p):
+                subprocess.Popen(["explorer", "/select,", os.path.normpath(p)])
+                return
+            folder = (self.cap_dir_var.get() or "").strip() or default_cap_dir()
+            os.makedirs(folder, exist_ok=True)
+            os.startfile(folder)
+        except Exception as e:
+            self.toast("폴더를 열지 못했습니다: %s" % e)
+
+    def on_cap_keys(self):
+        self.listener.set_cap_keys({m: v.get() for m, v in self.cap_key_vars.items()})
+
+    def _cap_keys_result(self, failed):
+        self._save()
+        if failed:
+            self.menu_open = True
+            messagebox.showwarning(APP_NAME, "다른 프로그램이 이미 쓰고 있어 등록하지 못한 단축키가 있습니다:\n%s\n\n"
+                                   "다른 조합을 골라 주세요." % "\n".join("· %s (%s)" % (CAP_MODES[m], self.cap_key_vars[m].get())
+                                                                      for m in failed), parent=self.root)
+            self.menu_open = False
+        else:
+            self.toast("캡쳐 단축키를 바꿨습니다")
+
     def toast(self, msg):
         t = tk.Toplevel(self.root)
         t.overrideredirect(True)
@@ -3827,6 +4436,10 @@ class App:
                     self.items = self.store.list()
                     if self.visible:
                         self.refresh()
+                elif kind == "capture":
+                    self.start_capture(ev[1])
+                elif kind == "cap_keys_set":
+                    self._cap_keys_result(ev[1])
                 elif kind == "hotkey_set":
                     self._hotkey_result(ev[1])
                 elif kind == "hotkey":
@@ -3847,6 +4460,10 @@ class App:
                         self.flip_keep()
                     elif cmd == 4:
                         self.toggle_pause()
+                    elif cmd in (11, 12, 13):
+                        self.start_capture({11: "region", 12: "window", 13: "scroll"}[cmd])
+                    elif cmd == 14:
+                        self.open_cap_folder()
                     elif cmd == 9:
                         self.quit()
         except queue.Empty:
