@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.72"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.73"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -5404,6 +5404,9 @@ class SearchPane(tk.Frame):
     # ───────── 오른쪽 클릭 메뉴 ─────────
     def popup_menu(self, e):
         iid = self.tree.identify_row(e.y)
+        if iid and self.mode == "browse" and self.tree.identify_column(e.x) == "#0" \
+                and self.tree.identify_region(e.x, e.y) in ("tree", "cell") and e.x > self._text_end(iid):
+            iid = ""                      # 이름 오른쪽 빈 곳 = 폴더를 누른 게 아니므로 윈도우처럼 '빈 곳' 메뉴 (새 폴더 등)
         if iid and iid not in self.tree.selection():
             self.tree.selection_set(iid)
             self.tree.focus(iid)
@@ -8978,6 +8981,8 @@ class IdleIndexer:
         self.force.wait(4)                         # 화면이 뜬 뒤 잠깐만 기다렸다가 시작 ('지금 색인'이면 바로)
         # 프로그램을 켜면 바로 한 번 색인 (윈도우 시작 때 트레이로 자동 실행된 경우는 PC를 쉴 때까지 기다림)
         startup = bool(self.cfg.get("enabled", True) and self.cfg.get("on_start", True)) and "--tray" not in sys.argv
+        if startup and time.time() - self.last_finish < 3600:     # 방금(1시간 안에) 끝났다면 업데이트·재실행 직후에 처음부터 다시 훑지 않음
+            startup = False
         while not self.stop_flag.is_set():
             due = time.time() - self.last_finish >= max(0.25, self.cfg.get("every_hours", 2)) * 3600
             if self.force.is_set() or startup or (self.cfg.get("enabled", True) and due and not self._busy()):
@@ -8986,6 +8991,10 @@ class IdleIndexer:
                 self.force.clear()
                 try:
                     self._pass()
+                except Exception:
+                    pass
+                try:
+                    self.app.cache.commit()          # 중간에 멈춰도 읽어 둔 만큼은 저장 → 다음에 이어서
                 except Exception:
                     pass
                 self.force_mode = False
