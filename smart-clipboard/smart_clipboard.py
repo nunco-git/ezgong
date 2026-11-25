@@ -82,7 +82,7 @@ from tkinter import messagebox
 # 설정
 # ─────────────────────────────────────────────────────────────
 APP_NAME = "스마트클립"
-APP_VERSION = "1.2.1"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
+APP_VERSION = "1.2.2"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
 
 MOD_ALT, MOD_CONTROL, MOD_SHIFT, MOD_WIN, MOD_NOREPEAT = 0x1, 0x2, 0x4, 0x8, 0x4000
 HOTKEY_MODS = MOD_CONTROL | MOD_SHIFT      # 단축키 조합
@@ -2294,8 +2294,8 @@ class SettingsDialog:
         for mode, label in CAP_MODES.items():
             self._combo(p, label, list(CAP_KEY_CHOICES), a.cap_key_vars[mode].get(),
                         lambda v, m=mode: (a.cap_key_vars[m].set(v), a.on_cap_keys()), width=14)
-        tk.Label(p, text="스크롤 캡쳐: 스크롤할 부분만 드래그하면 마우스 휠로 끝까지 내리며 한 장으로 이어 붙입니다 (Esc: 중지).\n"
-                         "머리글처럼 움직이지 않는 부분이나 오른쪽 스크롤바는 영역에서 빼고 지정하세요.",
+        tk.Label(p, text="스크롤 캡쳐: 창을 클릭하면 맨 위로 올린 뒤 마우스 휠로 맨 아래까지 내리며 한 장으로 이어 붙입니다 (Esc: 중지).\n"
+                         "움직이지 않는 위쪽 머리글·아래쪽 바닥글은 자동으로 알아내 한 번만 넣습니다. 창 일부만 찍으려면 드래그하세요.",
                  font=FONT_SMALL, bg=C_BG, fg="#B49B74", justify="left", anchor="w", wraplength=420).pack(fill="x", pady=(8, 0))
 
     def _pick_cap_dir(self):
@@ -2845,7 +2845,7 @@ class CaptureOverlay:
         self.sel = None
         self.start = None
         hint = {"region": "캡쳐할 범위를 드래그하세요", "window": "캡쳐할 창 위에 마우스를 올리고 클릭하세요",
-                "scroll": "스크롤할 부분(글·표 내용)만 드래그하세요"}[mode]
+                "scroll": "스크롤 캡쳐할 창을 클릭하세요 (일부분만 찍으려면 드래그)"}[mode]
         self._hint = hint + "   ·   Esc: 취소"
         self._set(None)
         self._label(40, 30, self._hint)
@@ -2883,11 +2883,15 @@ class CaptureOverlay:
         if self.mode == "window":
             return
         self.start = (e.x, e.y)
+        self.dragged = False
 
     def _drag(self, e):
         if not self.start:
             return
         x0, y0 = self.start
+        if not self.dragged and abs(e.x - x0) < 7 and abs(e.y - y0) < 7:
+            return
+        self.dragged = True
         r = (max(0, min(x0, e.x)), max(0, min(y0, e.y)), min(self.W, max(x0, e.x)), min(self.H, max(y0, e.y)))
         self.sel = r
         self._set(r)
@@ -2901,7 +2905,7 @@ class CaptureOverlay:
         return None
 
     def _move(self, e):
-        if self.mode != "window":
+        if self.mode == "region" or (self.mode == "scroll" and self.start):
             return
         w = self._win_at(e.x, e.y)
         self.hover = w
@@ -2913,12 +2917,13 @@ class CaptureOverlay:
             self._set(None)
 
     def _release(self, e):
-        if self.mode == "window":
+        if self.mode == "window" or (self.mode == "scroll" and not getattr(self, "dragged", False)):
             w = self._win_at(e.x, e.y)
             if w:
                 x0, y0 = max(w[0], self.vx), max(w[1], self.vy)
                 x1, y1 = min(w[2], self.vx + self.W), min(w[3], self.vy + self.H)
-                self._finish((x0, y0, x1, y1, w[4]))
+                self._finish((x0, y0, x1, y1, w[4], w[5]))
+            self.start = None
             return
         r = self.sel
         if not self.start or not r or r[2] - r[0] < 8 or r[3] - r[1] < 8:
@@ -2933,7 +2938,7 @@ class CaptureOverlay:
             if w[0] <= cx < w[2] and w[1] <= cy < w[3]:
                 title = w[4]
                 break
-        self._finish((r[0] + self.vx, r[1] + self.vy, r[2] + self.vx, r[3] + self.vy, title))
+        self._finish((r[0] + self.vx, r[1] + self.vy, r[2] + self.vx, r[3] + self.vy, title, 0))
 
     def _finish(self, res):
         try:
@@ -2982,17 +2987,78 @@ def find_scroll_shift(ha, hb, prev=None):
     return best[1] if best else None
 
 
-def scroll_capture(root, rect, notches=3, max_steps=80, max_height=40000):
-    """rect(화면 좌표) 안을 마우스 휠로 아래로 내리며 찍어 한 장으로 이어 붙임.
-    반환: (그림, 장수, 메시지) — Esc를 누르면 거기까지"""
-    x0, y0, x1, y1 = rect
-    w, h = x1 - x0, y1 - y0
-    cx, cy = x0 + w // 2, y0 + h // 2
+def scroll_stitch(grab, scroll_down, to_top, esc, max_steps=120, max_height=40000):
+    """맨 위로 올린 뒤 아래로 내리며 찍어 한 장으로 이어 붙임.
+    움직이는 부분(본문)만 자동으로 찾아 이어 붙이고, 위쪽 고정 머리글·아래쪽 고정 바닥글은 한 번만 넣음.
+    grab()->그림, scroll_down(), to_top(), esc()->중지 눌렀나. 반환: (그림, 장수, 메시지)"""
+    to_top()
+    A = grab()
+    w, h = A.size
+    scroll_down()
+    B = grab()
+    ha, hb = _row_hashes(A), _row_hashes(B)
+    diff = [i for i in range(h) if ha[i] != hb[i]]
+    if not diff:
+        return A, 1, "스크롤되지 않는 화면입니다 (내용이 한 화면에 다 들어오거나 마우스 휠이 안 먹는 곳)"
+    bt, bb = diff[0], diff[-1] + 1
+    if bb - bt < max(40, int(h * 0.2)):
+        bt, bb = 0, h                                   # 움직이는 부분을 못 찾으면 전체를 본문으로
+    bh = bb - bt
+    band_prev = A.crop((0, bt, w, bb))
+    hp = _row_hashes(band_prev)
+    parts = [band_prev]
+    total = bh
+    last_full = A
+    cur_full, prev_s, note = B, None, ""
+    for step in range(max_steps):
+        band = cur_full.crop((0, bt, w, bb))
+        hc = _row_hashes(band)
+        s = find_scroll_shift(hp, hc, prev_s)
+        if s == 0:
+            break                                       # 더 안 내려감 = 맨 아래
+        if s is None:
+            note = "화면이 겹치는 곳을 찾지 못해 여기까지만 이어 붙였습니다 (움직이는 화면이 있으면 어렵습니다)"
+            break
+        parts.append(band.crop((0, bh - s, w, bh)))
+        total += s
+        prev_s, hp, last_full = s, hc, cur_full
+        if total >= max_height:
+            note = "너무 길어서 여기까지만 찍었습니다"
+            break
+        if esc():
+            note = "Esc로 중지했습니다"
+            break
+        scroll_down()
+        cur_full = grab()
+    else:
+        note = "최대 길이까지 찍었습니다"
+    out = Image.new("RGB", (w, bt + total + (h - bb)))
+    if bt:
+        out.paste(A.crop((0, 0, w, bt)), (0, 0))
+    y = bt
+    for p in parts:
+        out.paste(p, (0, y))
+        y += p.size[1]
+    if h - bb:
+        out.paste(last_full.crop((0, bb, w, h)), (0, y))
+    return out, len(parts), note
 
-    def stable_grab():
+
+def scroll_capture(root, rect, hwnd=0):
+    """창(또는 고른 영역)을 맨 위에서 맨 아래까지 마우스 휠로 내리며 찍어 한 장으로 이어 붙임 (Esc: 중지)"""
+    x0, y0, x1, y1 = rect
+    cx, cy = x0 + (x1 - x0) // 2, y0 + (y1 - y0) // 2
+    if hwnd and user32.IsWindow(hwnd):
+        user32.SetForegroundWindow(hwnd)                  # 다른 창에 가려지지 않게 앞으로
+        time.sleep(0.4)
+
+    def wheel(notches):
         user32.SetCursorPos(cx, cy)
+        user32.mouse_event(0x0800, 0, 0, (120 * notches) & 0xFFFFFFFF, 0)
+
+    def stable():
         prev = None
-        for _ in range(8):
+        for _ in range(10):
             time.sleep(0.18)
             root.update()
             cur = grab_rect(x0, y0, x1, y1)
@@ -3001,47 +3067,21 @@ def scroll_capture(root, rect, notches=3, max_steps=80, max_height=40000):
             prev = cur
         return prev
 
-    def esc():
-        return bool(user32.GetAsyncKeyState(0x1B) & 0x8000)
-
-    user32.SetCursorPos(cx, cy)
-    time.sleep(0.25)
-    cur = grab_rect(x0, y0, x1, y1)
-    parts = [cur]
-    total = h
-    ha = _row_hashes(cur)
-    prev_s = None
-    note = ""
-    for _ in range(max_steps):
-        if esc():
-            note = "Esc로 중지했습니다"
-            break
+    def to_top():
         user32.SetCursorPos(cx, cy)
-        user32.mouse_event(0x0800, 0, 0, (-120 * notches) & 0xFFFFFFFF, 0)    # 휠 아래로
-        nxt = stable_grab()
-        hb = _row_hashes(nxt)
-        s = find_scroll_shift(ha, hb, prev_s)
-        if s == 0:
-            break                                              # 더 안 내려감 = 끝
-        if s is None:
-            note = "화면이 겹치는 곳을 찾지 못해 여기까지만 이어 붙였습니다 (움직이는 화면·고정된 머리글이 있으면 어렵습니다)"
-            break
-        parts.append(nxt.crop((0, h - s, w, h)))
-        total += s
-        prev_s = s
-        ha = hb
-        if total >= max_height:
-            note = "너무 길어서 여기까지만 찍었습니다"
-            break
-    else:
-        note = "최대 길이까지 찍었습니다"
-    out = Image.new("RGB", (w, total))
-    y = 0
-    for p in parts:
-        out.paste(p, (0, y))
-        y += p.size[1]
-    return out, len(parts), note
+        time.sleep(0.2)
+        last = None
+        for _ in range(150):                             # 더 안 올라갈 때까지
+            wheel(15)
+            cur = stable()
+            if last is not None and last.tobytes() == cur.tobytes():
+                break
+            last = cur
 
+    def down():
+        wheel(-3)
+
+    return scroll_stitch(stable, down, to_top, lambda: bool(user32.GetAsyncKeyState(0x1B) & 0x8000))
 
 
 class App:
@@ -4308,12 +4348,12 @@ class App:
         if not res:
             self._cap_end()
             return
-        x0, y0, x1, y1, title = res
+        x0, y0, x1, y1, title, hwnd = res
         try:
             if mode == "scroll":
                 time.sleep(0.2)
                 self.root.update()
-                img, n, note = scroll_capture(self.root, (x0, y0, x1, y1))
+                img, n, note = scroll_capture(self.root, (x0, y0, x1, y1), hwnd)
                 extra = ("%d장 이어 붙임" % n) + ((" · " + note) if note else "")
             else:
                 img = shot.crop((x0 - vx, y0 - vy, x1 - vx, y1 - vy))
