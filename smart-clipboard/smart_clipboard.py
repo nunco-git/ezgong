@@ -82,7 +82,7 @@ from tkinter import messagebox
 # 설정
 # ─────────────────────────────────────────────────────────────
 APP_NAME = "스마트클립"
-APP_VERSION = "1.2.2"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
+APP_VERSION = "1.2.3"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
 
 MOD_ALT, MOD_CONTROL, MOD_SHIFT, MOD_WIN, MOD_NOREPEAT = 0x1, 0x2, 0x4, 0x8, 0x4000
 HOTKEY_MODS = MOD_CONTROL | MOD_SHIFT      # 단축키 조합
@@ -2933,12 +2933,12 @@ class CaptureOverlay:
             self._label(40, 30, self._hint)
             return
         cx, cy = (r[0] + r[2]) // 2 + self.vx, (r[1] + r[3]) // 2 + self.vy
-        title = ""
+        title, hw = "", 0
         for w in self.wins:
             if w[0] <= cx < w[2] and w[1] <= cy < w[3]:
-                title = w[4]
+                title, hw = w[4], w[5]
                 break
-        self._finish((r[0] + self.vx, r[1] + self.vy, r[2] + self.vx, r[3] + self.vy, title, 0))
+        self._finish((r[0] + self.vx, r[1] + self.vy, r[2] + self.vx, r[3] + self.vy, title, hw))
 
     def _finish(self, res):
         try:
@@ -3044,21 +3044,58 @@ def scroll_stitch(grab, scroll_down, to_top, esc, max_steps=120, max_height=4000
     return out, len(parts), note
 
 
+def pick_scroll_method(methods, grab):
+    """화면이 실제로 움직이는 스크롤 방식을 찾음 → (방식, 이미 맨 아래였는지) / 없으면 (None, False)"""
+    for m in methods:
+        before = grab()
+        m["down"]()
+        after = grab()
+        if after.tobytes() != before.tobytes():
+            return m, False
+        m["up"]()                                        # 이미 맨 아래일 수도 있으니 위로도 확인
+        after = grab()
+        if after.tobytes() != before.tobytes():
+            return m, True
+    return None, False
+
+
+_proto(user32, "WindowFromPoint", wt.HWND, wt.POINT)
+_proto(user32, "GetParent", wt.HWND, wt.HWND)
+_proto(user32, "BringWindowToTop", wt.BOOL, wt.HWND)
+_proto(user32, "AttachThreadInput", wt.BOOL, wt.DWORD, wt.DWORD, wt.BOOL)
+_proto(user32, "keybd_event", None, wt.BYTE, wt.BYTE, wt.DWORD, ctypes.c_size_t)
+_proto(kernel32, "GetCurrentThreadId", wt.DWORD)
+
+
+def _force_foreground(hwnd):
+    try:
+        user32.keybd_event(0x12, 0, 0, 0)                 # Alt 한 번 눌러야 다른 창을 앞으로 가져올 수 있음
+        user32.keybd_event(0x12, 0, 2, 0)
+        fg = user32.GetForegroundWindow()
+        t1 = user32.GetWindowThreadProcessId(fg, None) if fg else 0
+        t2 = kernel32.GetCurrentThreadId()
+        if t1 and t1 != t2:
+            user32.AttachThreadInput(t2, t1, True)
+        user32.BringWindowToTop(hwnd)
+        user32.SetForegroundWindow(hwnd)
+        if t1 and t1 != t2:
+            user32.AttachThreadInput(t2, t1, False)
+    except Exception:
+        pass
+
+
 def scroll_capture(root, rect, hwnd=0):
-    """창(또는 고른 영역)을 맨 위에서 맨 아래까지 마우스 휠로 내리며 찍어 한 장으로 이어 붙임 (Esc: 중지)"""
+    """창(또는 고른 영역)을 맨 위에서 맨 아래까지 자동으로 내리며 찍어 한 장으로 이어 붙임 (Esc: 중지).
+    마우스 휠 → 창에 휠 신호 → 창에 스크롤 신호 → 키보드(PageUp/PageDown) 순으로 되는 방식을 찾아 씀"""
     x0, y0, x1, y1 = rect
     cx, cy = x0 + (x1 - x0) // 2, y0 + (y1 - y0) // 2
     if hwnd and user32.IsWindow(hwnd):
-        user32.SetForegroundWindow(hwnd)                  # 다른 창에 가려지지 않게 앞으로
-        time.sleep(0.4)
+        _force_foreground(hwnd)                            # 다른 창에 가려지지 않게 앞으로
+        time.sleep(0.5)
 
-    def wheel(notches):
-        user32.SetCursorPos(cx, cy)
-        user32.mouse_event(0x0800, 0, 0, (120 * notches) & 0xFFFFFFFF, 0)
-
-    def stable():
+    def settle():
         prev = None
-        for _ in range(10):
+        for _ in range(12):
             time.sleep(0.18)
             root.update()
             cur = grab_rect(x0, y0, x1, y1)
@@ -3067,21 +3104,67 @@ def scroll_capture(root, rect, hwnd=0):
             prev = cur
         return prev
 
-    def to_top():
+    def under():
+        return user32.WindowFromPoint(wt.POINT(cx, cy))
+
+    def wheel_real(n):
         user32.SetCursorPos(cx, cy)
-        time.sleep(0.2)
+        user32.mouse_event(0x0800, 0, 0, (120 * n) & 0xFFFFFFFF, 0)
+
+    def wheel_msg(n):
+        user32.SetCursorPos(cx, cy)
+        h = under()
+        if h:                                              # WM_MOUSEWHEEL: 휠 값(위 +) · 화면 좌표
+            user32.PostMessageW(h, 0x020A, ((120 * n) & 0xFFFF) << 16, ((cy & 0xFFFF) << 16) | (cx & 0xFFFF))
+
+    def vscroll(code):
+        h = under()
+        n = 0
+        while h and n < 6:                                 # WM_VSCROLL: 2=한 쪽 위, 3=한 쪽 아래
+            user32.PostMessageW(h, 0x0115, code, 0)
+            h = user32.GetParent(h)
+            n += 1
+
+    def key(vk, ctrl=False):
+        user32.SetCursorPos(cx, cy)
+        if ctrl:
+            user32.keybd_event(0x11, 0, 0, 0)
+        user32.keybd_event(vk, 0, 0, 0)
+        user32.keybd_event(vk, 0, 2, 0)
+        if ctrl:
+            user32.keybd_event(0x11, 0, 2, 0)
+
+    methods = [
+        {"name": "마우스 휠", "down": lambda: wheel_real(-3), "up": lambda: wheel_real(15), "home": None},
+        {"name": "창에 휠 신호", "down": lambda: wheel_msg(-3), "up": lambda: wheel_msg(15), "home": None},
+        {"name": "스크롤 신호", "down": lambda: vscroll(3), "up": lambda: vscroll(2), "home": None},
+        {"name": "키보드", "down": lambda: key(0x22), "up": lambda: key(0x21), "home": lambda: key(0x24, True)},
+    ]
+    for m in methods:                                      # 각 방식 뒤에는 화면이 가라앉기를 기다림
+        for k in ("down", "up"):
+            f = m[k]
+            m[k] = (lambda f=f: (f(), None)[1])
+    user32.SetCursorPos(cx, cy)
+    time.sleep(0.2)
+    m, at_bottom = pick_scroll_method(methods, settle)
+    if m is None:
+        return settle(), 1, "이 창은 자동 스크롤이 되지 않습니다 (스크롤 가능한 부분만 직접 드래그해서 다시 시도하거나, 관리자 권한으로 실행 중인 프로그램이면 스마트클립도 관리자 권한으로 실행해야 합니다)"
+
+    def to_top():
+        if m["home"]:
+            m["home"]()
+            settle()
         last = None
-        for _ in range(150):                             # 더 안 올라갈 때까지
-            wheel(15)
-            cur = stable()
+        for _ in range(200):                               # 더 안 올라갈 때까지
+            m["up"]()
+            cur = settle()
             if last is not None and last.tobytes() == cur.tobytes():
                 break
             last = cur
 
-    def down():
-        wheel(-3)
-
-    return scroll_stitch(stable, down, to_top, lambda: bool(user32.GetAsyncKeyState(0x1B) & 0x8000))
+    out, n, note = scroll_stitch(settle, m["down"], to_top, lambda: bool(user32.GetAsyncKeyState(0x1B) & 0x8000))
+    note = ("[%s 방식] " % m["name"]) + note
+    return out, n, note
 
 
 class App:
