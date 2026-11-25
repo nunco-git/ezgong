@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.69"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.70"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -4207,7 +4207,25 @@ if sys.platform == "win32" and struct.calcsize("P") == 8:
                 pass
             return ""
 
-        def shell_menu(paths, x, y, background_dir=None, extended=False, extras=None, verbs=None):
+        def _strip_new_folder(hm, depth=0):
+            """윈도우(압축 프로그램 확장 포함)가 넣은 '새 폴더' 항목을 메뉴·하위 메뉴에서 지움 (프로그램이 직접 처리)"""
+            n = _u32.GetMenuItemCount(hm)
+            buf = ctypes.create_unicode_buffer(256)
+            for i in range(n - 1, -1, -1):
+                try:
+                    ln = _u32.GetMenuStringW(hm, i, buf, 255, 0x400)       # MF_BYPOSITION
+                    t = buf.value.split("\t")[0].replace("&", "").strip() if ln > 0 else ""
+                    t = t.split("(")[0].strip().lower()
+                    if t in ("새 폴더", "폴더", "new folder", "folder"):
+                        _u32.DeleteMenu(hm, i, 0x400)
+                        continue
+                    sub = _u32.GetSubMenu(hm, i) if depth < 3 else None
+                    if sub:
+                        _strip_new_folder(sub, depth + 1)
+                except Exception:
+                    pass
+
+        def shell_menu(paths, x, y, background_dir=None, extended=False, extras=None, verbs=None, own_new_folder=False):
             """윈도우 탐색기의 오른쪽 클릭 메뉴를 그대로 띄우고, 고른 명령을 실행. 고른 명령이 있으면 True,
             메뉴를 못 만들면 None.  extras=[(글자, 함수)] 는 메뉴 끝에 덧붙이고, verbs={'cut':함수,...} 는
             윈도우 대신 프로그램이 직접 처리할 명령(잘라내기·복사·붙여넣기·삭제·이름 바꾸기)"""
@@ -4222,6 +4240,8 @@ if sys.platform == "win32" and struct.calcsize("P") == 8:
                                                   ctypes.c_uint], hmenu, 0, 1, 0x7FFF, flags) < 0:
                     return None
                 extra_cb = {}
+                if own_new_folder:
+                    _strip_new_folder(hmenu)
                 if extras:
                     _am = _u32.AppendMenuW
                     _am.argtypes = [ctypes.c_void_p, ctypes.c_uint, ctypes.c_size_t, ctypes.c_wchar_p]
@@ -5460,6 +5480,8 @@ class SearchPane(tk.Frame):
             verbs = {"cut": lambda: self.clip(cut=True), "copy": lambda: self.clip(cut=False),
                      "paste": self.paste, "delete": self.delete, "rename": self.rename}
             extras = []
+            if not paths:
+                extras.append(("📁 새 폴더  (Ctrl+Shift+N)", self.new_folder))
             if paths:
                 dirs = [self.hits[i]["path"] for i in self.tree.selection()
                         if i in self.hits and self.hits[i].get("is_dir") and self.hits[i].get("path")]
@@ -5475,7 +5497,8 @@ class SearchPane(tk.Frame):
                 extras.append(("경로 복사", self.copy_path))
         self.app.release_previews()
         try:
-            done = OLE_DND.shell_menu(paths, x, y, background_dir=bg, extended=extended, extras=extras, verbs=verbs)
+            done = OLE_DND.shell_menu(paths, x, y, background_dir=bg, extended=extended, extras=extras, verbs=verbs,
+                                      own_new_folder=bool(own and not paths))
         except Exception as ex:
             if own:
                 return None
