@@ -82,7 +82,7 @@ from tkinter import messagebox
 # 설정
 # ─────────────────────────────────────────────────────────────
 APP_NAME = "스마트클립"
-APP_VERSION = "1.2.0"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
+APP_VERSION = "1.2.1"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
 
 MOD_ALT, MOD_CONTROL, MOD_SHIFT, MOD_WIN, MOD_NOREPEAT = 0x1, 0x2, 0x4, 0x8, 0x4000
 HOTKEY_MODS = MOD_CONTROL | MOD_SHIFT      # 단축키 조합
@@ -2699,6 +2699,10 @@ WM_SET_CAPKEYS = 0x8000 + 4
 
 
 def default_cap_dir():
+    return os.path.join(os.path.expanduser("~"), "Downloads")
+
+
+def old_cap_dir():
     return os.path.join(os.path.expanduser("~"), "Pictures", "스마트클립 캡쳐")
 
 
@@ -3105,7 +3109,10 @@ class App:
         self.retention_var = tk.IntVar(value=int(self.settings.get("retention_days", 0)))
         self.clear_exit_var = tk.BooleanVar(value=bool(self.settings.get("clear_on_exit", False)))
         self.hotkey_var = tk.StringVar(value=HOTKEY_TEXT)
-        self.cap_dir_var = tk.StringVar(value=self.settings.get("cap_dir") or default_cap_dir())
+        _cd = self.settings.get("cap_dir")
+        if not _cd or os.path.normcase(os.path.normpath(_cd)) == os.path.normcase(old_cap_dir()):
+            _cd = default_cap_dir()                    # 1.2.0 기본값(사진 폴더)을 쓰던 분도 다운로드 폴더로
+        self.cap_dir_var = tk.StringVar(value=_cd)
         self.cap_style_var = tk.StringVar(value=self.settings.get("cap_style") if self.settings.get("cap_style") in CAP_NAME_STYLES else CAP_NAME_STYLES[0])
         self.cap_fmt_var = tk.StringVar(value=self.settings.get("cap_fmt") if self.settings.get("cap_fmt") in CAP_FORMATS else "PNG")
         self.cap_copy_var = tk.BooleanVar(value=bool(self.settings.get("cap_copy", True)))
@@ -3231,7 +3238,8 @@ class App:
         self.clear_btn2 = FlatButton(bar, "", self.clear_all, icon_name="trash",
                                      tip="최근 기록 모두 비우기\n(★ 고정 항목은 남습니다)")
         self.clear_btn2.pack(side="left", padx=(4, 0))
-        self.cap_btn = FlatButton(bar, "📷 캡쳐", self.cap_menu_popup,
+        self.cap_btn = FlatButton(bar, "📷 캡쳐", self.cap_menu_popup, bg=C_ORANGE, hover=C_ORANGE_DK,
+                                  font=(FONT_BOLD[0], FONT_BOLD[1] + 2, "bold"), padx=16, pady=7, border=C_ORANGE_DK,
                                   tip="화면 캡쳐 - 영역 · 창 · 스크롤(아래까지 이어 붙이기)\n찍으면 정한 폴더에 자동 저장됩니다")
         self.cap_btn.pack(side="left", padx=(8, 0))
         self.set_btn = FlatButton(bar, "설정", self.open_settings, icon_name="gear",
