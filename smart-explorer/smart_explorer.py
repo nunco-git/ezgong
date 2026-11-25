@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.71"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.72"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -7345,6 +7345,17 @@ def _spawn_self(args):
         return False
 
 
+def _spawn_exe(cmd):
+    env = {k: v for k, v in os.environ.items() if not k.startswith(("_MEIPASS", "_PYI"))}
+    env["PYINSTALLER_RESET_ENVIRONMENT"] = "1"
+    kw = {"creationflags": 0x00000008 | 0x00000200} if sys.platform == "win32" else {}
+    try:
+        subprocess.Popen(cmd, env=env, close_fds=True, **kw)
+        return True
+    except Exception:
+        return False
+
+
 def open_new_window(path, x=None, y=None):
     """폴더를 독립된 새 탐색기 창으로 엶. 미리 숨겨 둔 대기 창이 있으면 그것을 바로 보여 주고(즉시),
     없으면 새 프로세스를 실행(몇 초 걸림). 새 창은 트레이·알람·설정 저장을 하지 않음"""
@@ -10925,6 +10936,74 @@ class App:
         except Exception:
             pass
 
+    def auto_update(self, info, w, btn, status):
+        """새 exe 를 내려받아 현재 exe 자리에 덮어쓰기 (모든 창 종료 → 덮어쓰기 → 다시 실행)"""
+        if not getattr(sys, "frozen", False):
+            messagebox.showinfo(APP_NAME, "exe 로 실행 중일 때만 자동 업데이트가 됩니다.", parent=w)
+            return
+        exe = os.path.abspath(sys.executable)
+        base = os.path.splitext(exe)
+        new = base[0] + "_update" + base[1]
+        if not os.access(os.path.dirname(exe), os.W_OK):
+            messagebox.showwarning(APP_NAME, "이 프로그램이 있는 폴더에 쓸 수 없어 자동 업데이트를 못 합니다.\n"
+                                   "[새 버전 내려받기]로 받아 직접 바꿔 주세요.", parent=w)
+            return
+        btn.configure(state="disabled")
+        status.set("내려받는 중… (잠시만 기다려 주세요)")
+        tag = RELEASE_TAG_PREFIX + info["version"]
+        root_url = f"https://github.com/{GITHUB_REPO}/releases/download/{tag}/"
+        hdr = {"User-Agent": f"SmartExplorer/{APP_VERSION}"}
+
+        def work():
+            err = None
+            try:
+                data = net_request(root_url + "SmartExplorer.exe", headers=hdr, limit=400 * 1024 * 1024, timeout=180)
+                if len(data) < 1024 * 1024 or data[:2] != b"MZ":
+                    raise RuntimeError("내려받은 파일이 올바른 프로그램이 아닙니다.")
+                try:                                          # 공식 해시와 비교 (받을 수 있으면)
+                    sums = net_request(root_url + "SHA256SUMS.txt", headers=hdr).decode("utf-8", "ignore")
+                    want = sums.split()[0].lower()
+                    import hashlib
+                    if len(want) == 64 and hashlib.sha256(data).hexdigest() != want:
+                        raise RuntimeError("파일 검증(SHA256)에 실패했습니다. 다시 시도해 주세요.")
+                except NetHTTPError:
+                    pass
+                with open(new, "wb") as f:
+                    f.write(data)
+            except Exception as e:
+                err = net_error_text(e) if isinstance(e, (NetHTTPError, OSError)) else str(e)
+            self.root.after(0, lambda: done(err))
+
+        def done(err):
+            if err:
+                btn.configure(state="normal")
+                status.set("")
+                messagebox.showerror(APP_NAME, f"자동 업데이트에 실패했습니다.\n{err}\n\n[새 버전 내려받기]로 직접 받아 주세요.", parent=w)
+                try:
+                    os.remove(new)
+                except OSError:
+                    pass
+                return
+            if not messagebox.askyesno(APP_NAME, "새 버전을 받았습니다.\n열려 있는 스마트탐색기 창을 모두 닫고 업데이트한 뒤 "
+                                       "자동으로 다시 실행합니다.\n(설정·즐겨찾기는 그대로 이어집니다)\n\n지금 진행할까요?", parent=w):
+                status.set("받은 파일은 다음에 [자동 업데이트]를 누르면 다시 받습니다.")
+                btn.configure(state="normal")
+                try:
+                    os.remove(new)
+                except OSError:
+                    pass
+                return
+            try:
+                self.save_settings()
+            except Exception:
+                pass
+            if _spawn_exe([new, "--apply-update", exe]):
+                self.quit_app()
+            else:
+                btn.configure(state="normal")
+                messagebox.showerror(APP_NAME, "업데이트 프로그램을 실행하지 못했습니다.", parent=w)
+        threading.Thread(target=work, daemon=True).start()
+
     def show_update(self):
         info = self.update_info
         if not info:
@@ -10942,7 +11021,8 @@ class App:
             tx.insert("1.0", info["notes"])
             tx.configure(state="disabled")
             tx.pack(fill="both", expand=True)
-        ttk.Label(f, text="[새 버전 내려받기] → 받은 SmartExplorer.exe 로 바꾸는 방법\n"
+        ttk.Label(f, text="[⚡ 자동 업데이트] → 열린 창을 모두 닫고, 지금 쓰는 파일 자리에 새 버전을 덮어쓴 뒤 다시 실행합니다.\n\n"
+                          "직접 바꾸려면 [새 버전 내려받기] → 받은 SmartExplorer.exe 로 바꾸는 방법\n"
                           "  ① 스마트탐색기를 완전히 종료합니다 (오른쪽 아래 트레이 아이콘 우클릭 → 종료)\n"
                           "  ② 내려받은 SmartExplorer.exe 를 지금 쓰는 파일 자리에 덮어쓰거나 바꿔 넣습니다\n"
                           "  ③ 다시 실행합니다  (설정·즐겨찾기는 그대로 이어집니다)\n"
@@ -10960,8 +11040,13 @@ class App:
         ttk.Button(bf, text="이 버전 건너뛰기", command=skip).pack(side="right", padx=4)
         ttk.Button(bf, text="깃허브에서 보기",
                    command=lambda: (__import__("webbrowser").open(info["url"]), w.destroy())).pack(side="right", padx=4)
-        ttk.Button(bf, text="새 버전 내려받기", style="Accent.TButton",
+        ttk.Button(bf, text="새 버전 내려받기",
                    command=lambda: (__import__("webbrowser").open(DOWNLOAD_URL), w.destroy())).pack(side="right")
+        upd_status = tk.StringVar()
+        ab = ttk.Button(bf, text="⚡ 자동 업데이트", style="Accent.TButton")
+        ab.configure(command=lambda: self.auto_update(info, w, ab, upd_status))
+        ab.pack(side="right", padx=4)
+        ttk.Label(f, textvariable=upd_status, foreground="#2b6cb0").pack(anchor="w")
         center_on(w, self.root)
 
     def send_stats(self):
@@ -11536,8 +11621,72 @@ def setup_crash_log():
         pass
 
 
+def apply_update(old_exe):
+    """--apply-update <옛 exe>: 내려받은 새 exe 가 스스로 실행되어, 옛 프로그램(모든 창)을 끝내고
+    옛 파일 자리에 덮어쓴 다음 다시 실행"""
+    import shutil
+    me = os.path.abspath(sys.executable)
+    old = os.path.abspath(old_exe)
+    name = os.path.basename(old)
+    if os.path.normcase(me) == os.path.normcase(old):
+        return
+    def kill(force):
+        cmd = ["taskkill", "/T", "/IM", name] + (["/F"] if force else [])
+        try:
+            subprocess.run(cmd, capture_output=True, creationflags=0x08000000, timeout=20)
+        except Exception:
+            pass
+    kill(False)                                     # 먼저 정중히 닫기 요청 (설정 저장)
+    ok, err = False, ""
+    for n in range(60):                             # 최대 약 30초 기다리며 덮어쓰기 시도
+        if n == 8:
+            kill(True)                              # 안 꺼지면 강제 종료
+        try:
+            shutil.copyfile(me, old + ".new")
+            os.replace(old + ".new", old)
+            ok = True
+            break
+        except OSError as e:
+            err = str(e)
+            time.sleep(0.5)
+    if not ok:
+        try:
+            import ctypes
+            ctypes.windll.user32.MessageBoxW(0, f"업데이트하지 못했습니다.\n{err}\n\n새 파일: {me}\n옛 파일 자리에 직접 덮어써 주세요.",
+                                             "스마트탐색기", 0x10)
+        except Exception:
+            pass
+        return
+    try:
+        subprocess.Popen([old, "--updated"], close_fds=True, creationflags=0x00000008 | 0x00000200,
+                         env={k: v for k, v in os.environ.items() if not k.startswith(("_MEIPASS", "_PYI"))}
+                         | {"PYINSTALLER_RESET_ENVIRONMENT": "1"})
+    except Exception:
+        pass
+
+
+def cleanup_update_file():
+    """지난 업데이트 때 남은 임시 실행 파일 지우기"""
+    if not getattr(sys, "frozen", False):
+        return
+    try:
+        base = os.path.splitext(os.path.abspath(sys.executable))
+        for f in (base[0] + "_update" + base[1], sys.executable + ".new"):
+            if os.path.exists(f):
+                os.remove(f)
+    except OSError:
+        pass
+
+
 def main():
     setup_crash_log()
+    if "--apply-update" in sys.argv:
+        try:
+            apply_update(sys.argv[sys.argv.index("--apply-update") + 1])
+        except Exception:
+            pass
+        return
+    cleanup_update_file()
     if sys.platform == "win32":
         try:
             import ctypes
