@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.68"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.69"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -11457,7 +11457,64 @@ class App:
         self.root.destroy()
 
 
+CRASH_LOG = os.path.join(APP_DIR, "crash.log")
+RUN_FLAG = os.path.join(APP_DIR, f"running_{os.getpid()}.flag")
+_crash_fh = None
+
+
+def setup_crash_log():
+    """갑자기 꺼질 때 원인을 남김: 파이썬 오류는 시각·내용을, 프로그램이 통째로 죽는 심각한 오류(윈도우 기능 호출 중 등)는
+    어느 부분에서 죽었는지(스택)를 crash.log 에 기록. 이전 실행이 정상 종료되지 않았으면 그 사실도 적음"""
+    global _crash_fh
+    try:
+        os.makedirs(APP_DIR, exist_ok=True)
+        if os.path.exists(CRASH_LOG) and os.path.getsize(CRASH_LOG) > 300_000:
+            os.replace(CRASH_LOG, CRASH_LOG + ".old")
+        # 지난번 실행의 깃발이 남아 있고 그 프로세스가 없으면 = 비정상 종료
+        for n in os.listdir(APP_DIR):
+            if n.startswith("running_") and n.endswith(".flag"):
+                pid = n[8:-5]
+                alive = False
+                if pid.isdigit() and sys.platform == "win32":
+                    try:
+                        import ctypes
+                        h = ctypes.windll.kernel32.OpenProcess(0x1000, False, int(pid))
+                        if h:
+                            alive = True
+                            ctypes.windll.kernel32.CloseHandle(h)
+                    except Exception:
+                        pass
+                if not alive:
+                    with open(CRASH_LOG, "a", encoding="utf-8") as f:
+                        f.write(f"\n[{time.strftime('%Y-%m-%d %H:%M:%S')}] 이전 실행(번호 {pid})이 정상 종료되지 않았습니다 (갑자기 꺼짐)\n")
+                    try:
+                        os.remove(os.path.join(APP_DIR, n))
+                    except OSError:
+                        pass
+        open(RUN_FLAG, "w").close()
+        import atexit
+        atexit.register(lambda: os.path.exists(RUN_FLAG) and os.remove(RUN_FLAG))
+        _crash_fh = open(CRASH_LOG, "a", encoding="utf-8", buffering=1)
+        import faulthandler
+        faulthandler.enable(file=_crash_fh, all_threads=True)
+
+        def log_exc(kind, et, ev, tb):
+            import traceback
+            try:
+                with open(CRASH_LOG, "a", encoding="utf-8") as f:
+                    f.write(f"\n[{time.strftime('%Y-%m-%d %H:%M:%S')}] v{APP_VERSION} {kind}\n")
+                    f.write("".join(traceback.format_exception(et, ev, tb)))
+            except Exception:
+                pass
+        sys.excepthook = lambda et, ev, tb: log_exc("처리되지 않은 오류", et, ev, tb)
+        threading.excepthook = lambda a: log_exc(f"스레드 오류 ({a.thread.name if a.thread else ''})", a.exc_type, a.exc_value, a.exc_traceback)
+        tk.Tk.report_callback_exception = lambda self, et, ev, tb: log_exc("화면 동작 중 오류", et, ev, tb)
+    except Exception:
+        pass
+
+
 def main():
+    setup_crash_log()
     if sys.platform == "win32":
         try:
             import ctypes
