@@ -82,7 +82,7 @@ from tkinter import messagebox
 # 설정
 # ─────────────────────────────────────────────────────────────
 APP_NAME = "스마트클립"
-APP_VERSION = "1.2.4"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
+APP_VERSION = "1.2.5"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
 
 MOD_ALT, MOD_CONTROL, MOD_SHIFT, MOD_WIN, MOD_NOREPEAT = 0x1, 0x2, 0x4, 0x8, 0x4000
 HOTKEY_MODS = MOD_CONTROL | MOD_SHIFT      # 단축키 조합
@@ -3035,10 +3035,32 @@ def find_scroll_shift(ca, cb, prev=None):
     return best[1] if best else None
 
 
+def _sticky_runs(B, C, bt, bb):
+    """두 번째·세 번째 화면(둘 다 스크롤된 상태)에서 위·아래 가장자리에 붙어 움직이지 않는 부분
+    (스크롤하면 나타나는 고정 머리글·'공감/댓글' 막대 등)의 줄 수 → (위, 아래)"""
+    hB, hC = _row_hashes(B), _row_hashes(C)
+    if sum(1 for i in range(bt, bb) if hB[i] != hC[i]) < max(20, (bb - bt) * 0.3):
+        return 0, 0                                   # 더 안 내려간 화면 등: 판단하지 않음
+    ck = _row_chunks(B)
+    live = [any(v is not None for v in r) for r in ck]
+    limit = int((bb - bt) * 0.4)
+
+    def run(rng):
+        n = k = 0
+        for i in rng:
+            if hB[i] != hC[i]:
+                break
+            n += 1
+            k += 1 if live[i] else 0
+        return n if (n >= 12 and k >= 6 and n <= limit) else 0
+    return run(range(bt, bb)), run(range(bb - 1, bt - 1, -1))
+
+
 def scroll_stitch(grab, scroll_down, to_top, esc, max_steps=120, max_height=40000):
     """맨 위로 올린 뒤 아래로 내리며 찍어 한 장으로 이어 붙임.
-    움직이는 부분(본문)만 자동으로 찾아 이어 붙이고, 위쪽 고정 머리글·아래쪽 고정 바닥글은 한 번만 넣음.
-    grab()->그림, scroll_down(), to_top(), esc()->중지 눌렀나. 반환: (그림, 장수, 메시지)"""
+    움직이는 부분(본문)만 자동으로 찾아 이어 붙이고, 위쪽 고정 머리글·아래쪽 고정 바닥글(스크롤하면 나타나는
+    고정 막대 포함)은 한 번만 넣음. grab()->그림, scroll_down(), to_top(), esc()->중지 눌렀나.
+    반환: (그림, 장수, 메시지)"""
     to_top()
     A = grab()
     w, h = A.size
@@ -3051,15 +3073,29 @@ def scroll_stitch(grab, scroll_down, to_top, esc, max_steps=120, max_height=4000
     bt, bb = diff[0], diff[-1] + 1
     if bb - bt < max(40, int(h * 0.2)):
         bt, bb = 0, h                                   # 움직이는 부분을 못 찾으면 전체를 본문으로
-    bh = bb - bt
-    band_prev = A.crop((0, bt, w, bb))
-    cp = _row_chunks(band_prev)
-    parts = [band_prev]
-    total = bh
+    pending = []
+    scroll_down()
+    C = grab()
+    st, sb = _sticky_runs(B, C, bt, bb)                 # 스크롤하면 나타나는 고정 막대
+    pending.append(C)
+    bt2, bb2 = bt + st, bb - sb
+    if bb2 - bt2 < max(40, int(h * 0.2)):
+        bt2, bb2, st, sb = bt, bb, 0, 0
+    bh = bb2 - bt2
+    first = A.crop((0, bt, w, bb2))                     # 첫 화면은 위쪽부터 (고정 막대에 가리지 않은 원본)
+    cp = _row_chunks(A.crop((0, bt2, w, bb2)))
+    parts = [first]
+    total = bb2 - bt
     last_full = A
     cur_full, prev_s, note, retries = B, None, "", 0
+
+    def nxt():
+        if pending:
+            return pending.pop()
+        scroll_down()
+        return grab()
     for step in range(max_steps * 2):
-        band = cur_full.crop((0, bt, w, bb))
+        band = cur_full.crop((0, bt2, w, bb2))
         cc = _row_chunks(band)
         s = find_scroll_shift(cp, cc, prev_s)
         if s == 0:
@@ -3086,17 +3122,16 @@ def scroll_stitch(grab, scroll_down, to_top, esc, max_steps=120, max_height=4000
         if esc():
             note = "Esc로 중지했습니다"
             break
-        scroll_down()
-        cur_full = grab()
-    out = Image.new("RGB", (w, bt + total + (h - bb)))
+        cur_full = nxt()
+    out = Image.new("RGB", (w, total + bt + (h - bb2)))
     if bt:
         out.paste(A.crop((0, 0, w, bt)), (0, 0))
     y = bt
     for p in parts:
         out.paste(p, (0, y))
         y += p.size[1]
-    if h - bb:
-        out.paste(last_full.crop((0, bb, w, h)), (0, y))
+    if h - bb2:
+        out.paste(last_full.crop((0, bb2, w, h)), (0, y))
     return out, len(parts), note
 
 
