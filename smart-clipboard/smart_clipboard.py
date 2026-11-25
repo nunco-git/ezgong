@@ -82,7 +82,7 @@ from tkinter import messagebox
 # 설정
 # ─────────────────────────────────────────────────────────────
 APP_NAME = "스마트클립"
-APP_VERSION = "1.3.1"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
+APP_VERSION = "1.3.2"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
 
 MOD_ALT, MOD_CONTROL, MOD_SHIFT, MOD_WIN, MOD_NOREPEAT = 0x1, 0x2, 0x4, 0x8, 0x4000
 HOTKEY_MODS = MOD_CONTROL | MOD_SHIFT      # 단축키 조합
@@ -2839,7 +2839,7 @@ class CaptureOverlay:
         self.dim = [self.cv.create_rectangle(0, 0, 0, 0, fill="black", stipple="gray50", outline="")
                     for _ in range(4)]
         self.box = self.cv.create_rectangle(0, 0, 0, 0, outline="#F4B862", width=2)
-        self.tag = self.cv.create_text(0, 0, anchor="nw", fill="white", font=("맑은 고딕", 10, "bold"), text="")
+        self.tag = self.cv.create_text(0, 0, anchor="nw", fill="white", font=("맑은 고딕", 10, "bold"), text="", justify="left")
         self.tagbg = self.cv.create_rectangle(0, 0, 0, 0, fill="#5A3A12", outline="")
         self.cv.tag_lower(self.tagbg, self.tag)
         self.sel = None
@@ -2847,6 +2847,13 @@ class CaptureOverlay:
         hint = {"region": "캡쳐할 범위를 드래그하세요", "window": "캡쳐할 창 위에 마우스를 올리고 클릭하세요",
                 "scroll": "화면분할 캡쳐할 창을 클릭하세요 (일부분만 찍으려면 드래그)"}[mode]
         self._hint = hint + "   ·   Esc: 취소"
+        if mode == "scroll":
+            self._hint = ("【 화면분할 캡쳐 사용방법 】\n"
+                          "① 캡쳐할 창 위에 마우스를 올리고 클릭  (창 일부만 찍으려면 드래그)\n"
+                          "② 자동으로 맨 위로 올라간 뒤 맨 아래까지 스크롤하며 찍습니다\n"
+                          "     ※ 찍는 동안 마우스·키보드를 건드리지 마세요  (Esc: 중지)\n"
+                          "③ 창 높이 단위로 딱 이어지게 나눠 파일이름_01, _02… 로 저장됩니다\n"
+                          "(취소: Esc 또는 마우스 오른쪽 버튼)")
         self._set(None)
         self._label(40, 30, self._hint)
         self.cv.bind("<ButtonPress-1>", self._press)
