@@ -82,7 +82,7 @@ from tkinter import messagebox
 # 설정
 # ─────────────────────────────────────────────────────────────
 APP_NAME = "스마트클립"
-APP_VERSION = "1.2.3"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
+APP_VERSION = "1.2.4"          # 배포할 때 여기만 올리면 깃허브가 자동으로 빌드·릴리스 (태그 smartclipboard-v버전)
 
 MOD_ALT, MOD_CONTROL, MOD_SHIFT, MOD_WIN, MOD_NOREPEAT = 0x1, 0x2, 0x4, 0x8, 0x4000
 HOTKEY_MODS = MOD_CONTROL | MOD_SHIFT      # 단축키 조합
@@ -2957,33 +2957,81 @@ def _row_hashes(img, skip_right=24):
     return [hash(raw[i * stride:i * stride + keep]) for i in range(h)]
 
 
-def find_scroll_shift(ha, hb, prev=None):
-    """앞 화면(ha)을 위로 s줄 밀면 새 화면(hb) 위쪽과 겹친다 → s 반환 (못 찾으면 None, 안 움직였으면 0)"""
-    h = len(ha)
-    same = sum(1 for a, b in zip(ha, hb) if a == b)
-    if same >= h * 0.995:
+_NCH = 8
+
+
+def _row_chunks(img, skip_right=24):
+    """줄을 가로 8조각으로 나눠 조각마다 지문 (한 가지 색뿐인 빈 조각은 None).
+    움직이는 배너·고정 머리글이 있어도 나머지 조각으로 맞춰 볼 수 있게 함"""
+    w, h = img.size
+    raw = img.convert("RGB").tobytes()
+    stride = w * 3
+    usable = (w - skip_right) if w > skip_right * 3 else w
+    cw = max(1, usable // _NCH) * 3
+    rows = []
+    for i in range(h):
+        base = i * stride
+        r = []
+        for c in range(_NCH):
+            seg = raw[base + c * cw: base + (c + 1) * cw]
+            r.append(None if seg == seg[:3] * (len(seg) // 3) else hash(seg))
+        rows.append(tuple(r))
+    return rows
+
+
+def img_same(a, b, thr=0.97):
+    """두 그림이 (거의) 같은가 — 줄 단위로 thr 비율 이상 같으면 같다고 봄"""
+    if a.size != b.size:
+        return False
+    ha, hb = _row_hashes(a), _row_hashes(b)
+    return sum(1 for x, y in zip(ha, hb) if x == y) >= len(ha) * thr
+
+
+def _shift_score(ca, cb, s):
+    h = len(ca)
+    tot = ok = 0
+    for j in range(h - s):
+        for x, y in zip(ca[s + j], cb[j]):
+            if y is None:
+                continue
+            tot += 1
+            if x == y:
+                ok += 1
+    return (ok / tot) if tot >= 30 else None
+
+
+def find_scroll_shift(ca, cb, prev=None):
+    """앞 화면(ca)을 s줄 밀면 새 화면(cb) 위쪽과 겹친다 → s 반환. 안 움직였으면 0, 못 찾으면 None.
+    줄 조각 투표로 후보를 고르고, 일부(배너·머리글)가 달라도 비슷하면 인정"""
+    h = len(ca)
+    s0 = _shift_score(ca, cb, 0)
+    if s0 is not None and s0 >= 0.9:
         return 0
     idx = {}
-    for i, v in enumerate(ha):
-        idx.setdefault(v, []).append(i)
+    for i, row in enumerate(ca):
+        for v in row:
+            if v is not None:
+                idx.setdefault(v, []).append(i)
     min_ov = max(16, int(h * 0.08))
-    cands = set()
-    for k in (0, h // 8, h // 4, h // 2):
-        if k >= h:
-            continue
-        for i in idx.get(hb[k], ()):
-            s = i - k
-            if 0 < s <= h - min_ov:
-                cands.add(s)
+    votes = {}
+    for k in range(0, h, 2):
+        for v in cb[k]:
+            if v is None:
+                continue
+            lst = idx.get(v)
+            if not lst or len(lst) > 25:
+                continue
+            for i in lst:
+                sh = i - k
+                if 0 < sh <= h - min_ov:
+                    votes[sh] = votes.get(sh, 0) + 1
     best = None
-    for s in cands:
-        n = h - s
-        m = sum(1 for j in range(n) if ha[s + j] == hb[j])
-        ratio = m / n
-        if ratio >= 0.97:
-            key = (-round(ratio, 3), abs(s - prev) if prev else s)
+    for sh in sorted(votes, key=lambda x: -votes[x])[:8]:
+        sc = _shift_score(ca, cb, sh)
+        if sc is not None and sc >= 0.55:
+            key = (-round(sc, 2), abs(sh - prev) if prev else sh)
             if best is None or key < best[0]:
-                best = (key, s)
+                best = (key, sh)
     return best[1] if best else None
 
 
@@ -2999,39 +3047,47 @@ def scroll_stitch(grab, scroll_down, to_top, esc, max_steps=120, max_height=4000
     ha, hb = _row_hashes(A), _row_hashes(B)
     diff = [i for i in range(h) if ha[i] != hb[i]]
     if not diff:
-        return A, 1, "스크롤되지 않는 화면입니다 (내용이 한 화면에 다 들어오거나 마우스 휠이 안 먹는 곳)"
+        return A, 1, "스크롤되지 않는 화면입니다 (내용이 한 화면에 다 들어오거나 스크롤이 안 먹는 곳)"
     bt, bb = diff[0], diff[-1] + 1
     if bb - bt < max(40, int(h * 0.2)):
         bt, bb = 0, h                                   # 움직이는 부분을 못 찾으면 전체를 본문으로
     bh = bb - bt
     band_prev = A.crop((0, bt, w, bb))
-    hp = _row_hashes(band_prev)
+    cp = _row_chunks(band_prev)
     parts = [band_prev]
     total = bh
     last_full = A
-    cur_full, prev_s, note = B, None, ""
-    for step in range(max_steps):
+    cur_full, prev_s, note, retries = B, None, "", 0
+    for step in range(max_steps * 2):
         band = cur_full.crop((0, bt, w, bb))
-        hc = _row_hashes(band)
-        s = find_scroll_shift(hp, hc, prev_s)
+        cc = _row_chunks(band)
+        s = find_scroll_shift(cp, cc, prev_s)
         if s == 0:
-            break                                       # 더 안 내려감 = 맨 아래
+            if retries >= 2:
+                break                                   # 세 번 더 내려도 그대로 = 맨 아래
+            retries += 1
+            scroll_down()
+            scroll_down()
+            cur_full = grab()
+            continue
+        retries = 0
         if s is None:
-            note = "화면이 겹치는 곳을 찾지 못해 여기까지만 이어 붙였습니다 (움직이는 화면이 있으면 어렵습니다)"
+            note = "화면이 겹치는 곳을 찾지 못해 여기까지만 이어 붙였습니다 (움직이는 화면이 너무 많으면 어렵습니다)"
             break
         parts.append(band.crop((0, bh - s, w, bh)))
         total += s
-        prev_s, hp, last_full = s, hc, cur_full
+        prev_s, cp, last_full = s, cc, cur_full
         if total >= max_height:
             note = "너무 길어서 여기까지만 찍었습니다"
+            break
+        if len(parts) > max_steps:
+            note = "최대 길이까지 찍었습니다"
             break
         if esc():
             note = "Esc로 중지했습니다"
             break
         scroll_down()
         cur_full = grab()
-    else:
-        note = "최대 길이까지 찍었습니다"
     out = Image.new("RGB", (w, bt + total + (h - bb)))
     if bt:
         out.paste(A.crop((0, 0, w, bt)), (0, 0))
@@ -3050,11 +3106,11 @@ def pick_scroll_method(methods, grab):
         before = grab()
         m["down"]()
         after = grab()
-        if after.tobytes() != before.tobytes():
+        if not img_same(before, after, 0.9):
             return m, False
         m["up"]()                                        # 이미 맨 아래일 수도 있으니 위로도 확인
         after = grab()
-        if after.tobytes() != before.tobytes():
+        if not img_same(before, after, 0.9):
             return m, True
     return None, False
 
@@ -3095,11 +3151,11 @@ def scroll_capture(root, rect, hwnd=0):
 
     def settle():
         prev = None
-        for _ in range(12):
-            time.sleep(0.18)
+        for _ in range(7):                                 # 움직이는 배너가 있어도 '거의 같으면' 가라앉은 것으로 봄
+            time.sleep(0.2)
             root.update()
             cur = grab_rect(x0, y0, x1, y1)
-            if prev is not None and prev.tobytes() == cur.tobytes():
+            if prev is not None and img_same(prev, cur, 0.97):
                 return cur
             prev = cur
         return prev
@@ -3158,7 +3214,7 @@ def scroll_capture(root, rect, hwnd=0):
         for _ in range(200):                               # 더 안 올라갈 때까지
             m["up"]()
             cur = settle()
-            if last is not None and last.tobytes() == cur.tobytes():
+            if last is not None and img_same(last, cur, 0.8):
                 break
             last = cur
 
