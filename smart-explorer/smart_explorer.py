@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.70"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.71"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -4243,12 +4243,12 @@ if sys.platform == "win32" and struct.calcsize("P") == 8:
                 if own_new_folder:
                     _strip_new_folder(hmenu)
                 if extras:
-                    _am = _u32.AppendMenuW
-                    _am.argtypes = [ctypes.c_void_p, ctypes.c_uint, ctypes.c_size_t, ctypes.c_wchar_p]
-                    _am(hmenu, 0x800, 0, None)                       # 구분선
+                    _im = _u32.InsertMenuW                           # 스마트탐색기 메뉴는 맨 위에
+                    _im.argtypes = [ctypes.c_void_p, ctypes.c_uint, ctypes.c_uint, ctypes.c_size_t, ctypes.c_wchar_p]
                     for n, (label, fn) in enumerate(extras):
-                        _am(hmenu, 0, 0x8001 + n, label)
+                        _im(hmenu, n, 0x400, 0x8001 + n, label)      # MF_BYPOSITION | MF_STRING
                         extra_cb[0x8001 + n] = fn
+                    _im(hmenu, len(extras), 0x400 | 0x800, 0, None)  # 구분선
                 _vcall(pcm, 0, ctypes.c_long, [ctypes.c_void_p, ctypes.POINTER(ctypes.c_void_p)],
                        ctypes.byref(_O.IID_IContextMenu3), ctypes.byref(cm3))
                 if not cm3:
