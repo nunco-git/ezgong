@@ -67,7 +67,7 @@ except ImportError:
     rarfile = None
 
 APP_NAME = "스마트탐색기"
-APP_VERSION = "1.0.73"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
+APP_VERSION = "1.0.74"          # 배포할 때 여기만 올리고, 깃허브 태그는 v1.0.0 처럼 똑같이 붙임
 DOWNLOAD_URL = "https://smartgong.kr/download/smart-explorer"   # 항상 최신 버전 exe
 GITHUB_REPO = "nunco-git/ezgong"   # 새 버전 알림용 깃허브 저장소 "소유자/저장소이름". 비우면 확인 안 함
 RELEASE_TAG_PREFIX = "smartexplorer-v"   # 한 저장소에 여러 프로그램을 올려도 섞이지 않게 태그 앞에 붙이는 이름
@@ -1363,6 +1363,12 @@ def net_error_text(e):
 class Cache:
     def __init__(self, path):
         self.con = sqlite3.connect(path, check_same_thread=False)
+        try:                                   # 저장이 훨씬 빠르고, 읽는 동안에도 막히지 않게 (WAL)
+            self.con.execute("PRAGMA journal_mode=WAL")
+            self.con.execute("PRAGMA synchronous=NORMAL")
+            self.con.execute("PRAGMA cache_size=-16000")
+        except sqlite3.Error:
+            pass
         self.con.execute("CREATE TABLE IF NOT EXISTS docs(path TEXT PRIMARY KEY, mtime REAL, "
                          "size INTEGER, text BLOB, err TEXT)")
         cols = [r[1] for r in self.con.execute("PRAGMA table_info(docs)")]
@@ -5236,7 +5242,8 @@ class SearchPane(tk.Frame):
             pass
         # 둘러보기 중이면 폴더가 바뀌었는지 가끔 확인해서 자동으로 새로 고침
         self._tick += 1
-        if self._tick % 15 == 0 and self.mode == "browse" and self.cwd and self._drag is None:
+        if self._tick % 30 == 0 and self.mode == "browse" and self.cwd and self._drag is None \
+                and self._visible_now():
             sig = self._dir_sig(self.cwd)
             if sig is None and not os.path.isdir(self.cwd):
                 parent = self.cwd
@@ -5247,6 +5254,13 @@ class SearchPane(tk.Frame):
             elif sig != self._cwd_sig:
                 self.load_browse()
         self.after_id = self.after(100, self.poll)
+
+    def _visible_now(self):
+        """창이 숨겨졌거나(트레이) 최소화된 동안에는 폴더 변경 확인(네트워크 드라이브면 느림)을 건너뜀"""
+        try:
+            return self.winfo_toplevel().state() == "normal"
+        except Exception:
+            return True
 
     def add_hit(self, h):
         iid = str(len(self.hits))
@@ -8976,7 +8990,29 @@ class IdleIndexer:
             self.stop_flag.wait(5)
         return False
 
+    def _lower_priority(self):
+        """색인 스레드를 낮은 우선순위로 (화면·입력이 먼저)"""
+        if sys.platform != "win32":
+            return
+        try:
+            import ctypes
+            k = ctypes.windll.kernel32
+            k.GetCurrentThread.restype = ctypes.c_void_p
+            k.SetThreadPriority.argtypes = [ctypes.c_void_p, ctypes.c_int]
+            k.SetThreadPriority(k.GetCurrentThread(), -2)        # THREAD_PRIORITY_LOWEST
+        except Exception:
+            pass
+
+    def _breathe(self, took):
+        """한 파일을 읽은 시간에 비례해 쉼 → 화면이 끊기지 않게. 사용자가 쓰는 중이면 더 많이 쉼"""
+        try:
+            active = user_idle_seconds() < 20
+        except Exception:
+            active = True
+        time.sleep(min(2.0, max(0.01, took * (2.0 if active else 0.3))))
+
     def _loop(self):
+        self._lower_priority()
         self.force_mode = False
         self.force.wait(4)                         # 화면이 뜬 뒤 잠깐만 기다렸다가 시작 ('지금 색인'이면 바로)
         # 프로그램을 켜면 바로 한 번 색인 (윈도우 시작 때 트레이로 자동 실행된 경우는 PC를 쉴 때까지 기다림)
@@ -9030,6 +9066,7 @@ class IdleIndexer:
         need_ocr = []
 
         def read_one(path, mtime, size, use_ocr):
+            t0 = time.time()
             try:
                 text, pend = extract_text(path, use_ocr, None, self.stop_flag)
                 err = ""
@@ -9041,7 +9078,7 @@ class IdleIndexer:
             self.read += 1
             if self.read % 20 == 0:
                 cache.commit()
-            time.sleep(0.01)                       # 다른 일에 양보
+            self._breathe(time.time() - t0)        # 다른 일에 양보 (읽은 시간만큼 비례해서 쉼)
             return pend
 
         for i, (path, mtime, size) in enumerate(files):
